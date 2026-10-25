@@ -1,0 +1,63 @@
+{
+  "description": "Seven standardized checks that verify a relay site serves the model you pay for. Each run costs a few tokens; reports stay local.",
+  "labels": {
+    "accessToken": "System access token (optional)",
+    "accessTokenHint": "Access token from the site's personal-settings page; required by the billing probe",
+    "account": "Account",
+    "accountPlaceholder": "Select an account",
+    "apiKey": "API key",
+    "apiKeyHint": "sk- style key used by chat and streaming probes",
+    "billingNote": "The billing probe reads quota before/after one billed request via /api/user/self; it needs the access token and user id.",
+    "exportJson": "Copy report JSON",
+    "loadModels": "Load models",
+    "model": "Model",
+    "modelLoading": "Loading…",
+    "modelPlaceholder": "Load the model list first",
+    "run": "Run probes",
+    "userId": "User ID (optional)",
+    "userIdHint": "Numeric user id for the New-Api-User header"
+  },
+  "probes": {
+    "billing": {
+      "hint": "Reconciles the actual deduction against the expected cost",
+      "label": "Billing"
+    },
+    "cache": {
+      "hint": "Two random-code echoes to catch cached answers",
+      "label": "Cache replay"
+    },
+    "consistency": {
+      "hint": "Compares against a stored baseline to catch silent swaps",
+      "label": "Consistency"
+    },
+    "identity": {
+      "hint": "Cross-checks the self-reported model family to catch substitution",
+      "label": "Identity"
+    },
+    "injection": {
+      "hint": "Detects injected system prompts or downgrading",
+      "label": "Injection"
+    },
+    "reach": {
+      "hint": "Is the site up and how fast it answers",
+      "label": "Reachability"
+    },
+    "stream": {
+      "hint": "Time-to-first-token and chunk count to catch fake streaming",
+      "label": "Streaming"
+    },
+    "title": "Probes"
+  },
+  "results": {
+    "title": "Results"
+  },
+  "status": {
+    "copied": "Report copied to clipboard",
+    "modelsError": "Failed to load models: {{error}}",
+    "needKey": "Select an account, enter the API key, then load models.",
+    "noAccounts": "No accounts yet. Add one in Account Management first.",
+    "running": "Running…",
+    "summary": "{{pass}}/{{total}} passed"
+  },
+  "title": "Site Probing"
+}

@@ -1,0 +1,63 @@
+{
+  "description": "Siete comprobaciones estandarizadas que verifican si un sitio de retransmisión sirve el modelo que pagas. Cada ejecución cuesta pocos tokens; los informes se quedan en local.",
+  "labels": {
+    "accessToken": "Token de acceso del sistema (opcional)",
+    "accessTokenHint": "Token de la página de ajustes personales del sitio; lo necesita la prueba de facturación",
+    "account": "Cuenta",
+    "accountPlaceholder": "Selecciona una cuenta",
+    "apiKey": "Clave API",
+    "apiKeyHint": "Clave tipo sk- para las pruebas de chat y streaming",
+    "billingNote": "La prueba de facturación lee la cuota antes/después de una solicitud facturada vía /api/user/self; necesita token de acceso e ID de usuario.",
+    "exportJson": "Copiar JSON del informe",
+    "loadModels": "Cargar modelos",
+    "model": "Modelo",
+    "modelLoading": "Cargando…",
+    "modelPlaceholder": "Carga primero la lista de modelos",
+    "run": "Ejecutar pruebas",
+    "userId": "ID de usuario (opcional)",
+    "userIdHint": "ID numérico para la cabecera New-Api-User"
+  },
+  "probes": {
+    "billing": {
+      "hint": "Concilia el cargo real con el coste esperado",
+      "label": "Facturación"
+    },
+    "cache": {
+      "hint": "Dos ecos de código aleatorio detectan respuestas cacheadas",
+      "label": "Repetición de caché"
+    },
+    "consistency": {
+      "hint": "Compara con una línea base guardada para detectar cambios silenciosos",
+      "label": "Consistencia"
+    },
+    "identity": {
+      "hint": "Cruza la familia del modelo autoinformado para detectar sustitución",
+      "label": "Identidad"
+    },
+    "injection": {
+      "hint": "Detecta prompts de sistema inyectados o degradación",
+      "label": "Inyección"
+    },
+    "reach": {
+      "hint": "Si el sitio responde y con qué latencia",
+      "label": "Accesibilidad"
+    },
+    "stream": {
+      "hint": "Latencia al primer token y número de fragmentos detectan streaming falso",
+      "label": "Streaming"
+    },
+    "title": "Pruebas"
+  },
+  "results": {
+    "title": "Resultados"
+  },
+  "status": {
+    "copied": "Informe copiado al portapapeles",
+    "modelsError": "Error al cargar modelos: {{error}}",
+    "needKey": "Selecciona una cuenta, introduce la clave API y carga los modelos.",
+    "noAccounts": "Aún no hay cuentas. Añade una primero en Gestión de cuentas.",
+    "running": "Ejecutando…",
+    "summary": "{{pass}}/{{total}} correctas"
+  },
+  "title": "Inspección del sitio"
+}

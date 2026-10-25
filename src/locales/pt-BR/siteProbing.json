@@ -1,0 +1,63 @@
+{
+  "description": "Sete verificações padronizadas que confirmam se um site de relay entrega o modelo pelo qual você pagou. Cada execução custa poucos tokens; os relatórios ficam locais.",
+  "labels": {
+    "accessToken": "Token de acesso do sistema (opcional)",
+    "accessTokenHint": "Token da página de configurações pessoais do site; exigido pela sonda de cobrança",
+    "account": "Conta",
+    "accountPlaceholder": "Selecione uma conta",
+    "apiKey": "Chave de API",
+    "apiKeyHint": "Chave sk- usada pelas sondas de chat e streaming",
+    "billingNote": "A sonda de cobrança lê a cota antes/depois de uma requisição cobrada via /api/user/self; exige token de acesso e ID do usuário.",
+    "exportJson": "Copiar JSON do relatório",
+    "loadModels": "Carregar modelos",
+    "model": "Modelo",
+    "modelLoading": "Carregando…",
+    "modelPlaceholder": "Carregue a lista de modelos primeiro",
+    "run": "Executar sondas",
+    "userId": "ID do usuário (opcional)",
+    "userIdHint": "ID numérico para o cabeçalho New-Api-User"
+  },
+  "probes": {
+    "billing": {
+      "hint": "Concilia o débito real com o custo esperado",
+      "label": "Cobrança"
+    },
+    "cache": {
+      "hint": "Dois ecos de código aleatório pegam respostas em cache",
+      "label": "Replay de cache"
+    },
+    "consistency": {
+      "hint": "Compara com uma baseline salva para pegar trocas silenciosas",
+      "label": "Consistência"
+    },
+    "identity": {
+      "hint": "Cruza a família do modelo autodeclarado para pegar substituição",
+      "label": "Identidade"
+    },
+    "injection": {
+      "hint": "Detecta prompts de sistema injetados ou rebaixamento",
+      "label": "Injeção"
+    },
+    "reach": {
+      "hint": "Se o site responde e com qual latência",
+      "label": "Acessibilidade"
+    },
+    "stream": {
+      "hint": "Latência do primeiro token e número de blocos pegam streaming falso",
+      "label": "Streaming"
+    },
+    "title": "Sondas"
+  },
+  "results": {
+    "title": "Resultados"
+  },
+  "status": {
+    "copied": "Relatório copiado para a área de transferência",
+    "modelsError": "Falha ao carregar modelos: {{error}}",
+    "needKey": "Selecione uma conta, informe a chave de API e carregue os modelos.",
+    "noAccounts": "Ainda não há contas. Adicione uma primeiro no Gerenciamento de contas.",
+    "running": "Executando…",
+    "summary": "{{pass}}/{{total}} aprovadas"
+  },
+  "title": "Inspeção do site"
+}

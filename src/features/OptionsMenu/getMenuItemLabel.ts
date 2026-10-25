@@ -36,6 +36,8 @@ export function getMenuItemLabel(
         : t("ui:navigation.autoCheckin")
     case MENU_ITEM_IDS.USAGE_ANALYTICS:
       return t("ui:navigation.usageAnalytics")
+    case MENU_ITEM_IDS.SITE_PROBING:
+      return t("ui:navigation.siteProbing")
     case MENU_ITEM_IDS.BALANCE_HISTORY:
       return t("ui:navigation.balanceHistory")
     case MENU_ITEM_IDS.SITE_ANNOUNCEMENTS:

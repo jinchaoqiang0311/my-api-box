@@ -21,6 +21,7 @@ export const MENU_ITEM_IDS = {
   MANAGED_SITE_CHANNELS: "managedSiteChannels",
   MANAGED_SITE_MODEL_SYNC: "managedSiteModelSync",
   IMPORT_EXPORT: "importExport",
+  SITE_PROBING: "siteProbing",
   ABOUT: "about",
 } as const
 

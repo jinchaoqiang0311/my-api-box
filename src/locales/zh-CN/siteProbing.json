@@ -1,0 +1,63 @@
+{
+  "description": "七种标准化检测,验证中转站是否如实提供你付费的模型。每次运行消耗少量 token,报告可在本地导出。",
+  "labels": {
+    "accessToken": "系统访问令牌(可选)",
+    "accessTokenHint": "个人设置页生成的系统访问令牌,计费检测需要",
+    "account": "选择账号",
+    "accountPlaceholder": "请选择账号",
+    "apiKey": "API 密钥",
+    "apiKeyHint": "sk- 开头的密钥,用于对话与流式检测",
+    "billingNote": "计费检测通过站点 /api/user/self 读取余额前后差值,需要访问令牌与用户 ID。",
+    "exportJson": "复制报告 JSON",
+    "loadModels": "加载模型",
+    "model": "模型",
+    "modelLoading": "加载中…",
+    "modelPlaceholder": "先加载模型列表",
+    "run": "开始检测",
+    "userId": "用户 ID(可选)",
+    "userIdHint": "New-Api-User 请求头所需的数字用户 ID"
+  },
+  "probes": {
+    "billing": {
+      "hint": "实际扣费与理论扣费对账",
+      "label": "计费验真"
+    },
+    "cache": {
+      "hint": "随机码回显两次,抓缓存回放",
+      "label": "缓存命中"
+    },
+    "consistency": {
+      "hint": "与历史基线比对,抓静默换模",
+      "label": "一致性"
+    },
+    "identity": {
+      "hint": "自报模型与请求模型家族交叉核对,抓模型偷换",
+      "label": "身份指纹"
+    },
+    "injection": {
+      "hint": "检测站点是否注入系统提示或降智改造",
+      "label": "注入检测"
+    },
+    "reach": {
+      "hint": "站点是否可达、响应延迟",
+      "label": "可达性"
+    },
+    "stream": {
+      "hint": "首字延迟与分块数,抓伪流式",
+      "label": "流式质量"
+    },
+    "title": "检测项"
+  },
+  "results": {
+    "title": "检测结果"
+  },
+  "status": {
+    "copied": "报告已复制到剪贴板",
+    "modelsError": "模型加载失败:{{error}}",
+    "needKey": "请先选择账号、填写密钥并加载模型。",
+    "noAccounts": "暂无账号,请先在账号管理中添加。",
+    "running": "检测中…",
+    "summary": "{{pass}}/{{total}} 通过"
+  },
+  "title": "站点检测"
+}

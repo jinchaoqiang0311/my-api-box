@@ -1,0 +1,63 @@
+{
+  "description": "Bảy bước kiểm tra chuẩn hóa xác minh trang chuyển tiếp có thực sự cung cấp mẫu bạn đã trả tiền. Mỗi lần chạy tốn ít token; báo cáo giữ trên máy.",
+  "labels": {
+    "accessToken": "Token truy cập hệ thống (không bắt buộc)",
+    "accessTokenHint": "Token từ trang cài đặt cá nhân của trang; cần cho kiểm tra thanh toán",
+    "account": "Tài khoản",
+    "accountPlaceholder": "Chọn tài khoản",
+    "apiKey": "Khóa API",
+    "apiKeyHint": "Khóa dạng sk- dùng cho các kiểm tra chat và streaming",
+    "billingNote": "Kiểm tra thanh toán đọc hạn mức trước/sau một yêu cầu tính phí qua /api/user/self; cần token truy cập và ID người dùng.",
+    "exportJson": "Sao chép JSON báo cáo",
+    "loadModels": "Tải mô hình",
+    "model": "Mô hình",
+    "modelLoading": "Đang tải…",
+    "modelPlaceholder": "Tải danh sách mô hình trước",
+    "run": "Chạy kiểm tra",
+    "userId": "ID người dùng (không bắt buộc)",
+    "userIdHint": "ID số cho header New-Api-User"
+  },
+  "probes": {
+    "billing": {
+      "hint": "Đối chiếu số tiền trừ thực tế với chi phí lý thuyết",
+      "label": "Thanh toán"
+    },
+    "cache": {
+      "hint": "Hai lần lặp mã ngẫu nhiên phát hiện câu trả lời cached",
+      "label": "Phát lại bộ nhớ đệm"
+    },
+    "consistency": {
+      "hint": "So với baseline đã lưu để phát hiện tráo đổi ngầm",
+      "label": "Nhất quán"
+    },
+    "identity": {
+      "hint": "Đối chiếu họ mô hình tự báo để phát hiện tráo đổi",
+      "label": "Danh tính"
+    },
+    "injection": {
+      "hint": "Phát hiện system prompt bị tiêm hoặc hạ cấp",
+      "label": "Tiêm lệnh"
+    },
+    "reach": {
+      "hint": "Trang có phản hồi và độ trễ bao nhiêu",
+      "label": "Khả năng tiếp cận"
+    },
+    "stream": {
+      "hint": "Độ trễ token đầu và số khối phát hiện streaming giả",
+      "label": "Streaming"
+    },
+    "title": "Các kiểm tra"
+  },
+  "results": {
+    "title": "Kết quả"
+  },
+  "status": {
+    "copied": "Đã sao chép báo cáo vào clipboard",
+    "modelsError": "Tải mô hình thất bại: {{error}}",
+    "needKey": "Chọn tài khoản, nhập khóa API rồi tải mô hình.",
+    "noAccounts": "Chưa có tài khoản. Hãy thêm trong Quản lý tài khoản trước.",
+    "running": "Đang chạy…",
+    "summary": "{{pass}}/{{total}} đạt"
+  },
+  "title": "Kiểm tra trang"
+}

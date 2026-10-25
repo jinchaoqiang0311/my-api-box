@@ -1,0 +1,63 @@
+{
+  "description": "リレーサイトが支払ったモデルを実際に提供しているかを検証する 7 種類の標準チェック。各実行はわずかなトークンを消費し、レポートはローカルに保持されます。",
+  "labels": {
+    "accessToken": "システムアクセストークン(任意)",
+    "accessTokenHint": "サイトの個人設定ページで生成されたトークン。課金検査に必要",
+    "account": "アカウント",
+    "accountPlaceholder": "アカウントを選択",
+    "apiKey": "API キー",
+    "apiKeyHint": "チャットとストリーミング検査で使用する sk- 形式のキー",
+    "billingNote": "課金検査は /api/user/self で前後の残高差を読み取ります。アクセストークンとユーザー ID が必要です。",
+    "exportJson": "レポート JSON をコピー",
+    "loadModels": "モデル取得",
+    "model": "モデル",
+    "modelLoading": "読み込み中…",
+    "modelPlaceholder": "先にモデル一覧を読み込んでください",
+    "run": "検査を実行",
+    "userId": "ユーザー ID(任意)",
+    "userIdHint": "New-Api-User ヘッダー用の数値ユーザー ID"
+  },
+  "probes": {
+    "billing": {
+      "hint": "実際の引き去りと理論コストの照合",
+      "label": "課金"
+    },
+    "cache": {
+      "hint": "ランダムコードの反復でキャッシュ再生を検出",
+      "label": "キャッシュ"
+    },
+    "consistency": {
+      "hint": "保存済みベースラインと比較し無断入れ替えを検出",
+      "label": "一貫性"
+    },
+    "identity": {
+      "hint": "自己申告モデルと要求モデルのファミリー照合で入れ替えを検出",
+      "label": "識別"
+    },
+    "injection": {
+      "hint": "システムプロンプト注入や劣化改変を検出",
+      "label": "注入"
+    },
+    "reach": {
+      "hint": "サイトが応答するかと遅延",
+      "label": "到達性"
+    },
+    "stream": {
+      "hint": "初頭遅延とチャンク数で偽ストリーミングを検出",
+      "label": "ストリーミング"
+    },
+    "title": "検査項目"
+  },
+  "results": {
+    "title": "結果"
+  },
+  "status": {
+    "copied": "レポートをクリップボードにコピーしました",
+    "modelsError": "モデル取得に失敗:{{error}}",
+    "needKey": "アカウントを選択し、API キーを入力してモデルを取得してください。",
+    "noAccounts": "アカウントがありません。先にアカウント管理で追加してください。",
+    "running": "実行中…",
+    "summary": "{{pass}}/{{total}} 合格"
+  },
+  "title": "サイト検査"
+}

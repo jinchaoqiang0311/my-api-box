@@ -25,6 +25,7 @@ const OPTIONS_PAGE_HEADINGS = {
   [MENU_ITEM_IDS.BOOKMARK]: "Bookmark Management",
   [MENU_ITEM_IDS.AUTO_CHECKIN]: /^(Auto Check-in|Batch Check-in)$/,
   [MENU_ITEM_IDS.USAGE_ANALYTICS]: "Usage Analytics",
+  [MENU_ITEM_IDS.SITE_PROBING]: "Site Probing",
   [MENU_ITEM_IDS.BALANCE_HISTORY]: "Balance History",
   [MENU_ITEM_IDS.SITE_ANNOUNCEMENTS]: "Site Announcements",
   [MENU_ITEM_IDS.MODELS]: "Model List",

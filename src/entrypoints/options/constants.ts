@@ -52,6 +52,7 @@ const ModelList = createLazyMenuComponent(() => import("./pages/ModelList"))
 const UsageAnalytics = createLazyMenuComponent(
   () => import("./pages/UsageAnalytics"),
 )
+const SiteProbing = createLazyMenuComponent(() => import("./pages/SiteProbing"))
 
 // 菜单项类型定义
 interface MenuItem {
@@ -73,6 +74,7 @@ const BASE_MENU_COMPONENTS = {
   [MENU_ITEM_IDS.SITE_ANNOUNCEMENTS]: SiteAnnouncements,
   [MENU_ITEM_IDS.BALANCE_HISTORY]: BalanceHistory,
   [MENU_ITEM_IDS.USAGE_ANALYTICS]: UsageAnalytics,
+  [MENU_ITEM_IDS.SITE_PROBING]: SiteProbing,
   [MENU_ITEM_IDS.MANAGED_SITE_CHANNELS]: ManagedSiteChannels,
   [MENU_ITEM_IDS.MANAGED_SITE_MODEL_SYNC]: ManagedSiteModelSync,
   [MENU_ITEM_IDS.BASIC]: BasicSettings,

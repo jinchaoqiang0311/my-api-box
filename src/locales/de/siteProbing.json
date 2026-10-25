@@ -1,0 +1,63 @@
+{
+  "description": "Sieben standardisierte Checks, die verifizieren, ob eine Relay-Site das gebuchte Modell tatsächlich liefert. Jeder Lauf kostet wenige Tokens; Berichte bleiben lokal.",
+  "labels": {
+    "accessToken": "System-Zugriffstoken (optional)",
+    "accessTokenHint": "Token aus den persönlichen Einstellungen der Site; für die Abrechnungsprüfung nötig",
+    "account": "Konto",
+    "accountPlaceholder": "Konto auswählen",
+    "apiKey": "API-Schlüssel",
+    "apiKeyHint": "sk- Schlüssel für Chat- und Streaming-Prüfungen",
+    "billingNote": "Die Abrechnungsprüfung liest das Guthaben vor/nach einer abgerechneten Anfrage über /api/user/self; Zugangstoken und Benutzer-ID sind erforderlich.",
+    "exportJson": "Bericht-JSON kopieren",
+    "loadModels": "Modelle laden",
+    "model": "Modell",
+    "modelLoading": "Lädt…",
+    "modelPlaceholder": "Zuerst Modellliste laden",
+    "run": "Prüfungen starten",
+    "userId": "Benutzer-ID (optional)",
+    "userIdHint": "Numerische Benutzer-ID für den New-Api-User-Header"
+  },
+  "probes": {
+    "billing": {
+      "hint": "Gleicht die tatsächliche Abbuchung mit den erwarteten Kosten ab",
+      "label": "Abrechnung"
+    },
+    "cache": {
+      "hint": "Zwei Zufallscode-Echos erkennen zwischengespeicherte Antworten",
+      "label": "Cache-Replay"
+    },
+    "consistency": {
+      "hint": "Vergleicht mit einer gespeicherten Baseline, um stille Austausche zu erkennen",
+      "label": "Konsistenz"
+    },
+    "identity": {
+      "hint": "Gleicht die selbstgemeldete Modellfamilie ab, um Austausch zu erkennen",
+      "label": "Identität"
+    },
+    "injection": {
+      "hint": "Erkennt injizierte System-Prompts oder Downgrading",
+      "label": "Injection"
+    },
+    "reach": {
+      "hint": "Ist die Site erreichbar und wie schnell sie antwortet",
+      "label": "Erreichbarkeit"
+    },
+    "stream": {
+      "hint": "Time-to-first-token und Chunk-Anzahl erkennen Fake-Streaming",
+      "label": "Streaming"
+    },
+    "title": "Prüfungen"
+  },
+  "results": {
+    "title": "Ergebnisse"
+  },
+  "status": {
+    "copied": "Bericht in die Zwischenablage kopiert",
+    "modelsError": "Modelle konnten nicht geladen werden: {{error}}",
+    "needKey": "Konto auswählen, API-Schlüssel eingeben, dann Modelle laden.",
+    "noAccounts": "Noch keine Konten. Bitte zuerst in der Kontoverwaltung hinzufügen.",
+    "running": "Läuft…",
+    "summary": "{{pass}}/{{total}} bestanden"
+  },
+  "title": "Site-Prüfung"
+}

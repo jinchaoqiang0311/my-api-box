@@ -1,0 +1,63 @@
+{
+  "description": "七種標準化檢測,驗證中轉站是否如實提供你付費的模型。每次運行消耗少量 token,報告可在本地匯出。",
+  "labels": {
+    "accessToken": "系統存取權杖(可選)",
+    "accessTokenHint": "個人設定頁產生的系統存取權杖,計費檢測需要",
+    "account": "選擇帳號",
+    "accountPlaceholder": "請選擇帳號",
+    "apiKey": "API 金鑰",
+    "apiKeyHint": "sk- 開頭的金鑰,用於對話與串流檢測",
+    "billingNote": "計費檢測透過站點 /api/user/self 讀取餘額前後差值,需要存取權杖與使用者 ID。",
+    "exportJson": "複製報告 JSON",
+    "loadModels": "載入模型",
+    "model": "模型",
+    "modelLoading": "載入中…",
+    "modelPlaceholder": "先載入模型列表",
+    "run": "開始檢測",
+    "userId": "使用者 ID(可選)",
+    "userIdHint": "New-Api-User 請求頭所需的數字使用者 ID"
+  },
+  "probes": {
+    "billing": {
+      "hint": "實際扣費與理論扣費對帳",
+      "label": "計費驗真"
+    },
+    "cache": {
+      "hint": "隨機碼回顯兩次,抓快取回放",
+      "label": "快取命中"
+    },
+    "consistency": {
+      "hint": "與歷史基線比對,抓靜默換模",
+      "label": "一致性"
+    },
+    "identity": {
+      "hint": "自報模型與請求模型家族交叉核對,抓模型偷換",
+      "label": "身分指紋"
+    },
+    "injection": {
+      "hint": "檢測站點是否注入系統提示或降智改造",
+      "label": "注入檢測"
+    },
+    "reach": {
+      "hint": "站點是否可達、回應延遲",
+      "label": "可達性"
+    },
+    "stream": {
+      "hint": "首字延遲與分塊數,抓偽串流",
+      "label": "串流品質"
+    },
+    "title": "檢測項"
+  },
+  "results": {
+    "title": "檢測結果"
+  },
+  "status": {
+    "copied": "報告已複製到剪貼簿",
+    "modelsError": "模型加载失败:{{error}}",
+    "needKey": "請先選擇帳號、填寫金鑰並載入模型。",
+    "noAccounts": "暫無帳號,請先在帳號管理中新增。",
+    "running": "检测中…",
+    "summary": "{{pass}}/{{total}} 通过"
+  },
+  "title": "站點檢測"
+}
