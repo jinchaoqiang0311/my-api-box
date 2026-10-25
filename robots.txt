@@ -1,1 +1,1 @@
-Sitemap: https://all-api-hub.qixing1217.top/sitemap.xml
+Sitemap: https://jinchaoqiang0311.github.io/my-api-box/sitemap.xml
