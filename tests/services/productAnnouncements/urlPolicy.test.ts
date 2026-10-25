@@ -7,24 +7,24 @@ describe("product announcement CTA URL policy", () => {
     expect(
       sanitizeProductAnnouncementCta({
         label: "View release",
-        url: "https://github.com/qixing-jk/all-api-hub/releases/tag/v3.44.1",
+        url: "https://github.com/jinchaoqiang0311/my-api-box/releases/tag/v3.44.1",
       }),
     ).toEqual({
       kind: "external",
       label: "View release",
-      url: "https://github.com/qixing-jk/all-api-hub/releases/tag/v3.44.1",
+      url: "https://github.com/jinchaoqiang0311/my-api-box/releases/tag/v3.44.1",
     })
 
     expect(
       sanitizeProductAnnouncementCta({
         kind: "external",
         label: "Read docs",
-        url: "https://all-api-hub.qixing1217.top/changelog.html",
+        url: "https://jinchaoqiang0311.github.io/my-api-box/changelog.html",
       }),
     ).toEqual({
       kind: "external",
       label: "Read docs",
-      url: "https://all-api-hub.qixing1217.top/changelog.html",
+      url: "https://jinchaoqiang0311.github.io/my-api-box/changelog.html",
     })
   })
 
@@ -44,7 +44,7 @@ describe("product announcement CTA URL policy", () => {
 
   it("drops extension links that escape to another URL scheme or origin", () => {
     for (const url of [
-      "https://all-api-hub.qixing1217.top/options.html",
+      "https://jinchaoqiang0311.github.io/my-api-box/options.html",
       "javascript:alert(1)",
       "//example.invalid/options.html",
       "\\\\example.invalid/options.html",
@@ -66,7 +66,7 @@ describe("product announcement CTA URL policy", () => {
       sanitizeProductAnnouncementCta({
         kind: "command",
         label: "Run",
-        url: "https://github.com/qixing-jk/all-api-hub/releases",
+        url: "https://github.com/jinchaoqiang0311/my-api-box/releases",
       }),
     ).toBeNull()
   })
@@ -87,7 +87,7 @@ describe("product announcement CTA URL policy", () => {
     expect(
       sanitizeProductAnnouncementCta({
         label: "",
-        url: "https://github.com/qixing-jk/all-api-hub",
+        url: "https://github.com/jinchaoqiang0311/my-api-box",
       }),
     ).toBeNull()
     expect(
@@ -108,12 +108,12 @@ describe("product announcement CTA URL policy", () => {
     expect(
       sanitizeProductAnnouncementCta({
         label: "  Read changelog  ",
-        url: "  https://all-api-hub.qixing1217.top/changelog.html?version=3.44.1#latest  ",
+        url: "  https://jinchaoqiang0311.github.io/my-api-box/changelog.html?version=3.44.1#latest  ",
       }),
     ).toEqual({
       kind: "external",
       label: "Read changelog",
-      url: "https://all-api-hub.qixing1217.top/changelog.html?version=3.44.1#latest",
+      url: "https://jinchaoqiang0311.github.io/my-api-box/changelog.html?version=3.44.1#latest",
     })
   })
 })

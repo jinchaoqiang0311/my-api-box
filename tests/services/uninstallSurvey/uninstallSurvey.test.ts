@@ -7,7 +7,8 @@ import { setUninstallUrl } from "~/utils/browser/runtime"
 import { isDevBuild, isTestMode } from "~/utils/core/environment"
 import { atIndex } from "~~/tests/test-utils/indexedAccess"
 
-const SURVEY_PAGE_URL = "https://all-api-hub.qixing1217.top/uninstall.html"
+const SURVEY_PAGE_URL =
+  "https://jinchaoqiang0311.github.io/my-api-box/uninstall.html"
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /**

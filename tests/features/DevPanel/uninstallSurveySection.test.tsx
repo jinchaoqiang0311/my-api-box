@@ -23,7 +23,8 @@ const {
   windowOpenMock: vi.fn(),
   toastSuccessMock: vi.fn(),
   toastErrorMock: vi.fn(),
-  REMOTE_SURVEY_PAGE_URL: "https://all-api-hub.qixing1217.top/uninstall.html",
+  REMOTE_SURVEY_PAGE_URL:
+    "https://jinchaoqiang0311.github.io/my-api-box/uninstall.html",
   LOCAL_SURVEY_PAGE_URL: "http://localhost:8080/uninstall.html",
   TARGET_STORAGE_KEY: "aah-dev:uninstall-survey-target",
 }))

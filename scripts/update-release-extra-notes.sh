@@ -4,7 +4,7 @@ set -euo pipefail
 
 RELEASE_TAG="${1:-${RELEASE_TAG:-}}"
 REPOSITORY="${GH_REPO:-${GITHUB_REPOSITORY:-}}"
-DOCS_BASE_URL="${DOCS_BASE_URL:-https://all-api-hub.qixing1217.top}"
+DOCS_BASE_URL="${DOCS_BASE_URL:-https://jinchaoqiang0311.github.io/my-api-box}"
 
 if [ -z "$RELEASE_TAG" ]; then
   echo "RELEASE_TAG is required." >&2

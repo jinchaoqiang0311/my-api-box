@@ -122,29 +122,30 @@ describe("packageMeta", () => {
       homepage.hash = "community"
 
       expect(getFeedbackDestinationUrls()).toEqual({
-        repository: "https://github.com/qixing-jk/all-api-hub",
+        repository: "https://github.com/jinchaoqiang0311/my-api-box",
         bugReport:
-          "https://github.com/qixing-jk/all-api-hub/issues/new?template=bug_report.yml",
+          "https://github.com/jinchaoqiang0311/my-api-box/issues/new?template=bug_report.yml",
         featureRequest:
-          "https://github.com/qixing-jk/all-api-hub/issues/new?template=feature_request.yml",
+          "https://github.com/jinchaoqiang0311/my-api-box/issues/new?template=feature_request.yml",
         languageRequest:
-          "https://github.com/qixing-jk/all-api-hub/issues/new?template=language_request.yml",
+          "https://github.com/jinchaoqiang0311/my-api-box/issues/new?template=language_request.yml",
         siteSupportRequest:
-          "https://github.com/qixing-jk/all-api-hub/issues/new?template=site_support_request.yml",
-        discussions: "https://github.com/qixing-jk/all-api-hub/discussions",
+          "https://github.com/jinchaoqiang0311/my-api-box/issues/new?template=site_support_request.yml",
+        discussions:
+          "https://github.com/jinchaoqiang0311/my-api-box/discussions",
         community: homepage.toString(),
       })
     })
 
     it("builds locale-aware community destinations", () => {
       expect(getFeedbackDestinationUrls("en").community).toBe(
-        "https://all-api-hub.qixing1217.top/en/#community",
+        "https://jinchaoqiang0311.github.io/my-api-box/en/#community",
       )
       expect(getFeedbackDestinationUrls("ja").community).toBe(
-        "https://all-api-hub.qixing1217.top/ja/#community",
+        "https://jinchaoqiang0311.github.io/my-api-box/ja/#community",
       )
       expect(getFeedbackDestinationUrls("zh-CN").community).toBe(
-        "https://all-api-hub.qixing1217.top/#community",
+        "https://jinchaoqiang0311.github.io/my-api-box/#community",
       )
     })
 
@@ -193,7 +194,7 @@ describe("packageMeta", () => {
       const url = new URL(destination)
 
       expect(`${url.origin}${url.pathname}`).toBe(
-        "https://github.com/qixing-jk/all-api-hub/issues/new",
+        "https://github.com/jinchaoqiang0311/my-api-box/issues/new",
       )
       expect(url.searchParams.get("template")).toBe("site_support_request.yml")
       expect(url.searchParams.get("title")).toBe(

@@ -2,11 +2,11 @@
 
 **Last updated:** October 17, 2026
 
-[简体中文](https://all-api-hub.qixing1217.top/privacy.html) | [English](https://all-api-hub.qixing1217.top/en/privacy.html) | [日本語](https://all-api-hub.qixing1217.top/ja/privacy.html)
+[简体中文](https://jinchaoqiang0311.github.io/my-api-box/privacy.html) | [English](https://jinchaoqiang0311.github.io/my-api-box/en/privacy.html) | [日本語](https://jinchaoqiang0311.github.io/my-api-box/ja/privacy.html)
 
 ## Scope and developer
 
-This policy covers the My API Box browser extension and its uninstall feedback page. My API Box is maintained by the [qixing-jk/all-api-hub open-source project](https://github.com/qixing-jk/all-api-hub). “We” means the project developers. API platforms, sync services and other third-party services you configure are operated by their respective providers.
+This policy covers the My API Box browser extension and its uninstall feedback page. My API Box is maintained by the [my-api-box open-source project](https://github.com/jinchaoqiang0311/my-api-box). “We” means the project developers. API platforms, sync services and other third-party services you configure are operated by their respective providers.
 
 **The extension accesses, uses and stores user data needed for its features, including sensitive authentication information. Local storage does not mean that no data is processed.** Account credentials are not uploaded to us as product analytics. However, account operations require the extension to send authentication information to the corresponding service. Product analytics, enabled by default, and feedback you submit are sent to PostHog for developer analysis, as described below.
 
@@ -36,7 +36,7 @@ Product analytics is **enabled by default** in distributed builds configured wit
 
 ### Uninstall feedback
 
-On uninstall, your browser may open our [uninstall feedback page](https://all-api-hub.qixing1217.top/uninstall.html). Its URL contains the extension version, days since installation and language. Only while analytics is enabled does it include the installation analytics ID and send a page-open event linking the uninstall to earlier usage. With analytics disabled, that ID is omitted and no page-open event is sent; loading the page still makes a network request to its hosting service.
+On uninstall, your browser may open our [uninstall feedback page](https://jinchaoqiang0311.github.io/my-api-box/uninstall.html). Its URL contains the extension version, days since installation and language. Only while analytics is enabled does it include the installation analytics ID and send a page-open event linking the uninstall to earlier usage. With analytics disabled, that ID is omitted and no page-open event is sent; loading the page still makes a network request to its hosting service.
 
 After you choose a reason and submit, the selected reason, any comment you enter (up to 500 characters), and the version and related context described above are sent to the same PostHog project for developers to view. **Submitting feedback sends these details even if product analytics is disabled**, without linking to the earlier installation analytics ID. Do not include passwords, API keys or other sensitive information in comments.
 
@@ -84,4 +84,4 @@ My API Box's use and transfer of user data obtained through browser APIs complie
 
 We will update this page and its “Last updated” date when the policy changes. Changes requiring additional disclosure or consent will be addressed in the product as applicable. Updating this policy does not replace any required authorization.
 
-For privacy questions or data requests, contact the [GitHub project maintainer](https://github.com/qixing-jk) or [project issues](https://github.com/qixing-jk/all-api-hub/issues). Issues are public: do not attach API keys, passwords, full backups or sensitive personal information. If your request needs private handling, first ask the maintainer for an available private communication channel.
+For privacy questions or data requests, contact the [GitHub project maintainer](https://github.com/qixing-jk) or [project issues](https://github.com/jinchaoqiang0311/my-api-box/issues). Issues are public: do not attach API keys, passwords, full backups or sensitive personal information. If your request needs private handling, first ask the maintainer for an available private communication channel.

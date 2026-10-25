@@ -2,11 +2,11 @@
 
 **最后更新日期：** 2026 年 10 月 17 日
 
-[简体中文](https://all-api-hub.qixing1217.top/privacy.html) | [English](https://all-api-hub.qixing1217.top/en/privacy.html) | [日本語](https://all-api-hub.qixing1217.top/ja/privacy.html)
+[简体中文](https://jinchaoqiang0311.github.io/my-api-box/privacy.html) | [English](https://jinchaoqiang0311.github.io/my-api-box/en/privacy.html) | [日本語](https://jinchaoqiang0311.github.io/my-api-box/ja/privacy.html)
 
 ## 适用范围与开发者
 
-本政策适用于 My API Box 浏览器扩展及其卸载反馈页面。My API Box 由 [qixing-jk/all-api-hub 开源项目](https://github.com/qixing-jk/all-api-hub)维护，下文的“我们”指项目开发者。您配置的 API 平台、同步服务和其他第三方服务由各自的运营者提供。
+本政策适用于 My API Box 浏览器扩展及其卸载反馈页面。My API Box 由 [qixing-jk/all-api-hub 开源项目](https://github.com/jinchaoqiang0311/my-api-box)维护，下文的“我们”指项目开发者。您配置的 API 平台、同步服务和其他第三方服务由各自的运营者提供。
 
 **扩展会读取、使用和存储实现功能所需的用户数据，包括敏感认证信息。默认本地保存不代表没有数据处理。** 账户凭据不会作为产品统计上传给我们；但执行账户操作时，扩展需要将认证信息发送给对应的服务。默认开启的产品统计和您主动提交的反馈会发送至 PostHog，供开发者分析。具体范围如下。
 
@@ -36,7 +36,7 @@
 
 ### 卸载反馈
 
-卸载时，浏览器可能打开我们的[卸载反馈页面](https://all-api-hub.qixing1217.top/uninstall.html)。页面地址携带扩展版本、安装天数和语言；仅在统计开启时附带安装统计 ID，并发送页面打开事件，以关联卸载前的使用情况。统计关闭时不携带该 ID，也不发送该页面打开事件；但加载页面仍会向网站托管服务发出网络请求。
+卸载时，浏览器可能打开我们的[卸载反馈页面](https://jinchaoqiang0311.github.io/my-api-box/uninstall.html)。页面地址携带扩展版本、安装天数和语言；仅在统计开启时附带安装统计 ID，并发送页面打开事件，以关联卸载前的使用情况。统计关闭时不携带该 ID，也不发送该页面打开事件；但加载页面仍会向网站托管服务发出网络请求。
 
 选择原因并点击提交后，您选择的原因、主动填写的说明（最多 500 个字符）和上述版本等上下文会发送到同一个 PostHog 项目，供开发者查看。**即使已关闭产品统计，主动提交反馈仍会发送这些内容**，但不关联之前的安装统计 ID。请勿在说明中填写密码、API Key 或其他敏感信息。
 
@@ -84,4 +84,4 @@ My API Box 对通过浏览器 API 获取的用户数据的使用和传输遵守 
 
 我们会在本页更新政策及“最后更新日期”。需要额外披露或同意的数据处理变更，将按适用要求在产品中说明；本政策的更新本身不代替所需的授权。
 
-如有隐私问题或数据请求，请通过 [GitHub 项目维护者](https://github.com/qixing-jk)或[项目 Issue](https://github.com/qixing-jk/all-api-hub/issues)联系。Issue 是公开的，请勿附上 API Key、密码、完整备份或敏感个人信息；需要非公开处理时，请先询问维护者可用的私密沟通渠道。
+如有隐私问题或数据请求，请通过 [GitHub 项目维护者](https://github.com/qixing-jk)或[项目 Issue](https://github.com/jinchaoqiang0311/my-api-box/issues)联系。Issue 是公开的，请勿附上 API Key、密码、完整备份或敏感个人信息；需要非公开处理时，请先询问维护者可用的私密沟通渠道。

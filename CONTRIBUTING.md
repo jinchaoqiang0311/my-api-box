@@ -528,8 +528,8 @@ Consult the focused guides for [product and UI conventions](docs/agents/product.
 
 If you have questions or need help:
 
-- Check the [documentation](https://all-api-hub.qixing1217.top/)
-- Review [existing issues](https://github.com/qixing-jk/all-api-hub/issues)
+- Check the [documentation](https://jinchaoqiang0311.github.io/my-api-box/)
+- Review [existing issues](https://github.com/jinchaoqiang0311/my-api-box/issues)
 - Open a new issue with your question
 
 Thank you for contributing! 🎉

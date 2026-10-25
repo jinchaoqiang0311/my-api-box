@@ -3,7 +3,7 @@ import { sitemapPlugin } from "@vuepress/plugin-sitemap"
 import { defaultTheme } from "@vuepress/theme-default"
 import { defineUserConfig } from "vuepress"
 
-const sitemapHostname = process.env.DOCS_HOSTNAME ?? "https://all-api-hub.qixing1217.top"
+const sitemapHostname = process.env.DOCS_HOSTNAME ?? "https://jinchaoqiang0311.github.io/my-api-box"
 
 export default defineUserConfig({
   base: "/",
