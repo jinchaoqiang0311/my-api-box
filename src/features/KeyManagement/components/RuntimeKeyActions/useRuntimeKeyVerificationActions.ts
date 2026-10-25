@@ -1,0 +1,234 @@
+import type { Dispatch, RefObject, SetStateAction } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { normalizeAccountSiteProfileUrlForManagedChannel } from "~/services/accounts/accountSiteProfile/urls"
+import type { AccountRuntimeKey } from "~/services/accounts/keys/accountRuntimeKeys"
+import { resolveDisplayAccountRuntimeKeySecret } from "~/services/accounts/utils/apiServiceRequest"
+import { buildApiCredentialProfileName } from "~/services/apiCredentialProfiles/accountImport/accountTokenProfileName"
+import { startProductAnalyticsAction } from "~/services/productAnalytics/actions"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+  type ProductAnalyticsActionId,
+} from "~/services/productAnalytics/contracts"
+import { API_TYPES } from "~/services/verification/aiApiVerification"
+import { toSanitizedErrorSummary } from "~/services/verification/aiApiVerification/utils"
+import type { DisplaySiteData } from "~/types"
+import type { ApiCredentialProfile } from "~/types/apiCredentialProfiles"
+import { createLogger } from "~/utils/core/logger"
+import { showResultToast } from "~/utils/feedback/operationFeedback"
+
+const logger = createLogger("RuntimeKeyVerificationActions")
+
+interface VerificationAction {
+  actionId: ProductAnalyticsActionId
+  epochRef: RefObject<number>
+  getFailureMessage: () => string
+  logMessage: string
+  setProfile: Dispatch<SetStateAction<ApiCredentialProfile | null>>
+}
+
+interface UseRuntimeKeyVerificationActionsParams {
+  account: DisplaySiteData
+  enabled: boolean
+  runtimeKey: AccountRuntimeKey
+  /** Pre-resolved profile uses its original identity and an immutable opening snapshot. */
+  credentialProfile?: ApiCredentialProfile
+}
+
+/** Builds the temporary credential profile consumed by verification dialogs. */
+function buildTransientVerificationProfile(
+  account: DisplaySiteData,
+  runtimeKey: AccountRuntimeKey,
+  resolvedKey: AccountRuntimeKey,
+): ApiCredentialProfile {
+  const now = Date.now()
+
+  return {
+    id: `runtime-key:${runtimeKey.id}`,
+    name: buildApiCredentialProfileName({
+      accountName: account.name,
+      fallbackAccountName: runtimeKey.accountName,
+      tokenName: runtimeKey.label,
+    }),
+    apiType: API_TYPES.OPENAI_COMPATIBLE,
+    baseUrl: normalizeAccountSiteProfileUrlForManagedChannel({
+      siteType: account.siteType,
+      url: account.baseUrl,
+    }),
+    apiKey: resolvedKey.secret,
+    tagIds: account.tagIds ?? [],
+    notes: "",
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+/** Owns runtime secret resolution and stale-request protection for verification dialogs. */
+export function useRuntimeKeyVerificationActions({
+  account,
+  enabled,
+  runtimeKey,
+  credentialProfile,
+}: UseRuntimeKeyVerificationActionsParams) {
+  const { t } = useTranslation("keyManagement")
+  const verificationAllowedRef = useRef(false)
+  const verificationGenerationRef = useRef<symbol | null>(null)
+  const apiVerificationEpochRef = useRef(0)
+  const cliVerificationEpochRef = useRef(0)
+  const [verifyingProfile, setVerifyingProfile] =
+    useState<ApiCredentialProfile | null>(null)
+  const [cliVerifyingProfile, setCliVerifyingProfile] =
+    useState<ApiCredentialProfile | null>(null)
+
+  useLayoutEffect(() => {
+    const verificationGeneration = Symbol("runtimeKey-verification-generation")
+    verificationGenerationRef.current = verificationGeneration
+    verificationAllowedRef.current = enabled
+    if (!credentialProfile) {
+      setVerifyingProfile(null)
+      setCliVerifyingProfile(null)
+    }
+
+    return () => {
+      if (verificationGenerationRef.current === verificationGeneration) {
+        verificationGenerationRef.current = null
+      }
+      verificationAllowedRef.current = false
+      apiVerificationEpochRef.current += 1
+      cliVerificationEpochRef.current += 1
+    }
+  }, [
+    enabled,
+    account.authType,
+    account.baseUrl,
+    account.cookieAuthSessionCookie,
+    account.id,
+    account.siteType,
+    account.token,
+    account.userId,
+    runtimeKey.accountId,
+    runtimeKey.id,
+    runtimeKey.secret,
+    credentialProfile,
+  ])
+
+  const isRequestCurrent = (
+    verificationGeneration: symbol | null,
+    verificationEpoch: number,
+    currentVerificationEpoch: number,
+  ) =>
+    verificationGeneration !== null &&
+    verificationAllowedRef.current &&
+    verificationGenerationRef.current === verificationGeneration &&
+    verificationEpoch === currentVerificationEpoch
+
+  const handleVerification = async ({
+    actionId,
+    epochRef,
+    getFailureMessage,
+    logMessage,
+    setProfile,
+  }: VerificationAction) => {
+    if (credentialProfile) {
+      setProfile(credentialProfile)
+      return
+    }
+    const verificationGeneration = verificationGenerationRef.current
+    const verificationEpoch = ++epochRef.current
+    const tracker = startProductAnalyticsAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.KeyManagement,
+      actionId,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsKeyManagementRowActions,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    let resolvedKey = runtimeKey
+
+    try {
+      resolvedKey = await resolveDisplayAccountRuntimeKeySecret(
+        account,
+        runtimeKey,
+      )
+      if (
+        !isRequestCurrent(
+          verificationGeneration,
+          verificationEpoch,
+          epochRef.current,
+        )
+      ) {
+        tracker.complete(PRODUCT_ANALYTICS_RESULTS.Cancelled, {
+          diagnostics: { execution: { staleResponseIgnored: true } },
+        })
+        return
+      }
+      setProfile(
+        buildTransientVerificationProfile(account, runtimeKey, resolvedKey),
+      )
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Success)
+    } catch (error) {
+      if (
+        !isRequestCurrent(
+          verificationGeneration,
+          verificationEpoch,
+          epochRef.current,
+        )
+      ) {
+        tracker.complete(PRODUCT_ANALYTICS_RESULTS.Cancelled, {
+          diagnostics: { execution: { staleResponseIgnored: true } },
+        })
+        return
+      }
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      })
+      logger.error(logMessage, {
+        message: toSanitizedErrorSummary(
+          error,
+          [
+            runtimeKey.secret,
+            resolvedKey.secret,
+            account.token,
+            account.cookieAuthSessionCookie,
+          ].filter(Boolean) as string[],
+        ),
+      })
+      showResultToast({
+        success: false,
+        message: getFailureMessage(),
+      })
+    }
+  }
+
+  const handleVerifyApi = () =>
+    handleVerification({
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.VerifyAccountTokenApi,
+      epochRef: apiVerificationEpochRef,
+      getFailureMessage: () => t("keyManagement:messages.verifyApiFailed"),
+      logMessage: "Failed to open runtimeKey API verification",
+      setProfile: setVerifyingProfile,
+    })
+
+  const handleVerifyCliSupport = () =>
+    handleVerification({
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.VerifyAccountTokenCliSupport,
+      epochRef: cliVerificationEpochRef,
+      getFailureMessage: () =>
+        t("keyManagement:messages.verifyCliSupportFailed"),
+      logMessage: "Failed to open runtimeKey CLI support verification",
+      setProfile: setCliVerifyingProfile,
+    })
+
+  return {
+    cliVerifyingProfile,
+    closeCliVerification: () => setCliVerifyingProfile(null),
+    closeVerification: () => setVerifyingProfile(null),
+    handleVerifyApi,
+    handleVerifyCliSupport,
+    verifyingProfile,
+  }
+}

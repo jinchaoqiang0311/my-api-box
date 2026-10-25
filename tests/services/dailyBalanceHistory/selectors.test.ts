@@ -1,0 +1,670 @@
+import { describe, expect, it } from "vitest"
+
+import { DEFAULT_USD_TO_CNY_RATE, QUOTA_PER_USD } from "~/constants/money"
+import {
+  buildAccountRangeSummaries,
+  buildPerAccountDailyBalanceMoneySeries,
+} from "~/services/history/dailyBalanceHistory/selectors"
+import type { DailyBalanceHistoryStore } from "~/types/dailyBalanceHistory"
+import { DAILY_BALANCE_HISTORY_STORE_SCHEMA_VERSION } from "~/types/dailyBalanceHistory"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+const createStore = (
+  snapshotsByAccountId: DailyBalanceHistoryStore["snapshotsByAccountId"],
+): DailyBalanceHistoryStore => ({
+  schemaVersion: DAILY_BALANCE_HISTORY_STORE_SCHEMA_VERSION,
+  snapshotsByAccountId,
+})
+
+describe("dailyBalanceHistory selectors", () => {
+  it("falls back to the default exchange rate when a CNY account rate is missing or invalid", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-07": {
+          quota: 2 * factor,
+          today_income: 1 * factor,
+          today_quota_consumption: 0.5 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+      a2: {
+        "2026-02-07": {
+          quota: 3 * factor,
+          today_income: 2 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store,
+      accountIds: ["a1", "a2"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "CNY",
+      exchangeRateByAccountId: {
+        a1: 0,
+        a2: Number.NaN,
+      },
+    })
+
+    const fallbackRate = DEFAULT_USD_TO_CNY_RATE
+    expect(atIndex(result.seriesByAccountId, "a1").balance).toEqual([
+      2 * fallbackRate,
+    ])
+    expect(atIndex(result.seriesByAccountId, "a2").balance).toEqual([
+      3 * fallbackRate,
+    ])
+    expect(atIndex(result.seriesByAccountId, "a1").income).toEqual([
+      fallbackRate,
+    ])
+    expect(atIndex(result.seriesByAccountId, "a2").income).toEqual([
+      2 * fallbackRate,
+    ])
+    expect(atIndex(result.seriesByAccountId, "a1").outcome).toEqual([
+      0.5 * fallbackRate,
+    ])
+    expect(atIndex(result.seriesByAccountId, "a2").outcome).toEqual([
+      fallbackRate,
+    ])
+  })
+
+  it("builds per-account daily series with per-account gaps (does not blank other accounts)", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-07": {
+          quota: 10 * factor,
+          today_income: 1 * factor,
+          today_quota_consumption: 2 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+      a2: {},
+    })
+
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store,
+      accountIds: ["a1", "a2"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "USD",
+    })
+
+    expect(result.dayKeys).toEqual(["2026-02-07"])
+    expect(result.coverageByDay).toEqual([
+      {
+        totalAccounts: 2,
+        snapshotAccounts: 1,
+        cashflowAccounts: 1,
+        incomeAccounts: 1,
+        outcomeAccounts: 1,
+        estimatedIncomeAccounts: 0,
+      },
+    ])
+    expect(atIndex(result.seriesByAccountId, "a1").balance).toEqual([10])
+    expect(atIndex(result.seriesByAccountId, "a2").balance).toEqual([null])
+    expect(atIndex(result.seriesByAccountId, "a1").income).toEqual([1])
+    expect(atIndex(result.seriesByAccountId, "a1").outcome).toEqual([2])
+    expect(atIndex(result.seriesByAccountId, "a1").net).toEqual([-1])
+  })
+
+  it.each([
+    {
+      label: "income without outcome",
+      today_income: 3,
+      today_quota_consumption: null,
+      expectedIncome: 3,
+      expectedOutcome: null,
+      expectedIncomeAccounts: 1,
+      expectedOutcomeAccounts: 0,
+    },
+    {
+      label: "outcome without income",
+      today_income: null,
+      today_quota_consumption: 4,
+      expectedIncome: null,
+      expectedOutcome: 4,
+      expectedIncomeAccounts: 0,
+      expectedOutcomeAccounts: 1,
+    },
+  ])(
+    "keeps per-account $label available without manufacturing net",
+    ({
+      today_income,
+      today_quota_consumption,
+      expectedIncome,
+      expectedOutcome,
+      expectedIncomeAccounts,
+      expectedOutcomeAccounts,
+    }) => {
+      const factor = QUOTA_PER_USD
+      const result = buildPerAccountDailyBalanceMoneySeries({
+        store: createStore({
+          a1: {
+            "2026-02-07": {
+              quota: 10 * factor,
+              today_income:
+                today_income === null ? null : today_income * factor,
+              today_quota_consumption:
+                today_quota_consumption === null
+                  ? null
+                  : today_quota_consumption * factor,
+              capturedAt: 0,
+              source: "refresh",
+            },
+          },
+        }),
+        accountIds: ["a1"],
+        startDayKey: "2026-02-07",
+        endDayKey: "2026-02-07",
+        currencyType: "USD",
+      })
+
+      expect(atIndex(result.seriesByAccountId, "a1").income).toEqual([
+        expectedIncome,
+      ])
+      expect(atIndex(result.seriesByAccountId, "a1").outcome).toEqual([
+        expectedOutcome,
+      ])
+      expect(atIndex(result.seriesByAccountId, "a1").net).toEqual([null])
+      expect(result.coverageByDay[0]).toMatchObject({
+        cashflowAccounts: 0,
+        incomeAccounts: expectedIncomeAccounts,
+        outcomeAccounts: expectedOutcomeAccounts,
+      })
+    },
+  )
+
+  it("builds estimated income per-account series without changing trusted income", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-06": {
+          quota: 10 * factor,
+          today_income: 0,
+          today_quota_consumption: 0,
+          capturedAt: 0,
+          source: "alarm",
+        },
+        "2026-02-07": {
+          quota: 12 * factor,
+          today_income: 0.5 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 1,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store,
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "USD",
+      estimatedTodayIncomeEnabled: true,
+    })
+
+    expect(atIndex(result.seriesByAccountId, "a1").income).toEqual([0.5])
+    expect(atIndex(result.seriesByAccountId, "a1").estimatedIncome).toEqual([3])
+    expect(atIndex(result.seriesByAccountId, "a1").outcome).toEqual([1])
+    expect(atIndex(result.seriesByAccountId, "a1").net).toEqual([-0.5])
+    expect(result.coverageByDay[0]).toMatchObject({
+      cashflowAccounts: 1,
+      estimatedIncomeAccounts: 1,
+    })
+  })
+
+  it("returns null estimated income per-account series when estimates are disabled", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-06": {
+          quota: 10 * factor,
+          today_income: 0,
+          today_quota_consumption: 0,
+          capturedAt: 0,
+          source: "alarm",
+        },
+        "2026-02-07": {
+          quota: 12 * factor,
+          today_income: 0.5 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 1,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store,
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "USD",
+      estimatedTodayIncomeEnabled: false,
+    })
+
+    expect(atIndex(result.seriesByAccountId, "a1").income).toEqual([0.5])
+    expect(atIndex(result.seriesByAccountId, "a1").estimatedIncome).toEqual([
+      null,
+    ])
+    expect(result.coverageByDay[0]).toMatchObject({
+      cashflowAccounts: 1,
+      estimatedIncomeAccounts: 0,
+    })
+  })
+
+  it("returns null estimated income for manual balance accounts", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-06": {
+          quota: 10 * factor,
+          today_income: 0,
+          today_quota_consumption: 0,
+          capturedAt: 0,
+          source: "alarm",
+        },
+        "2026-02-07": {
+          quota: 12 * factor,
+          today_income: 0.5 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 1,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store,
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "USD",
+      estimatedTodayIncomeEnabled: true,
+      manualBalanceAccountIds: new Set(["a1"]),
+    })
+
+    expect(atIndex(result.seriesByAccountId, "a1").income).toEqual([0.5])
+    expect(atIndex(result.seriesByAccountId, "a1").estimatedIncome).toEqual([
+      null,
+    ])
+    expect(result.coverageByDay[0]).toMatchObject({
+      cashflowAccounts: 1,
+      estimatedIncomeAccounts: 0,
+    })
+  })
+
+  it("converts per-account daily series into CNY using per-account exchange rates", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-07": {
+          quota: 1 * factor,
+          today_income: 1 * factor,
+          today_quota_consumption: 2 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+      a2: {
+        "2026-02-07": {
+          quota: 2 * factor,
+          today_income: 3 * factor,
+          today_quota_consumption: 4 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store,
+      accountIds: ["a1", "a2"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "CNY",
+      exchangeRateByAccountId: { a1: 7, a2: 8 },
+    })
+
+    expect(atIndex(result.seriesByAccountId, "a1").balance).toEqual([7])
+    expect(atIndex(result.seriesByAccountId, "a2").balance).toEqual([16])
+    expect(atIndex(result.seriesByAccountId, "a1").net).toEqual([-7])
+    expect(atIndex(result.seriesByAccountId, "a2").net).toEqual([-8])
+  })
+
+  it("returns empty per-account series structures for empty selections", () => {
+    const result = buildPerAccountDailyBalanceMoneySeries({
+      store: null,
+      accountIds: [],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-08",
+      currencyType: "USD",
+    })
+
+    expect(result.dayKeys).toEqual(["2026-02-07", "2026-02-08"])
+    expect(result.seriesByAccountId).toEqual({})
+    expect(result.coverageByDay).toEqual([
+      {
+        totalAccounts: 0,
+        snapshotAccounts: 0,
+        cashflowAccounts: 0,
+        incomeAccounts: 0,
+        outcomeAccounts: 0,
+        estimatedIncomeAccounts: 0,
+      },
+      {
+        totalAccounts: 0,
+        snapshotAccounts: 0,
+        cashflowAccounts: 0,
+        incomeAccounts: 0,
+        outcomeAccounts: 0,
+        estimatedIncomeAccounts: 0,
+      },
+    ])
+  })
+
+  it("summarizes per-account range totals and coverage", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-07": {
+          quota: 10 * factor,
+          today_income: 1 * factor,
+          today_quota_consumption: 0.5 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+        "2026-02-08": {
+          quota: 15 * factor,
+          today_income: null,
+          today_quota_consumption: null,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+      a2: {
+        "2026-02-08": {
+          quota: 20 * factor,
+          today_income: 2 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 0,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildAccountRangeSummaries({
+      store,
+      accountIds: ["a1", "a2"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-08",
+      currencyType: "USD",
+    })
+
+    expect(result.dayKeys).toEqual(["2026-02-07", "2026-02-08"])
+    expect(result.summaries).toEqual([
+      {
+        accountId: "a1",
+        startBalance: 10,
+        endBalance: 15,
+        incomeTotal: 1,
+        estimatedIncomeTotal: null,
+        outcomeTotal: 0.5,
+        netTotal: 0.5,
+        snapshotDays: 2,
+        cashflowDays: 1,
+        incomeDays: 1,
+        outcomeDays: 1,
+        estimatedIncomeDays: 0,
+        totalDays: 2,
+      },
+      {
+        accountId: "a2",
+        startBalance: null,
+        endBalance: 20,
+        incomeTotal: 2,
+        estimatedIncomeTotal: null,
+        outcomeTotal: 1,
+        netTotal: 1,
+        snapshotDays: 1,
+        cashflowDays: 1,
+        incomeDays: 1,
+        outcomeDays: 1,
+        estimatedIncomeDays: 0,
+        totalDays: 2,
+      },
+    ])
+  })
+
+  it.each([
+    {
+      label: "income without outcome",
+      today_income: 3,
+      today_quota_consumption: null,
+      expectedIncome: 3,
+      expectedOutcome: null,
+      expectedIncomeDays: 1,
+      expectedOutcomeDays: 0,
+    },
+    {
+      label: "outcome without income",
+      today_income: null,
+      today_quota_consumption: 4,
+      expectedIncome: null,
+      expectedOutcome: 4,
+      expectedIncomeDays: 0,
+      expectedOutcomeDays: 1,
+    },
+  ])(
+    "summarizes $label independently without manufacturing net",
+    ({
+      today_income,
+      today_quota_consumption,
+      expectedIncome,
+      expectedOutcome,
+      expectedIncomeDays,
+      expectedOutcomeDays,
+    }) => {
+      const factor = QUOTA_PER_USD
+      const result = buildAccountRangeSummaries({
+        store: createStore({
+          a1: {
+            "2026-02-07": {
+              quota: 10 * factor,
+              today_income:
+                today_income === null ? null : today_income * factor,
+              today_quota_consumption:
+                today_quota_consumption === null
+                  ? null
+                  : today_quota_consumption * factor,
+              capturedAt: 0,
+              source: "refresh",
+            },
+          },
+        }),
+        accountIds: ["a1"],
+        startDayKey: "2026-02-07",
+        endDayKey: "2026-02-07",
+        currencyType: "USD",
+      })
+
+      expect(result.summaries[0]).toMatchObject({
+        incomeTotal: expectedIncome,
+        outcomeTotal: expectedOutcome,
+        netTotal: null,
+        incomeDays: expectedIncomeDays,
+        outcomeDays: expectedOutcomeDays,
+        cashflowDays: 0,
+      })
+    },
+  )
+
+  it("sums range net only from days with paired income and outcome", () => {
+    const factor = QUOTA_PER_USD
+    const result = buildAccountRangeSummaries({
+      store: createStore({
+        a1: {
+          "2026-02-07": {
+            quota: 10 * factor,
+            today_income: 1 * factor,
+            today_quota_consumption: 2 * factor,
+            capturedAt: 0,
+            source: "refresh",
+          },
+          "2026-02-08": {
+            quota: 11 * factor,
+            today_income: 3 * factor,
+            today_quota_consumption: null,
+            capturedAt: 0,
+            source: "refresh",
+          },
+          "2026-02-09": {
+            quota: 12 * factor,
+            today_income: null,
+            today_quota_consumption: 4 * factor,
+            capturedAt: 0,
+            source: "refresh",
+          },
+        },
+      }),
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-09",
+      currencyType: "USD",
+    })
+
+    expect(result.summaries[0]).toMatchObject({
+      incomeTotal: 4,
+      outcomeTotal: 6,
+      netTotal: -1,
+      incomeDays: 2,
+      outcomeDays: 2,
+      cashflowDays: 1,
+    })
+  })
+
+  it("summarizes estimated income separately from trusted income", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-06": {
+          quota: 10 * factor,
+          today_income: 0,
+          today_quota_consumption: 0,
+          capturedAt: 0,
+          source: "alarm",
+        },
+        "2026-02-07": {
+          quota: 12 * factor,
+          today_income: 0.5 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 1,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildAccountRangeSummaries({
+      store,
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "USD",
+      estimatedTodayIncomeEnabled: true,
+    })
+
+    expect(atIndex(result.summaries, 0).incomeTotal).toBe(0.5)
+    expect(atIndex(result.summaries, 0).estimatedIncomeTotal).toBe(3)
+    expect(atIndex(result.summaries, 0).estimatedIncomeDays).toBe(1)
+    expect(atIndex(result.summaries, 0).outcomeTotal).toBe(1)
+    expect(atIndex(result.summaries, 0).netTotal).toBe(-0.5)
+  })
+
+  it("excludes disabled estimated income from range summaries", () => {
+    const factor = QUOTA_PER_USD
+    const store = createStore({
+      a1: {
+        "2026-02-06": {
+          quota: 10 * factor,
+          today_income: 0,
+          today_quota_consumption: 0,
+          capturedAt: 0,
+          source: "alarm",
+        },
+        "2026-02-07": {
+          quota: 12 * factor,
+          today_income: 0.5 * factor,
+          today_quota_consumption: 1 * factor,
+          capturedAt: 1,
+          source: "refresh",
+        },
+      },
+    })
+
+    const result = buildAccountRangeSummaries({
+      store,
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-07",
+      currencyType: "USD",
+      estimatedTodayIncomeEnabled: false,
+    })
+
+    expect(atIndex(result.summaries, 0).incomeTotal).toBe(0.5)
+    expect(atIndex(result.summaries, 0).estimatedIncomeTotal).toBeNull()
+    expect(atIndex(result.summaries, 0).estimatedIncomeDays).toBe(0)
+  })
+
+  it("returns null summary totals when an account has no snapshots in the selected range", () => {
+    const result = buildAccountRangeSummaries({
+      store: null,
+      accountIds: ["a1"],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-08",
+      currencyType: "CNY",
+      exchangeRateByAccountId: new Map([["a1", 8]]),
+    })
+
+    expect(result.dayKeys).toEqual(["2026-02-07", "2026-02-08"])
+    expect(result.summaries).toEqual([
+      {
+        accountId: "a1",
+        startBalance: null,
+        endBalance: null,
+        incomeTotal: null,
+        estimatedIncomeTotal: null,
+        outcomeTotal: null,
+        netTotal: null,
+        snapshotDays: 0,
+        cashflowDays: 0,
+        incomeDays: 0,
+        outcomeDays: 0,
+        estimatedIncomeDays: 0,
+        totalDays: 2,
+      },
+    ])
+  })
+
+  it("returns no summaries when the selection is empty", () => {
+    const result = buildAccountRangeSummaries({
+      store: createStore({}),
+      accountIds: [],
+      startDayKey: "2026-02-07",
+      endDayKey: "2026-02-08",
+      currencyType: "USD",
+    })
+
+    expect(result).toEqual({
+      dayKeys: ["2026-02-07", "2026-02-08"],
+      summaries: [],
+    })
+  })
+})

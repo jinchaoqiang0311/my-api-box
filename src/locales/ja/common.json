@@ -1,0 +1,103 @@
+{
+  "actions": {
+    "cancel": "キャンセル",
+    "clear": "クリア",
+    "close": "閉じる",
+    "copyKey": "キーをコピー",
+    "delete": "削除",
+    "edit": "編集",
+    "export": "エクスポート",
+    "goToSettings": "設定へ移動",
+    "import": "インポート",
+    "loadField": "{{field}}を取得",
+    "more": "その他",
+    "moveDownItem": "{{name}}を下に移動",
+    "moveUpItem": "{{name}}を上に移動",
+    "openSidePanel": "サイドパネルで開く",
+    "refresh": "更新",
+    "refreshField": "{{field}}を更新",
+    "reset": "リセット",
+    "retry": "再試行",
+    "save": "保存"
+  },
+  "currency": {
+    "clickToSwitch": "{{currency}} に切り替える",
+    "cny": "CNY",
+    "usd": "USD"
+  },
+  "datePicker": {
+    "in1Year": "+1 年",
+    "in30Days": "+30 日",
+    "in7Days": "+7 日",
+    "in90Days": "+90 日",
+    "naturalInput": {
+      "invalid": "YYYY-MM-DD または in 7 days のような認識可能な日付を入力してください",
+      "label": "日付を入力",
+      "openCalendar": "カレンダーを開く",
+      "placeholder": "例: in 7 days、tomorrow、2026-08-01",
+      "preview": "設定予定: {{date}}"
+    },
+    "noExpiration": "期限なし",
+    "placeholder": "日付を選択"
+  },
+  "labels": {
+    "apiKey": "API キー",
+    "notAvailable": "N/A",
+    "settings": "設定",
+    "token": "トークン",
+    "unknown": "不明"
+  },
+  "quota": {
+    "unlimited": "無制限"
+  },
+  "rootErrorBoundary": {
+    "genericDescription": "ページを正しく表示できませんでした。まずページを再読み込みしてください。繰り返し発生する場合は、問題を報告してください。確認をお手伝いします。",
+    "reload": "ページを再読み込み",
+    "reportIssue": "問題を報告",
+    "requestLanguage": "言語サポートをリクエスト",
+    "title": "ページを表示できません",
+    "translationDescription": "ブラウザーの自動翻訳を使用している場合は、このページの自動翻訳をオフにするか、拡張機能の設定で必要な言語に切り替えてください。"
+  },
+  "status": {
+    "applying": "適用中...",
+    "cancelled": "キャンセル済み",
+    "cancelling": "キャンセル中...",
+    "checking": "確認中...",
+    "configurationRequired": "設定が必要です",
+    "copying": "コピー中...",
+    "creating": "作成中...",
+    "deleting": "削除中...",
+    "disabled": "無効",
+    "disabling": "無効化中...",
+    "enabled": "有効",
+    "enabling": "有効化中...",
+    "error": "エラー",
+    "exporting": "エクスポート中...",
+    "failed": "失敗",
+    "importing": "インポート中...",
+    "loading": "読み込み中...",
+    "loadingField": "{{field}}を取得中...",
+    "opening": "開いています...",
+    "processing": "処理中...",
+    "refreshing": "更新中...",
+    "resetting": "リセット中...",
+    "retrying": "再試行中...",
+    "saving": "保存中...",
+    "starting": "開始中...",
+    "success": "成功",
+    "testing": "テスト中...",
+    "uploading": "アップロード中..."
+  },
+  "tagFilter": {
+    "allTags": "すべてのタグ",
+    "noResults": "一致するタグがありません",
+    "search": "タグを検索",
+    "selected": "選択済み"
+  },
+  "time": {
+    "neverExpires": "期限なし",
+    "seconds": "秒",
+    "updatedAt": "{{time}} に更新"
+  },
+  "total": "合計"
+}

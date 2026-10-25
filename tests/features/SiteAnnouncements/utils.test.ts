@@ -1,0 +1,299 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import {
+  buildSiteOptions,
+  filterSiteAnnouncements,
+  formatAnnouncementTimestamp,
+  formatDateTime,
+  getAnnouncementSourceUrl,
+  matchSiteAnnouncementQuery,
+  sortSiteAnnouncements,
+} from "~/features/SiteAnnouncements/utils"
+import type { SiteAnnouncementRecord } from "~/types/siteAnnouncements"
+
+const { formatRelativeTimeMock, joinUrlMock, getAccountSiteApiRouterMock } =
+  vi.hoisted(() => ({
+    formatRelativeTimeMock: vi.fn(),
+    joinUrlMock: vi.fn((baseUrl: string, path: string) => `${baseUrl}${path}`),
+    getAccountSiteApiRouterMock: vi.fn(() => ({
+      siteAnnouncementsPath: "/dashboard",
+    })),
+  }))
+
+vi.mock("~/utils/core/formatters", () => ({
+  formatRelativeTime: formatRelativeTimeMock,
+}))
+
+vi.mock("~/utils/core/url", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/utils/core/url")>()),
+  joinUrl: joinUrlMock,
+}))
+
+vi.mock("~/constants/siteType", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/constants/siteType")>()),
+  getAccountSiteApiRouter: getAccountSiteApiRouterMock,
+}))
+
+const record: SiteAnnouncementRecord = {
+  id: "record-1",
+  siteKey: "site-1",
+  siteName: "Example",
+  siteType: "new-api",
+  baseUrl: "https://example.com",
+  accountId: "account-1",
+  sourceScope: "site",
+  title: "Notice",
+  content: "Body",
+  fingerprint: "fp-1",
+  firstSeenAt: Date.UTC(2026, 4, 8, 0, 0, 0),
+  lastSeenAt: Date.UTC(2026, 4, 8, 0, 0, 0),
+  createdAt: Date.UTC(2026, 4, 7, 12, 0, 0),
+  read: false,
+}
+
+describe("SiteAnnouncements utils", () => {
+  it.each(["new-api", "cubence", "laozhang", "sub2api"] as const)(
+    "orders cached %s announcements by publication time rather than discovery time",
+    (siteType) => {
+      const older = {
+        ...record,
+        siteType,
+        id: "older",
+        createdAt: 1000,
+        firstSeenAt: 5000,
+      }
+      const newer = {
+        ...record,
+        siteType,
+        id: "newer",
+        createdAt: 3000,
+        firstSeenAt: 4000,
+      }
+      const sameBatch = {
+        ...record,
+        siteType,
+        id: "same-batch",
+        createdAt: 2000,
+        firstSeenAt: 5000,
+      }
+      const records = [older, sameBatch, newer]
+
+      expect(sortSiteAnnouncements(records)).toEqual([newer, sameBatch, older])
+      expect(records).toEqual([older, sameBatch, newer])
+    },
+  )
+
+  it("uses publication time independently of site identity and discovery time otherwise", () => {
+    formatRelativeTimeMock.mockReturnValue("2 hours ago")
+    for (const siteType of ["new-api", "laozhang", "sub2api"] as const) {
+      expect(formatAnnouncementTimestamp({ ...record, siteType })).toBe(
+        "2 hours ago",
+      )
+    }
+    formatRelativeTimeMock.mockClear()
+    expect(
+      formatAnnouncementTimestamp({ ...record, createdAt: undefined }),
+    ).toBe(formatDateTime(record.firstSeenAt))
+    expect(formatRelativeTimeMock).not.toHaveBeenCalled()
+  })
+
+  it("uses discovery time for missing or non-finite publication dates and keeps equal dates stable", () => {
+    const records = [
+      { ...record, id: "old", createdAt: 1000, firstSeenAt: 9000 },
+      { ...record, id: "missing", createdAt: undefined, firstSeenAt: 4000 },
+      { ...record, id: "invalid", createdAt: NaN, firstSeenAt: 5000 },
+      { ...record, id: "infinite", createdAt: Infinity, firstSeenAt: 3000 },
+      { ...record, id: "tie-first", createdAt: 6000, firstSeenAt: 8000 },
+      { ...record, id: "tie-second", createdAt: 6000, firstSeenAt: 8000 },
+      {
+        ...record,
+        id: "tie-later-discovery",
+        createdAt: 6000,
+        firstSeenAt: 8500,
+      },
+    ]
+
+    expect(sortSiteAnnouncements(records).map(({ id }) => id)).toEqual([
+      "tie-later-discovery",
+      "tie-first",
+      "tie-second",
+      "invalid",
+      "missing",
+      "infinite",
+      "old",
+    ])
+  })
+
+  it("groups independent sources into one site filter without hiding account messages", () => {
+    const accountRecord = {
+      ...record,
+      id: "message",
+      siteKey: "account:site",
+      sourceScope: "account" as const,
+    }
+    const options = buildSiteOptions([record, accountRecord], [])
+    expect(options).toHaveLength(1)
+    expect(options[0]).toMatchObject({
+      value: record.siteKey,
+      announcementCount: 2,
+      sourceKeys: [record.siteKey, "account:site"],
+    })
+    expect(
+      filterSiteAnnouncements([record, accountRecord], {
+        siteKey: record.siteKey,
+        siteKeys: options[0]!.sourceKeys,
+        unreadFilter: "all",
+      }),
+    ).toHaveLength(2)
+  })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("formats timestamps and falls back when the value is missing", () => {
+    expect(formatDateTime()).toBe("-")
+    expect(formatAnnouncementTimestamp(record)).not.toBe("-")
+  })
+
+  it("falls back to absolute publication time when relative formatting is unavailable", () => {
+    formatRelativeTimeMock
+      .mockReturnValueOnce("2 hours ago")
+      .mockReturnValueOnce("")
+
+    const sub2Record: SiteAnnouncementRecord = {
+      ...record,
+      siteType: "sub2api",
+    }
+    expect(formatAnnouncementTimestamp(sub2Record)).toBe("2 hours ago")
+    expect(formatAnnouncementTimestamp(sub2Record)).toBe(
+      formatDateTime(sub2Record.createdAt),
+    )
+  })
+
+  it("builds source urls and stable site filter options", () => {
+    expect(getAnnouncementSourceUrl(record)).toBe(
+      "https://example.com/dashboard",
+    )
+    expect(getAccountSiteApiRouterMock).toHaveBeenCalledWith("new-api")
+    expect(joinUrlMock).toHaveBeenCalledWith(
+      "https://example.com",
+      "/dashboard",
+    )
+
+    expect(
+      buildSiteOptions(
+        [
+          record,
+          {
+            ...record,
+            id: "record-2",
+            siteKey: "site-2",
+            siteName: "Beta",
+            baseUrl: "https://beta.example.com",
+            siteType: "sub2api",
+            sourceScope: "account",
+            fingerprint: "fp-2",
+          },
+          {
+            ...record,
+            id: "record-3",
+            siteKey: "site-2",
+            siteName: "",
+            baseUrl: "https://beta.example.com",
+            siteType: "sub2api",
+            sourceScope: "account",
+            fingerprint: "fp-3",
+          },
+        ],
+        [
+          {
+            siteKey: "site-3",
+            siteName: "Gamma",
+            baseUrl: "https://gamma.example.com",
+          },
+        ],
+      ),
+    ).toEqual([
+      {
+        value: "site-2",
+        label: "Beta",
+        announcementCount: 2,
+      },
+      { value: "site-1", label: "Example", announcementCount: 1 },
+      { value: "site-3", label: "Gamma", announcementCount: 0 },
+    ])
+  })
+
+  it("filters announcements by site and read state", () => {
+    const secondRecord: SiteAnnouncementRecord = {
+      ...record,
+      id: "record-2",
+      siteKey: "site-2",
+      siteType: "sub2api",
+      sourceScope: "account",
+      fingerprint: "fp-2",
+      read: true,
+    }
+
+    expect(
+      filterSiteAnnouncements([record, secondRecord], {
+        siteKey: "all",
+        unreadFilter: "all",
+      }),
+    ).toEqual([record, secondRecord])
+    expect(
+      filterSiteAnnouncements([record, secondRecord], {
+        siteKey: "site-1",
+        unreadFilter: "unread",
+      }),
+    ).toEqual([record])
+    expect(
+      filterSiteAnnouncements([record, secondRecord], {
+        siteKey: "site-1",
+        unreadFilter: "all",
+      }),
+    ).toEqual([record])
+    expect(
+      filterSiteAnnouncements([record, secondRecord], {
+        siteKey: "all",
+        unreadFilter: "unread",
+      }),
+    ).toEqual([record])
+  })
+
+  it("matches the search query against announcement titles and bodies", () => {
+    const bodyMatch: SiteAnnouncementRecord = {
+      ...record,
+      id: "record-2",
+      siteKey: "site-2",
+      title: "Quota restored",
+      content: "The provider rotated billing infrastructure",
+      fingerprint: "fp-2",
+    }
+
+    expect(matchSiteAnnouncementQuery(record, "")).toBe(true)
+    expect(matchSiteAnnouncementQuery(record, "   ")).toBe(true)
+    expect(matchSiteAnnouncementQuery(record, "notice")).toBe(true)
+    expect(matchSiteAnnouncementQuery(record, "NO")).toBe(true)
+    expect(matchSiteAnnouncementQuery(bodyMatch, "quot")).toBe(true)
+    expect(matchSiteAnnouncementQuery(bodyMatch, "billing")).toBe(true)
+    expect(matchSiteAnnouncementQuery(bodyMatch, "notice")).toBe(false)
+  })
+
+  it("ignores markdown formatting that only appears in raw announcement content", () => {
+    const markdownRecord: SiteAnnouncementRecord = {
+      ...record,
+      id: "record-2",
+      title: "",
+      content: "## Maintenance window\n\n- Second line",
+      fingerprint: "fp-2",
+    }
+
+    expect(matchSiteAnnouncementQuery(markdownRecord, "maintenance")).toBe(true)
+    expect(matchSiteAnnouncementQuery(markdownRecord, "second line")).toBe(true)
+    expect(matchSiteAnnouncementQuery(markdownRecord, "##")).toBe(false)
+    expect(matchSiteAnnouncementQuery(markdownRecord, "announcements:")).toBe(
+      false,
+    )
+  })
+})

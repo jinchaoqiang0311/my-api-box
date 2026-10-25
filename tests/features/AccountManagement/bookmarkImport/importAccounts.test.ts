@@ -1,0 +1,502 @@
+import { describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { runBookmarkAccountImport } from "~/features/AccountManagement/bookmarkImport/importAccounts"
+import { createEmptyAccountDialogDraft } from "~/features/AccountManagement/components/AccountDialog/models"
+import { PROTECTION_BYPASS_EXECUTION_VERSION } from "~/services/protectionBypass/contracts"
+import { AuthTypeEnum } from "~/types"
+import type { AccountAutoDetectResponse } from "~/types/serviceResponse"
+
+const createAutoDetectResponse = (
+  response: Omit<AccountAutoDetectResponse, "kind">,
+): AccountAutoDetectResponse => ({ kind: "detected", ...response })
+
+describe("runBookmarkAccountImport", () => {
+  it.each([
+    {
+      failureCategory: "verification",
+      failure: {
+        autoDetectFailureReason: "access_token_verification_required",
+      },
+    },
+    {
+      failureCategory: "login",
+      failure: {
+        detailedError: { type: "unauthorized", message: "private error" },
+      },
+    },
+  ])(
+    "keeps only safe recovery hints for $failureCategory failures",
+    async ({ failureCategory, failure }) => {
+      const result = await runBookmarkAccountImport({
+        candidates: [
+          {
+            id: "one",
+            url: "https://one.example",
+            normalizedOrigin: "https://one.example",
+            status: "ready",
+            selectedByDefault: true,
+            sourceBookmarkCount: 1,
+          },
+        ],
+        autoDetectAccount: vi.fn().mockResolvedValue({
+          kind: "detected",
+          success: false,
+          message: "private message",
+          ...failure,
+          recoveryData: {
+            siteType: SITE_TYPES.NEW_API,
+            authType: AuthTypeEnum.Cookie,
+            accessToken: "private-token",
+            userId: "private-id",
+          },
+        }),
+      })
+      expect(result.rows[0]).toMatchObject({
+        failureCategory,
+        siteType: SITE_TYPES.NEW_API,
+        authType: AuthTypeEnum.Cookie,
+      })
+      expect(JSON.stringify(result)).not.toContain("private")
+    },
+  )
+
+  it("preserves Kimi authentication when saving a detected account", async () => {
+    const kimiOpenPlatformAuth = {
+      refreshToken: "kimi-refresh",
+      organizationId: "organization",
+    }
+    const validateAndSaveAccount = vi
+      .fn()
+      .mockResolvedValue({ success: true, accountId: "one" })
+    await runBookmarkAccountImport({
+      candidates: [
+        {
+          id: "one",
+          url: "https://one.example",
+          normalizedOrigin: "https://one.example",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+      ],
+      autoDetectAccount: vi.fn().mockResolvedValue({
+        kind: "detected",
+        success: true,
+        data: {
+          siteName: "Kimi",
+          username: "user",
+          accessToken: "token",
+          userId: "one",
+          exchangeRate: null,
+          kimiOpenPlatformAuth,
+        },
+      }),
+      validateAndSaveAccount,
+    })
+    expect(validateAndSaveAccount.mock.calls[0]?.[0]?.options).toEqual({
+      deferDataRefresh: true,
+      kimiOpenPlatformAuth,
+    })
+  })
+
+  it("reuses one onboarding execution for every selected candidate", async () => {
+    const protectionBypassExecution = {
+      version: PROTECTION_BYPASS_EXECUTION_VERSION,
+      kind: "user_command",
+      command: "add_account",
+      surface: "options",
+    } as const
+    const autoDetectAccount = vi.fn().mockResolvedValue(
+      createAutoDetectResponse({
+        success: false,
+        message: "not detected",
+      }),
+    )
+
+    await runBookmarkAccountImport({
+      candidates: [
+        {
+          id: "bookmark-import:https://one.example.invalid",
+          url: "https://one.example.invalid",
+          normalizedOrigin: "https://one.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+        {
+          id: "bookmark-import:https://two.example.invalid",
+          url: "https://two.example.invalid",
+          normalizedOrigin: "https://two.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+      ],
+      autoDetectAccount,
+      protectionBypassExecution,
+    })
+
+    expect(autoDetectAccount).toHaveBeenNthCalledWith(
+      1,
+      "https://one.example.invalid",
+      AuthTypeEnum.AccessToken,
+      protectionBypassExecution,
+    )
+    expect(autoDetectAccount).toHaveBeenNthCalledWith(
+      2,
+      "https://two.example.invalid",
+      AuthTypeEnum.AccessToken,
+      protectionBypassExecution,
+    )
+  })
+
+  it("waits for the current candidate save before detecting the next candidate", async () => {
+    let resolveFirstSave:
+      | ((value: { success: true; message: string; accountId: string }) => void)
+      | undefined
+    const firstSave = new Promise<{
+      success: true
+      message: string
+      accountId: string
+    }>((resolve) => {
+      resolveFirstSave = resolve
+    })
+    const draft = createEmptyAccountDialogDraft()
+    const autoDetectAccount = vi.fn().mockResolvedValue(
+      createAutoDetectResponse({
+        success: true,
+        message: "detected",
+        data: {
+          username: "user",
+          accessToken: "token",
+          userId: "id",
+          exchangeRate: null,
+          checkIn: draft.checkIn,
+          siteName: "Example",
+          siteType: SITE_TYPES.UNKNOWN,
+          authType: AuthTypeEnum.AccessToken,
+        },
+      }),
+    )
+    const validateAndSaveAccount = vi
+      .fn()
+      .mockReturnValueOnce(firstSave)
+      .mockResolvedValueOnce({
+        success: true,
+        message: "saved",
+        accountId: "account-2",
+      })
+
+    const importRun = runBookmarkAccountImport({
+      candidates: [
+        {
+          id: "bookmark-import:https://one.example.invalid",
+          url: "https://one.example.invalid",
+          normalizedOrigin: "https://one.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+        {
+          id: "bookmark-import:https://two.example.invalid",
+          url: "https://two.example.invalid",
+          normalizedOrigin: "https://two.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+      ],
+      autoDetectAccount,
+      validateAndSaveAccount,
+    })
+
+    await Promise.resolve()
+
+    expect(autoDetectAccount).toHaveBeenCalledTimes(1)
+    expect(validateAndSaveAccount).toHaveBeenCalledTimes(1)
+
+    resolveFirstSave?.({
+      success: true,
+      message: "saved",
+      accountId: "account-1",
+    })
+    await importRun
+
+    expect(autoDetectAccount.mock.calls.map((call) => call[0])).toEqual([
+      "https://one.example.invalid",
+      "https://two.example.invalid",
+    ])
+    expect(validateAndSaveAccount).toHaveBeenCalledTimes(2)
+  })
+
+  it("runs selected candidates sequentially through auto-detect and deferred save", async () => {
+    const draft = createEmptyAccountDialogDraft()
+    const autoDetectAccount = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createAutoDetectResponse({
+          success: true,
+          message: "detected",
+          data: {
+            username: "alpha-user",
+            accessToken: "alpha-token",
+            userId: "alpha-id",
+            exchangeRate: 7,
+            checkIn: draft.checkIn,
+            siteName: "Alpha",
+            siteType: SITE_TYPES.NEW_API,
+            authType: AuthTypeEnum.AccessToken,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        createAutoDetectResponse({
+          success: false,
+          message: "private backend detail",
+        }),
+      )
+    const validateAndSaveAccount = vi.fn().mockResolvedValue({
+      success: true,
+      message: "saved",
+      accountId: "account-alpha",
+    })
+    const onProgress = vi.fn()
+
+    const result = await runBookmarkAccountImport({
+      candidates: [
+        {
+          id: "bookmark-import:https://alpha.example.invalid",
+          url: "https://alpha.example.invalid",
+          normalizedOrigin: "https://alpha.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+        {
+          id: "bookmark-import:https://beta.example.invalid",
+          url: "https://beta.example.invalid",
+          normalizedOrigin: "https://beta.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+      ],
+      autoDetectAccount,
+      validateAndSaveAccount,
+      onProgress,
+    })
+
+    expect(autoDetectAccount.mock.calls.map((call) => call[0])).toEqual([
+      "https://alpha.example.invalid",
+      "https://beta.example.invalid",
+    ])
+    expect(validateAndSaveAccount).toHaveBeenCalledWith({
+      url: "https://alpha.example.invalid",
+      siteName: "Alpha",
+      username: "alpha-user",
+      accessToken: "alpha-token",
+      userId: "alpha-id",
+      exchangeRate: "7",
+      notes: "",
+      tagIds: [],
+      checkInConfig: draft.checkIn,
+      siteType: SITE_TYPES.NEW_API,
+      authType: AuthTypeEnum.AccessToken,
+      cookieAuthSessionCookie: "",
+      manualBalanceUsd: "",
+      excludeFromTotalBalance: false,
+      excludeFromTodayIncome: false,
+      sub2apiAuth: undefined,
+      options: {
+        deferDataRefresh: true,
+      },
+    })
+    expect(onProgress).toHaveBeenCalledTimes(2)
+    expect(onProgress.mock.calls.map(([progress]) => progress)).toEqual([
+      {
+        completedCount: 1,
+        totalCount: 2,
+        currentCandidateId: "bookmark-import:https://alpha.example.invalid",
+      },
+      {
+        completedCount: 2,
+        totalCount: 2,
+        currentCandidateId: "bookmark-import:https://beta.example.invalid",
+      },
+    ])
+    expect(result).toMatchObject({
+      successCount: 1,
+      failureCount: 1,
+      skippedCount: 0,
+      rows: [
+        {
+          candidateId: "bookmark-import:https://alpha.example.invalid",
+          status: "success",
+          accountId: "account-alpha",
+          failureCategory: undefined,
+        },
+        {
+          candidateId: "bookmark-import:https://beta.example.invalid",
+          status: "failed",
+          failureCategory: "detection",
+          safeMessageKey: "ui:dialog.bookmarkAccountImport.failures.detection",
+        },
+      ],
+    })
+  })
+
+  it("records save failures locally and continues with the next candidate", async () => {
+    const draft = createEmptyAccountDialogDraft()
+    const autoDetectAccount = vi.fn().mockResolvedValue(
+      createAutoDetectResponse({
+        success: true,
+        message: "detected",
+        data: {
+          username: "user",
+          accessToken: "token",
+          userId: "id",
+          exchangeRate: null,
+          checkIn: draft.checkIn,
+          siteName: "Example",
+          siteType: SITE_TYPES.UNKNOWN,
+          authType: AuthTypeEnum.AccessToken,
+        },
+      }),
+    )
+    const validateAndSaveAccount = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: false,
+        message: "private save failure",
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        message: "saved",
+        accountId: "account-2",
+      })
+
+    const result = await runBookmarkAccountImport({
+      candidates: [
+        {
+          id: "bookmark-import:https://one.example.invalid",
+          url: "https://one.example.invalid",
+          normalizedOrigin: "https://one.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+        {
+          id: "bookmark-import:https://two.example.invalid",
+          url: "https://two.example.invalid",
+          normalizedOrigin: "https://two.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+      ],
+      autoDetectAccount,
+      validateAndSaveAccount,
+    })
+
+    expect(validateAndSaveAccount).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(result)).not.toContain("private save failure")
+    expect(result.failureCount).toBe(1)
+    expect(result.successCount).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      status: "failed",
+      failureCategory: "save",
+      safeMessageKey: "ui:dialog.bookmarkAccountImport.failures.save",
+    })
+  })
+
+  it("records thrown import failures with safe local messages and nullable account ids", async () => {
+    const draft = createEmptyAccountDialogDraft()
+    const autoDetectAccount = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("private detection failure"))
+      .mockResolvedValueOnce(
+        createAutoDetectResponse({
+          success: true,
+          message: "detected",
+          // Intentionally malformed to prove runtime import fallbacks.
+          data: {
+            username: "user",
+            accessToken: "token",
+            userId: "id",
+            exchangeRate: null,
+            checkIn: undefined,
+            siteName: "Example",
+            siteType: "unsupported-site-type",
+            authType: "unsupported-auth-type",
+          } as unknown as NonNullable<AccountAutoDetectResponse["data"]>,
+        }),
+      )
+    const validateAndSaveAccount = vi.fn().mockResolvedValue({
+      success: true,
+      message: "saved",
+      accountId: "   ",
+    })
+
+    const result = await runBookmarkAccountImport({
+      candidates: [
+        {
+          id: "bookmark-import:https://throw.example.invalid",
+          url: "https://throw.example.invalid",
+          normalizedOrigin: "https://throw.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+        {
+          id: "bookmark-import:https://fallback.example.invalid",
+          url: "https://fallback.example.invalid",
+          normalizedOrigin: "https://fallback.example.invalid",
+          status: "ready",
+          selectedByDefault: true,
+          sourceBookmarkCount: 1,
+        },
+      ],
+      autoDetectAccount,
+      validateAndSaveAccount,
+    })
+
+    expect(validateAndSaveAccount).toHaveBeenCalledWith({
+      url: "https://fallback.example.invalid",
+      siteName: "Example",
+      username: "user",
+      accessToken: "token",
+      userId: "id",
+      exchangeRate: "",
+      notes: "",
+      tagIds: [],
+      checkInConfig: draft.checkIn,
+      siteType: SITE_TYPES.UNKNOWN,
+      authType: AuthTypeEnum.AccessToken,
+      cookieAuthSessionCookie: "",
+      manualBalanceUsd: "",
+      excludeFromTotalBalance: false,
+      excludeFromTodayIncome: false,
+      sub2apiAuth: undefined,
+      options: {
+        deferDataRefresh: true,
+      },
+    })
+    expect(result).toMatchObject({
+      successCount: 1,
+      failureCount: 1,
+      rows: [
+        {
+          status: "failed",
+          failureCategory: "unknown",
+          safeMessageKey: "ui:dialog.bookmarkAccountImport.failures.unknown",
+        },
+        {
+          status: "success",
+          accountId: null,
+        },
+      ],
+    })
+    expect(JSON.stringify(result)).not.toContain("private detection failure")
+  })
+})

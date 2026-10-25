@@ -1,0 +1,83 @@
+{
+  "alreadyStarred": "Starred",
+  "copyrightAck": "Copyright & Acknowledgements",
+  "description": "Find the extension version, changelog and project links, get help or report a problem.",
+  "devMaintenance": "Development & Maintenance",
+  "devMode": {
+    "activatedToast": "🛠️ Developer mode activated! Dev lab features unlocked.",
+    "alreadyDevToast": "Currently running in development mode (wxt dev). Developer mode remains enabled.",
+    "deactivatedToast": "Developer mode deactivated.",
+    "tooltipDev": "Running in development environment (wxt dev)",
+    "tooltipProd": "Click 7 times to toggle developer mode"
+  },
+  "features": "Features",
+  "feedbackSection": {
+    "bugReport": {
+      "button": "Open bug report",
+      "description": "Report broken behavior, errors, or unexpected results with the bug-report template."
+    },
+    "community": {
+      "button": "Open community hub",
+      "description": "See the WeChat QR code, QQ group, multilingual Discord community, Telegram group, and other channels for questions, setup discussions, and troubleshooting."
+    },
+    "discussion": {
+      "button": "Open discussions",
+      "description": "Ask questions, compare setups, or start a broader community discussion on GitHub Discussions."
+    },
+    "featureRequest": {
+      "button": "Open feature request",
+      "description": "Share an improvement idea or workflow request through the feature-request template."
+    },
+    "languageRequest": {
+      "button": "Open language request",
+      "description": "Ask us to support a new interface language for My API Box."
+    },
+    "title": "Feedback & Support"
+  },
+  "githubDesc": "View source code, submit issues or participate in project development",
+  "githubRepo": "GitHub Repository",
+  "homepage": "Project Homepage",
+  "homepageDesc": "View detailed documentation, user guides and more information",
+  "implementedFeatures": "Implemented Features",
+  "intro": "My API Box brings relay accounts, balances, and API credentials together with automatic refresh, check-ins, and model verification. Manage channels or providers on self-hosted sites such as CLIProxyAPI, New API, and Sub2API, with model sync where supported. WebDAV backup and data import/export are also available.",
+  "privacyText": "Sensitive data such as accounts, API keys, cookies, balances, request content, and user input stays local by default. Optional anonymous product analytics are used only to prioritize fixes for common issues, improve core workflows and compatibility, and reduce unnecessary friction, and they do not collect that sensitive data.",
+  "privacyTitle": "Privacy Protection",
+  "projectLinks": "Project Links",
+  "releaseUpdate": {
+    "currentVersion": "Current version: v{{version}}",
+    "latestVersion": "Latest stable: v{{version}}",
+    "title": "Version Updates"
+  },
+  "starRepo": "Go star it",
+  "stores": {
+    "chrome": "Chrome Web Store",
+    "edge": "Microsoft Edge Add-ons",
+    "firefox": "Firefox Add-ons"
+  },
+  "storesSection": {
+    "download": {
+      "button": "Open store",
+      "description": "Download from {{store}}."
+    },
+    "review": {
+      "button": "Rate on {{store}}",
+      "description": "If My API Box helps you, a positive review on {{store}} really helps.",
+      "title": "Leave a positive review"
+    },
+    "title": "Rate & Download"
+  },
+  "techStack": {
+    "radix": "Accessible UI primitives",
+    "react": "User interface library",
+    "tailwindcss": "Atomic CSS framework",
+    "title": "Tech Stack",
+    "typescript": "Type-safe JavaScript",
+    "wxt": "Browser extension development framework"
+  },
+  "thanksDesc": "Thanks to all developers who have contributed to the open source community, the development of this plugin benefits from these excellent open source projects and tools",
+  "title": "About",
+  "upcomingFeatures": "Upcoming Features",
+  "version": "Version:",
+  "viewRepo": "Visit repository",
+  "visitHomepage": "Visit Homepage"
+}

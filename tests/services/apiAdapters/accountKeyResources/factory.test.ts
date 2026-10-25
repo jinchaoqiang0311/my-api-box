@@ -1,0 +1,1483 @@
+import { describe, expect, expectTypeOf, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { CREATED_RUNTIME_SECRET_CORRELATION_KINDS as correlationKinds } from "~/services/accounts/keys/createdRuntimeSecret"
+import type { AccountKeyResourceDefinition } from "~/services/apiAdapters/accountKeyResources/definition"
+import { defineAccountKeyResourceCapability } from "~/services/apiAdapters/accountKeyResources/factory"
+import {
+  ACCOUNT_KEY_REQUIREMENT_PROVISIONING_KINDS,
+  ACCOUNT_KEY_RESOURCE_FAILURE_CODES,
+  ACCOUNT_KEY_RESOURCE_FIELD_ISSUE_CODES,
+  AccountKeyResourceError,
+  type AccountKeyResourceOpenInput,
+  type AccountKeyResourceRef,
+  type AccountKeyScope,
+  type EditableResourceProjection,
+  type ResourceFailure,
+  type ResourceValidationResult,
+} from "~/services/apiAdapters/contracts/accountKeyResource"
+import { AuthTypeEnum } from "~/types"
+
+type Detail = { id: string; name: string; secret?: string }
+type CreateCommand = { name: string; destinationScopeKey?: string }
+type Definition = AccountKeyResourceDefinition<
+  { scopeKey: string },
+  string,
+  Detail,
+  Detail,
+  CreateCommand,
+  { name: string },
+  "denied"
+>
+
+const REF: AccountKeyResourceRef = {
+  accountId: "account-example",
+  siteType: SITE_TYPES.OPENROUTER,
+  scopeKey: "workspace-example",
+  resourceId: "opaque-key-example",
+}
+
+const SCOPE: AccountKeyScope = {
+  scopeKey: "workspace-example",
+  routeKey: "keys",
+  displayName: "Workspace",
+  isDefault: true,
+}
+
+const OPEN_INPUT: AccountKeyResourceOpenInput = {
+  account: {
+    id: "account-example",
+    name: "Example account",
+    siteType: SITE_TYPES.OPENROUTER,
+  },
+  request: {
+    accountId: "account-example",
+    baseUrl: "https://example.invalid",
+    auth: {
+      authType: AuthTypeEnum.AccessToken,
+      userId: "user-example",
+      accessToken: "token",
+    },
+  },
+}
+
+const createDefinition = (overrides: Partial<Definition> = {}): Definition => ({
+  siteType: SITE_TYPES.OPENROUTER,
+  requiresFreshUpdateDetail: () => true,
+  openConfig: vi.fn(async () => ({ scopeKey: "workspace-example" })),
+  listScopes: vi.fn(async () => [SCOPE]),
+  defaultScopeKey: (config) => config.scopeKey,
+  encodeLocator: (locator) => locator,
+  decodeLocator: (resourceId) => resourceId,
+  locatorFromListItem: (item) => item.id,
+  locatorFromDetail: (detail) => detail.id,
+  list: vi.fn(async () => ({
+    items: [{ id: "opaque-key-example", name: "Key" }],
+  })),
+  get: vi.fn(async () => ({ id: "opaque-key-example", name: "Key" })),
+  toListFacts: (item, ref) => ({
+    ref,
+    displayName: item.name,
+    maskedLabel: "…example",
+    runtimeSecret: item.secret,
+    status: "enabled",
+    fields: [],
+    actions: { canUpdate: true, canDelete: true },
+  }),
+  toDetailFacts: (detail, ref) => ({
+    ref,
+    displayName: detail.name,
+    maskedLabel: "…example",
+    runtimeSecret: detail.secret,
+    status: "enabled",
+    fields: [],
+    actions: { canUpdate: true, canDelete: true },
+  }),
+  createEditor: vi.fn(async () => ({
+    fields: [],
+    initialValues: { name: "" },
+    validate: (): ResourceValidationResult => ({ valid: true }),
+    buildCommand: (values: EditableResourceProjection) => ({
+      name: String(values.name),
+    }),
+  })),
+  editEditor: vi.fn(() => ({
+    fields: [],
+    initialValues: { name: "Key" },
+    validate: (): ResourceValidationResult => ({ valid: true }),
+    buildCommand: (values: EditableResourceProjection) => ({
+      name: String(values.name),
+    }),
+  })),
+  create: vi.fn<Definition["create"]>(async (_config, _scope, command) => ({
+    certainty: "applied",
+    value: { detail: { id: "created-key", name: command.name } },
+  })),
+  update: vi.fn<Definition["update"]>(
+    async (_config, _scope, _detail, command) => ({
+      certainty: "applied",
+      value: { id: "opaque-key-example", name: command.name },
+    }),
+  ),
+  delete: vi.fn(async () => ({
+    certainty: "applied" as const,
+    value: undefined,
+  })),
+  mapFailure: (error): ResourceFailure =>
+    error === "denied"
+      ? { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied }
+      : { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+  ...overrides,
+})
+
+it("rejects requirement-bound creation editors unless their adapter explicitly supports binding", async () => {
+  const definition = createDefinition()
+  const session =
+    await defineAccountKeyResourceCapability(definition).open(OPEN_INPUT)
+  await expect(
+    session.openCreateEditor(
+      SCOPE.scopeKey,
+      undefined,
+      undefined,
+      "opaque-requirement",
+    ),
+  ).rejects.toMatchObject({ failure: { code: "unavailable" } })
+  expect(definition.createEditor).not.toHaveBeenCalled()
+})
+
+const openSession = (definition = createDefinition()) =>
+  defineAccountKeyResourceCapability(definition).open(OPEN_INPUT)
+
+it("requires existing provider projections to include their native secret value", () => {
+  type ProviderFacts = ReturnType<Definition["toListFacts"]>
+  expectTypeOf<
+    Omit<ProviderFacts, "runtimeSecret"> extends ProviderFacts ? true : false
+  >().toEqualTypeOf<false>()
+})
+
+it.each([
+  ["sk-private", "sk-private"],
+  ["sk-****masked", undefined],
+  ["sk-••••masked", undefined],
+  ["sk-start…end", undefined],
+  [undefined, undefined],
+])(
+  "automatically projects only declared complete plaintext for list and detail: %s",
+  async (secret, expected) => {
+    const definition = createDefinition({
+      inventorySecretAvailability: "recoverable",
+      list: vi.fn(async () => ({
+        items: [{ id: REF.resourceId, name: "Key", secret }],
+      })),
+      get: vi.fn(async () => ({ id: REF.resourceId, name: "Key", secret })),
+    })
+    const session = await openSession(definition)
+    const collection = await session.openCollection(SCOPE.scopeKey)
+    expect((await collection.list()).items[0]?.runtimeSecret).toBe(expected)
+    expect((await collection.get(REF)).runtimeSecret).toBe(expected)
+  },
+)
+
+it("does not infer plaintext from a resource identity that looks like a secret", async () => {
+  const definition = createDefinition({
+    list: vi.fn(async () => ({
+      items: [{ id: "sk-resource-id", name: "Key" }],
+    })),
+  })
+  const session = await openSession(definition)
+  expect(
+    (await (await session.openCollection(SCOPE.scopeKey)).list()).items[0]
+      ?.runtimeSecret,
+  ).toBeUndefined()
+})
+
+const open = async (definition = createDefinition()) =>
+  (await openSession(definition)).openCollection("workspace-example")
+
+describe("defineAccountKeyResourceCapability", () => {
+  it.each(["blank-locator", "locator-throw", "foreign-facts", "facts-throw"])(
+    "fails safely for malformed provider list projection: %s",
+    async (kind) => {
+      const definition = createDefinition()
+      const project = definition.toListFacts
+      if (kind === "blank-locator") definition.encodeLocator = () => " "
+      if (kind === "locator-throw")
+        definition.encodeLocator = () => {
+          throw "denied"
+        }
+      if (kind === "foreign-facts")
+        definition.toListFacts = (item, ref) => ({
+          ...project(item, ref),
+          ref: { ...ref, resourceId: "foreign" },
+        })
+      if (kind === "facts-throw")
+        definition.toListFacts = (item, ref) => ({
+          ...project(item, ref),
+          get ref(): AccountKeyResourceRef {
+            throw "denied"
+          },
+        })
+      const collection = await (
+        await openSession(definition)
+      ).openCollection(SCOPE.scopeKey)
+      await expect(collection.list({})).rejects.toMatchObject({
+        failure: {
+          code: kind.endsWith("throw")
+            ? ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied
+            : ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected,
+        },
+      })
+      expect(definition.create).not.toHaveBeenCalled()
+    },
+  )
+
+  it("rejects changed detail identity before accepting a read or opening an edit", async () => {
+    const definition = createDefinition({
+      get: vi.fn(async () => ({ id: "another-key", name: "Foreign" })),
+    })
+    const collection = await (
+      await openSession(definition)
+    ).openCollection(SCOPE.scopeKey)
+    await expect(collection.openEditEditor(REF)).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+    await expect(collection.get(REF)).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+    expect(definition.update).not.toHaveBeenCalled()
+    expect(definition.delete).not.toHaveBeenCalled()
+  })
+
+  it("does not expose a failure mapper exception at the public boundary", async () => {
+    const secret = "private-provider-secret"
+    const definition = createDefinition({
+      get: vi.fn(async () => {
+        throw "denied"
+      }),
+      mapFailure: () => {
+        throw new Error(secret)
+      },
+    })
+    const collection = await (
+      await openSession(definition)
+    ).openCollection(SCOPE.scopeKey)
+    const failure = await collection.get(REF).catch((error: unknown) => error)
+    expect(failure).toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+    expect(JSON.stringify(failure)).not.toContain(secret)
+  })
+
+  it.each(["throw", "blank"])(
+    "rejects an invalid default scope resolution: %s",
+    async (kind) => {
+      const definition = createDefinition({
+        defaultScopeKey: () => {
+          if (kind === "throw") throw "denied"
+          return " "
+        },
+      })
+      const session = await openSession(definition)
+      await expect(session.resolveDefaultScope()).rejects.toMatchObject({
+        failure: {
+          code:
+            kind === "throw"
+              ? ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied
+              : ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed,
+        },
+      })
+      expect(definition.list).not.toHaveBeenCalled()
+    },
+  )
+
+  it("rejects malformed partial scope metadata without caching it, then preserves valid upstream metadata", async () => {
+    const listScopeInventory = vi
+      .fn()
+      .mockResolvedValueOnce({
+        scopes: [SCOPE],
+        partialFailure: {
+          code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unavailable,
+          upstreamCode: " ",
+        },
+      })
+      .mockResolvedValueOnce({
+        scopes: [SCOPE],
+        partialFailure: {
+          code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unavailable,
+          upstreamCode: "UPSTREAM_OFFLINE",
+        },
+      })
+    const session = await openSession(createDefinition({ listScopeInventory }))
+    const inventory = session.listScopeInventory
+    if (!inventory) throw new Error("Expected native scope inventory")
+    await expect(inventory()).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+    await expect(inventory()).resolves.toMatchObject({
+      partialFailure: { upstreamCode: "UPSTREAM_OFFLINE" },
+      scopes: [SCOPE],
+    })
+    expect(listScopeInventory).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    null,
+    { valid: false, issues: [null] },
+    {
+      valid: false,
+      issues: [
+        {
+          fieldId: "name",
+          code: "invalid-provider-code",
+          value: "private-secret",
+        },
+      ],
+    },
+  ])(
+    "rejects malformed provider validation before any mutation %#",
+    async (validation) => {
+      const definition = createDefinition({
+        createEditor: vi.fn(async () => ({
+          fields: [],
+          initialValues: {},
+          validate: () => validation as ResourceValidationResult,
+          buildCommand: () => ({ name: "Unused" }),
+        })),
+      })
+      const editor = await (
+        await openSession(definition)
+      ).openCreateEditor(SCOPE.scopeKey)
+      expect(() => editor.validate({})).toThrow(AccountKeyResourceError)
+      await expect(editor.submit({})).rejects.toMatchObject({
+        failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+      })
+      expect(definition.create).not.toHaveBeenCalled()
+    },
+  )
+
+  it("uses the controlled failure message as the public Error message", () => {
+    const error = new AccountKeyResourceError({
+      code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected,
+      message: "Provider inventory is temporarily unavailable",
+    })
+
+    expect(error.message).toBe("Provider inventory is temporarily unavailable")
+    expect(error.failure.code).toBe(
+      ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected,
+    )
+  })
+
+  it("binds an optional provisioning facet to the opened session", async () => {
+    const snapshot = {
+      requirements: [
+        {
+          requirementKey: "opaque:requirement",
+          displayName: "Requirement",
+          provisioning: {
+            kind: ACCOUNT_KEY_REQUIREMENT_PROVISIONING_KINDS.Automatic,
+          },
+        },
+      ],
+      items: [],
+    }
+    const provisioning = {
+      inspect: vi.fn(async () => snapshot),
+      provision: vi.fn(async () => ({
+        certainty: "applied" as const,
+        value: { ref: REF },
+      })),
+    }
+    const session = await openSession(createDefinition({ provisioning }))
+
+    await expect(session.provisioning?.inspect()).resolves.toBe(snapshot)
+    await expect(
+      session.provisioning?.provision("opaque:requirement"),
+    ).resolves.toEqual({
+      certainty: "applied",
+      value: { ref: REF },
+    })
+    expect(provisioning.inspect).toHaveBeenCalledWith(
+      { scopeKey: "workspace-example" },
+      undefined,
+    )
+    expect(provisioning.provision).toHaveBeenCalledWith(
+      { scopeKey: "workspace-example" },
+      "opaque:requirement",
+      undefined,
+    )
+  })
+
+  it("rejects invalid applied provisioning provenance at the public seam", async () => {
+    const provisioning = {
+      inspect: vi.fn(async () => ({ requirements: [], items: [] })),
+      provision: vi.fn(async () => ({
+        certainty: "applied" as const,
+        value: { ref: { ...REF, accountId: "other-account" } },
+      })),
+    }
+    const session = await openSession(createDefinition({ provisioning }))
+
+    await expect(
+      session.provisioning?.provision("opaque:requirement"),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+  })
+
+  it.each([
+    [
+      "kind",
+      {
+        kind: "other-resource",
+        ref: REF,
+      },
+    ],
+    [
+      "account",
+      {
+        kind: "account-key-resource",
+        ref: { ...REF, accountId: "other-account" },
+      },
+    ],
+    [
+      "scope",
+      {
+        kind: "account-key-resource",
+        ref: { ...REF, scopeKey: "other-workspace" },
+      },
+    ],
+    [
+      "resource",
+      {
+        kind: "account-key-resource",
+        ref: { ...REF, resourceId: "other-key" },
+      },
+    ],
+  ])(
+    "rejects a provisioned secret with mismatched %s correlation",
+    async (_, correlation) => {
+      const provisioning = {
+        inspect: vi.fn(async () => ({ requirements: [], items: [] })),
+        provision: vi.fn(async () => ({
+          certainty: "applied" as const,
+          value: {
+            ref: REF,
+            createdSecret: {
+              correlation: correlation as never,
+              displayName: "Created",
+              secret: "created-secret",
+              secretAvailability: "create-response-only" as const,
+              credential: {
+                accountName: "Example",
+                apiType: "openai-compatible" as const,
+                baseUrl: "https://api.example.invalid",
+                tagIds: [],
+              },
+            },
+          },
+        })),
+      }
+      const session = await openSession(createDefinition({ provisioning }))
+
+      await expect(
+        session.provisioning?.provision("opaque:requirement"),
+      ).rejects.toMatchObject({
+        failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+      })
+    },
+  )
+
+  it("binds an independent runtime-key resolver to the opened session", async () => {
+    const resolution = {
+      kind: "resolved" as const,
+      secret: "runtime-secret-example",
+    }
+    const runtimeKey = {
+      resolve: vi.fn(async () => resolution),
+    }
+    const session = await openSession(createDefinition({ runtimeKey }))
+
+    await expect(session.runtimeKey?.resolve(REF)).resolves.toBe(resolution)
+    expect(runtimeKey.resolve).toHaveBeenCalledWith(
+      { scopeKey: "workspace-example" },
+      REF,
+      undefined,
+    )
+  })
+
+  it("rejects a foreign runtime-key ref before Adapter access", async () => {
+    const runtimeKey = {
+      resolve: vi.fn(async () => ({
+        kind: "unavailable" as const,
+      })),
+    }
+    const session = await openSession(createDefinition({ runtimeKey }))
+
+    await expect(
+      session.runtimeKey?.resolve({ ...REF, accountId: "other-account" }),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+    expect(runtimeKey.resolve).not.toHaveBeenCalled()
+  })
+
+  it("rejects an unavailable runtime-key scope before Adapter access", async () => {
+    const runtimeKey = {
+      resolve: vi.fn(async () => ({
+        kind: "unavailable" as const,
+      })),
+    }
+    const session = await openSession(createDefinition({ runtimeKey }))
+
+    await expect(
+      session.runtimeKey?.resolve({ ...REF, scopeKey: "other-workspace" }),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+    expect(runtimeKey.resolve).not.toHaveBeenCalled()
+  })
+
+  it("rejects wrong-account and wrong-scope refs before adapter access", async () => {
+    const definition = createDefinition()
+    const collection = await open(definition)
+
+    await expect(
+      collection.get({ ...REF, accountId: "other-account" }),
+    ).rejects.toBeInstanceOf(AccountKeyResourceError)
+    await expect(
+      collection.openEditEditor({ ...REF, scopeKey: "other-scope" }),
+    ).rejects.toBeInstanceOf(AccountKeyResourceError)
+
+    expect(definition.get).not.toHaveBeenCalled()
+  })
+
+  it("rejects whitespace-only and wrong-site refs before provider decoding", async () => {
+    const decodeLocator = vi.fn((resourceId: string) => resourceId)
+    const definition = createDefinition({ decodeLocator })
+    const collection = await open(definition)
+
+    await expect(
+      collection.get({ ...REF, resourceId: "   " }),
+    ).rejects.toBeInstanceOf(AccountKeyResourceError)
+    await expect(
+      collection.get({ ...REF, siteType: SITE_TYPES.NEW_API }),
+    ).rejects.toBeInstanceOf(AccountKeyResourceError)
+
+    expect(definition.decodeLocator).not.toHaveBeenCalled()
+    expect(definition.get).not.toHaveBeenCalled()
+  })
+
+  it("does not let late or duplicate mutation results escape the public editor", async () => {
+    const deferred = (() => {
+      let resolve!: (value: {
+        certainty: "applied"
+        value: { detail: Detail }
+      }) => void
+      const promise = new Promise<{
+        certainty: "applied"
+        value: { detail: Detail }
+      }>((done) => {
+        resolve = done
+      })
+      return { promise, resolve }
+    })()
+    const definition = createDefinition({
+      create: vi.fn(() => deferred.promise),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    const first = editor.submit({ name: "Created" })
+    const duplicate = editor.submit({ name: "Ignored" })
+    expect(first).toBe(duplicate)
+
+    deferred.resolve({
+      certainty: "applied",
+      value: { detail: { id: "created-key", name: "Created" } },
+    })
+    await expect(first).resolves.toEqual({
+      facts: expect.objectContaining({
+        ref: expect.objectContaining({
+          accountId: "account-example",
+          resourceId: "created-key",
+        }),
+      }),
+    })
+    await expect(editor.submit({ name: "Late" })).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+  })
+
+  it("rejects an edit response whose native locator changes", async () => {
+    const definition = createDefinition({
+      update: vi.fn(async () => ({
+        certainty: "applied" as const,
+        value: { id: "other-opaque-key", name: "Other key" },
+      })),
+    })
+    const editor = await (await open(definition)).openEditEditor(REF)
+
+    await expect(editor.submit({ name: "Renamed" })).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+  })
+
+  it("maps option-loader failures through the account-native error boundary", async () => {
+    const definition = createDefinition({
+      createEditor: vi.fn(async () => ({
+        fields: [],
+        initialValues: { name: "" },
+        validate: (): ResourceValidationResult => ({ valid: true }),
+        buildCommand: (values: EditableResourceProjection) => ({
+          name: String(values.name),
+        }),
+        loadOptions: async () => {
+          throw "denied"
+        },
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    await expect(
+      editor.loadOptions?.("name", { name: "" }),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied },
+    })
+  })
+
+  it("snapshots and freezes public scopes before operations retain them", async () => {
+    const definition = createDefinition()
+    const session = await openSession(definition)
+    const scopes = await session.listScopes()
+
+    expect(Object.isFrozen(scopes)).toBe(true)
+    expect(Object.isFrozen(scopes[0])).toBe(true)
+    expect(Reflect.set(scopes[0]!, "scopeKey", "mutated-scope")).toBe(false)
+
+    const collection = await session.openCollection("workspace-example")
+    expect(Object.isFrozen(collection.scope)).toBe(true)
+    expect(
+      Reflect.set(collection.scope, "scopeKey", "other-mutated-scope"),
+    ).toBe(false)
+
+    const page = await collection.list()
+    expect(page.items[0]?.ref.scopeKey).toBe("workspace-example")
+    expect(definition.list).toHaveBeenCalledWith(
+      { scopeKey: "workspace-example" },
+      expect.objectContaining(SCOPE),
+      undefined,
+      undefined,
+    )
+    expect(definition.listScopes).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ["scope key", [SCOPE, { ...SCOPE, routeKey: "other", isDefault: false }]],
+    [
+      "route identity",
+      [
+        SCOPE,
+        {
+          ...SCOPE,
+          scopeKey: "other-workspace",
+          displayName: "Other workspace",
+          isDefault: false,
+        },
+      ],
+    ],
+  ])("rejects duplicate %s values", async (_label, scopes) => {
+    const definition = createDefinition({
+      listScopes: vi.fn(async () => scopes),
+    })
+
+    await expect(
+      (await openSession(definition)).listScopes(),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+  })
+
+  it.each([
+    ["blank scope key", { ...SCOPE, scopeKey: "   " }],
+    ["oversized scope key", { ...SCOPE, scopeKey: "x".repeat(2049) }],
+    ["blank route key", { ...SCOPE, routeKey: "   " }],
+    ["oversized route key", { ...SCOPE, routeKey: "x".repeat(513) }],
+    ["blank display name", { ...SCOPE, displayName: "   " }],
+    ["oversized display name", { ...SCOPE, displayName: "x".repeat(513) }],
+    ["blank secondary label", { ...SCOPE, secondaryLabel: "   " }],
+    [
+      "oversized secondary label",
+      { ...SCOPE, secondaryLabel: "x".repeat(513) },
+    ],
+    ["non-string secondary label", { ...SCOPE, secondaryLabel: 1 }],
+    ["non-boolean default", { ...SCOPE, isDefault: "true" }],
+  ])("rejects a malformed scope: %s", async (_label, scope) => {
+    const definition = createDefinition({
+      listScopes: vi.fn(async () => [scope] as unknown as AccountKeyScope[]),
+    })
+
+    await expect(
+      (await openSession(definition)).listScopes(),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+    })
+  })
+
+  it("retries scope loading after an aborted or failed attempt", async () => {
+    const listScopes = vi
+      .fn<Definition["listScopes"]>()
+      .mockRejectedValueOnce("denied")
+      .mockResolvedValueOnce([SCOPE])
+    const session = await openSession(createDefinition({ listScopes }))
+
+    await expect(session.listScopes()).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied },
+    })
+    await expect(session.listScopes()).resolves.toEqual([SCOPE])
+    expect(listScopes).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps a structured partial scope inventory and refreshes only that cached read", async () => {
+    const teamScope = {
+      ...SCOPE,
+      scopeKey: "workspace-team",
+      routeKey: "team",
+      displayName: "Team workspace",
+      isDefault: false,
+    }
+    const listScopeInventory = vi
+      .fn()
+      .mockResolvedValueOnce({
+        scopes: [SCOPE],
+        partialFailure: {
+          code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unavailable,
+        },
+      })
+      .mockResolvedValueOnce({ scopes: [SCOPE, teamScope] })
+    const definition = createDefinition({
+      listScopeInventory,
+    })
+    const session = await openSession(definition)
+
+    await expect((session as any).listScopeInventory()).resolves.toEqual({
+      scopes: [SCOPE],
+      partialFailure: {
+        code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unavailable,
+      },
+    })
+    await expect(session.listScopes()).resolves.toEqual([SCOPE])
+    await expect((session as any).refreshScopeInventory()).resolves.toEqual({
+      scopes: [SCOPE, teamScope],
+    })
+    await expect(session.listScopes()).resolves.toEqual([SCOPE, teamScope])
+    expect(listScopeInventory).toHaveBeenCalledTimes(2)
+    expect(definition.listScopes).not.toHaveBeenCalled()
+  })
+
+  it("does not share one caller's abort signal with another scope load", async () => {
+    const firstAbort = new AbortController()
+    const secondAbort = new AbortController()
+    const listScopes = vi.fn<Definition["listScopes"]>(
+      async (_config, options) => {
+        if (options?.signal === secondAbort.signal) return [SCOPE]
+        return await new Promise<readonly AccountKeyScope[]>(
+          (_resolve, reject) => {
+            options?.signal?.addEventListener("abort", () => reject("denied"), {
+              once: true,
+            })
+          },
+        )
+      },
+    )
+    const session = await openSession(createDefinition({ listScopes }))
+
+    const first = session.listScopes({ signal: firstAbort.signal })
+    const second = session.listScopes({ signal: secondAbort.signal })
+    firstAbort.abort()
+
+    await expect(first).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied },
+    })
+    await expect(second).resolves.toEqual([SCOPE])
+    expect(listScopes).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    null,
+    {},
+    { account: null, request: OPEN_INPUT.request },
+    { account: OPEN_INPUT.account, request: null },
+    {
+      account: { ...OPEN_INPUT.account, id: "   " },
+      request: OPEN_INPUT.request,
+    },
+  ])("fails closed for malformed open input %#", async (input) => {
+    const capability = defineAccountKeyResourceCapability(createDefinition())
+
+    await expect(capability.open(input as never)).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+  })
+
+  it("maps provider validation throws at the public editor boundary", async () => {
+    const definition = createDefinition({
+      createEditor: vi.fn(async () => ({
+        fields: [],
+        initialValues: {},
+        validate: () => {
+          throw "denied"
+        },
+        buildCommand: () => ({ name: "unused" }),
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    expect(() => editor.validate({})).toThrow(
+      expect.objectContaining({
+        failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied },
+      }),
+    )
+  })
+
+  it("preserves safe validation issues without exposing provider values", async () => {
+    const validation = {
+      valid: false as const,
+      issues: [
+        {
+          fieldId: "name",
+          code: ACCOUNT_KEY_RESOURCE_FIELD_ISSUE_CODES.Required,
+          rawValue: "provider-secret-value",
+        },
+      ],
+    }
+    const definition = createDefinition({
+      createEditor: vi.fn(async () => ({
+        fields: [],
+        initialValues: {},
+        validate: () => validation,
+        buildCommand: () => ({ name: "unused" }),
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    expect(editor.validate({})).toEqual({
+      valid: false,
+      issues: [
+        {
+          fieldId: "name",
+          code: ACCOUNT_KEY_RESOURCE_FIELD_ISSUE_CODES.Required,
+        },
+      ],
+    })
+    let submitError: unknown
+    try {
+      await editor.submit({})
+    } catch (error) {
+      submitError = error
+    }
+    expect(submitError).toBeInstanceOf(AccountKeyResourceError)
+    expect((submitError as AccountKeyResourceError).mutationCertainty).toBe(
+      "not-applied",
+    )
+    expect((submitError as AccountKeyResourceError).failure).toEqual({
+      code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed,
+      fieldIssues: [
+        {
+          fieldId: "name",
+          code: ACCOUNT_KEY_RESOURCE_FIELD_ISSUE_CODES.Required,
+        },
+      ],
+    })
+    expect(
+      JSON.stringify((submitError as AccountKeyResourceError).failure),
+    ).not.toContain("provider-secret-value")
+  })
+
+  it("passes canonical scope, commands, details, and options to mutations", async () => {
+    const create = vi.fn<Definition["create"]>(
+      async (_config, _scope, command) => ({
+        certainty: "applied",
+        value: { detail: { id: "created-key", name: command.name } },
+      }),
+    )
+    const update = vi.fn<Definition["update"]>(
+      async (_config, _scope, { current: detail }, command) => ({
+        certainty: "applied",
+        value: { ...detail, name: command.name },
+      }),
+    )
+    const definition = createDefinition({ create, update })
+    const session = await openSession(definition)
+    const createOptions = { signal: new AbortController().signal }
+    const editOptions = { signal: new AbortController().signal }
+
+    await (
+      await session.openCreateEditor("workspace-example")
+    ).submit({ name: "Created" }, createOptions)
+    await (
+      await (
+        await session.openCollection("workspace-example")
+      ).openEditEditor(REF)
+    ).submit({ name: "Renamed" }, editOptions)
+
+    expect(create).toHaveBeenCalledWith(
+      { scopeKey: "workspace-example" },
+      expect.objectContaining(SCOPE),
+      { name: "Created" },
+      createOptions,
+    )
+    expect(update).toHaveBeenCalledWith(
+      { scopeKey: "workspace-example" },
+      expect.objectContaining(SCOPE),
+      {
+        baseline: { id: "opaque-key-example", name: "Key" },
+        current: { id: "opaque-key-example", name: "Key" },
+      },
+      { name: "Renamed" },
+      editOptions,
+    )
+    expect(Object.isFrozen(create.mock.calls[0]![1])).toBe(true)
+    expect(Object.isFrozen(update.mock.calls[0]![1])).toBe(true)
+    expect(create.mock.calls[0]![1]).not.toBe(SCOPE)
+    expect(update.mock.calls[0]![1]).not.toBe(SCOPE)
+  })
+
+  it.each([
+    [
+      "kind",
+      {
+        kind: "other-resource",
+        ref: REF,
+      },
+    ],
+    [
+      "account",
+      {
+        kind: "account-key-resource",
+        ref: { ...REF, accountId: "other-account" },
+      },
+    ],
+    [
+      "scope",
+      {
+        kind: "account-key-resource",
+        ref: { ...REF, scopeKey: "other-workspace" },
+      },
+    ],
+    [
+      "resource",
+      {
+        kind: "account-key-resource",
+        ref: { ...REF, resourceId: "other-key" },
+      },
+    ],
+  ])(
+    "rejects a created secret with mismatched %s correlation",
+    async (_, correlation) => {
+      const definition = createDefinition({
+        create: vi.fn<Definition["create"]>(async () => ({
+          certainty: "applied",
+          value: {
+            detail: { id: "created-key", name: "Created" },
+            createdSecret: {
+              correlation: correlation as never,
+              displayName: "Created",
+              secret: "created-secret",
+              secretAvailability: "create-response-only",
+              credential: {
+                accountName: "Example",
+                apiType: "openai-compatible",
+                baseUrl: "https://api.example.invalid",
+                tagIds: [],
+              },
+            },
+          },
+        })),
+      })
+      const editor = await (
+        await openSession(definition)
+      ).openCreateEditor("workspace-example")
+
+      await expect(editor.submit({ name: "Created" })).rejects.toMatchObject({
+        failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.Unexpected },
+      })
+    },
+  )
+
+  it("keeps a created secret correlated to the resulting resource", async () => {
+    const definition = createDefinition({
+      create: vi.fn<Definition["create"]>(async () => ({
+        certainty: "applied",
+        value: {
+          detail: { id: "created-key", name: "Created" },
+          createdSecret: {
+            correlation: {
+              kind: correlationKinds.AccountKeyResource,
+              ref: {
+                accountId: "account-example",
+                siteType: SITE_TYPES.OPENROUTER,
+                scopeKey: "workspace-example",
+                resourceId: "created-key",
+              },
+            },
+            displayName: "Created",
+            secret: "created-secret",
+            secretAvailability: "create-response-only",
+            credential: {
+              accountName: "Example",
+              apiType: "openai-compatible",
+              baseUrl: "https://api.example.invalid",
+              tagIds: [],
+            },
+          },
+        },
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    await expect(editor.submit({ name: "Created" })).resolves.toMatchObject({
+      createdSecret: {
+        correlation: {
+          kind: "account-key-resource",
+          ref: { resourceId: "created-key" },
+        },
+      },
+    })
+  })
+
+  it("projects a created resource into its validated destination scope", async () => {
+    const destinationScope = {
+      scopeKey: "workspace-destination",
+      routeKey: "destination",
+      displayName: "Destination workspace",
+      isDefault: false,
+    }
+    const definition = createDefinition({
+      listScopes: vi.fn(async () => [SCOPE, destinationScope]),
+      create: vi.fn<Definition["create"]>(async () => ({
+        certainty: "applied",
+        value: {
+          detail: { id: "created-key", name: "Created" },
+          scopeKey: "workspace-destination",
+          createdSecret: {
+            correlation: {
+              kind: correlationKinds.AccountKeyResource,
+              ref: {
+                accountId: "account-example",
+                siteType: SITE_TYPES.OPENROUTER,
+                scopeKey: "workspace-destination",
+                resourceId: "created-key",
+              },
+            },
+            displayName: "Created",
+            secret: "created-secret",
+            secretAvailability: "create-response-only",
+            credential: {
+              accountName: "Example",
+              apiType: "openai-compatible",
+              baseUrl: "https://api.example.invalid",
+              tagIds: [],
+            },
+          },
+        },
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    await expect(editor.submit({ name: "Created" })).resolves.toMatchObject({
+      facts: {
+        ref: {
+          accountId: "account-example",
+          siteType: SITE_TYPES.OPENROUTER,
+          scopeKey: "workspace-destination",
+          resourceId: "created-key",
+        },
+      },
+      createdSecret: {
+        correlation: {
+          kind: "account-key-resource",
+          ref: {
+            accountId: "account-example",
+            siteType: SITE_TYPES.OPENROUTER,
+            scopeKey: "workspace-destination",
+            resourceId: "created-key",
+          },
+        },
+      },
+    })
+  })
+
+  it("preserves an applied create after the cached scope inventory drifts", async () => {
+    const replacementScope = {
+      ...SCOPE,
+      scopeKey: "workspace-replacement",
+      routeKey: "replacement",
+      displayName: "Replacement workspace",
+      isDefault: false,
+    }
+    const listScopeInventory = vi
+      .fn()
+      .mockResolvedValueOnce({ scopes: [SCOPE] })
+      .mockResolvedValueOnce({ scopes: [replacementScope] })
+    const definition = createDefinition({
+      listScopeInventory,
+      create: vi.fn<Definition["create"]>(async () => ({
+        certainty: "applied",
+        value: {
+          detail: { id: "created-key", name: "Created" },
+          scopeKey: SCOPE.scopeKey,
+        },
+      })),
+    })
+    const session = await openSession(definition)
+    const editor = await session.openCreateEditor(SCOPE.scopeKey)
+
+    await expect(session.refreshScopeInventory?.()).resolves.toMatchObject({
+      scopes: [replacementScope],
+    })
+    await expect(editor.submit({ name: "Created" })).resolves.toMatchObject({
+      facts: {
+        ref: {
+          scopeKey: SCOPE.scopeKey,
+          resourceId: "created-key",
+        },
+      },
+    })
+  })
+
+  it("resolves a validated create destination before dispatch", async () => {
+    const destinationScope = {
+      scopeKey: "workspace-destination",
+      routeKey: "destination",
+      displayName: "Destination workspace",
+      isDefault: false,
+    }
+    const create = vi.fn<Definition["create"]>(async () => ({
+      certainty: "applied",
+      value: { detail: { id: "created-key", name: "Created" } },
+    }))
+    const definition = createDefinition({
+      listScopes: vi.fn(async () => [SCOPE, destinationScope]),
+      create,
+      createEditor: vi.fn(async () => ({
+        fields: [],
+        initialValues: { name: "", destinationScopeKey: SCOPE.scopeKey },
+        validate: (): ResourceValidationResult => ({ valid: true }),
+        buildCommand: (values: EditableResourceProjection) => ({
+          name: String(values.name),
+          destinationScopeKey: String(values.destinationScopeKey),
+        }),
+        destinationScopeKey: (command: CreateCommand) =>
+          command.destinationScopeKey!,
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor(SCOPE.scopeKey)
+
+    expect(
+      editor.resolveDestinationScopeKey({
+        name: "Created",
+        destinationScopeKey: destinationScope.scopeKey,
+      }),
+    ).toBe(destinationScope.scopeKey)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it("rejects an unvalidated command destination before create dispatch", async () => {
+    const create = vi.fn<Definition["create"]>(async () => ({
+      certainty: "applied",
+      value: { detail: { id: "created-key", name: "Created" } },
+    }))
+    const definition = createDefinition({
+      create,
+      createEditor: vi.fn(async () => ({
+        fields: [],
+        initialValues: {
+          name: "",
+          destinationScopeKey: "workspace-unvalidated",
+        },
+        validate: (): ResourceValidationResult => ({ valid: true }),
+        buildCommand: (values: EditableResourceProjection) => ({
+          name: String(values.name),
+          destinationScopeKey: String(values.destinationScopeKey),
+        }),
+        destinationScopeKey: (command: CreateCommand) =>
+          command.destinationScopeKey!,
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    await expect(
+      editor.submit({
+        name: "Created",
+        destinationScopeKey: "workspace-unvalidated",
+      }),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it("preserves an applied resource when the provider reports another scope", async () => {
+    const definition = createDefinition({
+      create: vi.fn<Definition["create"]>(async () => ({
+        certainty: "applied",
+        value: {
+          detail: { id: "created-key", name: "Created" },
+          scopeKey: "workspace-unvalidated",
+        },
+      })),
+    })
+    const editor = await (
+      await openSession(definition)
+    ).openCreateEditor("workspace-example")
+
+    await expect(editor.submit({ name: "Created" })).resolves.toMatchObject({
+      facts: {
+        ref: {
+          scopeKey: "workspace-unvalidated",
+          resourceId: "created-key",
+        },
+      },
+    })
+  })
+
+  it("retries definite mutation rejection but closes after uncertain state", async () => {
+    const retryingCreate = vi
+      .fn<Definition["create"]>()
+      .mockResolvedValueOnce({ certainty: "not-applied", failure: "denied" })
+      .mockResolvedValueOnce({
+        certainty: "applied",
+        value: { detail: { id: "created-key", name: "Recovered" } },
+      })
+    const retryingEditor = await (
+      await openSession(createDefinition({ create: retryingCreate }))
+    ).openCreateEditor("workspace-example")
+
+    await expect(
+      retryingEditor.submit({ name: "First" }),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.PermissionDenied },
+      mutationCertainty: "not-applied",
+    })
+    await expect(
+      retryingEditor.submit({ name: "Recovered" }),
+    ).resolves.toMatchObject({
+      facts: { displayName: "Recovered" },
+    })
+    expect(retryingCreate).toHaveBeenCalledTimes(2)
+
+    const uncertainCreate = vi.fn<Definition["create"]>(async () => ({
+      certainty: "possibly-applied",
+      failure: "denied",
+    }))
+    const uncertainEditor = await (
+      await openSession(createDefinition({ create: uncertainCreate }))
+    ).openCreateEditor("workspace-example")
+
+    await expect(
+      uncertainEditor.submit({ name: "Uncertain" }),
+    ).rejects.toMatchObject({
+      failure: {
+        code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+      },
+    })
+    await expect(
+      uncertainEditor.submit({ name: "Replay" }),
+    ).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+    expect(uncertainCreate).toHaveBeenCalledOnce()
+  })
+
+  it("contains an unclassified adapter exception and prevents replay through the public editor", async () => {
+    const create = vi
+      .fn<Definition["create"]>()
+      .mockRejectedValue(new Error("connection lost"))
+    const editor = await (
+      await openSession(createDefinition({ create }))
+    ).openCreateEditor(SCOPE.scopeKey)
+    await expect(editor.submit({ name: "First" })).rejects.toMatchObject({
+      failure: {
+        code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+      },
+    })
+    await expect(editor.submit({ name: "Replay" })).rejects.toMatchObject({
+      failure: { code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.ValidationFailed },
+    })
+    expect(create).toHaveBeenCalledOnce()
+  })
+
+  it.each(["delete", "revoke"] as const)(
+    "contains an unclassified %s exception at the public collection",
+    async (operation) => {
+      const mutation = vi.fn().mockRejectedValue(new Error("connection lost"))
+      const collection = await open(createDefinition({ [operation]: mutation }))
+      await expect(collection[operation]!(REF)).rejects.toMatchObject({
+        failure: {
+          code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+        },
+      })
+      expect(mutation).toHaveBeenCalledOnce()
+    },
+  )
+
+  it("preserves the mapped upstream code for uncertain editor and delete mutations", async () => {
+    const definition = createDefinition({
+      create: vi.fn<Definition["create"]>(async () => ({
+        certainty: "possibly-applied",
+        failure: "denied",
+      })),
+      delete: vi.fn<Definition["delete"]>(async () => ({
+        certainty: "partially-applied",
+        failure: "denied",
+      })),
+      mapFailure: () => ({
+        code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.UpstreamRejected,
+        message: "provider request timed out",
+        upstreamCode: "UPSTREAM_TIMEOUT",
+      }),
+    })
+    const session = await openSession(definition)
+    const editor = await session.openCreateEditor("workspace-example")
+    const collection = await session.openCollection("workspace-example")
+
+    await expect(editor.submit({ name: "Uncertain" })).rejects.toMatchObject({
+      failure: {
+        code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+        message: "provider request timed out",
+        upstreamCode: "UPSTREAM_TIMEOUT",
+      },
+    })
+    await expect(collection.delete(REF)).rejects.toMatchObject({
+      failure: {
+        code: ACCOUNT_KEY_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+        message: "provider request timed out",
+        upstreamCode: "UPSTREAM_TIMEOUT",
+      },
+    })
+  })
+})
+
+it("rejects an edit-detail identity mismatch before creating or submitting an editor", async () => {
+  const definition = createDefinition({
+    getEditDetail: vi.fn(async () => ({
+      id: "different-key",
+      name: "Other key",
+    })),
+  })
+  const collection = await open(definition)
+  await expect(collection.openEditEditor(REF)).rejects.toMatchObject({
+    failure: { code: "unexpected" },
+  })
+  expect(definition.update).not.toHaveBeenCalled()
+})
+
+it("passes both the opening baseline and one fresh detail to the update owner", async () => {
+  const baseline = { id: REF.resourceId, name: "Opening" }
+  const current = { id: REF.resourceId, name: "Changed elsewhere" }
+  const definition = createDefinition({
+    get: vi.fn().mockResolvedValueOnce(baseline).mockResolvedValueOnce(current),
+  })
+  const collection = await (
+    await openSession(definition)
+  ).openCollection(SCOPE.scopeKey)
+  const editor = await collection.openEditEditor(REF)
+  await editor.submit({ name: "Local edit" })
+  expect(definition.get).toHaveBeenCalledTimes(2)
+  expect(definition.update).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.anything(),
+    { baseline, current },
+    { name: "Local edit" },
+    undefined,
+  )
+})
+
+it("does not reread details before a snapshot-based update", async () => {
+  const definition = createDefinition({
+    requiresFreshUpdateDetail: () => false,
+  })
+  const session =
+    await defineAccountKeyResourceCapability(definition).open(OPEN_INPUT)
+  const editor = await (
+    await session.openCollection(SCOPE.scopeKey)
+  ).openEditEditor(REF)
+  await editor.submit({ name: "Changed" })
+  expect(definition.get).toHaveBeenCalledTimes(1)
+  expect(definition.update).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.anything(),
+    {
+      baseline: { id: REF.resourceId, name: "Key" },
+      current: { id: REF.resourceId, name: "Key" },
+    },
+    { name: "Changed" },
+    undefined,
+  )
+})
+
+it("rejects a revoke result attributed to another resource", async () => {
+  const definition = createDefinition({
+    revoke: async () => ({
+      certainty: "applied",
+      value: { id: "foreign-key", name: "Foreign" },
+    }),
+  })
+  const collection = await (
+    await openSession(definition)
+  ).openCollection(SCOPE.scopeKey)
+  await expect(collection.revoke!(REF)).rejects.toMatchObject({
+    failure: { code: "unexpected" },
+  })
+})
+
+it.each([false, true])(
+  "delivers update secrets only for the same resource (mismatch=%s)",
+  async (mismatch) => {
+    const createdSecret = {
+      correlation: {
+        kind: correlationKinds.AccountKeyResource,
+        ref: { ...REF, accountId: mismatch ? "other-account" : REF.accountId },
+      },
+      displayName: "Rotated",
+      secret: "sk-rotated-example-secret",
+      secretAvailability: "create-response-only" as const,
+      credential: {
+        accountName: "Example",
+        apiType: "openai-compatible" as const,
+        baseUrl: "https://example.invalid",
+        tagIds: [],
+      },
+    }
+    const definition = createDefinition({
+      update: async () => ({
+        certainty: "applied",
+        value: { id: REF.resourceId, name: "Rotated" },
+        createdSecret,
+      }),
+    })
+    const session =
+      await defineAccountKeyResourceCapability(definition).open(OPEN_INPUT)
+    const collection = await session.openCollection(REF.scopeKey)
+    const editor = await collection.openEditEditor(REF)
+    const result = editor.submit({ name: "Rotated" })
+    if (mismatch)
+      await expect(result).rejects.toBeInstanceOf(AccountKeyResourceError)
+    else expect((await result).createdSecret?.secret).toBe(createdSecret.secret)
+  },
+)

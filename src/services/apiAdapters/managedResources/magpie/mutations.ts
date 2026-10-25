@@ -1,0 +1,367 @@
+import { MAGPIE_ENDPOINT_FIELDS, MAGPIE_PROTOCOLS } from "~/constants/magpie"
+import { MANAGED_RESOURCE_KINDS } from "~/services/accountSiteDefinitions/contracts"
+import { toProtocolRoot } from "~/services/aiApi/protocolAddress"
+import {
+  MANAGED_RESOURCE_FAILURE_CODES,
+  ManagedResourceError,
+  type ManagedChannelImportCreateSeed,
+} from "~/services/apiAdapters/contracts/managedResourceNative"
+import type { MagpieProviderCommand } from "~/services/apiAdapters/managedResources/magpie/editorProjection"
+import {
+  applyMagpieKeyPool,
+  prepareMagpieKeyPool,
+} from "~/services/apiAdapters/managedResources/magpie/keyPoolMutations"
+import {
+  getMagpieProvider,
+  requireMagpieApiProvider,
+} from "~/services/apiAdapters/managedResources/magpie/nativeRuntime"
+import { magpieKeyFingerprint } from "~/services/apiService/magpie/keyIdentity"
+import {
+  deleteMagpieProvider,
+  saveMagpieProvider,
+  setMagpieProviderEnabled,
+  type MagpieProvider,
+} from "~/services/apiService/magpie/providers"
+import { buildMagpieProviderSavePayload } from "~/services/apiService/magpie/providerUpdate"
+import {
+  MagpieApiError,
+  type MagpieRequestOptions,
+} from "~/services/apiService/magpie/request"
+import {
+  MANAGED_SITE_MUTATION_EFFECT_KINDS,
+  MANAGED_SITE_MUTATION_FINAL_STATES,
+  type ManagedSiteMutationConfirmedEffect,
+} from "~/services/managedSites/mutations/contracts"
+import { createManagedSiteMutationSequence } from "~/services/managedSites/mutations/execution"
+import { hasUsableManagedSiteChannelKey } from "~/services/managedSites/utils/channelKeys"
+import type { MagpieConfig } from "~/types/magpieConfig"
+
+/** Retain confirmed steps when a later native action fails or loses its response. */
+async function mutate<T>(
+  run: (
+    step: <V>(
+      effect: ManagedSiteMutationConfirmedEffect,
+      execute: () => Promise<V>,
+    ) => Promise<V>,
+  ) => Promise<T>,
+) {
+  const sequence = createManagedSiteMutationSequence({ idempotent: false })
+  try {
+    const data = await run(async (effect, execute) => {
+      const attempt = sequence.beginStep()
+      try {
+        const value = await execute()
+        attempt.markPossiblyDispatched()
+        attempt.markResponseReceived()
+        attempt.confirmEffect(effect)
+        return value
+      } catch (error) {
+        if (error instanceof MagpieApiError) {
+          if (error.dispatched) attempt.markPossiblyDispatched()
+          if (error.dispatched && error.status !== undefined)
+            attempt.markResponseReceived()
+          if (error.dispatched && error.confirmedNonApplication)
+            attempt.confirmNonApplication()
+        }
+        throw error
+      } finally {
+        attempt.complete()
+      }
+    })
+    return sequence.finish({
+      finalState: MANAGED_SITE_MUTATION_FINAL_STATES.Confirmed,
+      data,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return sequence.finish({
+        finalState: MANAGED_SITE_MUTATION_FINAL_STATES.Unconfirmed,
+        diagnostic: { message: "Magpie operation aborted before dispatch" },
+      })
+    }
+    if (!(error instanceof MagpieApiError)) throw error
+    return sequence.finish({
+      finalState: MANAGED_SITE_MUTATION_FINAL_STATES.Unconfirmed,
+      diagnostic: {
+        message: error.message,
+        ...(error.status === undefined ? {} : { statusCode: error.status }),
+      },
+    })
+  }
+}
+
+const effect = (
+  kind: ManagedSiteMutationConfirmedEffect["kind"],
+  resourceId: string,
+): ManagedSiteMutationConfirmedEffect => ({
+  kind,
+  resourceKind: MANAGED_RESOURCE_KINDS.Channel,
+  resourceId,
+})
+const saved = (items: MagpieProvider[], id: string, enabled?: boolean) => {
+  const provider = items.find((item) => item.id === id)
+  if (!provider || (enabled !== undefined && provider.off === enabled))
+    throw new MagpieApiError(
+      "Magpie write could not be confirmed",
+      200,
+      true,
+      false,
+    )
+  return provider
+}
+
+/** Create a unique provider, apply its key pool, then set its requested status. */
+export async function createMagpieResource(
+  config: MagpieConfig,
+  command: MagpieProviderCommand,
+  options?: MagpieRequestOptions,
+) {
+  const id = `aah-${crypto.randomUUID()}`
+  if (command.keyPool?.update.length || command.keyPool?.remove.length)
+    throw new ManagedResourceError({
+      code: MANAGED_RESOURCE_FAILURE_CODES.ValidationFailed,
+    })
+  const operations = command.keyPool
+    ? await prepareMagpieKeyPool(
+        {
+          id,
+          keyList: [
+            {
+              id: await magpieKeyFingerprint(String(command.fields.key ?? "")),
+              masked: "",
+              active: true,
+              on: true,
+            },
+          ],
+        },
+        command.keyPool,
+      )
+    : []
+  return mutate(async (step) => {
+    let provider = await step(
+      effect(MANAGED_SITE_MUTATION_EFFECT_KINDS.ResourceCreated, id),
+      async () =>
+        saved(
+          await saveMagpieProvider(
+            config,
+            { ...command.fields, id, new: true },
+            options,
+          ),
+          id,
+        ),
+    )
+    provider = await applyMagpieKeyPool(
+      config,
+      provider,
+      operations,
+      (run) =>
+        step(
+          effect(MANAGED_SITE_MUTATION_EFFECT_KINDS.ResourceUpdated, id),
+          run,
+        ),
+      options,
+    )
+    if (command.enabled === false)
+      provider = await step(
+        effect(MANAGED_SITE_MUTATION_EFFECT_KINDS.StatusUpdated, id),
+        async () =>
+          saved(
+            await setMagpieProviderEnabled(config, id, false, options),
+            id,
+            false,
+          ),
+      )
+    return provider
+  })
+}
+
+type MagpieResourceUpdateCommand = MagpieProviderCommand & {
+  requireExplicitModels?: boolean
+  expectedImportSeed?: ManagedChannelImportCreateSeed
+}
+
+/** Append through native key actions; existing fields and model policy remain untouched. */
+export async function appendMagpieImportCredentials(
+  config: MagpieConfig,
+  id: string,
+  seed: ManagedChannelImportCreateSeed,
+  options?: MagpieRequestOptions,
+) {
+  const credentials = seed.credentials ?? [seed.credential]
+  if (
+    !credentials.length ||
+    credentials.some(
+      (key) => !hasUsableManagedSiteChannelKey(key) || /[\r\n]/.test(key),
+    )
+  )
+    throw new ManagedResourceError({
+      code: MANAGED_RESOURCE_FAILURE_CODES.ValidationFailed,
+    })
+  return updateMagpieResourceById(
+    config,
+    id,
+    {
+      fields: {},
+      expectedImportSeed: seed,
+      keyPool: {
+        add: credentials.map((key) => ({
+          key,
+          name: "",
+          protocol: "",
+          on: true,
+          weight: 1,
+        })),
+        update: [],
+        remove: [],
+      },
+    },
+    options,
+  )
+}
+
+/** Read fresh before replacement-like saves, preserving fields outside this edit. */
+export async function updateMagpieResource(
+  config: MagpieConfig,
+  detail: MagpieProvider,
+  command: MagpieResourceUpdateCommand,
+  options?: MagpieRequestOptions,
+) {
+  return updateMagpieResourceById(config, detail.id, command, options)
+}
+
+/** Model-only callers need an identity; the write still reads the latest provider. */
+export async function updateMagpieResourceById(
+  config: MagpieConfig,
+  id: string,
+  command: MagpieResourceUpdateCommand,
+  options?: MagpieRequestOptions,
+) {
+  const current = requireMagpieApiProvider(
+    await getMagpieProvider(config, id, options),
+  )
+  if (command.expectedImportSeed) {
+    const seed = command.expectedImportSeed
+    const field = MAGPIE_ENDPOINT_FIELDS.find(
+      (field) => field === seed.channelType,
+    )
+    const expectedRoot = field
+      ? toProtocolRoot(MAGPIE_PROTOCOLS[field], seed.baseUrl)
+      : null
+    if (
+      !field ||
+      !expectedRoot ||
+      !current[field] ||
+      toProtocolRoot(MAGPIE_PROTOCOLS[field], current[field]) !== expectedRoot
+    )
+      throw new ManagedResourceError({
+        code: MANAGED_RESOURCE_FAILURE_CODES.ResourceChanged,
+      })
+  }
+  // Recheck immediately before saving: native edits can restore an automatic catalog.
+  if (command.requireExplicitModels && !current.chosen?.length)
+    throw new ManagedResourceError({
+      code: MANAGED_RESOURCE_FAILURE_CODES.ResourceChanged,
+    })
+  if (
+    command.primaryKeyRef &&
+    current.keyList?.find((key) => key.active)?.id !== command.primaryKeyRef
+  )
+    throw new ManagedResourceError({
+      code: MANAGED_RESOURCE_FAILURE_CODES.ResourceChanged,
+    })
+  const replacement =
+    typeof command.fields.key === "string"
+      ? await magpieKeyFingerprint(command.fields.key)
+      : undefined
+  if (
+    replacement &&
+    current.keyList?.some((key) => key.id === replacement && !key.active)
+  )
+    throw new ManagedResourceError({
+      code: MANAGED_RESOURCE_FAILURE_CODES.ValidationFailed,
+    })
+  const operations = await prepareMagpieKeyPool(
+    current,
+    command.keyPool,
+    replacement,
+  )
+  if (
+    !Object.keys(command.fields).length &&
+    !operations.length &&
+    (command.enabled === undefined || command.enabled !== current.off)
+  )
+    return createManagedSiteMutationSequence({ idempotent: true }).finish({
+      finalState: MANAGED_SITE_MUTATION_FINAL_STATES.Confirmed,
+      data: current,
+    })
+  return mutate(async (step) => {
+    let provider = current
+    if (Object.keys(command.fields).length)
+      provider = await step(
+        effect(MANAGED_SITE_MUTATION_EFFECT_KINDS.ResourceUpdated, current.id),
+        async () =>
+          saved(
+            await saveMagpieProvider(
+              config,
+              buildMagpieProviderSavePayload(current, command.fields),
+              options,
+            ),
+            current.id,
+          ),
+      )
+    provider = await applyMagpieKeyPool(
+      config,
+      provider,
+      operations,
+      (run) =>
+        step(
+          effect(
+            MANAGED_SITE_MUTATION_EFFECT_KINDS.ResourceUpdated,
+            current.id,
+          ),
+          run,
+        ),
+      options,
+    )
+    if (command.enabled !== undefined && command.enabled === provider.off)
+      provider = await step(
+        effect(MANAGED_SITE_MUTATION_EFFECT_KINDS.StatusUpdated, current.id),
+        async () =>
+          saved(
+            await setMagpieProviderEnabled(
+              config,
+              current.id,
+              command.enabled!,
+              options,
+            ),
+            current.id,
+            command.enabled,
+          ),
+      )
+    return provider
+  })
+}
+
+/** Confirm disappearance; never remove resources merely related to the selected id. */
+export async function deleteMagpieResource(
+  config: MagpieConfig,
+  id: string,
+  options?: MagpieRequestOptions,
+) {
+  requireMagpieApiProvider(await getMagpieProvider(config, id, options))
+  return mutate(async (step) =>
+    step(
+      effect(MANAGED_SITE_MUTATION_EFFECT_KINDS.ResourceDeleted, id),
+      async () => {
+        const remaining = await deleteMagpieProvider(config, id, options)
+        if (remaining.some((item) => item.id === id))
+          throw new MagpieApiError(
+            "Magpie deletion could not be confirmed",
+            200,
+            true,
+            false,
+          )
+      },
+    ),
+  )
+}

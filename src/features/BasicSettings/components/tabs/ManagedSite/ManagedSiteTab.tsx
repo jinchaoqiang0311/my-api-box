@@ -1,0 +1,171 @@
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { OPTIONS_MENU_ITEM_ICONS } from "~/components/icons/optionsPageIcons"
+import { Button, Notice } from "~/components/ui"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import ManagedSiteModelSyncSettings from "~/features/BasicSettings/components/tabs/ManagedSite/modelSync/managedSiteModelSyncSettings"
+import ModelRedirectSettings from "~/features/BasicSettings/components/tabs/ManagedSite/modelSync/ModelRedirectSettings"
+import {
+  KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS,
+  KEY_MANAGEMENT_ROUTE_PARAMS,
+} from "~/features/KeyManagement/constants"
+import { GatewayGuidanceDescription } from "~/features/UnifiedApiGuidance/GatewayGuidanceDescription"
+import { runGatewayGuidanceAction } from "~/features/UnifiedApiGuidance/runGatewayGuidanceAction"
+import { accountPresentation } from "~/services/accounts/accountStorage/accountPresentation"
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { canResolveAccountRuntimeKeySecret } from "~/services/accounts/keys/keyProductCapabilities"
+import { hasValidManagedSiteConfig } from "~/services/managedSites/configuration/runtimeConfig"
+import {
+  getManagedSiteUnsupportedModelSyncMessage,
+  supportsManagedSiteModelSync,
+} from "~/services/managedSites/utils/managedSite"
+import { pushWithinOptionsPage } from "~/utils/navigation/optionsPage"
+
+import ManagedSiteSelector from "./ManagedSiteSelector"
+import { ManagedSiteSettingsPanel } from "./ManagedSiteSettingsPanel"
+
+const gatewayActionClassName = "max-w-full"
+const AccountKeysIcon = OPTIONS_MENU_ITEM_ICONS[MENU_ITEM_IDS.KEYS]
+const ApiKeysIcon =
+  OPTIONS_MENU_ITEM_ICONS[MENU_ITEM_IDS.API_CREDENTIAL_PROFILES]
+const ManagedSiteChannelsIcon =
+  OPTIONS_MENU_ITEM_ICONS[MENU_ITEM_IDS.MANAGED_SITE_CHANNELS]
+
+/**
+ * Basic Settings tab aggregating managed site selector, managed site settings,
+ * model sync, and model redirect.
+ */
+export default function ManagedSiteTab() {
+  const { t } = useTranslation(["settings", "managedSiteModelSync"])
+  const { preferences, managedSiteType } = useUserPreferencesContext()
+  const [guidedImportAccountId, setGuidedImportAccountId] = useState<
+    string | undefined
+  >()
+  const guidedImportParams = {
+    [KEY_MANAGEMENT_ROUTE_PARAMS.GuidedImport]:
+      KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS.ManagedSite,
+  }
+  const isModelSyncSupported = supportsManagedSiteModelSync(managedSiteType)
+
+  useEffect(() => {
+    let isCurrent = true
+
+    void accountQueries
+      .getAllAccounts()
+      .then((accounts) => accountPresentation.convertToDisplayData(accounts))
+      .then((accounts) => {
+        if (isCurrent) {
+          setGuidedImportAccountId(
+            accounts.find(canResolveAccountRuntimeKeySecret)?.id,
+          )
+        }
+      })
+      .catch(() => {
+        // Guidance remains useful without an account preselection.
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [])
+  const isManagedSiteConfigComplete = hasValidManagedSiteConfig(
+    preferences,
+    managedSiteType,
+  )
+  const gatewayTitle = isManagedSiteConfigComplete
+    ? t("managedSite.gatewayGuidance.configComplete.title")
+    : t("managedSite.gatewayGuidance.unconfigured.title")
+  const gatewayDescription = isManagedSiteConfigComplete
+    ? t("managedSite.gatewayGuidance.configComplete.description")
+    : t("managedSite.gatewayGuidance.unconfigured.description")
+
+  return (
+    <div className="space-y-density-6">
+      <ManagedSiteSelector />
+
+      <ManagedSiteSettingsPanel siteType={managedSiteType} />
+
+      <Notice
+        actions={
+          isManagedSiteConfigComplete ? (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                className={gatewayActionClassName}
+                leftIcon={<AccountKeysIcon className="h-4 w-4" aria-hidden />}
+                onClick={() =>
+                  void runGatewayGuidanceAction(() =>
+                    pushWithinOptionsPage(`#${MENU_ITEM_IDS.KEYS}`, {
+                      ...(guidedImportAccountId
+                        ? { accountId: guidedImportAccountId }
+                        : {}),
+                      ...guidedImportParams,
+                    }),
+                  )
+                }
+              >
+                {t("managedSite.gatewayGuidance.actions.importAccountKeys")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={gatewayActionClassName}
+                leftIcon={<ApiKeysIcon className="h-4 w-4" aria-hidden />}
+                onClick={() =>
+                  void runGatewayGuidanceAction(() =>
+                    pushWithinOptionsPage(
+                      `#${MENU_ITEM_IDS.API_CREDENTIAL_PROFILES}`,
+                      guidedImportParams,
+                    ),
+                  )
+                }
+              >
+                {t("managedSite.gatewayGuidance.actions.importApiKeys")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={gatewayActionClassName}
+                leftIcon={
+                  <ManagedSiteChannelsIcon className="h-4 w-4" aria-hidden />
+                }
+                onClick={() =>
+                  pushWithinOptionsPage(
+                    `#${MENU_ITEM_IDS.MANAGED_SITE_CHANNELS}`,
+                  )
+                }
+              >
+                {t("managedSite.gatewayGuidance.actions.viewChannels")}
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        <GatewayGuidanceDescription title={gatewayTitle}>
+          {gatewayDescription}
+        </GatewayGuidanceDescription>
+      </Notice>
+
+      {isModelSyncSupported ? (
+        <ManagedSiteModelSyncSettings />
+      ) : (
+        <Notice
+          id="managed-site-model-sync"
+          tone="warning"
+          title={t("managedSiteModelSync:execution.unsupported.title")}
+          description={getManagedSiteUnsupportedModelSyncMessage(
+            t,
+            managedSiteType,
+          )}
+        />
+      )}
+
+      <ModelRedirectSettings />
+    </div>
+  )
+}

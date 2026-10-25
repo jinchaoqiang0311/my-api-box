@@ -1,0 +1,268 @@
+"use client"
+
+import { Command as CommandPrimitive } from "cmdk"
+import { SearchIcon, XIcon } from "lucide-react"
+import * as React from "react"
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
+import { CORNERS } from "~/constants/designTokens"
+import { cn } from "~/lib/utils"
+
+/**
+ * Command renders the base command palette surface.
+ */
+function Command({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive>) {
+  return (
+    <CommandPrimitive
+      data-slot="command"
+      className={cn(
+        "bg-popover text-popover-foreground corners-concentric flex h-full w-full flex-col overflow-hidden rounded-md [--corner-inset:4px]",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+/**
+ * CommandDialog composes the command palette inside a dialog shell.
+ */
+function CommandDialog({
+  title = "Command Palette",
+  description = "Search for a command to run...",
+  children,
+  className,
+  showCloseButton = true,
+  contentClassName,
+  shouldFilter,
+  ...props
+}: React.ComponentProps<typeof Dialog> & {
+  title?: string
+  description?: string
+  className?: string
+  showCloseButton?: boolean
+  contentClassName?: string
+  shouldFilter?: boolean
+}) {
+  return (
+    <Dialog {...props}>
+      <DialogHeader className="sr-only">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
+      <DialogContent
+        className={cn(
+          "overflow-hidden p-0",
+          showCloseButton &&
+            "[&>[data-slot=dialog-close]]:top-[calc((var(--density-control-xl)-var(--density-control-xs))/2)] [&>[data-slot=dialog-close]]:right-3 [&>[data-slot=dialog-close]]:inline-flex [&>[data-slot=dialog-close]]:size-(--density-control-xs) [&>[data-slot=dialog-close]]:items-center [&>[data-slot=dialog-close]]:justify-center",
+          className,
+        )}
+        showCloseButton={showCloseButton}
+      >
+        <Command
+          shouldFilter={shouldFilter}
+          className={cn(
+            "[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-item]]:py-density-3 rounded-[inherit] [--corner-inset:8px] **:data-[slot=command-input-wrapper]:h-(--density-control-xl) [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-(--density-control-xl) [&_[cmdk-item]]:px-2 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5",
+            // The dialog close control and the optional input clear action
+            // occupy separate slots, including when density increases.
+            showCloseButton &&
+              "**:data-[slot=command-input-wrapper]:pr-[calc(var(--density-control-xs)+1.5rem)]",
+            contentClassName,
+          )}
+        >
+          {children}
+        </Command>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Props for the command input with an optional clear action.
+ */
+type CommandInputProps = React.ComponentProps<typeof CommandPrimitive.Input> & {
+  onClear?: () => void
+  clearButtonLabel?: string
+}
+
+/**
+ * CommandInput renders the searchable input with an optional clear button.
+ */
+function CommandInput({
+  className,
+  onClear,
+  clearButtonLabel = "Clear",
+  onKeyDown,
+  ...props
+}: CommandInputProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const value = typeof props.value === "string" ? props.value : ""
+  const showClearButton =
+    Boolean(onClear) && value.length > 0 && !props.disabled
+
+  return (
+    <div
+      data-slot="command-input-wrapper"
+      className="gap-density-2 flex h-(--density-control) items-center border-b px-3"
+    >
+      <SearchIcon className="size-4 shrink-0 opacity-50" />
+      <CommandPrimitive.Input
+        ref={inputRef}
+        data-slot="command-input"
+        className={cn(
+          "placeholder:text-muted-foreground flex h-full w-full min-w-0 rounded-md bg-transparent py-0 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
+        onKeyDown={(event) => {
+          onKeyDown?.(event)
+          if (!event.defaultPrevented && ["Home", "End"].includes(event.key)) {
+            event.stopPropagation()
+          }
+        }}
+        {...props}
+      />
+      {showClearButton && (
+        <button
+          type="button"
+          onClick={() => {
+            onClear?.()
+            requestAnimationFrame(() => inputRef.current?.focus())
+          }}
+          className="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background py-density-1 inline-flex min-h-(--density-control-xs) items-center justify-center rounded-sm px-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          aria-label={clearButtonLabel}
+          title={clearButtonLabel}
+        >
+          <XIcon className="pointer-events-none size-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * CommandList provides the scrollable results container.
+ */
+function CommandList({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.List>) {
+  return (
+    <CommandPrimitive.List
+      data-slot="command-list"
+      className={cn(
+        "max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+/**
+ * CommandEmpty shows fallback content when no results match.
+ */
+function CommandEmpty({
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+  return (
+    <CommandPrimitive.Empty
+      data-slot="command-empty"
+      className="py-density-6 text-center text-sm"
+      {...props}
+    />
+  )
+}
+
+/**
+ * CommandGroup groups related results with a heading.
+ */
+function CommandGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
+  return (
+    <CommandPrimitive.Group
+      data-slot="command-group"
+      className={cn(
+        "text-foreground [&_[cmdk-group-heading]]:text-muted-foreground py-density-1 [&_[cmdk-group-heading]]:py-density-1-5 overflow-hidden px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+/**
+ * CommandSeparator draws a thin rule between groups.
+ */
+function CommandSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+  return (
+    <CommandPrimitive.Separator
+      data-slot="command-separator"
+      className={cn("bg-border -mx-1 h-px", className)}
+      {...props}
+    />
+  )
+}
+
+/**
+ * CommandItem renders an interactive row in the results list.
+ */
+function CommandItem({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+  return (
+    <CommandPrimitive.Item
+      data-slot="command-item"
+      className={cn(
+        `data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground gap-density-2 relative flex cursor-default items-center ${CORNERS.item} py-density-1-5 px-2 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+/**
+ * CommandShortcut shows keyboard shortcut text aligned to the right.
+ */
+function CommandShortcut({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="command-shortcut"
+      className={cn(
+        "text-muted-foreground ml-auto text-xs tracking-widest",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  Command,
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandShortcut,
+  CommandSeparator,
+}

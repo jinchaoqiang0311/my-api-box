@@ -1,0 +1,118 @@
+{
+  "confirmToast": {
+    "body": "是否打开 AI API 测试面板，以检查并测试 AI API 可用性？",
+    "enhancedInfo": "此提示由增强自动检测触发。若判断有误，建议反馈问题；也可在设置中关闭增强自动检测。",
+    "feedback": "反馈问题",
+    "open": "打开",
+    "settings": "打开设置",
+    "title": "检测到有效 AI API 网址和API Key"
+  },
+  "messages": {
+    "success": {
+      "settingsSaved": "AI API 检测设置已保存。"
+    }
+  },
+  "modal": {
+    "actions": {
+      "fetchingModels": "获取中…",
+      "fetchModels": "获取模型列表",
+      "hideKey": "隐藏 Key",
+      "openApiProfiles": "打开 API 凭据库",
+      "retry": "重试",
+      "running": "测试中…",
+      "runOne": "测试",
+      "saveToProfiles": "保存到 API 凭据库",
+      "saving": "保存中…",
+      "showKey": "显示 Key",
+      "stopping": "正在停止…",
+      "stopTest": "停止测试",
+      "test": "测试"
+    },
+    "candidates": {
+      "apiKey": "候选 Key {{index}}"
+    },
+    "errors": {
+      "fetchModelsFailed": "获取模型列表失败。",
+      "missingBaseUrlOrKey": "请先填写 Base URL 与 API Key。",
+      "runProbeFailed": "探测失败。",
+      "saveToProfilesFailed": "保存到 API 凭据库失败"
+    },
+    "fields": {
+      "apiKey": "API Key",
+      "apiType": "API 类型",
+      "baseUrl": "Base URL",
+      "expiresAt": "到期日",
+      "modelId": "模型 ID",
+      "notes": "备注",
+      "sourceUrl": "来源网页",
+      "tags": "标签"
+    },
+    "hints": {
+      "expiresAt": "可选。用于记录这枚密钥预计失效的日期。",
+      "saveWithoutTest": "提示：只要填写 Base URL 与 API Key 就能保存到 API 凭据库（无需先测试或获取模型列表）。测试仅用于验证可用性。",
+      "sourceUrl": "可选。记录你从哪个页面拿到这份凭据，之后可一键回访查看更新。",
+      "tags": "可选。与账号/书签共用全局标签。"
+    },
+    "history": {
+      "empty": "暂无 Base URL 历史",
+      "label": "最近使用的 Base URL",
+      "remove": "从 Base URL 历史中移除",
+      "trigger": "从 Base URL 历史中选择"
+    },
+    "messages": {
+      "savedToProfiles": "已保存 {{name}} 到 API 凭据库",
+      "stoppingTest": "正在停止测试，当前请求会尽快中断。",
+      "testStopped": "测试已停止，已完成的结果已保留，未开始的项目不会继续运行。"
+    },
+    "optionalProfileFields": {
+      "hasInput": "已填写可选保存信息",
+      "hint": "标签、备注和到期日不会影响测试结果。",
+      "title": "保存选项（可选）"
+    },
+    "placeholders": {
+      "notes": "可选备注",
+      "sourceUrl": "https://example.com/post",
+      "tags": "选择标签"
+    },
+    "privacyHint": "API Key 会被视为敏感信息：默认隐藏，且除非你主动保存到 API 凭据库，否则不会持久化保存任何数据。",
+    "probes": {
+      "notRunYet": "尚未运行"
+    },
+    "sourceText": {
+      "label": "用于提取的文本",
+      "placeholder": "将 Base URL 和 API Key 粘贴到这里，或使用右键菜单从选中文本预填。"
+    },
+    "title": "AI API 功能可用性测试"
+  },
+  "settings": {
+    "autoDetect": {
+      "enable": "启用自动检测",
+      "enableDesc": "启用后，扩展可能从复制操作中识别凭据，并在打开弹窗前请求确认。",
+      "enhanced": {
+        "enable": "启用增强自动检测",
+        "enableDesc": "识别裸域名、非标准密钥格式，以及复制内容中夹杂非法字符的密钥。增强命中会在弹窗中提示并可快速关闭。"
+      },
+      "whitelist": {
+        "invalidMore": "…以及更多",
+        "invalidTitle": "无效规则",
+        "patterns": "URL 白名单规则",
+        "patternsDesc": "每行一个 JavaScript RegExp。匹配时默认使用不区分大小写。无效规则会被忽略（视为不匹配）。",
+        "patternsPlaceholder": "^https://example\\.com/console"
+      }
+    },
+    "contextMenu": {
+      "enable": "在浏览器右键菜单中显示",
+      "enableDesc": "启用后，在网页右键菜单中显示“AI API 检测”入口。"
+    },
+    "description": "手动右键菜单始终可用。自动检测为可选功能，仅在白名单页面运行，并在打开弹窗前请求确认。默认不会保存提取到的 API Key。",
+    "keyCleanup": {
+      "invalidMore": "…以及更多",
+      "invalidTitle": "无效清理规则",
+      "patterns": "API Key 清理规则",
+      "patternsDesc": "如果复制到的 Key 里夹着提示词、括号或分隔符，可以在这里填写要删除的正则规则。每行一条，保存前会提示无效规则。",
+      "patternsPlaceholder": "\\[\\[删除这里\\]\\]\n【删除这里】\n<remove-this>\n(?:分隔符|separator|noise)\n[\\s\\-_.]+",
+      "save": "保存清理规则"
+    },
+    "title": "网页 AI API 功能可用性测试"
+  }
+}

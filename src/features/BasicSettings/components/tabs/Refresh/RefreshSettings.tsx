@@ -1,0 +1,246 @@
+import { useTranslation } from "react-i18next"
+
+import { Card, CardItem, CardList, Input, Switch } from "~/components/ui"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { PreferenceSettingSection as SettingSection } from "~/features/BasicSettings/components/shared/PreferenceSettingSection"
+import { useDeferredPreferenceField } from "~/hooks/preferences/useDeferredPreferenceField"
+import toast from "~/lib/notify"
+import {
+  ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS,
+  ACCOUNT_AUTO_REFRESH_INTERVAL_WARNING_THRESHOLD_SECONDS,
+  ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS,
+  DEFAULT_ACCOUNT_AUTO_REFRESH,
+} from "~/types/accountAutoRefresh"
+import { showUpdateToast } from "~/utils/feedback/preferenceFeedback"
+import { matchesDefaultSettings } from "~/utils/preferences/matchesDefaultSettings"
+
+const REFRESH_INTERVAL_HINT_ID = "refresh-interval-hint"
+
+/**
+ * Settings section for auto-refresh behavior (intervals, toggle, refresh on open).
+ */
+export default function RefreshSettings() {
+  const { t } = useTranslation("settings")
+  const {
+    preferences,
+    autoRefresh,
+    refreshOnOpen,
+    refreshInterval,
+    minRefreshInterval,
+    updateAutoRefresh,
+    updateRefreshOnOpen,
+    updateRefreshInterval,
+    updateMinRefreshInterval,
+    resetAutoRefreshConfig,
+  } = useUserPreferencesContext()
+
+  const handleAutoRefreshChange = async (value: boolean) => {
+    const writeResult = await updateAutoRefresh(value)
+    showUpdateToast(writeResult, t("refresh.autoRefresh"))
+  }
+
+  const handleRefreshOnOpenChange = async (value: boolean) => {
+    const writeResult = await updateRefreshOnOpen(value)
+    showUpdateToast(writeResult, t("refresh.refreshOnOpen"))
+  }
+
+  const savedVersion = preferences?.lastUpdated ?? 0
+  const refreshIntervalField = useDeferredPreferenceField({
+    savedValue: String(refreshInterval),
+    savedVersion,
+    onCommit: async (draft) => {
+      const value = Number(draft)
+      if (
+        draft.trim() === "" ||
+        !Number.isInteger(value) ||
+        value < ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS
+      ) {
+        toast.error(
+          t("refresh.refreshIntervalInvalid", {
+            minSeconds: ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS,
+          }),
+        )
+        return { ok: false }
+      }
+
+      if (value === refreshInterval) {
+        return { ok: true, value: String(refreshInterval) }
+      }
+      const writeResult = await updateRefreshInterval(value)
+      showUpdateToast(writeResult, t("refresh.refreshInterval"))
+      return { ok: writeResult.ok, value: String(value) }
+    },
+  })
+  const minRefreshIntervalField = useDeferredPreferenceField({
+    savedValue: String(minRefreshInterval),
+    savedVersion,
+    onCommit: async (draft) => {
+      const value = Number(draft)
+      // No upper bound: allow any integer >= MIN to let users effectively
+      // reduce non-forced refresh frequency by setting a very large interval.
+      if (
+        draft.trim() === "" ||
+        !Number.isInteger(value) ||
+        value < ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS
+      ) {
+        toast.error(
+          t("refresh.minRefreshIntervalInvalid", {
+            minSeconds: ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS,
+          }),
+        )
+        return { ok: false }
+      }
+
+      if (value === minRefreshInterval) {
+        return { ok: true, value: String(minRefreshInterval) }
+      }
+      const writeResult = await updateMinRefreshInterval(value)
+      showUpdateToast(writeResult, t("refresh.minRefreshInterval"))
+      return { ok: writeResult.ok, value: String(value) }
+    },
+  })
+
+  const currentRefreshInterval = Number(refreshIntervalField.draft)
+  const isLowRefreshInterval =
+    autoRefresh &&
+    Number.isInteger(currentRefreshInterval) &&
+    currentRefreshInterval >= ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS &&
+    currentRefreshInterval <
+      ACCOUNT_AUTO_REFRESH_INTERVAL_WARNING_THRESHOLD_SECONDS
+
+  return (
+    <SettingSection
+      id="auto-refresh"
+      title={t("refresh.title")}
+      description={t("refresh.description")}
+      resetRequiresConfirmation={false}
+      resetDisabled={
+        matchesDefaultSettings(
+          preferences?.accountAutoRefresh,
+          DEFAULT_ACCOUNT_AUTO_REFRESH,
+        ) &&
+        !refreshIntervalField.isDirty &&
+        !minRefreshIntervalField.isDirty
+      }
+      onReset={async () => {
+        const result = await resetAutoRefreshConfig()
+        if (result.ok) {
+          refreshIntervalField.setDraft(
+            String(DEFAULT_ACCOUNT_AUTO_REFRESH.interval),
+          )
+          minRefreshIntervalField.setDraft(
+            String(DEFAULT_ACCOUNT_AUTO_REFRESH.minInterval),
+          )
+        }
+        return result
+      }}
+    >
+      <Card padding="none">
+        <CardList>
+          <CardItem
+            id="refresh-auto-refresh-enabled"
+            title={t("refresh.autoRefresh")}
+            description={t("refresh.autoRefreshDesc")}
+            rightContent={
+              <Switch
+                checked={autoRefresh}
+                onChange={handleAutoRefreshChange}
+              />
+            }
+          />
+
+          {autoRefresh && (
+            <CardItem
+              id="refresh-interval"
+              title={t("refresh.refreshInterval")}
+              description={t("refresh.refreshIntervalDesc", {
+                defaultInterval: DEFAULT_ACCOUNT_AUTO_REFRESH.interval,
+              })}
+              leftContent={
+                isLowRefreshInterval ? (
+                  <p
+                    id={REFRESH_INTERVAL_HINT_ID}
+                    className="text-warning-soft-foreground text-sm"
+                  >
+                    {t("refresh.refreshIntervalHint", {
+                      minutes: DEFAULT_ACCOUNT_AUTO_REFRESH.interval / 60,
+                    })}
+                  </p>
+                ) : undefined
+              }
+              rightContent={
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="number"
+                    min={ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS}
+                    step={1}
+                    value={refreshIntervalField.draft}
+                    onChange={(event) =>
+                      refreshIntervalField.setDraft(event.target.value)
+                    }
+                    onBlur={() => void refreshIntervalField.commit()}
+                    onKeyDown={refreshIntervalField.handleKeyDown}
+                    placeholder={String(DEFAULT_ACCOUNT_AUTO_REFRESH.interval)}
+                    aria-label={t("refresh.refreshInterval")}
+                    aria-describedby={
+                      isLowRefreshInterval
+                        ? REFRESH_INTERVAL_HINT_ID
+                        : undefined
+                    }
+                    disabled={refreshIntervalField.isCommitting}
+                    className="w-24"
+                  />
+                  <span className="dark:text-secondary-foreground text-muted-foreground text-sm">
+                    {t("common:time.seconds")}
+                  </span>
+                </div>
+              }
+            />
+          )}
+
+          <CardItem
+            id="refresh-on-open"
+            title={t("refresh.refreshOnOpen")}
+            description={t("refresh.refreshOnOpenDesc")}
+            rightContent={
+              <Switch
+                checked={refreshOnOpen}
+                onChange={handleRefreshOnOpenChange}
+              />
+            }
+          />
+
+          <CardItem
+            id="min-refresh-interval"
+            title={t("refresh.minRefreshInterval")}
+            description={t("refresh.minRefreshIntervalDesc", {
+              minSeconds: ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS,
+            })}
+            rightContent={
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  min={ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS}
+                  step={1}
+                  value={minRefreshIntervalField.draft}
+                  onChange={(event) =>
+                    minRefreshIntervalField.setDraft(event.target.value)
+                  }
+                  onBlur={() => void minRefreshIntervalField.commit()}
+                  onKeyDown={minRefreshIntervalField.handleKeyDown}
+                  placeholder={String(DEFAULT_ACCOUNT_AUTO_REFRESH.minInterval)}
+                  aria-label={t("refresh.minRefreshInterval")}
+                  disabled={minRefreshIntervalField.isCommitting}
+                  className="w-24"
+                />
+                <span className="dark:text-secondary-foreground text-muted-foreground text-sm">
+                  {t("common:time.seconds")}
+                </span>
+              </div>
+            }
+          />
+        </CardList>
+      </Card>
+    </SettingSection>
+  )
+}

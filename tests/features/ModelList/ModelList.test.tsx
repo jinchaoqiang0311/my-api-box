@@ -1,0 +1,747 @@
+import { render as rtlRender, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import type { ReactElement, ReactNode, Ref } from "react"
+import { I18nextProvider } from "react-i18next"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import {
+  ALL_ACCOUNTS_SOURCE_VALUE,
+  MODEL_MANAGEMENT_SOURCE_KINDS,
+} from "~/features/ModelList/catalog/modelManagementSources"
+import {
+  MODEL_GROUP_ACCESS_STATES,
+  type ActiveModelGroupContext,
+  type ModelGroupContext,
+} from "~/features/ModelList/groups/groupContext"
+import ModelList from "~/features/ModelList/ModelList"
+import type { CalculatedModelItem } from "~/features/ModelList/presentation/modelListItems"
+import { MODEL_LIST_TEST_IDS } from "~/features/ModelList/testIds"
+import { MODEL_VENDOR_FILTER_VALUES } from "~/services/models/modelVendor"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+import { testI18n } from "~~/tests/test-utils/i18n"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+const { mockUseModelListData, openKeysPageMock, replaceWithinOptionsPageMock } =
+  vi.hoisted(() => ({
+    mockUseModelListData: vi.fn(),
+    openKeysPageMock: vi.fn(),
+    replaceWithinOptionsPageMock: vi.fn(),
+  }))
+
+vi.mock("~/features/ModelList/catalog/useModelListData", () => ({
+  useModelListData: (...args: unknown[]) => mockUseModelListData(...args),
+}))
+
+vi.mock("~/utils/navigation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/navigation")>()
+
+  return { ...actual, openKeysPage: openKeysPageMock }
+})
+vi.mock("~/utils/navigation/optionsPage", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/navigation/optionsPage")>()
+
+  return { ...actual, replaceWithinOptionsPage: replaceWithinOptionsPageMock }
+})
+
+vi.mock(
+  "~/hooks/verification/useVerificationResultHistorySummaries",
+  async (importOriginal) => {
+    const original =
+      await importOriginal<
+        typeof import("~/hooks/verification/useVerificationResultHistorySummaries")
+      >()
+
+    return {
+      ...original,
+      useVerificationResultHistorySummaries: () => ({ summariesByKey: {} }),
+    }
+  },
+)
+
+vi.mock("~/features/ModelList/catalog/AccountSelector", () => ({
+  AccountSelector: ({
+    setSelectedSourceValue,
+    selectorTriggerRef,
+    selectorOpen,
+  }: {
+    setSelectedSourceValue: (value: string) => void
+    selectorTriggerRef?: Ref<HTMLButtonElement>
+    selectorOpen?: boolean
+  }) => (
+    <div data-testid="account-selector">
+      <button
+        ref={selectorTriggerRef}
+        aria-expanded={selectorOpen}
+        type="button"
+        onClick={() => setSelectedSourceValue("account:account-1")}
+      >
+        select-account-source
+      </button>
+      <button
+        type="button"
+        onClick={() => setSelectedSourceValue("profile:profile-1")}
+      >
+        select-profile-source
+      </button>
+      <button
+        type="button"
+        onClick={() => setSelectedSourceValue(ALL_ACCOUNTS_SOURCE_VALUE)}
+      >
+        select-all-sources
+      </button>
+      <button type="button" onClick={() => setSelectedSourceValue("")}>
+        clear-source
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock("~/features/ModelList/catalog/AccountSummaryBar", () => ({
+  AccountSummaryBar: () => <div data-testid="account-summary-bar" />,
+}))
+
+vi.mock("~/features/ModelList/verification/BatchVerifyModelsDialog", () => ({
+  BatchVerifyModelsDialog: () => <div data-testid="batch-verify-dialog" />,
+}))
+
+vi.mock("~/features/ModelList/filtering/ControlPanel", () => ({
+  ControlPanel: ({
+    getFilteredResultCount,
+  }: {
+    getFilteredResultCount?: (filters: {
+      searchTerm?: string
+      selectedVerificationResults?: string[]
+    }) => number
+  }) => (
+    <div>
+      <button
+        type="button"
+        data-testid="control-panel"
+        onClick={() =>
+          getFilteredResultCount?.({
+            searchTerm: "target",
+            selectedVerificationResults: ["pass"],
+          })
+        }
+      >
+        control-panel
+      </button>
+      <button
+        type="button"
+        data-testid="base-count-control"
+        onClick={() =>
+          getFilteredResultCount?.({
+            searchTerm: "target",
+          })
+        }
+      >
+        base-count-control
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock("~/features/ModelList/presentation/Footer", () => ({
+  Footer: () => <div data-testid="model-list-footer" />,
+}))
+
+vi.mock("~/features/ModelList/catalog/ProviderTabs", async () => {
+  const { Tabs } = await import("~/components/ui")
+
+  return {
+    ProviderTabs: ({
+      children,
+      effectiveSelectedVendor,
+    }: {
+      children: ReactNode
+      effectiveSelectedVendor: string
+    }) => (
+      <Tabs value={effectiveSelectedVendor}>
+        <div data-testid="provider-tabs">{children}</div>
+      </Tabs>
+    ),
+  }
+})
+
+vi.mock("~/features/ModelList/presentation/StatusIndicator", () => ({
+  StatusIndicator: () => <div data-testid="status-indicator" />,
+}))
+
+vi.mock("~/features/ModelList/presentation/ModelDisplay", () => ({
+  ModelDisplay: ({
+    models,
+    onVerifyModel,
+  }: {
+    models?: Array<{ model: { model_name: string } }>
+    onVerifyModel?: (...args: any[]) => void
+  }) => (
+    <button
+      type="button"
+      onClick={() => onVerifyModel?.(ACCOUNT_SOURCE, "gpt-test", ["vip"])}
+    >
+      open-api-verification
+      {models?.map(({ model }) => (
+        <span key={model.model_name}>{model.model_name}</span>
+      ))}
+    </button>
+  ),
+}))
+
+vi.mock("~/features/Verification/api", () => ({
+  VerifyApiDialog: ({
+    initialModelId,
+    modelEnableGroups,
+    onManageModelKey,
+  }: {
+    initialModelId?: string
+    modelEnableGroups?: string[]
+    onManageModelKey?: () => void
+  }) => (
+    <div data-testid="verify-api-dialog">
+      <span>{initialModelId}</span>
+      <span>{modelEnableGroups?.join(",")}</span>
+      <button type="button" onClick={onManageModelKey}>
+        manage-model-key
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock("~/features/Verification/cli", () => ({
+  VerifyCliSupportDialog: () => <div data-testid="verify-cli-dialog" />,
+}))
+
+vi.mock(
+  "~/features/ApiCredentialProfiles/verification/VerifyApiCredentialProfileDialog",
+  () => ({
+    VerifyApiCredentialProfileDialog: () => (
+      <div data-testid="verify-profile-dialog" />
+    ),
+  }),
+)
+
+vi.mock("~/features/ModelList/keySelection", () => ({
+  default: ({
+    modelId,
+    modelEnableGroups,
+    onClose,
+  }: {
+    modelId: string
+    modelEnableGroups: string[]
+    onClose: () => void
+  }) => (
+    <div data-testid={MODEL_LIST_TEST_IDS.modelKeyDialog}>
+      <span>{modelId}</span>
+      <span>{modelEnableGroups.join(",")}</span>
+      <button type="button" onClick={onClose}>
+        close-model-key
+      </button>
+    </div>
+  ),
+}))
+
+function render(ui: ReactElement) {
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <I18nextProvider i18n={testI18n}>{children}</I18nextProvider>
+    ),
+  })
+}
+
+const ACCOUNT = {
+  id: "account-1",
+  name: "Account One",
+  username: "user",
+  baseUrl: "https://example.com",
+  balance: { USD: 0, CNY: 0 },
+  todayConsumption: { USD: 0, CNY: 0 },
+  todayIncome: { USD: 0, CNY: 0 },
+  todayTokens: { upload: 0, download: 0 },
+  health: { status: "healthy" },
+  token: "account-token",
+  userId: "1",
+  authType: "access_token",
+  checkIn: buildCheckInConfig(),
+} as any
+
+const CAPABILITIES = {
+  supportsPricing: true,
+  supportsGroupFiltering: true,
+  supportsAccountSummary: false,
+  supportsTokenCompatibility: true,
+  supportsCredentialVerification: true,
+  supportsBatchCredentialVerification: true,
+  supportsCliVerification: true,
+}
+
+const ACCOUNT_SOURCE = {
+  kind: MODEL_MANAGEMENT_SOURCE_KINDS.ACCOUNT,
+  value: "account:account-1",
+  account: ACCOUNT,
+  capabilities: CAPABILITIES,
+} as any
+
+const PROFILE = {
+  id: "profile-1",
+  name: "Reusable Key",
+  apiType: "openai-compatible",
+  baseUrl: "https://profile.example.com",
+  apiKey: "sk-example",
+  tagIds: [],
+  notes: "",
+  createdAt: 1,
+  updatedAt: 1,
+} as any
+
+function withKnownGroupContexts<T extends object>(
+  fixture: T,
+  groups = ["default"],
+): T & Pick<CalculatedModelItem, "groupContext" | "activeGroupContext"> {
+  const { effectiveGroup } = fixture as { effectiveGroup?: string }
+  const groupContext: ModelGroupContext = {
+    accessState: MODEL_GROUP_ACCESS_STATES.KNOWN,
+    supportedGroups: groups,
+    usableGroups: groups,
+    priceableGroups: groups,
+  }
+  const activeGroupContext: ActiveModelGroupContext = {
+    activeUsableGroups: groups,
+    activePriceableGroups: groups,
+    actionGroups:
+      effectiveGroup && groups.includes(effectiveGroup)
+        ? [effectiveGroup]
+        : groups,
+  }
+
+  return { ...fixture, groupContext, activeGroupContext }
+}
+
+function createModelListData() {
+  return {
+    accounts: [ACCOUNT],
+    profiles: [],
+    selectedSource: ACCOUNT_SOURCE,
+    currentAccount: ACCOUNT,
+    sourceCapabilities: CAPABILITIES,
+    selectedSourceValue: "account:account-1",
+    setSelectedSourceValue: vi.fn(),
+    searchTerm: "",
+    setSearchTerm: vi.fn(),
+    selectedProvider: "filter:all",
+    setSelectedProvider: vi.fn(),
+    effectiveSelectedVendor: "filter:all",
+    shouldRepairSelectedVendor: false,
+    vendorCatalog: [],
+    sortMode: "default",
+    setSortMode: vi.fn(),
+    selectedBillingMode: "all",
+    setSelectedBillingMode: vi.fn(),
+    selectedGroups: ["vip"],
+    setSelectedGroups: vi.fn(),
+    selectedVerificationResults: ["pass", "fail", "unverified"],
+    setSelectedVerificationResults: vi.fn(),
+    allAccountsExcludedGroupsByAccountId: {},
+    setAllAccountsExcludedGroupsByAccountId: vi.fn(),
+    showRealPrice: false,
+    setShowRealPrice: vi.fn(),
+    showEndpointTypes: false,
+    setShowEndpointTypes: vi.fn(),
+    pricingData: {
+      data: [
+        {
+          model_name: "gpt-test",
+          quota_type: 0,
+          model_ratio: 1,
+          model_price: 0,
+          completion_ratio: 1,
+          enable_groups: ["vip"],
+          supported_endpoint_types: [],
+        },
+      ],
+      groupRatios: { vip: 1 },
+      success: true,
+      groupAccess: { kind: "authoritative", usableGroups: [] },
+    },
+    pricingContexts: [],
+    isLoading: false,
+    dataFormatError: null,
+    unsupportedSource: false,
+    loadErrorMessage: null,
+    accountFallback: null,
+    personalizedCatalogFallback: null,
+    isFallbackCatalogActive: false,
+    isProviderCatalogFallbackActive: false,
+    filteredModels: [],
+    unclassifiedVendorCount: 0,
+    accountSummaryCountsByAccountId: new Map(),
+    allVendorsFilteredCount: 1,
+    getFilteredResultCount: vi.fn(() => 1),
+    availableGroups: ["vip"],
+    availableAccountGroupsByAccountId: {},
+    availableAccountGroupOptionsByAccountId: {},
+    loadPricingData: vi.fn(),
+    accountQueryStates: [],
+    allAccountsFilterAccountIds: [],
+    setAllAccountsFilterAccountIds: vi.fn(),
+  }
+}
+
+describe("ModelList", () => {
+  it("reveals and opens the source selector when models have no selected source", async () => {
+    const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView")
+    const user = userEvent.setup()
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      selectedSource: null,
+      selectedSourceValue: "",
+      currentAccount: null,
+    })
+    render(<ModelList />)
+
+    await user.click(
+      screen.getByRole("button", {
+        name: testI18n.t("modelList:selectSource"),
+      }),
+    )
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "auto",
+      block: "nearest",
+    })
+    expect(scrollIntoView.mock.instances).toContain(
+      screen.getByRole("button", { name: "select-account-source" }),
+    )
+    expect(
+      screen.getByRole("button", { name: "select-account-source" }),
+    ).toHaveAttribute("aria-expanded", "true")
+  })
+
+  it.each([true, false])(
+    "shows one notice for local route fallback with catalog-only status %s",
+    (catalogOnly) => {
+      const fixture = createModelListData()
+      mockUseModelListData.mockReturnValue({
+        ...fixture,
+        isFallbackCatalogActive: catalogOnly,
+        sourceCapabilities: { ...CAPABILITIES, supportsPricing: !catalogOnly },
+        pricingData: {
+          ...fixture.pricingData,
+          model_list_source: {
+            kind: "catalog-fallback",
+            inferenceRouteFallback: true,
+          },
+        },
+      })
+      const view = render(<ModelList />)
+      expect(
+        screen.getByText(
+          testI18n.t("modelList:inferenceRouteFallbackNotice.description"),
+        ),
+      ).toBeVisible()
+      expect(screen.getAllByRole("alert")).toHaveLength(1)
+      if (catalogOnly) {
+        expect(
+          screen.getByText(
+            testI18n.t("modelList:fallbackSourceNotice.description"),
+          ),
+        ).toBeVisible()
+      }
+      mockUseModelListData.mockReturnValue({
+        ...fixture,
+        isFallbackCatalogActive: catalogOnly,
+        sourceCapabilities: { ...CAPABILITIES, supportsPricing: !catalogOnly },
+      })
+      view.rerender(<ModelList />)
+      expect(
+        screen.queryByText(
+          testI18n.t("modelList:inferenceRouteFallbackNotice.description"),
+        ),
+      ).not.toBeInTheDocument()
+      expect(screen.queryAllByRole("alert")).toHaveLength(catalogOnly ? 1 : 0)
+    },
+  )
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseModelListData.mockReturnValue(createModelListData())
+  })
+
+  it("names only accounts with unconfirmed catalog scope in all-account mode", () => {
+    const fallbackAccount = {
+      ...ACCOUNT,
+      id: "fallback",
+      name: "Fallback Account",
+    }
+    const normalAccount = { ...ACCOUNT, id: "normal", name: "Normal Account" }
+    const pricing = createModelListData().pricingData
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      accounts: [fallbackAccount, normalAccount],
+      selectedSource: {
+        kind: MODEL_MANAGEMENT_SOURCE_KINDS.ALL_ACCOUNTS,
+        value: ALL_ACCOUNTS_SOURCE_VALUE,
+        capabilities: CAPABILITIES,
+      },
+      currentAccount: null,
+      pricingData: null,
+      isProviderCatalogFallbackActive: true,
+      pricingContexts: [
+        {
+          account: fallbackAccount,
+          pricing: {
+            ...pricing,
+            model_list_source: {
+              kind: "catalog-fallback",
+              catalogScope: "provider",
+            },
+          },
+        },
+        { account: normalAccount, pricing },
+      ],
+    })
+    render(<ModelList />)
+    const notice = screen.getByRole("alert")
+    expect(within(notice).getByText("Fallback Account")).toBeInTheDocument()
+    expect(within(notice).queryByText("Normal Account")).not.toBeInTheDocument()
+    expect(
+      within(notice).getByText(
+        testI18n.t(
+          "modelList:providerCatalogFallbackNotice.allAccountsDescription",
+        ),
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("does not label a priced runtime catalog as discovery-only", () => {
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      isFallbackCatalogActive: true,
+    })
+    render(<ModelList />)
+    expect(
+      screen.queryByText(
+        testI18n.t("modelList:fallbackSourceNotice.description"),
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        testI18n.t("modelList:runtimeKeyFallbackSourceNotice.description"),
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it("renders the personalized catalog fallback notice with model data", () => {
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      personalizedCatalogFallback: {
+        affectedAccountCount: 1,
+        failureCategory: "auth",
+        message: "The saved credential needs attention.",
+        retry: vi.fn(),
+      },
+    })
+
+    render(<ModelList />)
+
+    expect(
+      screen.getByText("The saved credential needs attention."),
+    ).toBeInTheDocument()
+  })
+
+  it("opens key management for the selected account from the title action", async () => {
+    const user = userEvent.setup()
+
+    render(<ModelList />)
+
+    await user.click(
+      within(screen.getByTestId(MODEL_LIST_TEST_IDS.titleActions)).getByTestId(
+        MODEL_LIST_TEST_IDS.openSelectedAccountKeysButton,
+      ),
+    )
+
+    expect(openKeysPageMock).toHaveBeenCalledWith(ACCOUNT.id)
+  })
+
+  it.each([
+    ["select-account-source", "account:account-1", { accountId: ACCOUNT.id }],
+    ["select-profile-source", "profile:profile-1", { profileId: PROFILE.id }],
+    [
+      "select-all-sources",
+      ALL_ACCOUNTS_SOURCE_VALUE,
+      { accountId: ALL_ACCOUNTS_SOURCE_VALUE },
+    ],
+    ["clear-source", "", undefined],
+  ])(
+    "replaces the model-list route when the user chooses %s",
+    async (buttonName, selectedValue, expectedParams) => {
+      const user = userEvent.setup()
+      const setSelectedSourceValue = vi.fn()
+      mockUseModelListData.mockReturnValue({
+        ...createModelListData(),
+        profiles: [PROFILE],
+        setSelectedSourceValue,
+      })
+
+      render(<ModelList />)
+
+      await user.click(screen.getByRole("button", { name: buttonName }))
+
+      expect(setSelectedSourceValue).toHaveBeenCalledWith(selectedValue)
+      expect(replaceWithinOptionsPageMock).toHaveBeenCalledWith(
+        "#models",
+        expectedParams,
+      )
+    },
+  )
+
+  it("exposes the selected source identity for live model-catalog verification", () => {
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      selectedSourceValue: "account:live-fixture",
+    })
+    render(<ModelList />)
+    expect(screen.getByTestId(MODEL_LIST_TEST_IDS.page)).toHaveAttribute(
+      "data-model-source",
+      "account:live-fixture",
+    )
+  })
+
+  it("does not show the key-management title shortcut for non-account sources", () => {
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      selectedSource: {
+        kind: MODEL_MANAGEMENT_SOURCE_KINDS.ALL_ACCOUNTS,
+        value: "all-accounts",
+        capabilities: CAPABILITIES,
+      },
+      selectedSourceValue: "all-accounts",
+      currentAccount: null,
+      pricingContexts: [],
+      pricingData: null,
+    })
+
+    render(<ModelList />)
+
+    expect(
+      within(
+        screen.getByTestId(MODEL_LIST_TEST_IDS.titleActions),
+      ).queryByTestId(MODEL_LIST_TEST_IDS.openSelectedAccountKeysButton),
+    ).not.toBeInTheDocument()
+  })
+
+  it("renders unclassified model content in the effective unclassified tab panel", () => {
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      effectiveSelectedVendor: MODEL_VENDOR_FILTER_VALUES.Unclassified,
+      unclassifiedVendorCount: 1,
+      filteredModels: [
+        withKnownGroupContexts({
+          model: { model_name: "unclassified-model" },
+          source: ACCOUNT_SOURCE,
+        }),
+      ],
+    })
+
+    render(<ModelList />)
+
+    expect(screen.getByText("unclassified-model")).toBeInTheDocument()
+  })
+
+  it("opens the model key dialog from an incompatible API verification token state", async () => {
+    const user = userEvent.setup()
+    render(<ModelList />)
+
+    await user.click(
+      atIndex(
+        screen.getAllByRole("button", { name: "open-api-verification" }),
+        0,
+      ),
+    )
+    expect(screen.getByTestId("verify-api-dialog")).toHaveTextContent(
+      "gpt-test",
+    )
+    expect(screen.getByTestId("verify-api-dialog")).toHaveTextContent("vip")
+
+    await user.click(screen.getByRole("button", { name: "manage-model-key" }))
+
+    expect(screen.queryByTestId("verify-api-dialog")).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(MODEL_LIST_TEST_IDS.modelKeyDialog),
+    ).toHaveTextContent("gpt-test")
+    expect(
+      screen.getByTestId(MODEL_LIST_TEST_IDS.modelKeyDialog),
+    ).toHaveTextContent("vip")
+
+    await user.click(screen.getByRole("button", { name: "close-model-key" }))
+
+    expect(
+      screen.queryByTestId(MODEL_LIST_TEST_IDS.modelKeyDialog),
+    ).not.toBeInTheDocument()
+    expect(screen.getByTestId("verify-api-dialog")).toHaveTextContent(
+      "gpt-test",
+    )
+    expect(screen.getByTestId("verify-api-dialog")).toHaveTextContent("vip")
+  })
+
+  it("estimates verification result counts from pending base filters", async () => {
+    const user = userEvent.setup()
+    const getFilteredModels = vi.fn((filters?: { searchTerm?: string }) => {
+      const matchingModelName =
+        filters?.searchTerm === "target" ? "gpt-target" : "gpt-other"
+      return [
+        withKnownGroupContexts(
+          {
+            model: {
+              model_name: matchingModelName,
+              quota_type: 0,
+              model_ratio: 1,
+              model_price: 0,
+              completion_ratio: 1,
+              enable_groups: ["vip"],
+              supported_endpoint_types: [],
+            },
+            source: ACCOUNT_SOURCE,
+          },
+          ["vip"],
+        ),
+      ]
+    })
+
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      filteredModels: getFilteredModels(),
+      getFilteredModels,
+      getFilteredResultCount: vi.fn(() => 1),
+    })
+
+    render(<ModelList />)
+
+    await user.click(screen.getByTestId("control-panel"))
+
+    expect(getFilteredModels).toHaveBeenCalledWith({
+      searchTerm: "target",
+    })
+  })
+
+  it("uses the base count for non-verification result estimates", async () => {
+    const user = userEvent.setup()
+    const getFilteredModels = vi.fn(() => [])
+    const getFilteredResultCount = vi.fn(() => 3)
+
+    mockUseModelListData.mockReturnValue({
+      ...createModelListData(),
+      getFilteredModels,
+      getFilteredResultCount,
+    })
+
+    render(<ModelList />)
+
+    await user.click(screen.getByTestId("base-count-control"))
+
+    expect(getFilteredResultCount).toHaveBeenCalledWith({
+      searchTerm: "target",
+    })
+    expect(getFilteredModels).not.toHaveBeenCalled()
+  })
+})

@@ -1,0 +1,119 @@
+import dayjs from "dayjs"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { DEFAULT_LANG } from "~/constants"
+import { I18NEXT_LANGUAGE_STORAGE_KEY } from "~/services/core/storageKeys"
+
+const {
+  getLanguageMock,
+  i18nCoreMock,
+  installAppLanguageResourcesMock,
+  languageDetectorPlugin,
+  loadDayjsLocaleMock,
+  loadAppLanguageResourcesMock,
+  reactI18nextPlugin,
+  resolveInitialAppLanguageMock,
+} = vi.hoisted(() => ({
+  getLanguageMock: vi.fn(),
+  i18nCoreMock: {
+    use: vi.fn(),
+    init: vi.fn(),
+    changeLanguage: vi.fn(),
+    on: vi.fn(),
+    language: "en",
+    resolvedLanguage: "en" as string | undefined,
+  },
+  installAppLanguageResourcesMock: vi.fn(),
+  languageDetectorPlugin: { type: "languageDetector" },
+  loadDayjsLocaleMock: vi.fn(),
+  loadAppLanguageResourcesMock: vi.fn(),
+  reactI18nextPlugin: { type: "3rdParty" },
+  resolveInitialAppLanguageMock: vi.fn(),
+}))
+
+vi.mock("~/utils/i18n/core", () => ({
+  default: i18nCoreMock,
+}))
+
+vi.mock("~/services/preferences/userPreferences", () => ({
+  userPreferences: {
+    getLanguage: getLanguageMock,
+  },
+}))
+
+vi.mock("~/utils/i18n/language", () => ({
+  normalizeAppLanguage: (language?: string | null) => language ?? undefined,
+  resolveInitialAppLanguage: resolveInitialAppLanguageMock,
+}))
+
+vi.mock("~/utils/i18n/resources", () => ({
+  installAppLanguageResources: installAppLanguageResourcesMock,
+  loadAppLanguageResources: loadAppLanguageResourcesMock,
+}))
+
+vi.mock("~/utils/i18n/dayjsLocale", () => ({
+  loadDayjsLocale: loadDayjsLocaleMock,
+}))
+
+vi.mock("i18next-browser-languagedetector", () => ({
+  default: languageDetectorPlugin,
+}))
+
+vi.mock("react-i18next", () => ({
+  initReactI18next: reactI18nextPlugin,
+}))
+
+describe("app i18n initialization without a document", () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.unstubAllEnvs()
+
+    i18nCoreMock.use.mockReset()
+    i18nCoreMock.use.mockImplementation(() => i18nCoreMock)
+    i18nCoreMock.init.mockReset()
+    i18nCoreMock.init.mockResolvedValue(undefined)
+    i18nCoreMock.changeLanguage.mockReset()
+    i18nCoreMock.changeLanguage.mockResolvedValue(undefined)
+    i18nCoreMock.on.mockReset()
+
+    getLanguageMock.mockReset()
+    installAppLanguageResourcesMock.mockReset()
+    loadAppLanguageResourcesMock.mockReset()
+    loadAppLanguageResourcesMock.mockResolvedValue({
+      en: { common: { greeting: "Hello" } },
+    })
+    resolveInitialAppLanguageMock.mockReset()
+    loadDayjsLocaleMock.mockReset()
+    loadDayjsLocaleMock.mockImplementation(async (language: string) => language)
+
+    i18nCoreMock.language = "en"
+    i18nCoreMock.resolvedLanguage = "en"
+  })
+
+  it("keeps initialization working when no DOM document exists", async () => {
+    const localeSpy = vi.spyOn(dayjs, "locale").mockReturnValue("ja")
+    getLanguageMock.mockResolvedValueOnce(undefined)
+    resolveInitialAppLanguageMock.mockReturnValueOnce("ja")
+
+    try {
+      const { i18nReady } = await import("~/utils/i18n/index")
+      await i18nReady
+
+      await vi.waitFor(() => {
+        expect(getLanguageMock).toHaveBeenCalledTimes(1)
+      })
+
+      expect(i18nCoreMock.init).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fallbackLng: DEFAULT_LANG,
+          detection: {
+            lookupLocalStorage: I18NEXT_LANGUAGE_STORAGE_KEY,
+          },
+        }),
+      )
+      expect(localeSpy).toHaveBeenCalledWith("ja")
+    } finally {
+      localeSpy.mockRestore()
+    }
+  })
+})

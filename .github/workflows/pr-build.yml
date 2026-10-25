@@ -1,0 +1,185 @@
+name: pr-build-preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - "src/**"
+      - "src/public/**"
+      - "plugins/**"
+      - ".github/workflows/release-pr-check.yml"
+      - "scripts/release-pr-check.mjs"
+      - "tests/scripts/release-pr-check.test.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "postcss.config.js"
+      - "tailwind.config.js"
+      - "wxt.config.ts"
+      - ".github/actions/package-extension/**"
+      - ".github/workflows/pr-build.yml"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to build"
+        required: true
+        type: number
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-changes:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.head.ref, 'release-please--branches--')
+    uses: ./.github/workflows/release-pr-check.yml
+
+  build-artifact:
+    needs: release-changes
+    if: ${{ !cancelled() && needs.release-changes.result != 'failure' && needs.release-changes.outputs.release-only != 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR details (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        id: pr_details
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ inputs.pr_number }}
+            });
+            core.setOutput('ref', pr.head.ref);
+            core.setOutput('sha', pr.head.sha);
+            core.setOutput('number', pr.number);
+
+      - name: Checkout code (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ inputs.pr_number }}/merge
+
+      - name: Checkout code (pull_request)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v5
+
+      - name: Build extension bundles
+        id: package
+        uses: ./.github/actions/package-extension
+        env:
+          VITE_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ secrets.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || vars.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN }}
+          VITE_PUBLIC_POSTHOG_HOST: ${{ secrets.VITE_PUBLIC_POSTHOG_HOST || vars.VITE_PUBLIC_POSTHOG_HOST }}
+
+      - name: Write PR build metadata (for workflow_run commenter)
+        # pull_request runs from forks use a read-only GITHUB_TOKEN, so comment publishing must be done
+        # in a separate workflow triggered by workflow_run (runs in the base repo context).
+        env:
+          ARTIFACT_LIST: ${{ steps.package.outputs.artifact-files }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event_name == 'workflow_dispatch' && steps.pr_details.outputs.sha || github.event.pull_request.head.sha }}
+        run: |
+          node -e "
+            const fs = require('fs');
+
+            const artifactFiles = (process.env.ARTIFACT_LIST || '')
+              .split('\\n')
+              .map((line) => line.trim())
+              .filter(Boolean);
+
+            const payload = {
+              prNumber: Number(process.env.PR_NUMBER),
+              commitSha: process.env.COMMIT_SHA || '',
+              artifactFiles,
+              generatedAt: new Date().toISOString(),
+            };
+
+            fs.writeFileSync('pr-build-metadata.json', JSON.stringify(payload, null, 2) + '\\n', 'utf8');
+          "
+
+      - name: Upload PR build metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-build-metadata
+          path: pr-build-metadata.json
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-build-${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: .output/*.zip
+          include-hidden-files: true
+
+      - name: Comment build info on PR
+        # Use workflow_dispatch for maintainers; for pull_request, comments are published by workflow_run
+        # to support fork PRs safely (avoids running untrusted code with a write token).
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v9
+        env:
+          ARTIFACT_LIST: ${{ steps.package.outputs.artifact-files }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event_name == 'workflow_dispatch' && steps.pr_details.outputs.sha || github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const marker = "<!-- pr-build-artifact -->";
+            const prNumber = parseInt(process.env.PR_NUMBER);
+            const commitSha = process.env.COMMIT_SHA;
+            // Link the short SHA to the GitHub commit page for quick navigation.
+            const shortSha = commitSha ? commitSha.slice(0, 7) : "";
+            const commitUrl = commitSha
+              ? `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${commitSha}`
+              : "";
+            const commitDisplay = commitSha
+              ? "[`" + shortSha + "`](" + commitUrl + ")"
+              : "`(unknown)`";
+
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const artifactDownloadUrl = `${runUrl}#artifacts`;
+
+            const artifactList = (process.env.ARTIFACT_LIST || "See workflow run for details.")
+              .split("\n")
+              .filter(Boolean)
+              .map((name) => `- [${name}](${artifactDownloadUrl})`)
+              .join("\n") || "- (none)";
+
+            const body = [
+              marker,
+              `**Preview build ready** for commit ${commitDisplay}.`,
+              "",
+              "Artifacts:",
+              artifactList,
+              "",
+              "_This build is for review only and is not released._",
+            ].join("\n");
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

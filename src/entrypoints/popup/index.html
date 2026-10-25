@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover"
+    />
+    <title>My API Box</title>
+    <link rel="stylesheet" href="../../styles/style.css" />
+    <link rel="stylesheet" href="../shared/compact-page.css" />
+    <link rel="stylesheet" href="./style.css" />
+    <!-- WXT emits this classic entrypoint separately so it runs before modules. -->
+    <script src="/appearance-bootstrap.js" vite-ignore></script>
+    <meta name="manifest.type" content="browser_action" />
+    <meta
+      name="manifest.default_icon"
+      content="{'16': 'icons/16.png','32': 'icons/32.png','48': 'icons/48.png','128': 'icons/128.png'}"
+    />
+  </head>
+  <body>
+    <div id="root">
+      <!-- Static first-paint skeleton; replaced when React mounts into #root.
+           Covers the i18n/storage startup window that renders a blank popup. -->
+      <div class="popup-skeleton" aria-hidden="true">
+        <div class="popup-skeleton__bar popup-skeleton__header"></div>
+        <div class="popup-skeleton__bar popup-skeleton__tabs"></div>
+        <div class="popup-skeleton__bar popup-skeleton__row"></div>
+        <div
+          class="popup-skeleton__bar popup-skeleton__row"
+          style="animation-delay: 0.15s"
+        ></div>
+        <div
+          class="popup-skeleton__bar popup-skeleton__row"
+          style="animation-delay: 0.3s"
+        ></div>
+      </div>
+    </div>
+    <script type="module" src="main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,1395 @@
+import fs from "node:fs/promises"
+import type { BrowserContext, Page } from "@playwright/test"
+
+import { OPTIONS_PAGE_PATH } from "~/constants/extensionPages"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import {
+  API_CREDENTIAL_PROFILES_TEST_IDS,
+  getApiCredentialProfileRowTestId,
+  getApiCredentialProfileVerifyProbeTestId,
+} from "~/features/ApiCredentialProfiles/testIds"
+import { KILO_CODE_EXPORT_TEST_IDS } from "~/features/KiloCodeExport/kiloCodeExportTestIds"
+import {
+  getManagedSiteChannelRowDeleteActionTestId,
+  getManagedSiteChannelRowEditActionTestId,
+  MANAGED_SITE_CHANNELS_TEST_IDS,
+} from "~/features/ManagedSiteChannels/testIds"
+import { STORAGE_KEYS } from "~/services/core/storageKeys"
+import {
+  API_TYPES,
+  API_VERIFICATION_PROBE_STATUSES,
+} from "~/services/verification/aiApiVerification/types"
+import { API_VERIFICATION_RESULT_HISTORY_CONFIG_VERSION } from "~/services/verification/verificationResultHistory/types"
+import {
+  createProfileModelVerificationHistoryTarget,
+  createVerificationHistorySummary,
+} from "~/services/verification/verificationResultHistory/utils"
+import { expect, test } from "~~/e2e/fixtures/extensionTest"
+import { verifyApiCredentialProfileCcSwitchModelPickerScenario } from "~~/e2e/scenarios/apiCredentialProfileVerification"
+import {
+  channelRowByName,
+  openManagedSiteChannelRowActions,
+} from "~~/e2e/scenarios/managedSiteChannels"
+import {
+  createStoredApiCredentialProfile,
+  forceExtensionLanguage,
+  installExtensionPageGuards,
+  seedApiCredentialProfiles,
+  seedUserPreferences,
+  stubLlmMetadataIndex,
+} from "~~/e2e/utils/commonUserFlows"
+import {
+  expectPermissionOnboardingHidden,
+  getPlasmoStorageRawValue,
+  getServiceWorker,
+  setPlasmoStorageValue,
+} from "~~/e2e/utils/extensionState"
+import { waitForExtensionRoot } from "~~/e2e/utils/lazyLoading"
+import { captureVisualViews } from "~~/e2e/utils/visualCapture"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+const CLIPBOARD_WRITES_KEY = "__aah_e2e_profile_clipboard_writes__"
+
+async function installClipboardRecorder(page: Page) {
+  await page.addInitScript((storageKey) => {
+    window.sessionStorage.setItem(storageKey, JSON.stringify([]))
+
+    const readWrites = (): string[] => {
+      try {
+        const raw = window.sessionStorage.getItem(storageKey)
+        return raw ? (JSON.parse(raw) as string[]) : []
+      } catch {
+        return []
+      }
+    }
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          window.sessionStorage.setItem(
+            storageKey,
+            JSON.stringify([...readWrites(), text]),
+          )
+        },
+      },
+    })
+  }, CLIPBOARD_WRITES_KEY)
+}
+
+async function readClipboardWrites(page: Page): Promise<string[]> {
+  return await page.evaluate((storageKey) => {
+    try {
+      const raw = window.sessionStorage.getItem(storageKey)
+      return raw ? (JSON.parse(raw) as string[]) : []
+    } catch {
+      return []
+    }
+  }, CLIPBOARD_WRITES_KEY)
+}
+
+async function openProfilesPage(page: Page, extensionId: string) {
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.API_CREDENTIAL_PROFILES}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+}
+
+async function installOpenAiCompatibleModelsRoute(
+  context: BrowserContext,
+  params: {
+    baseUrl: string
+    modelId: string
+    onRequest?: () => void
+  },
+) {
+  const normalizedBaseUrl = params.baseUrl.replace(/\/+$/, "")
+  await context.route(`${normalizedBaseUrl}/v1/models`, async (route) => {
+    params.onRequest?.()
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: [{ id: params.modelId }],
+      }),
+    })
+  })
+}
+
+test.beforeEach(async ({ context, page }) => {
+  installExtensionPageGuards(page)
+  await forceExtensionLanguage(page, "en")
+  await installClipboardRecorder(page)
+  await stubLlmMetadataIndex(context)
+})
+
+test("creates an API credential profile from the options page and persists it", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+
+  await openProfilesPage(page, extensionId)
+
+  await page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.addButton).click()
+  const profileDialog = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.dialog,
+  )
+  await expect(profileDialog).toBeVisible()
+  await expect(
+    profileDialog.getByRole("heading", { name: "Save API credential" }),
+  ).toBeVisible()
+
+  await page.locator("#api-credential-profile-name").fill("Options Profile")
+  await page
+    .locator("#api-credential-profile-baseUrl")
+    .fill("https://options-api.example.com/v1")
+  await page.locator("#api-credential-profile-apiKey").fill("sk-options-page")
+  await page
+    .locator("#api-credential-profile-notes")
+    .fill("Created from options E2E")
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.dialogSaveButton)
+    .click()
+
+  await expect(
+    page.getByRole("heading", { name: "Options Profile" }),
+  ).toBeVisible()
+
+  await expect
+    .poll(async () => {
+      const raw = await getPlasmoStorageRawValue<unknown>(
+        serviceWorker,
+        STORAGE_KEYS.API_CREDENTIAL_PROFILES,
+      )
+
+      if (typeof raw !== "string") return null
+
+      try {
+        const parsed = JSON.parse(raw) as {
+          profiles?: Array<{
+            name?: string
+            baseUrl?: string
+            apiKey?: string
+            notes?: string
+          }>
+        }
+        return (
+          parsed.profiles?.find(
+            (profile) => profile.name === "Options Profile",
+          ) ?? null
+        )
+      } catch {
+        return null
+      }
+    })
+    .toMatchObject({
+      name: "Options Profile",
+      baseUrl: "https://options-api.example.com",
+      apiKey: "sk-options-page",
+      notes: "Created from options E2E",
+    })
+})
+
+for (const width of [1280, 420]) {
+  test(`reveals a targeted credential and expires its highlight at ${width}px`, async ({
+    context,
+    extensionId,
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    await seedApiCredentialProfiles(
+      await getServiceWorker(context),
+      Array.from({ length: 6 }, (_, index) =>
+        createStoredApiCredentialProfile({
+          id: `navigation-profile-${index}`,
+          name: `Navigation Profile ${index}`,
+          baseUrl: "https://navigation.example.com",
+          apiKey: `synthetic-navigation-key-${index}`,
+        }),
+      ),
+    )
+    await page.goto(
+      `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}?profileId=navigation-profile-5#${MENU_ITEM_IDS.API_CREDENTIAL_PROFILES}`,
+    )
+    await waitForExtensionRoot(page)
+    await expectPermissionOnboardingHidden(page)
+    const target = page.getByTestId(
+      getApiCredentialProfileRowTestId("navigation-profile-5"),
+    )
+    await expect(target).toBeFocused()
+    await expect(target).toBeInViewport()
+    await expect(target).toHaveClass(/ring-theme-500/)
+    await page.screenshot({
+      path: testInfo.outputPath("profile-target.png"),
+      animations: "disabled",
+    })
+    await expect(target).not.toHaveClass(/ring-theme-500/)
+    await expect(target).toBeFocused()
+  })
+}
+
+test("filters options-page profiles and copies reusable credentials", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-primary",
+      name: "Reusable Profile",
+      baseUrl: "https://reusable.example.com",
+      apiKey: "sk-reusable-profile",
+      notes: "daily driver",
+    }),
+    createStoredApiCredentialProfile({
+      id: "profile-secondary",
+      name: "Archive Profile",
+      baseUrl: "https://archive.example.com",
+      apiKey: "sk-archive-profile",
+      notes: "rarely used",
+    }),
+  ])
+  const verifiedAt = Date.now()
+  const historyTarget = createProfileModelVerificationHistoryTarget(
+    "profile-primary",
+    "example-model",
+  )
+  if (!historyTarget) throw new Error("Expected a valid verification target")
+  const historySummary = createVerificationHistorySummary({
+    target: historyTarget,
+    apiType: API_TYPES.OPENAI_COMPATIBLE,
+    preferredModelId: "example-model",
+    verifiedAt,
+    results: [
+      {
+        id: "text-generation",
+        status: API_VERIFICATION_PROBE_STATUSES.Pass,
+        latencyMs: 12,
+        summary: "Generated text",
+      },
+    ],
+  })
+  if (!historySummary) throw new Error("Expected a verification summary")
+  await setPlasmoStorageValue(
+    serviceWorker,
+    STORAGE_KEYS.VERIFICATION_RESULT_HISTORY,
+    {
+      version: API_VERIFICATION_RESULT_HISTORY_CONFIG_VERSION,
+      lastUpdated: verifiedAt,
+      summaries: [historySummary],
+    },
+  )
+
+  await openProfilesPage(page, extensionId)
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.endpointNavigation)
+    .getByRole("button", {
+      name: "https://reusable.example.com",
+      exact: true,
+    })
+    .click()
+
+  await expect(page.getByText("Pass", { exact: true })).toBeVisible()
+  await expect(page.getByText("Unverified", { exact: true })).toHaveCount(0)
+
+  const endpointBaseUrl = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.endpointBaseUrl,
+  )
+  const endpointCredentialCount = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.endpointCredentialCount,
+  )
+  await expect
+    .poll(async () => {
+      const [baseUrlBox, countBox] = await Promise.all([
+        endpointBaseUrl.boundingBox(),
+        endpointCredentialCount.boundingBox(),
+      ])
+      return Boolean(
+        baseUrlBox &&
+          countBox &&
+          baseUrlBox.x < countBox.x &&
+          baseUrlBox.y < countBox.y + countBox.height &&
+          countBox.y < baseUrlBox.y + baseUrlBox.height,
+      )
+    })
+    .toBe(true)
+
+  await page
+    .getByRole("region", {
+      name: "Credentials for https://reusable.example.com",
+    })
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.endpointAddCredentialButton)
+    .click()
+  const addToEndpointDialog = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.dialog,
+  )
+  await expect(addToEndpointDialog).toBeVisible()
+  await expect(page.locator("#api-credential-profile-baseUrl")).toHaveValue(
+    "https://reusable.example.com",
+  )
+  await addToEndpointDialog.getByRole("button", { name: "Close" }).click()
+  await expect(addToEndpointDialog).toHaveCount(0)
+
+  const searchInput = page.getByPlaceholder(
+    "Search by name, base URL, tag, source page, or notes",
+  )
+  await searchInput.fill("daily driver")
+
+  await expect(
+    page.getByRole("heading", { name: "Reusable Profile" }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Archive Profile" }),
+  ).toHaveCount(0)
+
+  const copyBundleButton = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.copyBundleButton,
+  )
+  const deleteButton = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.deleteTriggerButton,
+  )
+  await expect
+    .poll(async () => {
+      const [firstButtonBox, lastButtonBox] = await Promise.all([
+        copyBundleButton.boundingBox(),
+        deleteButton.boundingBox(),
+      ])
+      return Boolean(
+        firstButtonBox &&
+          lastButtonBox &&
+          firstButtonBox.x < lastButtonBox.x &&
+          firstButtonBox.y < lastButtonBox.y + lastButtonBox.height &&
+          lastButtonBox.y < firstButtonBox.y + firstButtonBox.height,
+      )
+    })
+    .toBe(true)
+
+  const telemetryToggle = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.telemetryToggle,
+  )
+  await expect(telemetryToggle).toHaveAttribute("aria-expanded", "false")
+  await expect(
+    page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.telemetryBalance),
+  ).toHaveCount(0)
+  await telemetryToggle.click()
+  await expect(telemetryToggle).toHaveAttribute("aria-expanded", "true")
+  await expect(
+    page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.telemetryBalance),
+  ).toBeVisible()
+
+  await page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.showKeyButton).click()
+  await expect(page.getByText("sk-reusable-profile")).toBeVisible()
+
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.endpointCopyBaseUrlButton)
+    .click()
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.copyApiKeyButton)
+    .click()
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.copyBundleButton)
+    .click()
+
+  await expect
+    .poll(() => readClipboardWrites(page))
+    .toEqual([
+      "https://reusable.example.com",
+      "sk-reusable-profile",
+      "BASE_URL=https://reusable.example.com\nAPI_KEY=sk-reusable-profile",
+    ])
+})
+
+test("opens model management for an options-page API credential profile", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-models",
+      name: "Model Source Profile",
+      baseUrl: "https://api.example.com",
+      apiKey: "sk-model-source",
+    }),
+  ])
+
+  await context.route("https://api.example.com/v1/models", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        message: "ok",
+        data: [{ id: "gpt-options-model" }],
+      }),
+    }),
+  )
+
+  await openProfilesPage(page, extensionId)
+
+  const toolbar = page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.toolbar)
+  const quickActionsGroup = toolbar.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.toolbarQuickActionsGroup,
+  )
+  const integrationsGroup = toolbar.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.toolbarIntegrationsGroup,
+  )
+  const diagnosticsGroup = toolbar.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.toolbarDiagnosticsGroup,
+  )
+  const managementGroup = toolbar.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.toolbarManagementGroup,
+  )
+  await expect(toolbar).toHaveRole("toolbar")
+  await expect(toolbar).toHaveAccessibleName("Key actions")
+  await expect(quickActionsGroup).toHaveRole("group")
+  await expect(quickActionsGroup).toHaveAccessibleName("Quick actions")
+  await expect(integrationsGroup).toHaveRole("group")
+  await expect(integrationsGroup).toHaveAccessibleName(
+    "Integrations and export",
+  )
+  await expect(diagnosticsGroup).toHaveRole("group")
+  await expect(diagnosticsGroup).toHaveAccessibleName("Diagnostics")
+  await expect(managementGroup).toHaveRole("group")
+  await expect(managementGroup).toHaveAccessibleName("Management")
+  await expect(
+    quickActionsGroup.getByTestId(
+      API_CREDENTIAL_PROFILES_TEST_IDS.copyBundleButton,
+    ),
+  ).toBeVisible()
+  await expect(
+    integrationsGroup.getByTestId(
+      API_CREDENTIAL_PROFILES_TEST_IDS.importToManagedSiteButton,
+    ),
+  ).toBeVisible()
+  await expect(
+    integrationsGroup.getByTestId(
+      API_CREDENTIAL_PROFILES_TEST_IDS.exportMenuButton,
+    ),
+  ).toBeVisible()
+  await expect(
+    diagnosticsGroup.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyButton),
+  ).toBeVisible()
+  await expect(
+    managementGroup.getByTestId(
+      API_CREDENTIAL_PROFILES_TEST_IDS.openModelManagementButton,
+    ),
+  ).toBeVisible()
+
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.openModelManagementButton)
+    .click()
+
+  await expect(page).toHaveURL((url) => {
+    return (
+      url.hash === `#${MENU_ITEM_IDS.MODELS}` &&
+      url.searchParams.get("profileId") === "profile-models"
+    )
+  })
+  await waitForExtensionRoot(page)
+
+  await expect(page.getByText("gpt-options-model")).toBeVisible()
+})
+
+test("opens the CC Switch model picker for an API credential profile", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-cc-switch",
+      name: "CC Switch Profile",
+      baseUrl: "https://cc-switch-profile.example.com",
+      apiKey: "sk-cc-switch-profile",
+    }),
+  ])
+
+  await context.route(
+    "https://cc-switch-profile.example.com/v1/models",
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: [{ id: "gpt-cc-switch-profile" }],
+        }),
+      }),
+  )
+
+  await openProfilesPage(page, extensionId)
+
+  await verifyApiCredentialProfileCcSwitchModelPickerScenario({
+    page,
+    profileName: "CC Switch Profile",
+    modelName: "gpt-cc-switch-profile",
+    expectedBaseUrl: "https://cc-switch-profile.example.com",
+    expectedApiKey: "sk-cc-switch-profile",
+  })
+})
+
+test("downloads Kilo Code settings for an API credential profile", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const profileName = "Example Profile"
+  const profileBaseUrl = "https://kilo-export.example.invalid"
+  const modelIds = [
+    "example-model-a",
+    "example-model-b",
+    "vendor/example-model-c",
+  ] as const
+  const serviceWorker = await getServiceWorker(context)
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-kilo-export",
+      name: profileName,
+      baseUrl: profileBaseUrl,
+      apiKey: "sk-kilo-export-profile",
+    }),
+  ])
+
+  await context.route(`${profileBaseUrl}/v1/models`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: modelIds.map((id) => ({ id })),
+      }),
+    })
+  })
+
+  await openProfilesPage(page, extensionId)
+
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.exportMenuButton)
+    .click()
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.exportToKiloCodeMenuItem)
+    .click()
+
+  await expect(page.getByText("Export Kilo Code JSON")).toBeVisible()
+  const slashBearingModel = modelIds[2]
+  const defaultModel = page.getByTestId(KILO_CODE_EXPORT_TEST_IDS.defaultModel)
+  await expect(defaultModel).toBeEnabled()
+  await defaultModel.click()
+  const defaultModelSearch = page.getByTestId(
+    KILO_CODE_EXPORT_TEST_IDS.defaultModelSearch,
+  )
+  await defaultModelSearch.fill(slashBearingModel)
+  const slashBearingModelOption = page.getByRole("option", {
+    name: slashBearingModel,
+    exact: true,
+  })
+  await expect(slashBearingModelOption).toBeVisible()
+  await slashBearingModelOption.click({ force: true })
+  await expect(defaultModel).toContainText(slashBearingModel)
+
+  const v7DownloadPromise = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Download Kilo 7.x settings" }).click()
+  const v7Download = await v7DownloadPromise
+
+  expect(v7Download.suggestedFilename()).toBe("kilo-settings.json")
+  const v7DownloadPath = await v7Download.path()
+  if (!v7DownloadPath) {
+    throw new Error(
+      "Kilo Code settings export did not produce a readable download",
+    )
+  }
+
+  const v7Settings = JSON.parse(await fs.readFile(v7DownloadPath, "utf8")) as {
+    _meta?: { version?: number }
+    provider?: Record<
+      string,
+      {
+        name?: string
+        npm?: string
+        models?: Record<string, { name?: string }>
+        options?: { apiKey?: string; baseURL?: string }
+      }
+    >
+    model?: string
+  }
+
+  expect(v7Settings._meta?.version).toBe(1)
+  const providerEntries = Object.entries(v7Settings.provider ?? {})
+  expect(providerEntries).toHaveLength(1)
+  const indexedItems = providerEntries[0]
+  const providerId = atIndex(indexedItems, 0)
+  const provider = atIndex(indexedItems, 1)
+  expect(provider.name).toBe(profileName)
+  expect(providerId).not.toBe(profileName)
+  expect(provider).toMatchObject({
+    npm: "@ai-sdk/openai-compatible",
+    models: {
+      [modelIds[0]]: { name: modelIds[0] },
+      [modelIds[1]]: { name: modelIds[1] },
+      [modelIds[2]]: { name: modelIds[2] },
+    },
+    options: {
+      apiKey: "sk-kilo-export-profile",
+      baseURL: `${profileBaseUrl}/v1`,
+    },
+  })
+
+  expect(v7Settings.model).toBe(`${providerId}/${slashBearingModel}`)
+  expect(
+    v7Settings.provider?.[providerId]?.models?.[slashBearingModel],
+  ).toEqual({ name: slashBearingModel })
+
+  await page.getByRole("button", { name: "Cancel" }).click()
+  await expect(page.getByText("Export Kilo Code JSON")).toHaveCount(0)
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.exportMenuButton)
+    .click()
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.exportToKiloCodeMenuItem)
+    .click()
+  await expect(page.getByText("Export Kilo Code JSON")).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Download Kilo 7.x settings" }),
+  ).toBeEnabled()
+
+  const exportTarget = page.getByRole("combobox", { name: "Export target" })
+  const legacyTargetName = "Roo Code / Kilo Code 5.x (legacy)"
+  await exportTarget.click()
+  await page.getByRole("option", { name: legacyTargetName }).click()
+  await expect(exportTarget).toContainText(legacyTargetName)
+
+  const legacyDownloadPromise = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Download legacy settings" }).click()
+  const legacyDownload = await legacyDownloadPromise
+
+  expect(legacyDownload.suggestedFilename()).toBe("kilo-code-settings.json")
+  const legacyDownloadPath = await legacyDownload.path()
+  if (!legacyDownloadPath) {
+    throw new Error(
+      "Legacy Kilo Code settings export did not produce a readable download",
+    )
+  }
+
+  const legacySettings = JSON.parse(
+    await fs.readFile(legacyDownloadPath, "utf8"),
+  ) as {
+    providerProfiles?: {
+      currentApiConfigName?: string
+      apiConfigs?: Record<
+        string,
+        {
+          id?: string
+          apiProvider?: string
+          openAiBaseUrl?: string
+          openAiApiKey?: string
+          openAiModelId?: string
+        }
+      >
+    }
+  }
+
+  const legacyProfileName = `${profileName} - API Key`
+  expect(legacySettings.providerProfiles?.currentApiConfigName).toBe(
+    legacyProfileName,
+  )
+  expect(
+    legacySettings.providerProfiles?.apiConfigs?.[legacyProfileName],
+  ).toMatchObject({
+    apiProvider: "openai",
+    openAiBaseUrl: `${profileBaseUrl}/v1`,
+    openAiApiKey: "sk-kilo-export-profile",
+    openAiModelId: modelIds[0],
+  })
+  expect(
+    legacySettings.providerProfiles?.apiConfigs?.[legacyProfileName]?.id,
+  ).toEqual(expect.any(String))
+})
+
+test("imports an API credential profile into CLIProxyAPI using migrated managed-site credentials", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    preferencesVersion: 27,
+    managedSiteType: "cli-proxy-api",
+    cliProxy: {
+      baseUrl: "https://cli-proxy.example.com/v0/management",
+      managementKey: "mgmt-cli-proxy",
+    },
+  })
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-cli-proxy",
+      name: "CLIProxyAPI Profile",
+      baseUrl: "https://cli-source.example.com",
+      apiKey: "sk-cli-proxy-profile",
+    }),
+  ])
+  await installOpenAiCompatibleModelsRoute(context, {
+    baseUrl: "https://cli-source.example.com",
+    modelId: "gpt-cli-proxy",
+  })
+  let providers: Record<string, unknown>[] = []
+  await context.route(
+    "https://cli-proxy.example.com/v0/management/*",
+    async (route) => {
+      const request = route.request()
+      expect(request.headers()["authorization"]).toBe("Bearer mgmt-cli-proxy")
+      const kind = new URL(request.url()).pathname.split("/").at(-1)!
+      if (request.method() === "GET") {
+        await route.fulfill({
+          json: { [kind]: kind === "openai-compatibility" ? providers : [] },
+        })
+      } else {
+        expect(kind).toBe("openai-compatibility")
+        if (request.method() === "PUT") providers = request.postDataJSON()
+        else if (request.method() === "PATCH") {
+          const { index, value } = request.postDataJSON()
+          providers[index] = { ...providers[index], ...value }
+        } else {
+          expect(request.method()).toBe("DELETE")
+          providers.splice(
+            Number(new URL(request.url()).searchParams.get("index")),
+            1,
+          )
+        }
+        await route.fulfill({ json: { status: "ok" } })
+      }
+    },
+  )
+  await openProfilesPage(page, extensionId)
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.importToManagedSiteButton)
+    .click()
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByLabel("Base URL", { exact: true })).toHaveValue(
+    "https://cli-source.example.com/v1",
+  )
+  await expect(dialog.getByLabel("Channel Name", { exact: true })).toHaveValue(
+    "CLIProxyAPI Profile | CLIProxyAPI Profile (auto)",
+  )
+  await dialog
+    .getByRole("button", { name: "Create Channel", exact: true })
+    .click()
+  await expect(dialog).toBeHidden()
+  expect(providers).toEqual([
+    expect.objectContaining({
+      name: "CLIProxyAPI Profile | CLIProxyAPI Profile (auto)",
+      "base-url": "https://cli-source.example.com/v1",
+      "api-key-entries": [
+        { "api-key": "sk-cli-proxy-profile", "proxy-url": "" },
+      ],
+      models: [{ name: "gpt-cli-proxy", alias: "gpt-cli-proxy" }],
+    }),
+  ])
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.MANAGED_SITE_CHANNELS}`,
+  )
+  await waitForExtensionRoot(page)
+  const originalName = "CLIProxyAPI Profile | CLIProxyAPI Profile (auto)"
+  const { rowTestToken } = await openManagedSiteChannelRowActions(
+    page,
+    originalName,
+  )
+  await page
+    .getByTestId(getManagedSiteChannelRowEditActionTestId(rowTestToken))
+    .click()
+  await dialog
+    .getByLabel("Channel Name", { exact: true })
+    .fill("Renamed CLIProxyAPI provider")
+  await dialog
+    .getByRole("button", { name: "Save Changes", exact: true })
+    .click()
+  await expect(dialog).toBeHidden()
+  await expect(
+    channelRowByName(page, "Renamed CLIProxyAPI provider"),
+  ).toHaveCount(1)
+  await expect(channelRowByName(page, originalName)).toHaveCount(0)
+  const renamed = await openManagedSiteChannelRowActions(
+    page,
+    "Renamed CLIProxyAPI provider",
+  )
+  await page
+    .getByTestId(
+      getManagedSiteChannelRowDeleteActionTestId(renamed.rowTestToken),
+    )
+    .click()
+  await page
+    .getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.deleteChannelConfirmButton)
+    .click()
+  await expect(
+    channelRowByName(page, "Renamed CLIProxyAPI provider"),
+  ).toHaveCount(0)
+  expect(providers).toEqual([])
+})
+
+test("imports an API credential profile into Claude Code Router", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  const routerConfigRequests: Array<{
+    method: string
+    authorization?: string
+    body: unknown
+  }> = []
+  const restartRequests: Array<{ authorization?: string }> = []
+  let sourceModelsRequested = false
+
+  await seedUserPreferences(serviceWorker, {
+    claudeCodeRouter: {
+      baseUrl: "https://router.example.invalid",
+      apiKey: "mgmt-claude-router",
+    },
+  })
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-claude-code-router",
+      name: "Claude Router Profile",
+      baseUrl: "https://claude-source.example.invalid",
+      apiKey: "sk-claude-router-profile",
+    }),
+  ])
+
+  await installOpenAiCompatibleModelsRoute(context, {
+    baseUrl: "https://claude-source.example.invalid",
+    modelId: "gpt-claude-router-profile",
+    onRequest: () => {
+      sourceModelsRequested = true
+    },
+  })
+  await context.route(
+    "https://router.example.invalid/api/config",
+    async (route) => {
+      const request = route.request()
+
+      if (request.method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            LOG: true,
+            Providers: [
+              {
+                name: "Existing Provider",
+                api_base_url:
+                  "https://existing.example.invalid/v1/chat/completions",
+                api_key: "sk-existing",
+                models: ["existing-model"],
+              },
+            ],
+          }),
+        })
+        return
+      }
+
+      routerConfigRequests.push({
+        method: request.method(),
+        authorization: request.headers()["authorization"],
+        body: JSON.parse(request.postData() ?? "{}"),
+      })
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      })
+    },
+  )
+  await context.route(
+    "https://router.example.invalid/api/restart",
+    async (route) => {
+      restartRequests.push({
+        authorization: route.request().headers()["authorization"],
+      })
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      })
+    },
+  )
+
+  await openProfilesPage(page, extensionId)
+
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.exportMenuButton)
+    .click()
+  await page
+    .getByTestId(
+      API_CREDENTIAL_PROFILES_TEST_IDS.exportToClaudeCodeRouterMenuItem,
+    )
+    .click()
+
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByText("Import to Claude Code Router")).toBeVisible()
+  await expect(page.getByLabel("Provider name")).toHaveValue(
+    "Claude Router Profile",
+  )
+  await expect(page.getByLabel("Provider API endpoint")).toHaveValue(
+    "https://claude-source.example.invalid/v1/chat/completions",
+  )
+
+  const modelsInput = dialog.getByPlaceholder("Type to add models")
+  await expect(modelsInput).toBeVisible()
+  await expect.poll(() => sourceModelsRequested).toBe(true)
+  await expect(
+    dialog.getByRole("button", { name: "Select all", exact: true }),
+  ).toBeEnabled()
+  await modelsInput.fill("gpt-claude-router-profile")
+  await expect(modelsInput).toHaveValue("gpt-claude-router-profile")
+  await modelsInput.press("Enter")
+  await expect(
+    dialog.getByRole("button", {
+      name: "Copy gpt-claude-router-profile",
+    }),
+  ).toBeVisible()
+
+  await dialog.getByRole("button", { name: "Import", exact: true }).click()
+
+  await expect
+    .poll(() => routerConfigRequests)
+    .toEqual([
+      {
+        method: "POST",
+        authorization: "Bearer mgmt-claude-router",
+        body: {
+          LOG: true,
+          Providers: [
+            {
+              name: "Existing Provider",
+              api_base_url:
+                "https://existing.example.invalid/v1/chat/completions",
+              api_key: "sk-existing",
+              models: ["existing-model"],
+            },
+            {
+              name: "Claude Router Profile",
+              api_base_url:
+                "https://claude-source.example.invalid/v1/chat/completions",
+              api_key: "sk-claude-router-profile",
+              models: ["gpt-claude-router-profile"],
+            },
+          ],
+        },
+      },
+    ])
+  await expect
+    .poll(() => restartRequests)
+    .toEqual([
+      {
+        authorization: "Bearer mgmt-claude-router",
+      },
+    ])
+  await expect(
+    page.getByText(
+      "Successfully imported provider Claude Router Profile to Claude Code Router",
+    ),
+  ).toBeVisible()
+})
+
+// The API type and test mode fields share one grid row, so their label rows and
+// controls must render at the same offsets.
+test("aligns the credential verification meta fields across the paired row", async ({
+  context,
+  extensionId,
+  extensionDir,
+  page,
+}) => {
+  const modelRequestUrls: string[] = []
+  await context.route(
+    (url) =>
+      url.origin === "https://aligned-api.example.com" &&
+      url.pathname === "/v1/models",
+    (route) => {
+      modelRequestUrls.push(route.request().url())
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] }),
+      })
+    },
+  )
+  const serviceWorker = await getServiceWorker(context)
+  await seedApiCredentialProfiles(serviceWorker, [
+    createStoredApiCredentialProfile({
+      id: "profile-aligned",
+      name: "Aligned Profile",
+      baseUrl: "https://aligned-api.example.com",
+    }),
+  ])
+
+  await openProfilesPage(page, extensionId)
+  await page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyButton).click()
+  await expect(
+    page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyModelId),
+  ).toBeVisible()
+
+  const apiTypeLabel = page.getByText("API type", { exact: true })
+  const modeLabel = page.getByText("Test mode", { exact: true })
+  const apiTypeTrigger = page.locator(
+    '[data-slot="searchable-select-trigger"][aria-label="API type"]',
+  )
+  const modeTrigger = page.getByRole("combobox", { name: "Test mode" })
+
+  const apiTypeLabelBox = await apiTypeLabel.boundingBox()
+  const modeLabelBox = await modeLabel.boundingBox()
+  const apiTypeTriggerBox = await apiTypeTrigger.boundingBox()
+  const modeTriggerBox = await modeTrigger.boundingBox()
+
+  expect(modeLabelBox?.y).toBe(apiTypeLabelBox?.y)
+  expect(modeTriggerBox?.y).toBe(apiTypeTriggerBox?.y)
+  expect(modeTriggerBox?.width).toBe(apiTypeTriggerBox?.width)
+  expect(modeTriggerBox?.height).toBe(apiTypeTriggerBox?.height)
+  await captureVisualViews({
+    page,
+    ready: page.getByRole("dialog"),
+    extensionDir,
+    id: "verification-request-profile",
+  })
+  const selector = page.getByRole("combobox", {
+    name: "Client simulation",
+    exact: true,
+  })
+  await selector.click()
+  await page.getByRole("option", { name: "Claude Code", exact: true }).click()
+  await expect
+    .poll(() => modelRequestUrls)
+    .toContain("https://aligned-api.example.com/v1/models?limit=200")
+  const enhanced = page.getByRole("switch", {
+    name: "Enhanced CLI simulation",
+    exact: true,
+  })
+  await expect(enhanced).not.toBeChecked()
+  await enhanced.click()
+  await captureVisualViews({
+    page,
+    ready: page.getByRole("dialog"),
+    extensionDir,
+    id: "verification-enhanced-profile",
+  })
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyDialogCloseButton)
+    .click()
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyCliSupportButton)
+    .click()
+  const cliEnhanced = page.getByRole("switch", {
+    name: "Enhanced CLI simulation",
+    exact: true,
+  })
+  await expect(cliEnhanced).not.toBeChecked()
+  await cliEnhanced.click()
+  await expect(cliEnhanced).toBeChecked()
+  await captureVisualViews({
+    page,
+    ready: page.getByRole("dialog"),
+    extensionDir,
+    id: "verification-enhanced-cli",
+  })
+})
+
+test("verifies embedding and image models after changing the selected modality", async ({
+  context,
+  extensionId,
+  extensionDir,
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" })
+  await context.route("https://models.dev/models.json", (route) =>
+    route.fulfill({
+      json: {
+        models: [
+          ["catalog-chat", "text"],
+          ["catalog-vector", "embedding"],
+          ["catalog-image", "image"],
+        ].map(([id, output]) => ({
+          id,
+          name: id,
+          provider_id: "catalog",
+          modalities: { input: ["text"], output: [output] },
+        })),
+      },
+    }),
+  )
+  const imageBytes = await fs.readFile(
+    new URL("./fixtures/verificationMedia/image.png", import.meta.url),
+  )
+  const requests: {
+    model: string
+    input?: unknown
+    size?: string
+    quality?: string
+  }[] = []
+  await context.route("https://modality-api.example.com/v1/models", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: ["catalog-chat", "catalog-vector", "catalog-image"].map((id) => ({
+          id,
+          object: "model",
+        })),
+      }),
+    }),
+  )
+  await context.route(
+    "https://modality-api.example.com/v1/embeddings",
+    (route) => {
+      requests.push(route.request().postDataJSON())
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          object: "list",
+          data: [{ object: "embedding", index: 0, embedding: [0.1, 0.2, 0.3] }],
+          model: "catalog-vector",
+          usage: { prompt_tokens: 1, total_tokens: 1 },
+        }),
+      })
+    },
+  )
+  await context.route(
+    "https://modality-api.example.com/v1/images/generations",
+    (route) => {
+      requests.push(route.request().postDataJSON())
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: [{ url: "https://modality-api.example.com/preview.png" }],
+        }),
+      })
+    },
+  )
+  await context.route("https://modality-api.example.com/preview.png", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: imageBytes,
+    }),
+  )
+  await seedApiCredentialProfiles(await getServiceWorker(context), [
+    createStoredApiCredentialProfile({
+      id: "profile-modalities",
+      name: "Modality Profile",
+      baseUrl: "https://modality-api.example.com",
+    }),
+  ])
+  await openProfilesPage(page, extensionId)
+  await page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyButton).click()
+  const modelPicker = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.verifyModelId,
+  )
+  await expect(modelPicker).toContainText("catalog-chat")
+
+  await modelPicker.click()
+  await page
+    .getByRole("option", { name: "catalog-vector", exact: true })
+    .click()
+  await expect(modelPicker).toContainText("catalog-vector")
+  await expect(page.getByRole("combobox", { name: "Test mode" })).toHaveCount(0)
+  const embeddingProbe = page.getByTestId(
+    getApiCredentialProfileVerifyProbeTestId("embedding"),
+  )
+  await embeddingProbe
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyProbeRunButton)
+    .click()
+  await expect(embeddingProbe).toContainText(
+    "Embedding generated successfully (dimension: 3).",
+  )
+  expect(requests[0]).toMatchObject({
+    model: "catalog-vector",
+    input: ["ping"],
+  })
+  await captureVisualViews({
+    page,
+    ready: embeddingProbe,
+    id: "embedding-verification",
+    extensionDir,
+  })
+
+  await modelPicker.click()
+  await page.getByRole("option", { name: "catalog-image", exact: true }).click()
+  await expect(modelPicker).toContainText("catalog-image")
+  await expect(embeddingProbe).toHaveCount(0)
+  const imageProbe = page.getByTestId(
+    getApiCredentialProfileVerifyProbeTestId("image-generation"),
+  )
+  await imageProbe
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyProbeRunButton)
+    .click()
+  await expect(imageProbe).toContainText("Image generation succeeded")
+  expect(requests[1]).toMatchObject({
+    model: "catalog-image",
+  })
+  expect(requests[1]).not.toHaveProperty("size")
+  expect(requests[1]).not.toHaveProperty("quality")
+  await imageProbe.getByRole("button", { name: "Output", exact: true }).click()
+  await expect(
+    imageProbe.getByRole("img", { name: "Generated image preview" }),
+  ).toBeVisible()
+  await expect
+    .poll(() =>
+      imageProbe
+        .getByRole("img", { name: "Generated image preview" })
+        .evaluate(
+          (image: HTMLImageElement) => image.complete && image.naturalWidth > 0,
+        ),
+    )
+    .toBe(true)
+  await captureVisualViews({
+    page,
+    ready: imageProbe,
+    id: "image-verification",
+    extensionDir,
+  })
+})
+
+test("previews Base64 images and plays completed video tasks", async ({
+  context,
+  extensionId,
+  extensionDir,
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" })
+  await context.route("https://models.dev/models.json", (route) =>
+    route.fulfill({ json: { models: [] } }),
+  )
+  const imageBase64 = (
+    await fs.readFile(
+      new URL("./fixtures/verificationMedia/image.png", import.meta.url),
+    )
+  ).toString("base64")
+  const videoBytes = await fs.readFile(
+    new URL("./fixtures/verificationMedia/video.webm", import.meta.url),
+  )
+  let videoPosts = 0
+  let videoPolls = 0
+  await context.route("https://media-api.example.com/v1/models", (route) =>
+    route.fulfill({
+      json: { data: [{ id: "gpt-image-1" }, { id: "sora-1" }] },
+    }),
+  )
+  await context.route(
+    "https://media-api.example.com/v1/images/generations",
+    (route) => route.fulfill({ json: { data: [{ b64_json: imageBase64 }] } }),
+  )
+  await context.route(
+    "https://media-api.example.com/v1/video/generations",
+    (route) => {
+      videoPosts += 1
+      return route.fulfill({
+        json: { task_id: "fixture-video", status: "queued" },
+      })
+    },
+  )
+  await context.route(
+    "https://media-api.example.com/v1/video/generations/fixture-video",
+    (route) => {
+      videoPolls += 1
+      return route.fulfill({
+        json:
+          videoPolls === 1
+            ? { task_id: "fixture-video", status: "in_progress" }
+            : {
+                task_id: "fixture-video",
+                status: "completed",
+                url: "https://media-api.example.com/result.webm",
+              },
+      })
+    },
+  )
+  await context.route("https://media-api.example.com/result.webm", (route) =>
+    route.fulfill({ contentType: "video/webm", body: videoBytes }),
+  )
+  await seedApiCredentialProfiles(await getServiceWorker(context), [
+    createStoredApiCredentialProfile({
+      id: "profile-media-preview",
+      name: "Media Preview",
+      baseUrl: "https://media-api.example.com",
+    }),
+  ])
+  await openProfilesPage(page, extensionId)
+  await page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyButton).click()
+  const picker = page.getByTestId(
+    API_CREDENTIAL_PROFILES_TEST_IDS.verifyModelId,
+  )
+  await expect(picker).toContainText("gpt-image-1")
+  const imageProbe = page.getByTestId(
+    getApiCredentialProfileVerifyProbeTestId("image-generation"),
+  )
+  await imageProbe
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyProbeRunButton)
+    .click()
+  await expect(imageProbe).toContainText("Image generation succeeded")
+  await imageProbe.getByRole("button", { name: "Output", exact: true }).click()
+  const image = imageProbe.getByRole("img", { name: "Generated image preview" })
+  await expect(image).toHaveAttribute(
+    "src",
+    `data:image/png;base64,${imageBase64}`,
+  )
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth === 320,
+      ),
+    )
+    .toBe(true)
+  expect(
+    (await imageProbe.locator("pre").allTextContents()).join(" "),
+  ).not.toContain(imageBase64)
+  await captureVisualViews({
+    page,
+    ready: image,
+    id: "base64-image-preview",
+    extensionDir,
+  })
+
+  await picker.click()
+  await page.getByRole("option", { name: "sora-1", exact: true }).click()
+  const videoProbe = page.getByTestId(
+    getApiCredentialProfileVerifyProbeTestId("video-generation"),
+  )
+  await videoProbe
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.verifyProbeRunButton)
+    .click()
+  await expect(videoProbe).toContainText("Video generated successfully.")
+  expect(videoPosts).toBe(1)
+  expect(videoPolls).toBe(2)
+  await videoProbe.getByRole("button", { name: "Output", exact: true }).click()
+  const player = videoProbe.getByLabel("Generated video preview")
+  await expect(player).toBeVisible()
+  await expect(player).toHaveAttribute("controls", "")
+  await player.evaluate(async (element: HTMLVideoElement) => {
+    element.muted = true
+    await element.play()
+  })
+  await expect
+    .poll(() =>
+      player.evaluate(
+        (element: HTMLVideoElement) =>
+          element.currentTime > 0 && element.videoWidth === 320,
+      ),
+    )
+    .toBe(true)
+  await player.evaluate((element: HTMLVideoElement) => element.pause())
+  await expect(
+    videoProbe.getByRole("link", { name: "Open generated media" }),
+  ).toHaveAttribute("href", "https://media-api.example.com/result.webm")
+  await captureVisualViews({
+    page,
+    ready: player,
+    id: "video-playback-preview",
+    extensionDir,
+  })
+})

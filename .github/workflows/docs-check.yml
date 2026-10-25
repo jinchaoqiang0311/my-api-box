@@ -1,0 +1,55 @@
+name: Docs Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "docs/docs/**"
+      - "docs/scripts/**"
+      - "docs/package.json"
+      - "docs/pnpm-lock.yaml"
+      - "docs/pnpm-workspace.yaml"
+      - "resources/wechat_group.png"
+      - ".github/workflows/docs-check.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: docs
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          package_json_file: docs/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: Install docs dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Check docs
+        env:
+          NODE_OPTIONS: --max_old_space_size=8192
+        run: pnpm run docs:check

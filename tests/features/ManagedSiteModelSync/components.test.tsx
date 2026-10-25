@@ -1,0 +1,490 @@
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
+import type { ReactNode } from "react"
+import { I18nextProvider } from "react-i18next"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import ActionBar from "~/features/ManagedSiteModelSync/commands/ActionBar"
+import { MANAGED_SITE_MODEL_SYNC_ACTIONS } from "~/features/ManagedSiteModelSync/commands/actionState"
+import EmptyResults from "~/features/ManagedSiteModelSync/results/EmptyResults"
+import FilterBar from "~/features/ManagedSiteModelSync/results/FilterBar"
+import ResultsTable from "~/features/ManagedSiteModelSync/results/ResultsTable"
+import OverviewCard from "~/features/ManagedSiteModelSync/status/OverviewCard"
+import ProgressCard from "~/features/ManagedSiteModelSync/status/ProgressCard"
+import StatisticsCard from "~/features/ManagedSiteModelSync/status/StatisticsCard"
+import type { ManagedResourceRef } from "~/services/apiAdapters/contracts/managedResourceNative"
+import { getManagedResourceRefKey } from "~/services/managedSites/managedResourceIdentity"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { testI18n } from "~~/tests/test-utils/i18n"
+import { modelResourceRef } from "~~/tests/test-utils/managedModelResource"
+
+const { trackStartedMock } = vi.hoisted(() => ({
+  trackStartedMock: vi.fn(),
+}))
+
+vi.mock("~/services/productAnalytics/actions", () => ({
+  trackProductAnalyticsActionStarted: trackStartedMock,
+}))
+
+vi.mock("~/features/ManagedSiteWidgets/ManagedSiteChannelLinkButton", () => ({
+  default: ({
+    resourceRef,
+    channelName,
+    className,
+  }: {
+    resourceRef?: ManagedResourceRef
+    channelName: string
+    className?: string
+  }) => (
+    <button className={className} type="button">
+      {channelName}#{resourceRef?.resourceId}
+    </button>
+  ),
+}))
+
+function render(ui: ReactNode) {
+  return rtlRender(<I18nextProvider i18n={testI18n}>{ui}</I18nextProvider>)
+}
+
+describe("ManagedSiteModelSync components", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    trackStartedMock.mockResolvedValue(undefined)
+  })
+
+  it("renders overview, progress, and statistics states", () => {
+    const { rerender } = render(
+      <OverviewCard
+        enabled
+        intervalMs={2 * 60 * 60 * 1000}
+        nextScheduledAt="2026-03-28T10:00:00.000Z"
+        lastRunAt="2026-03-28T08:00:00.000Z"
+      />,
+    )
+
+    expect(
+      screen.getByText("managedSiteModelSync:execution.overview.enabled"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("managedSiteModelSync:execution.overview.everyHours"),
+    ).toBeInTheDocument()
+
+    rerender(
+      <I18nextProvider i18n={testI18n}>
+        <OverviewCard
+          enabled={false}
+          intervalMs={30 * 60 * 1000}
+          nextScheduledAt="not-a-date"
+          lastRunAt={null}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(
+      screen.getByText("managedSiteModelSync:execution.overview.disabled"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("managedSiteModelSync:execution.overview.everyMinutes"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "managedSiteModelSync:execution.statistics.notScheduled",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("managedSiteModelSync:execution.overview.never"),
+    ).toBeInTheDocument()
+
+    const { rerender: rerenderProgress } = render(
+      <ProgressCard
+        progress={{
+          isRunning: true,
+          completed: 2,
+          total: 5,
+          failed: 0,
+          currentChannel: "Alpha",
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByText("managedSiteModelSync:execution.status.running"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/managedSiteModelSync:execution.progress.running/),
+    ).toHaveTextContent("Alpha")
+
+    rerenderProgress(
+      <I18nextProvider i18n={testI18n}>
+        <ProgressCard
+          progress={{
+            isRunning: false,
+            completed: 0,
+            total: 0,
+            failed: 0,
+          }}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(
+      screen.queryByText("managedSiteModelSync:execution.status.running"),
+    ).not.toBeInTheDocument()
+
+    render(
+      <StatisticsCard
+        statistics={{
+          total: 4,
+          successCount: 3,
+          failureCount: 1,
+          durationMs: 4200,
+          startedAt: 1_700_000_000_000,
+          endedAt: 1_700_000_004_200,
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByText("managedSiteModelSync:execution.lastExecution"),
+    ).toBeInTheDocument()
+    expect(screen.getByText("4.2s")).toBeInTheDocument()
+  })
+
+  it("guides users to configure auto-sync when the scheduler is disabled", () => {
+    const configureAutoSync = vi.fn()
+    const analyticsAction = {
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ManagedSiteModelSync,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenManagedSiteModelSyncSettings,
+      surfaceId:
+        PRODUCT_ANALYTICS_SURFACE_IDS.OptionsManagedSiteModelSyncActionBar,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    }
+
+    render(
+      <OverviewCard
+        enabled={false}
+        intervalMs={24 * 60 * 60 * 1000}
+        nextScheduledAt={null}
+        lastRunAt={null}
+        onConfigureAutoSync={configureAutoSync}
+        configureAutoSyncAnalyticsAction={analyticsAction}
+      />,
+    )
+
+    expect(
+      screen.getByText("managedSiteModelSync:execution.overview.disabledHint"),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "managedSiteModelSync:execution.overview.enableAutoSync",
+      }),
+    )
+
+    expect(configureAutoSync).toHaveBeenCalledTimes(1)
+    expect(trackStartedMock).toHaveBeenCalledWith(analyticsAction)
+  })
+
+  it("hides auto-sync configuration guidance when no configuration callback is provided", () => {
+    render(
+      <OverviewCard
+        enabled={false}
+        intervalMs={24 * 60 * 60 * 1000}
+        nextScheduledAt={null}
+        lastRunAt={null}
+      />,
+    )
+
+    expect(
+      screen.queryByText(
+        "managedSiteModelSync:execution.overview.disabledHint",
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "managedSiteModelSync:execution.overview.enableAutoSync",
+      }),
+    ).not.toBeInTheDocument()
+    expect(trackStartedMock).not.toHaveBeenCalled()
+  })
+
+  it("wires action and filter callbacks", () => {
+    const onRunAll = vi.fn()
+    const onRunSelected = vi.fn()
+    const onRetryFailed = vi.fn()
+    const onRefresh = vi.fn()
+    const onStatusChange = vi.fn()
+    const onKeywordChange = vi.fn()
+
+    render(
+      <>
+        <ActionBar
+          isRunning={false}
+          selectedCount={2}
+          failedCount={1}
+          onRunAll={onRunAll}
+          onRunSelected={onRunSelected}
+          onRetryFailed={onRetryFailed}
+          onRefresh={onRefresh}
+        />
+        <FilterBar
+          status="all"
+          statistics={{
+            total: 3,
+            successCount: 2,
+            failureCount: 1,
+            durationMs: 1000,
+            startedAt: 0,
+            endedAt: 1000,
+          }}
+          keyword="Alpha"
+          onStatusChange={onStatusChange}
+          onKeywordChange={onKeywordChange}
+        />
+      </>,
+    )
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "managedSiteModelSync:execution.actions.runAll",
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "managedSiteModelSync:execution.actions.runSelected (2)",
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "managedSiteModelSync:execution.actions.retryFailed",
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "managedSiteModelSync:execution.actions.refresh",
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /managedSiteModelSync:execution.filters.success/,
+      }),
+    )
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "managedSiteModelSync:execution.filters.searchPlaceholder",
+      ),
+      { target: { value: "alpha" } },
+    )
+
+    expect(onRunAll).toHaveBeenCalledTimes(1)
+    expect(onRunSelected).toHaveBeenCalledTimes(1)
+    expect(onRetryFailed).toHaveBeenCalledTimes(1)
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+    expect(onStatusChange).toHaveBeenCalledWith("success")
+    expect(onKeywordChange).toHaveBeenCalledWith("alpha")
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:actions.clear" }),
+    )
+    expect(onKeywordChange).toHaveBeenCalledWith("")
+  })
+
+  it.each([
+    [
+      MANAGED_SITE_MODEL_SYNC_ACTIONS.RUN_ALL,
+      "managedSiteModelSync:execution.actions.runningAll",
+    ],
+    [
+      MANAGED_SITE_MODEL_SYNC_ACTIONS.RUN_SELECTED_HISTORY,
+      "managedSiteModelSync:execution.actions.runningSelected",
+    ],
+    [
+      MANAGED_SITE_MODEL_SYNC_ACTIONS.RETRY_FAILED,
+      "managedSiteModelSync:execution.actions.retryingFailed",
+    ],
+  ])(
+    "marks only action %s busy while locking sibling actions",
+    (activeAction, pendingName) => {
+      render(
+        <ActionBar
+          isRunning={false}
+          activeAction={activeAction}
+          selectedCount={2}
+          failedCount={1}
+          onRunAll={vi.fn()}
+          onRunSelected={vi.fn()}
+          onRetryFailed={vi.fn()}
+          onRefresh={vi.fn()}
+        />,
+      )
+
+      const activeButton = screen.getByRole("button", { name: pendingName })
+      expect(activeButton).toBeDisabled()
+      expect(activeButton).toHaveAttribute("aria-busy", "true")
+
+      for (const siblingButton of screen
+        .getAllByRole("button")
+        .filter((button) => button !== activeButton)) {
+        expect(siblingButton).toBeDisabled()
+        expect(siblingButton).not.toHaveAttribute("aria-busy")
+      }
+    },
+  )
+
+  it("uses aggregate progress only as a sibling lock", () => {
+    render(
+      <ActionBar
+        isRunning
+        activeAction={null}
+        selectedCount={2}
+        failedCount={1}
+        onRunAll={vi.fn()}
+        onRunSelected={vi.fn()}
+        onRetryFailed={vi.fn()}
+        onRefresh={vi.fn()}
+      />,
+    )
+
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toBeDisabled()
+      expect(button).not.toHaveAttribute("aria-busy")
+    }
+  })
+
+  it.each([
+    ["all", "bg-primary", "text-primary-foreground", 3],
+    ["success", "bg-success", "text-success-foreground", 2],
+    ["failed", "bg-destructive", "text-destructive-foreground", 1],
+  ] as const)(
+    "pairs the selected %s filter with its own foreground",
+    (status, background, foreground, count) => {
+      render(
+        <FilterBar
+          status={status}
+          statistics={{
+            total: 3,
+            successCount: 2,
+            failureCount: 1,
+            durationMs: 1000,
+            startedAt: 0,
+            endedAt: 1000,
+          }}
+          keyword=""
+          onStatusChange={vi.fn()}
+          onKeywordChange={vi.fn()}
+        />,
+      )
+
+      for (const value of ["all", "success", "failed"]) {
+        expect(
+          screen.getByRole("button", {
+            name: new RegExp(`managedSiteModelSync:execution.filters.${value}`),
+          }),
+        ).toHaveAttribute("aria-pressed", String(value === status))
+      }
+      const selected = screen.getByRole("button", {
+        name: new RegExp(`managedSiteModelSync:execution.filters.${status}`),
+      })
+      expect(selected).toHaveClass(background, foreground)
+      const countBadge = within(selected).getByText(String(count))
+      expect(countBadge).toHaveClass("bg-overlay/10")
+      expect(countBadge).not.toHaveClass("text-primary-foreground")
+    },
+  )
+
+  it("renders results and empty states across branches", async () => {
+    const onSelectAll = vi.fn()
+    const onSelectItem = vi.fn()
+    const onRunSingle = vi.fn()
+
+    render(
+      <ResultsTable
+        items={[
+          {
+            resourceRef: modelResourceRef(11),
+            channelName: "Alpha",
+            ok: false,
+            message: "sync failed",
+            httpStatus: 500,
+            attempts: 2,
+            finishedAt: 1_700_000_000_000,
+          },
+          {
+            resourceRef: modelResourceRef(12),
+            channelName: "Beta",
+            ok: true,
+            attempts: 1,
+            finishedAt: 0,
+          },
+        ]}
+        selectedKeys={new Set([getManagedResourceRefKey(modelResourceRef(11))])}
+        onSelectAll={onSelectAll}
+        onSelectItem={onSelectItem}
+        onRunSingle={onRunSingle}
+        isRunning={false}
+        runningResourceKey={getManagedResourceRefKey(modelResourceRef(11))}
+      />,
+    )
+
+    const selectAllCheckbox = screen.getByRole("checkbox", {
+      name: "managedSiteModelSync:execution.table.selectAllChannels",
+    }) as HTMLInputElement
+    const alphaRow = screen.getByRole("row", { name: /Alpha#11/ })
+    const firstRowCheckbox = within(alphaRow).getByRole("checkbox", {
+      name: "managedSiteModelSync:execution.table.selectChannel",
+    }) as HTMLInputElement
+    const runningRetryButton = within(alphaRow).getByRole("button", {
+      name: "managedSiteModelSync:execution.table.syncChannel",
+    })
+    const betaRow = screen.getByRole("row", { name: /Beta#12/ })
+    const idleRetryButton = within(betaRow).getByRole("button", {
+      name: "managedSiteModelSync:execution.table.syncChannel",
+    })
+
+    expect(selectAllCheckbox).not.toBeChecked()
+    expect(selectAllCheckbox.indeterminate).toBe(true)
+    expect(runningRetryButton).toHaveAttribute("aria-busy", "true")
+    expect(idleRetryButton).not.toHaveAttribute("aria-busy", "true")
+
+    fireEvent.click(selectAllCheckbox)
+    fireEvent.click(firstRowCheckbox)
+    fireEvent.click(idleRetryButton)
+
+    expect(
+      screen.getByText("managedSiteModelSync:execution.status.failed"),
+    ).toBeInTheDocument()
+    expect(screen.getByText("sync failed")).toBeInTheDocument()
+    expect(screen.getByText("HTTP: 500")).toBeInTheDocument()
+    expect(screen.getByText("Alpha#11")).toBeInTheDocument()
+    expect(onSelectAll).toHaveBeenCalledWith(true)
+    expect(onSelectItem).toHaveBeenCalledWith(
+      getManagedResourceRefKey(modelResourceRef(11)),
+      false,
+    )
+    expect(onRunSingle).toHaveBeenCalledWith(modelResourceRef(12))
+    expect(trackStartedMock).not.toHaveBeenCalled()
+
+    render(<EmptyResults hasHistory={false} />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("managedSiteModelSync:execution.empty.noData"),
+      ).toBeInTheDocument()
+    })
+
+    render(<EmptyResults hasHistory />)
+    expect(
+      screen.getByText("managedSiteModelSync:execution.empty.noResults"),
+    ).toBeInTheDocument()
+  })
+})

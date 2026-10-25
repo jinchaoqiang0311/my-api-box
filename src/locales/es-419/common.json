@@ -1,0 +1,103 @@
+{
+  "actions": {
+    "cancel": "Cancelar",
+    "clear": "Limpiar",
+    "close": "Cerrar",
+    "copyKey": "Copiar clave",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "export": "Exportar",
+    "goToSettings": "Ir a configuración",
+    "import": "Importar",
+    "loadField": "Cargar {{field}}",
+    "more": "Más",
+    "moveDownItem": "Bajar {{name}}",
+    "moveUpItem": "Subir {{name}}",
+    "openSidePanel": "Abrir en SidePanel",
+    "refresh": "Actualizar",
+    "refreshField": "Actualizar {{field}}",
+    "reset": "Restablecer",
+    "retry": "Reintentar",
+    "save": "Guardar"
+  },
+  "currency": {
+    "clickToSwitch": "Haz clic para cambiar a {{currency}}",
+    "cny": "CNY",
+    "usd": "USD"
+  },
+  "datePicker": {
+    "in1Year": "+1 año",
+    "in30Days": "+30 días",
+    "in7Days": "+7 días",
+    "in90Days": "+90 días",
+    "naturalInput": {
+      "invalid": "Ingresa una fecha reconocible, como YYYY-MM-DD o in 7 days",
+      "label": "Ingresar fecha",
+      "openCalendar": "Abrir calendario",
+      "placeholder": "Prueba in 7 days, tomorrow o 2026-08-01",
+      "preview": "Se establecerá en: {{date}}"
+    },
+    "noExpiration": "Sin vencimiento",
+    "placeholder": "Seleccionar fecha"
+  },
+  "labels": {
+    "apiKey": "Clave API",
+    "notAvailable": "N/D",
+    "settings": "Configuración",
+    "token": "Token",
+    "unknown": "Desconocido"
+  },
+  "quota": {
+    "unlimited": "Ilimitado"
+  },
+  "rootErrorBoundary": {
+    "genericDescription": "La página no se pudo mostrar correctamente. Recárgala primero. Si esto sigue ocurriendo, reporta el problema para que podamos ayudar.",
+    "reload": "Recargar página",
+    "reportIssue": "Reportar problema",
+    "requestLanguage": "Solicitar un idioma",
+    "title": "Falló la visualización de la página",
+    "translationDescription": "Si estás usando traducción automática, desactívala para esta página o cambia al idioma que necesitas en la configuración de la extensión."
+  },
+  "status": {
+    "applying": "Aplicando...",
+    "cancelled": "Cancelado",
+    "cancelling": "Cancelando...",
+    "checking": "Comprobando...",
+    "configurationRequired": "Configuración requerida",
+    "copying": "Copiando...",
+    "creating": "Creando...",
+    "deleting": "Eliminando...",
+    "disabled": "Deshabilitado",
+    "disabling": "Deshabilitando...",
+    "enabled": "Habilitado",
+    "enabling": "Habilitando...",
+    "error": "Error",
+    "exporting": "Exportando...",
+    "failed": "Falló",
+    "importing": "Importando...",
+    "loading": "Cargando...",
+    "loadingField": "Cargando {{field}}...",
+    "opening": "Abriendo...",
+    "processing": "Procesando...",
+    "refreshing": "Actualizando...",
+    "resetting": "Restableciendo...",
+    "retrying": "Reintentando...",
+    "saving": "Guardando...",
+    "starting": "Iniciando...",
+    "success": "Correcto",
+    "testing": "Probando...",
+    "uploading": "Subiendo..."
+  },
+  "tagFilter": {
+    "allTags": "Todas las etiquetas",
+    "noResults": "No hay etiquetas coincidentes",
+    "search": "Buscar etiquetas",
+    "selected": "Seleccionadas"
+  },
+  "time": {
+    "neverExpires": "Nunca expira",
+    "seconds": "segundos",
+    "updatedAt": "Actualizado a las {{time}}"
+  },
+  "total": "Total"
+}

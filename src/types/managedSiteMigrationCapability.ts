@@ -1,0 +1,245 @@
+import type { ManagedSiteType } from "~/constants/siteType"
+import type {
+  ManagedResourceRef,
+  ResourceOperationOptions,
+} from "~/services/apiAdapters/contracts/managedResourceNative"
+
+import type {
+  ManagedSiteChannelMigrationBlockedReasonCode,
+  ManagedSiteChannelMigrationGeneralWarningCode,
+  ManagedSiteChannelMigrationItemWarningCode,
+} from "./managedSiteMigration"
+
+export type ManagedSiteMigrationSelection = {
+  selectionId: string
+  displayName: string
+  ref: ManagedResourceRef
+  /** One explicitly previewed key when the target needs separate resources. */
+  credentialIndex?: number
+}
+
+export type ManagedSiteMigrationStatus = "enabled" | "disabled" | "other"
+
+export type ManagedSiteMigrationLossSignals = {
+  hasModelMapping: boolean
+  hasStatusCodeMapping: boolean
+  hasAdvancedSettings: boolean
+  hasMultiKeyState: boolean
+}
+
+/** Common migration facts; native scheduling settings do not cross site types. */
+export type ManagedSiteMigrationSource = {
+  /** Ordered, secret-free key slots. Omitted for ordinary single-key sources. */
+  credentialMetadata?: readonly { enabled: boolean }[]
+  sourceSiteType: ManagedSiteType
+  /** Native type identifier, interpreted only together with sourceSiteType. */
+  resourceType: string | number
+  baseUrl: string
+  models: string[]
+  groups: string[]
+  status: ManagedSiteMigrationStatus
+  lossSignals: ManagedSiteMigrationLossSignals
+}
+
+/** Target common fields; the target adapter initializes native routing defaults. */
+export type ManagedSiteMigrationPreviewProjection = {
+  keyCount?: number
+  name: string
+  /** Target-native type identifier; never a shared provider enum. */
+  type: string | number
+  baseUrl: string
+  models: string[]
+  groups: string[]
+  /** The target chooses its platform's default group when available; source groups are not copied. */
+  groupAssignment?: "platform-default-if-available"
+  enabled: boolean
+}
+
+export type ManagedSiteMigrationTargetAdjustments = {
+  remappedType: boolean
+  normalizedBaseUrl: boolean
+  forcedDefaultGroup: boolean
+  simplifiedStatus: boolean
+}
+
+/** Execution-only ephemeral command; it must never enter previews, results, persistence, React state, analytics, logs, or caches. */
+export type ManagedSiteMigrationExecutionCommand = {
+  source: ManagedSiteMigrationSource
+  targetSiteType: ManagedSiteType
+  projection: ManagedSiteMigrationPreviewProjection
+  credential: string
+  credentials?: readonly { value: string; enabled: boolean }[]
+}
+
+export type ManagedSiteMigrationTargetPreparation = {
+  projection: ManagedSiteMigrationPreviewProjection
+  adjustments: ManagedSiteMigrationTargetAdjustments
+}
+
+export type ManagedSiteMigrationSourcePreparation =
+  | { status: "ready"; source: ManagedSiteMigrationSource }
+  | {
+      status: "blocked"
+      reasonCode: ManagedSiteChannelMigrationBlockedReasonCode
+    }
+
+/** Execution-only ephemeral credential; it must never enter previews, results, persistence, React state, analytics, logs, or caches. */
+export type ManagedSiteMigrationCredentialResolution =
+  | {
+      status: "ready"
+      credential: string
+      credentials?: readonly { value: string; enabled: boolean }[]
+    }
+  | {
+      status: "blocked"
+      reasonCode: ManagedSiteChannelMigrationBlockedReasonCode
+    }
+
+export const MANAGED_SITE_MIGRATION_EXECUTION_FAILURE_CODES = {
+  SourceUnavailable: "source_unavailable",
+  TargetUnavailable: "target_unavailable",
+  TargetRejected: "target_rejected",
+  MutationStateUncertain: "mutation_state_uncertain",
+  Unexpected: "unexpected",
+} as const
+
+export type ManagedSiteMigrationExecutionFailureCode =
+  (typeof MANAGED_SITE_MIGRATION_EXECUTION_FAILURE_CODES)[keyof typeof MANAGED_SITE_MIGRATION_EXECUTION_FAILURE_CODES]
+
+export type ManagedSiteMigrationConfirmedFailureCode = Exclude<
+  ManagedSiteMigrationExecutionFailureCode,
+  typeof MANAGED_SITE_MIGRATION_EXECUTION_FAILURE_CODES.MutationStateUncertain
+>
+
+export type ManagedSiteMigrationCreateResult =
+  | { status: "created" }
+  | {
+      status: "failed"
+      failureCode: ManagedSiteMigrationConfirmedFailureCode
+    }
+  | { status: "uncertain" }
+
+type ManagedSiteMigrationCanonicalPreviewItemBase = {
+  selection: ManagedSiteMigrationSelection
+  warningCodes: readonly ManagedSiteChannelMigrationItemWarningCode[]
+}
+
+export type ManagedSiteMigrationCanonicalPreviewItem =
+  | (ManagedSiteMigrationCanonicalPreviewItemBase & {
+      status: "ready"
+      source: ManagedSiteMigrationSource
+      target: ManagedSiteMigrationTargetPreparation
+      blockingReasonCode?: never
+    })
+  | (ManagedSiteMigrationCanonicalPreviewItemBase & {
+      status: "blocked"
+      blockingReasonCode: ManagedSiteChannelMigrationBlockedReasonCode
+      source?: ManagedSiteMigrationSource
+      target?: never
+    })
+
+export type ManagedSiteMigrationCanonicalPreview = {
+  sourceSiteType: ManagedSiteType
+  targetSiteType: ManagedSiteType
+  generalWarningCodes: readonly ManagedSiteChannelMigrationGeneralWarningCode[]
+  items: readonly ManagedSiteMigrationCanonicalPreviewItem[]
+  totalCount: number
+  readyCount: number
+  blockedCount: number
+}
+
+type ManagedSiteMigrationCanonicalExecutionItemBase = {
+  selectionId: string
+  displayName: string
+}
+
+type ManagedSiteMigrationCanonicalExecutionItem =
+  | (ManagedSiteMigrationCanonicalExecutionItemBase & {
+      status: "created"
+      failureCode?: never
+      blockingReasonCode?: never
+    })
+  | (ManagedSiteMigrationCanonicalExecutionItemBase & {
+      status: "failed"
+      failureCode: ManagedSiteMigrationConfirmedFailureCode
+      blockingReasonCode?: never
+    })
+  | (ManagedSiteMigrationCanonicalExecutionItemBase & {
+      status: "skipped"
+      failureCode?: never
+      blockingReasonCode: ManagedSiteChannelMigrationBlockedReasonCode
+    })
+  | (ManagedSiteMigrationCanonicalExecutionItemBase & {
+      status: "uncertain"
+      failureCode: typeof MANAGED_SITE_MIGRATION_EXECUTION_FAILURE_CODES.MutationStateUncertain
+      blockingReasonCode?: never
+    })
+
+export type ManagedSiteMigrationCanonicalExecutionResult = {
+  totalSelected: number
+  attemptedCount: number
+  createdCount: number
+  failedCount: number
+  skippedCount: number
+  uncertainCount: number
+  items: readonly ManagedSiteMigrationCanonicalExecutionItem[]
+}
+
+/**
+ * Secret-free progress captured when canonical execution is cancelled.
+ *
+ * Invariants:
+ * - `partialResult.items.length + remainingSelections.length === partialResult.totalSelected`
+ * - The created, failed, skipped, and uncertain counts sum to `partialResult.items.length`.
+ *
+ * Credentials and execution commands must never be retained here.
+ */
+export type ManagedSiteMigrationExecutionAbortDetails = {
+  partialResult: ManagedSiteMigrationCanonicalExecutionResult
+  remainingSelections: readonly ManagedSiteMigrationSelection[]
+}
+
+/** Reports cancellation without discarding confirmed, secret-free progress. */
+export class ManagedSiteMigrationExecutionAbortedError extends Error {
+  readonly details: ManagedSiteMigrationExecutionAbortDetails
+
+  constructor(
+    details: ManagedSiteMigrationExecutionAbortDetails,
+    options?: ErrorOptions,
+  ) {
+    super("Managed-site migration execution was cancelled.", options)
+    this.name = "ManagedSiteMigrationExecutionAbortedError"
+    this.details = details
+  }
+}
+
+export type ManagedSiteMigrationSelectionValidationContext = {
+  isValid(selection: ManagedSiteMigrationSelection): boolean
+}
+
+export type ManagedSiteMigrationCapability = {
+  source?: {
+    createSelectionValidationContext?(
+      options?: ResourceOperationOptions,
+    ): Promise<ManagedSiteMigrationSelectionValidationContext>
+    prepare(
+      selection: ManagedSiteMigrationSelection,
+      options?: ResourceOperationOptions,
+    ): Promise<ManagedSiteMigrationSourcePreparation>
+    resolveCredential(
+      selection: ManagedSiteMigrationSelection,
+      options?: ResourceOperationOptions,
+    ): Promise<ManagedSiteMigrationCredentialResolution>
+  }
+  target?: {
+    supportsMultipleCredentials?(source: ManagedSiteMigrationSource): boolean
+    prepare(
+      source: ManagedSiteMigrationSource,
+      options?: ResourceOperationOptions,
+    ): Promise<ManagedSiteMigrationTargetPreparation>
+    create(
+      command: ManagedSiteMigrationExecutionCommand,
+      options?: ResourceOperationOptions,
+    ): Promise<ManagedSiteMigrationCreateResult>
+  }
+}

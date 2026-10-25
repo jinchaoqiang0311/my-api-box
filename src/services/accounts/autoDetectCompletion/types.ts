@@ -1,0 +1,72 @@
+import type {
+  AutoDetectAnalyticsContext,
+  AutoDetectFailureReason,
+} from "~/constants/autoDetect"
+import type { AccountSiteType } from "~/constants/siteType"
+import type { AccountAutoDetectRecoveryData } from "~/services/accounts/autoDetect/recovery"
+import type { DetectedAccountUser } from "~/services/accounts/identity/accountIdentity"
+import type { ContentSessionTransientAuth } from "~/services/accountSiteOnboarding/contracts"
+import type { ApiServiceFetchContext } from "~/services/apiTransport/type"
+import type { ProtectionBypassExecution } from "~/services/protectionBypass/contracts"
+import type {
+  AuthTypeEnum,
+  CheckInConfig,
+  KimiOpenPlatformAuthConfig,
+  Sub2ApiAuthConfig,
+} from "~/types"
+import { getErrorMessage } from "~/utils/core/error"
+
+export interface DetectedAccountIdentity {
+  userId: string
+  user?: Partial<DetectedAccountUser>
+  rawUser?: Record<string, unknown>
+  siteType: AccountSiteType
+  accessToken?: string
+  transientAuth?: ContentSessionTransientAuth
+  sub2apiAuth?: Sub2ApiAuthConfig
+  kimiOpenPlatformAuth?: KimiOpenPlatformAuthConfig
+  fetchContext?: ApiServiceFetchContext
+}
+
+export interface AutoDetectCompletionRequest {
+  url: string
+  requestedAuthType: AuthTypeEnum
+  /** The current account or draft token, scoped to the detected site and identity. */
+  existingAccessToken?: string
+  /** Reads matching saved tokens only after known credentials are missing or invalid. */
+  loadSavedAccessTokens?: () => Promise<readonly string[]>
+  cookieAuthSessionCookie?: string
+  detected: DetectedAccountIdentity
+  autoDetectContext?: AutoDetectAnalyticsContext
+  protectionBypassExecution?: ProtectionBypassExecution
+  onRecoveryData?: (data: AccountAutoDetectRecoveryData) => void
+}
+
+export interface AutoDetectCompletionData {
+  username: string
+  siteName: string
+  accessToken: string
+  userId: string
+  exchangeRate: number | null
+  authType: AuthTypeEnum
+  login?: import("~/types/accountLogin").AccountLoginConfiguration
+  checkIn: CheckInConfig
+  siteType: AccountSiteType
+  sub2apiAuth?: Sub2ApiAuthConfig
+  kimiOpenPlatformAuth?: KimiOpenPlatformAuthConfig
+  fetchContext?: ApiServiceFetchContext
+  autoDetectContext?: AutoDetectAnalyticsContext
+}
+
+export class AutoDetectCompletionError extends Error {
+  override readonly name = "AutoDetectCompletionError"
+  override readonly cause: unknown
+
+  constructor(
+    readonly reason: AutoDetectFailureReason,
+    cause: unknown,
+  ) {
+    super(getErrorMessage(cause))
+    this.cause = cause
+  }
+}

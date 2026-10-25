@@ -1,0 +1,56 @@
+{
+  "dialog": {
+    "actions": {
+      "cleanupOwnedSessionAndRetry": "拡張機能のセッションを削除して再試行",
+      "close": "閉じる",
+      "configureTotp": "自動認証を設定",
+      "openSite": "サイトを開く",
+      "retry": "再試行",
+      "retryAfterPasskey": "パスキー完了後に再試行",
+      "saveAndRetry": "保存して再試行",
+      "submitLoginCode": "ログインコードを送信",
+      "submitVerificationCode": "認証コードを送信"
+    },
+    "body": {
+      "credentialsMissing": "セッション補助付き検証を実行する前に、設定で New API のログインユーザー名とパスワードを追加してください。",
+      "failure": "New API の検証フローを完了できませんでした。",
+      "loggingIn": "現在の New API セッションを確認し、必要であれば検証を準備しています。",
+      "loginTwoFactor": "ブラウザ依存の管理セッションを続行するには、New API のログイン手順で認証コードが必要です。",
+      "passkeyManual": "このアカウントでは現在、保護手順にパスキー認証が表示されます。サイト上でパスキー認証を完了してから、ここに戻って再試行してください。",
+      "secureVerification": "管理セッションにはログイン済みですが、非表示のチャネルキーを読み取る前に、New API で追加の認証コードが必要です。",
+      "sessionActiveLimit": "New API のアクティブセッション数が上限に達しました。拡張機能が安全に削除できるセッションはありません。サイトで不要なセッションを取り消してから再試行してください。",
+      "sessionActiveLimitCleanup": "New API のアクティブセッション数が上限に達しました。拡張機能が作成したセッションだけを取り消してから再試行できます。",
+      "sessionIssuanceLimit": "New API の24時間あたりのセッション発行上限に達しました。既存セッションを削除しても解除されないため、制限期間が終わるまでお待ちください。",
+      "successChannel": "{{label}} の検証に成功しました。実際のチャネルキーを読み込みました。",
+      "successSettings": "New API のログインと検証フローが正常に完了しました。これでログインと検証が必要な操作を続けられます。",
+      "successToken": "{{label}} の検証に成功しました。管理対象サイトの状態を更新しました。"
+    },
+    "fields": {
+      "codeLabel": "認証コード"
+    },
+    "hints": {
+      "configureTotp": "認証が頻繁に必要ですか？設定 → {{section}} → {{provider}} で TOTP シークレットを登録すると、拡張機能が確認コードを自動生成して送信します。",
+      "manualFallback": "確認コードを手動で入力して、今回の認証を完了してください。",
+      "openSettingsShortcut": "不足している設定をここで直接補完して、そのまま検証を続けられます。",
+      "passkey": "サイトを開いてパスキー認証を完了した後、ここに戻って再試行してください。"
+    },
+    "messages": {
+      "cleaningOwnedSession": "拡張機能が作成した New API セッションを削除しています...",
+      "completeRequiredConfig": "不足している設定項目を先に入力してください。",
+      "finishing": "New API セッション確認を完了しています...",
+      "missingBaseUrl": "セッションフローをテストする前に New API の Base URL を追加してください。",
+      "missingCode": "先に認証コードを入力してください。",
+      "ownedSessionCleanupFailed": "拡張機能が作成したセッションを削除できませんでした。サイトのセッション管理を開き、不要なセッションを手動で取り消してください。",
+      "quickConfigSaveFailed": "クイック設定の保存に失敗しました。しばらくしてから再試行してください。",
+      "refreshingChannel": "実際のチャネルキーを読み込み中...",
+      "refreshingToken": "このトークンの管理対象サイト状態を更新中...",
+      "starting": "New API 検証フローを開始しています...",
+      "submitting": "認証コードを送信中..."
+    },
+    "title": {
+      "channel": "New API チャネルキー検証",
+      "settings": "New API セッション確認",
+      "token": "New API 検証の再試行"
+    }
+  }
+}

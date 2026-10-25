@@ -1,0 +1,366 @@
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { createAccountApiRequestFromStoredAccount } from "~/services/accounts/utils/apiServiceRequest"
+import { getSiteTypeCapabilities } from "~/services/apiAdapters/registry"
+import { newApiFamilyRequests } from "~/services/apiService/newApiFamily/request"
+import { REQUEST_CONFIG } from "~/services/apiTransport/constant"
+import { ApiError } from "~/services/apiTransport/errors"
+import type { ApiServiceRequest } from "~/services/apiTransport/type"
+import { LogType } from "~/services/history/usageHistory/usageLogModel"
+import type {
+  LogItem,
+  LogResponseData,
+} from "~/services/history/usageHistory/usageLogModel"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import {
+  DEFAULT_USAGE_HISTORY_PREFERENCES,
+  USAGE_HISTORY_SCHEDULE_MODE,
+  type UsageHistoryPreferences,
+} from "~/types/usageHistory"
+import { getErrorMessage } from "~/utils/core/error"
+import { t } from "~/utils/i18n/core"
+
+import { USAGE_HISTORY_LIMITS } from "./constants"
+import { usageHistoryStorage } from "./storage"
+
+export const USAGE_HISTORY_SYNC_TRIGGERS = {
+  Manual: "manual",
+  AfterRefresh: "afterRefresh",
+  Alarm: "alarm",
+} as const
+
+export type UsageHistorySyncTrigger =
+  (typeof USAGE_HISTORY_SYNC_TRIGGERS)[keyof typeof USAGE_HISTORY_SYNC_TRIGGERS]
+
+interface UsageHistoryAccountSyncSummary {
+  accountId: string
+  status: "success" | "skipped" | "error" | "unsupported"
+  ingestedCount: number
+  pagesFetched: number
+  itemsFetched: number
+  partial: boolean
+  error?: string
+}
+
+/**
+ * Resolve usage-history preferences from the full user preferences snapshot.
+ */
+function getUsageHistoryPreferences(
+  preferences: Awaited<ReturnType<typeof userPreferences.getPreferences>>,
+): UsageHistoryPreferences {
+  return preferences.usageHistory ?? DEFAULT_USAGE_HISTORY_PREFERENCES
+}
+
+/**
+ * Detect errors that likely indicate the `/api/log/self` endpoint is unsupported.
+ */
+function isUnsupportedLogEndpointError(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    const statusCode = error.statusCode
+    return statusCode === 404 || statusCode === 405 || statusCode === 500
+  }
+
+  return false
+}
+
+/**
+ * Fetch a single page of Consume logs from `/api/log/self`.
+ */
+async function fetchConsumeLogPage(params: {
+  request: ApiServiceRequest
+  page: number
+  startTimestamp: number
+  endTimestamp: number
+  siteType?: import("~/constants/siteType").SiteType
+}): Promise<LogResponseData> {
+  const { request, page, startTimestamp, endTimestamp } = params
+  const nativeHistory = params.siteType
+    ? getSiteTypeCapabilities(params.siteType).account?.usageHistory
+    : undefined
+  if (nativeHistory)
+    return nativeHistory.fetchPage(request, {
+      page,
+      pageSize: REQUEST_CONFIG.DEFAULT_PAGE_SIZE,
+      startTimestamp,
+      endTimestamp,
+    })
+
+  const searchParams = new URLSearchParams({
+    p: String(page),
+    page_size: String(REQUEST_CONFIG.DEFAULT_PAGE_SIZE),
+    type: String(LogType.Consume),
+    token_name: "",
+    model_name: "",
+    start_timestamp: String(startTimestamp),
+    end_timestamp: String(endTimestamp),
+    group: "",
+  })
+
+  return await newApiFamilyRequests.data<LogResponseData>(request, {
+    endpoint: `/api/log/self?${searchParams.toString()}`,
+  })
+}
+
+/**
+ * Resolve total pages from a response using the same paging constants used in requests.
+ */
+function resolveTotalPages(logData: LogResponseData): number {
+  const total = typeof logData.total === "number" ? logData.total : 0
+  if (total <= 0) {
+    const itemsCount = Array.isArray(logData.items) ? logData.items.length : 0
+    return itemsCount > 0 ? 1 : 0
+  }
+  return Math.ceil(total / REQUEST_CONFIG.DEFAULT_PAGE_SIZE)
+}
+
+/**
+ * Sync usage-history for a single account using cursor-based incremental ingestion.
+ *
+ * The cursor is based on `created_at` and a privacy-safe fingerprint (New-API masks ids),
+ * and aggregates are stored as bounded daily buckets.
+ */
+export async function syncUsageHistoryForAccount(params: {
+  accountId: string
+  trigger: UsageHistorySyncTrigger
+  /**
+   * Force a sync run, bypassing schedule mode and due checks.
+   *
+   * Manual sync uses this to run immediately.
+   */
+  force?: boolean
+  /**
+   * Optional timezone override used only for deterministic tests.
+   */
+  timeZone?: string
+  /**
+   * Optional preferences override to avoid repeated storage reads when syncing
+   * many accounts in a batch (scheduler/alarm triggers).
+   */
+  config?: UsageHistoryPreferences
+}): Promise<UsageHistoryAccountSyncSummary> {
+  const { accountId, trigger, force = false, timeZone } = params
+  const nowMs = Date.now()
+  const nowUnixSeconds = Math.floor(nowMs / 1000)
+
+  // Get preferences, either from params or storage.
+  const config =
+    params.config ??
+    getUsageHistoryPreferences(await userPreferences.getPreferences())
+
+  // Check if sync should be skipped based on preferences and trigger.
+  if (!config.enabled && !force) {
+    return {
+      accountId,
+      status: "skipped",
+      ingestedCount: 0,
+      pagesFetched: 0,
+      itemsFetched: 0,
+      partial: false,
+    }
+  }
+
+  // Schedule mode checks.
+  if (!force) {
+    if (
+      trigger === USAGE_HISTORY_SYNC_TRIGGERS.AfterRefresh &&
+      config.scheduleMode !== USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH
+    ) {
+      return {
+        accountId,
+        status: "skipped",
+        ingestedCount: 0,
+        pagesFetched: 0,
+        itemsFetched: 0,
+        partial: false,
+      }
+    }
+
+    if (
+      trigger === USAGE_HISTORY_SYNC_TRIGGERS.Alarm &&
+      config.scheduleMode !== USAGE_HISTORY_SCHEDULE_MODE.ALARM
+    ) {
+      return {
+        accountId,
+        status: "skipped",
+        ingestedCount: 0,
+        pagesFetched: 0,
+        itemsFetched: 0,
+        partial: false,
+      }
+    }
+  }
+
+  // Load account info.
+  const account = await accountQueries.getAccountById(accountId)
+  if (!account) {
+    return {
+      accountId,
+      status: "error",
+      ingestedCount: 0,
+      pagesFetched: 0,
+      itemsFetched: 0,
+      partial: false,
+      error: t("messages:storage.accountNotFound", { id: accountId }),
+    }
+  }
+
+  const apiRequest = createAccountApiRequestFromStoredAccount(account).request
+  // Defensive: preferences may be corrupted or come from untyped sources; avoid NaN propagation.
+  const retentionDaysRaw = Number(config.retentionDays)
+  const retentionDays = Number.isFinite(retentionDaysRaw)
+    ? Math.max(1, Math.trunc(retentionDaysRaw))
+    : 1
+  const retentionStartTimestamp = Math.max(
+    0,
+    nowUnixSeconds - retentionDays * 24 * 60 * 60,
+  )
+
+  try {
+    const accountStore = await usageHistoryStorage.getSyncState(accountId)
+
+    // Due check: unsupported cooldown.
+    if (
+      !force &&
+      typeof accountStore.status.unsupportedUntil === "number" &&
+      accountStore.status.unsupportedUntil > nowMs
+    ) {
+      return {
+        accountId,
+        status: "skipped",
+        ingestedCount: 0,
+        pagesFetched: 0,
+        itemsFetched: 0,
+        partial: false,
+      }
+    }
+
+    // Due check: sync interval.
+    const syncIntervalMinutesRaw = Number(config.syncIntervalMinutes)
+    const intervalMs =
+      (Number.isFinite(syncIntervalMinutesRaw)
+        ? Math.max(1, Math.trunc(syncIntervalMinutesRaw))
+        : 1) *
+      60 *
+      1000
+    if (
+      !force &&
+      typeof accountStore.status.lastSyncAt === "number" &&
+      nowMs - accountStore.status.lastSyncAt < intervalMs
+    ) {
+      return {
+        accountId,
+        status: "skipped",
+        ingestedCount: 0,
+        pagesFetched: 0,
+        itemsFetched: 0,
+        partial: false,
+      }
+    }
+
+    // Determine fetch range based on cursor and retention.
+    const startTimestamp = Math.max(
+      accountStore.cursor.lastSeenCreatedAt,
+      retentionStartTimestamp,
+    )
+    const endTimestamp = nowUnixSeconds
+    // Collection is bounded and remains outside the storage write lock.
+    let pagesFetched = 0
+    let itemsFetched = 0
+    let partial = false
+    const collectedItems: LogItem[] = []
+
+    const firstPage = await fetchConsumeLogPage({
+      siteType: account.site_type,
+      request: apiRequest,
+      page: 1,
+      startTimestamp,
+      endTimestamp,
+    })
+
+    const totalPages = resolveTotalPages(firstPage)
+    const processPageItems = (items: LogItem[]) => {
+      if (itemsFetched >= USAGE_HISTORY_LIMITS.maxItems) {
+        partial = true
+        return
+      }
+
+      const remaining = USAGE_HISTORY_LIMITS.maxItems - itemsFetched
+      const sliced =
+        remaining < items.length ? items.slice(0, remaining) : items
+      itemsFetched += sliced.length
+
+      collectedItems.push(...sliced)
+
+      if (sliced.length < items.length) {
+        partial = true
+      }
+    }
+
+    // Iterate from older pages to newer pages so that cursor advancement is safe under caps.
+    for (let page = totalPages; page >= 1; page -= 1) {
+      if (pagesFetched >= USAGE_HISTORY_LIMITS.maxPages) {
+        partial = true
+        break
+      }
+
+      const logData =
+        page === 1
+          ? firstPage
+          : await fetchConsumeLogPage({
+              siteType: account.site_type,
+              request: apiRequest,
+              page,
+              startTimestamp,
+              endTimestamp,
+            })
+
+      pagesFetched += 1
+      const items = Array.isArray(logData.items) ? logData.items : []
+      processPageItems(items)
+
+      if (partial) {
+        break
+      }
+    }
+
+    const { ingestedCount } = await usageHistoryStorage.commitSync(accountId, {
+      items: collectedItems,
+      nowMs,
+      partial,
+      retentionDays,
+      timeZone,
+    })
+
+    return {
+      accountId,
+      status: "success",
+      ingestedCount,
+      pagesFetched,
+      itemsFetched,
+      partial,
+    }
+  } catch (error) {
+    const isUnsupported = isUnsupportedLogEndpointError(error)
+    const message = getErrorMessage(error)
+
+    try {
+      await usageHistoryStorage.recordSyncFailure(accountId, {
+        nowMs,
+        unsupported: isUnsupported,
+        message,
+      })
+    } catch {
+      // The original operation has already failed. A second storage failure
+      // must not reject the batch or recursively attempt another status write.
+    }
+
+    return {
+      accountId,
+      status: isUnsupported ? "unsupported" : "error",
+      ingestedCount: 0,
+      pagesFetched: 0,
+      itemsFetched: 0,
+      partial: false,
+      error: message,
+    }
+  }
+}

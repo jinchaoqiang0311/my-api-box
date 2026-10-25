@@ -1,0 +1,79 @@
+{
+  "accountMessage": {
+    "claimed": "已领取",
+    "credits": "奖励：{{amount}} 额度",
+    "expires": "截止时间：{{time}}",
+    "openNative": "前往原站查看与处理",
+    "unclaimed": "未领取"
+  },
+  "actions": {
+    "checkNow": "立即检查",
+    "collapse": "收起",
+    "expand": "展开",
+    "markAllRead": "全部已读",
+    "markRead": "标记已读",
+    "pollingSettings": "抓取设置",
+    "viewSource": "查看站点公告"
+  },
+  "badges": {
+    "notified": "已通知",
+    "unread": "未读"
+  },
+  "description": {
+    "disabledSummary": "查看站点公告、管理未读状态，自动检查已关闭，仍可手动检查。",
+    "enabledInterval": "每 {{intervalMinutes}} 分钟检查一次。",
+    "enabledSummary": "查看站点公告、管理未读状态，自动检查已开启。",
+    "pollingSettingsLink": "配置自动抓取"
+  },
+  "empty": {
+    "addAccount": "添加账号",
+    "description": "后台检查到新公告后会显示在这里。",
+    "descriptionWhenPollingDisabled": "你可以立即手动检查；自动抓取可在设置中管理。",
+    "filtered": "当前筛选条件下没有公告",
+    "noAccounts": "先添加账号后才能检查公告",
+    "noAccountsDesc": "公告检查需要至少一个已启用账号，才能知道要抓取哪些站点。",
+    "pollingSettingsLink": "配置自动抓取",
+    "title": "暂无公告记录"
+  },
+  "filters": {
+    "allSites": "全部站点",
+    "searchSite": "搜索站点",
+    "site": "站点"
+  },
+  "loading": "正在加载公告...",
+  "messages": {
+    "checkCompleted": "公告检查已完成",
+    "checkCompletedWithIssues": "检查已完成：{{failed}} 个站点失败，{{unsupported}} 个站点不支持。请选择站点查看详情。",
+    "checkFailed": "公告检查失败",
+    "loadFailed": "加载公告失败",
+    "markAllReadFailed": "批量标记公告已读失败",
+    "markReadFailed": "标记公告已读失败"
+  },
+  "notification": {
+    "multipleUnread": "{{title}}，还有 {{count}} 条未读公告",
+    "title": "{{site}} 有新公告"
+  },
+  "overview": {
+    "description": "快速查看公告统计并筛选你关心的内容。",
+    "title": "公告概览"
+  },
+  "search": {
+    "clear": "清除",
+    "placeholder": "搜索公告标题或正文...",
+    "resultCount": "{{count}} 条"
+  },
+  "status": {
+    "aggregateIssues": "{{failed}} 个站点检查失败，{{unsupported}} 个站点不支持公告检查。请选择站点查看详情并重试失败项。",
+    "aggregateIssuesTitle": "部分站点需要处理",
+    "failed": "该站点最近一次公告检查失败：{{error}}",
+    "failedTitle": "检查失败",
+    "lastChecked": "最近检查：{{time}}",
+    "unsupported": "该站点最近一次检查未发现可用公告接口。",
+    "unsupportedTitle": "暂不支持公告接口"
+  },
+  "summary": {
+    "total": "公告总数",
+    "unread": "未读公告"
+  },
+  "title": "网站公告"
+}

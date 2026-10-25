@@ -1,0 +1,216 @@
+/**
+ * Canonical runtime message action prefixes.
+ *
+ * Prefixes are used to:
+ * - Compose stable, namespaced action IDs (e.g., `permissions:check`)
+ * - Route messages by feature prefix when a handler owns a namespace
+ *
+ * Values are part of the on-the-wire contract between extension contexts and MUST remain stable.
+ */
+export const RuntimeActionPrefixes = {
+  AccountBrowserIdentity: "accountBrowserIdentity:",
+  AccountDialog: "accountDialog:",
+  AccountRefresh: "accountRefresh:",
+  ApiCheck: "apiCheck:",
+  ApiTransport: "apiTransport:",
+  AutoCheckin: "autoCheckin:",
+  AutoCheckinPretrigger: "autoCheckinPretrigger:",
+  BalanceHistory: "balanceHistory:",
+  CookieInterceptor: "cookieInterceptor:",
+  Feedback: "feedback:",
+  OpenSettings: "openSettings:",
+  Permissions: "permissions:",
+  RedemptionAssist: "redemptionAssist:",
+  TempContextDebug: "tempContextDebug:",
+} as const
+
+type RuntimeActionPrefix =
+  (typeof RuntimeActionPrefixes)[keyof typeof RuntimeActionPrefixes]
+
+/**
+ * Canonical runtime message `type` values used for broadcast updates.
+ *
+ * Values are part of the on-the-wire contract between extension contexts and MUST remain stable.
+ */
+export const RuntimeMessageTypes = {
+  AccountKeyRepairProgress: "ACCOUNT_KEY_REPAIR_PROGRESS",
+  TAG_STORE_UPDATE: "TAG_STORE_UPDATE",
+} as const
+
+/**
+ * Canonical runtime message action IDs.
+ *
+ * Values are part of the on-the-wire contract between extension contexts and MUST remain stable.
+ */
+export const RuntimeActionIds = {
+  ContentSyncDahlKeyNames: "contentSyncDahlKeyNames",
+  ContentPrepareNewApiOAuth: "prepareNewApiOAuth",
+  ContentNewApiPasswordUi: "newApiPasswordUi",
+  ContentSub2ApiPasswordUi: "sub2ApiPasswordUi",
+  ContentNewApiPasswordLogin: "newApiPasswordLogin",
+  ContentClearNewApiPasswordLogin: "clearNewApiPasswordLogin",
+  ContentSub2ApiPasswordLogin: "sub2ApiPasswordLogin",
+  ContentClearSub2ApiPasswordLogin: "clearSub2ApiPasswordLogin",
+  ContentCompleteNewApiOAuth: "completeNewApiOAuth",
+  ContentClearNewApiOAuthEvidence: "clearNewApiOAuthEvidence",
+  ContentPrepareSub2ApiOAuth: "prepareSub2ApiOAuth",
+  ContentCompleteSub2ApiOAuth: "completeSub2ApiOAuth",
+  ContentClearSub2ApiOAuthEvidence: "clearSub2ApiOAuthEvidence",
+  AccountBrowserIdentityGetCooldown: composeRuntimeAction(
+    RuntimeActionPrefixes.AccountBrowserIdentity,
+    "getCooldown",
+  ),
+  AccountBrowserIdentityRecordRateLimit: composeRuntimeAction(
+    RuntimeActionPrefixes.AccountBrowserIdentity,
+    "recordRateLimit",
+  ),
+
+  AccountDialogImportCookieAuthSessionCookie: composeRuntimeAction(
+    RuntimeActionPrefixes.AccountDialog,
+    "importCookieAuthSessionCookie",
+  ),
+
+  AccountRefreshCompleted: composeRuntimeAction(
+    RuntimeActionPrefixes.AccountRefresh,
+    "completed",
+  ),
+
+  ApiCheckContextMenuTrigger: composeRuntimeAction(
+    RuntimeActionPrefixes.ApiCheck,
+    "contextMenuTrigger",
+  ),
+  ApiTransportRemoteFetchDispatched: composeRuntimeAction(
+    RuntimeActionPrefixes.ApiTransport,
+    "remoteFetchDispatched",
+  ),
+
+  PermissionsCheck: composeRuntimeAction(
+    RuntimeActionPrefixes.Permissions,
+    "check",
+  ),
+  CloudflareGuardLog: "cloudflareGuardLog",
+  LogHistoryClear: "logHistory:clear",
+
+  CloseTempWindow: "closeTempWindow",
+  GetInternalTabIds: "getInternalTabIds",
+  GetSenderPageContext: "getSenderPageContext",
+  CancelCheckinFeedbackScan: "cancelCheckinFeedbackScan",
+  ContentCheckinFeedbackScan: "contentCheckinFeedbackScan",
+  ContentCancelCheckinFeedbackScan: "contentCancelCheckinFeedbackScan",
+  TempWindowCancelOpenRouterManagementKeyAction:
+    "tempWindowCancelOpenRouterManagementKeyAction",
+  TempWindowOpenRouterManagementKeyDispatched:
+    "tempWindowOpenRouterManagementKeyDispatched",
+  ProtectionBypassExecuteTask: "protectionBypass:executeTask",
+
+  CookieInterceptorTrackUrl: composeRuntimeAction(
+    RuntimeActionPrefixes.CookieInterceptor,
+    "trackUrl",
+  ),
+
+  OpenSettingsCheckinRedeem: composeRuntimeAction(
+    RuntimeActionPrefixes.OpenSettings,
+    "checkinRedeem",
+  ),
+  OpenSettingsShieldBypass: composeRuntimeAction(
+    RuntimeActionPrefixes.OpenSettings,
+    "shieldBypass",
+  ),
+  OpenSettingsShieldHistory: composeRuntimeAction(
+    RuntimeActionPrefixes.OpenSettings,
+    "shieldHistory",
+  ),
+  OpenSettingsTurnstileAssist: composeRuntimeAction(
+    RuntimeActionPrefixes.OpenSettings,
+    "turnstileAssist",
+  ),
+  OpenSettingsApiCredentialProfiles: composeRuntimeAction(
+    RuntimeActionPrefixes.OpenSettings,
+    "apiCredentialProfiles",
+  ),
+  OpenSettingsWebAiApiCheck: composeRuntimeAction(
+    RuntimeActionPrefixes.OpenSettings,
+    "webAiApiCheck",
+  ),
+  OpenFeedbackBugReport: composeRuntimeAction(
+    RuntimeActionPrefixes.Feedback,
+    "openBugReport",
+  ),
+
+  AutoCheckinRunCompleted: composeRuntimeAction(
+    RuntimeActionPrefixes.AutoCheckin,
+    "runCompleted",
+  ),
+  AutoCheckinPretriggerStarted: composeRuntimeAction(
+    RuntimeActionPrefixes.AutoCheckinPretrigger,
+    "started",
+  ),
+
+  RedemptionAssistContextMenuTrigger: composeRuntimeAction(
+    RuntimeActionPrefixes.RedemptionAssist,
+    "contextMenuTrigger",
+  ),
+
+  BalanceHistoryDebugSeedEstimateSnapshots: composeRuntimeAction(
+    RuntimeActionPrefixes.BalanceHistory,
+    "debugSeedEstimateSnapshots",
+  ),
+
+  TempContextDebugCreateOrphan: composeRuntimeAction(
+    RuntimeActionPrefixes.TempContextDebug,
+    "createOrphan",
+  ),
+  TempContextDebugCreateTrackedContext: composeRuntimeAction(
+    RuntimeActionPrefixes.TempContextDebug,
+    "createTrackedContext",
+  ),
+  TempContextDebugListMarkers: composeRuntimeAction(
+    RuntimeActionPrefixes.TempContextDebug,
+    "listMarkers",
+  ),
+  TempContextDebugReclaimNow: composeRuntimeAction(
+    RuntimeActionPrefixes.TempContextDebug,
+    "reclaimNow",
+  ),
+
+  DevExecuteBrowserApi: "dev:executeBrowserApi",
+
+  ContentGetLocalStorage: "getLocalStorage",
+  ContentCompleteAgentRouterOAuth: "completeAgentRouterOAuth",
+  ContentPrepareAgentRouterOAuth: "prepareAgentRouterOAuth",
+  ContentClearAgentRouterOAuthEvidence: "clearAgentRouterOAuthEvidence",
+  ContentApproveLinuxDoOAuth: "approveLinuxDoOAuth",
+  ContentGetUserFromLocalStorage: "getUserFromLocalStorage",
+  // Content-side protection guard checks used by temp-window fallback readiness gating.
+  ContentCheckCapGuard: "checkCapGuard",
+  ContentCheckCloudflareGuard: "checkCloudflareGuard",
+  ContentWaitForTurnstileToken: "waitForTurnstileToken",
+  TurnstileRequestUserAssist: "turnstileRequestUserAssist",
+  TurnstileReadPageApi: "turnstileReadPageApi",
+  TurnstileAssistPageNotice: "turnstileAssistPageNotice",
+  TurnstileAssistOpen: "turnstileAssistOpen",
+  ContentVerificationAssistOpened: "verificationAssistOpened",
+  ContentTriggerCheckinPageAction: "triggerCheckinPageAction",
+  ContentOpenRouterManagementKeyAction: "openRouterManagementKeyAction",
+  ContentWaitAndGetUserInfo: "waitAndGetUserInfo",
+  ContentPerformTempWindowFetch: "performTempWindowFetch",
+  ContentGetRenderedTitle: "getRenderedTitle",
+  ContentShowShieldBypassUi: "showShieldBypassUi",
+  ContentStarPromotionReport: "starPromotionReport",
+} as const
+
+export type RuntimeActionId =
+  (typeof RuntimeActionIds)[keyof typeof RuntimeActionIds]
+
+/**
+ * Compose a runtime action ID from a canonical prefix and a suffix.
+ *
+ * This is useful for feature routes that build actions dynamically while preserving
+ * the shipped on-the-wire prefix conventions.
+ */
+export function composeRuntimeAction<
+  P extends RuntimeActionPrefix,
+  S extends string,
+>(prefix: P, suffix: S): `${P}${S}` {
+  return `${prefix}${suffix}`
+}

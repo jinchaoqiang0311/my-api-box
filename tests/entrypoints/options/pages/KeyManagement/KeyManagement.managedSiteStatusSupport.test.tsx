@@ -1,0 +1,723 @@
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import KeyManagement from "~/entrypoints/options/pages/KeyManagement"
+import {
+  KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+  KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS,
+  KEY_MANAGEMENT_ROUTE_PARAMS,
+} from "~/features/KeyManagement/constants"
+import { buildAccountKeyResourceRuntimeKey } from "~/services/accounts/keys/accountRuntimeKeys"
+import { MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS } from "~/services/managedSites/matching/channelMatch"
+import {
+  MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS,
+  MANAGED_SITE_TOKEN_CHANNEL_STATUSES,
+} from "~/services/managedSites/matching/tokenChannelStatus"
+import { matchingResourceRef } from "~~/tests/test-utils/managedResourceMatching"
+import { render, screen, waitFor } from "~~/tests/test-utils/render"
+import { createAccount } from "~~/tests/utils/keyManagementFactories"
+
+const {
+  sendRuntimeActionMessageMock,
+  tokenListPropsSpy,
+  useKeyManagementMock,
+  mockedUseUserPreferencesContext,
+  openNewApiManagedVerificationMock,
+  loadNewApiChannelKeyWithVerificationMock,
+  withProtectionBypassUserCommandMock,
+} = vi.hoisted(() => ({
+  sendRuntimeActionMessageMock: vi.fn(),
+  tokenListPropsSpy: vi.fn(),
+  useKeyManagementMock: vi.fn(),
+  mockedUseUserPreferencesContext: vi.fn(),
+  openNewApiManagedVerificationMock: vi.fn(),
+  loadNewApiChannelKeyWithVerificationMock: vi.fn(),
+  withProtectionBypassUserCommandMock: vi.fn(
+    async (command, surface, work) =>
+      await work({
+        version: 2,
+        kind: "user_command",
+        command,
+        surface,
+      }),
+  ),
+}))
+
+vi.mock("~/utils/browser/runtimeMessages", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/runtimeMessages")>()
+  return { ...actual, sendRuntimeActionMessage: sendRuntimeActionMessageMock }
+})
+
+vi.mock("~/features/KeyManagement/inventory/useKeyManagement", () => ({
+  useKeyManagement: (...args: unknown[]) => useKeyManagementMock(...args),
+}))
+
+vi.mock(
+  "~/features/KeyManagement/managedSite/useManagedSiteKeyStatuses",
+  () => ({
+    useManagedSiteKeyStatuses: () => {
+      const fixture = useKeyManagementMock.mock.results.at(-1)?.value
+      return {
+        states: fixture.managedSiteTokenStatuses ?? {},
+        supported: fixture.isManagedSiteChannelStatusSupported ?? true,
+        refreshing: fixture.isManagedSiteStatusRefreshing ?? false,
+        refresh: fixture.refreshManagedSiteTokenStatuses,
+        refreshKey: fixture.refreshManagedSiteTokenStatusForToken,
+        confirm: fixture.confirmManagedSiteTokenStatusWithChannelKey,
+      }
+    },
+  }),
+)
+
+vi.mock(
+  "~/features/ManagedSiteVerification/useNewApiManagedVerification",
+  () => ({
+    useNewApiManagedVerification: () => ({
+      dialogState: {
+        isOpen: false,
+        step: "logging-in",
+        request: null,
+        code: "",
+        errorMessage: undefined,
+        isBusy: false,
+        busyMessage: undefined,
+      },
+      setCode: vi.fn(),
+      closeDialog: vi.fn(),
+      openBaseUrl: vi.fn(),
+      openNewApiManagedVerification: openNewApiManagedVerificationMock,
+      submitCode: vi.fn(),
+      retryVerification: vi.fn(),
+    }),
+  }),
+)
+
+vi.mock("~/services/protectionBypass/client", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("~/services/protectionBypass/client")
+  >()),
+  withProtectionBypassUserCommand: withProtectionBypassUserCommandMock,
+}))
+
+vi.mock(
+  "~/features/ManagedSiteVerification/NewApiManagedVerificationDialog",
+  () => ({
+    NewApiManagedVerificationDialog: () => null,
+  }),
+)
+
+vi.mock(
+  "~/features/ManagedSiteVerification/loadNewApiChannelKeyWithVerification",
+  () => ({
+    loadNewApiChannelKeyWithVerification: (...args: unknown[]) =>
+      loadNewApiChannelKeyWithVerificationMock(...args),
+  }),
+)
+
+vi.mock("~/contexts/UserPreferencesContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/contexts/UserPreferencesContext")>()
+
+  return {
+    ...actual,
+    useUserPreferencesContext: () => mockedUseUserPreferencesContext(),
+  }
+})
+
+vi.mock("~/features/KeyManagement/inventory/AccountSelectorPanel", () => ({
+  AccountSelectorPanel: () => <div data-testid="controls" />,
+}))
+
+vi.mock("~/features/KeyManagement/inventory/TokenList", () => ({
+  TokenList: (props: any) => {
+    tokenListPropsSpy(props)
+    return <div data-testid="token-list" />
+  },
+}))
+
+vi.mock("~/features/KeyManagement/workspace/Footer", () => ({
+  Footer: () => <div data-testid="footer" />,
+}))
+
+vi.mock("~/features/TokenProvisioning/creation/AddTokenDialog", () => ({
+  default: () => null,
+}))
+
+vi.mock("~/features/KeyManagement/repair", () => ({
+  RepairMissingKeysDialog: () => null,
+}))
+
+const nativeAccount = createAccount({ id: "acc-1" })
+const nativeRuntimeKey = buildAccountKeyResourceRuntimeKey(nativeAccount, {
+  ref: {
+    accountId: nativeAccount.id,
+    siteType: nativeAccount.siteType,
+    scopeKey: "account",
+    resourceId: "opaque-id",
+  },
+  label: "Token 1",
+  secret: "",
+})
+
+const baseHookResult = {
+  displayData: [{ id: "acc-1", name: "Account 1", disabled: false }],
+  selectedAccount: "acc-1",
+  entries: [
+    { id: nativeRuntimeKey.id, runtimeKey: nativeRuntimeKey, uiState: {} },
+  ],
+  filteredEntries: [],
+  setSelectedAccount: vi.fn(),
+  searchTerm: "",
+  setSearchTerm: vi.fn(),
+  tokens: [
+    { id: 1, name: "Token 1", accountId: "acc-1", accountName: "Account 1" },
+  ],
+  isLoading: false,
+  visibleKeys: new Set(),
+  isAddTokenOpen: false,
+  editingToken: null,
+  tokenInventories: {},
+  tokenLoadProgress: null,
+  failedAccounts: [],
+  accountSummaryItems: [],
+  managedSiteTokenStatuses: {},
+  isManagedSiteStatusRefreshing: false,
+  allAccountsFilterAccountIds: [],
+  setAllAccountsFilterAccountIds: vi.fn(),
+  refreshServiceCredentials: vi.fn(),
+  filteredTokens: [
+    { id: 1, name: "Token 1", accountId: "acc-1", accountName: "Account 1" },
+  ],
+  refreshManagedSiteTokenStatuses: vi.fn(),
+  refreshManagedSiteTokenStatusForToken: vi.fn(),
+  confirmManagedSiteTokenStatusWithChannelKey: vi.fn(),
+  copyKey: vi.fn(),
+  toggleKeyVisibility: vi.fn(),
+  retryFailedAccounts: vi.fn(),
+  handleAddToken: vi.fn(),
+  handleCloseAddToken: vi.fn(),
+  handleEditToken: vi.fn(),
+  handleDeleteToken: vi.fn(),
+}
+
+describe("KeyManagement managed-site status support", () => {
+  beforeEach(() => {
+    sendRuntimeActionMessageMock.mockReset()
+    tokenListPropsSpy.mockReset()
+    useKeyManagementMock.mockReset()
+    openNewApiManagedVerificationMock.mockReset()
+    loadNewApiChannelKeyWithVerificationMock.mockReset()
+    withProtectionBypassUserCommandMock.mockClear()
+    mockedUseUserPreferencesContext.mockReturnValue({
+      managedSiteType: "new-api",
+      newApiBaseUrl: "https://managed.example",
+      newApiUserId: "1",
+      newApiUsername: "admin",
+      newApiPassword: "secret-password",
+      newApiTotpSecret: "JBSWY3DPEHPK3PXP",
+    })
+  })
+
+  it("passes a deterministic guided-import request when no account or token is preselected", async () => {
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: true,
+    })
+
+    render(
+      <KeyManagement
+        routeParams={{
+          [KEY_MANAGEMENT_ROUTE_PARAMS.GuidedImport]:
+            KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS.ManagedSite,
+        }}
+      />,
+    )
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+    expect(
+      tokenListPropsSpy.mock.lastCall?.[0]?.guidedManagedSiteImport,
+    ).toStrictEqual({
+      accountId: undefined,
+      tokenId: undefined,
+      request: `${KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS.ManagedSite}::`,
+    })
+  })
+
+  it("shows refresh controls and passes the post-import refresh callback when status checks are supported", async () => {
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+    tokenListPropsSpy.mockReset()
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: true,
+    })
+
+    render(<KeyManagement />)
+
+    const refreshButton = await screen.findByRole("button", {
+      name: "keyManagement:managedSiteStatus.actions.refresh",
+    })
+    expect(refreshButton).toBeInTheDocument()
+    expect(
+      screen.queryByText("keyManagement:managedSiteStatus.pageUnsupported"),
+    ).toBeNull()
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+    expect(
+      tokenListPropsSpy.mock.lastCall?.[0]?.onManagedSiteImportSuccess,
+    ).toEqual(expect.any(Function))
+    expect(
+      tokenListPropsSpy.mock.lastCall?.[0]?.onManagedSiteVerificationRetry,
+    ).toEqual(expect.any(Function))
+
+    withProtectionBypassUserCommandMock.mockClear()
+    await userEvent.setup().click(refreshButton)
+    expect(withProtectionBypassUserCommandMock).toHaveBeenCalledWith(
+      "manage_api_keys",
+      "options",
+      expect.any(Function),
+    )
+    expect(baseHookResult.refreshManagedSiteTokenStatuses).toHaveBeenCalledWith(
+      {
+        protectionBypassExecution: {
+          version: 2,
+          kind: "user_command",
+          command: "manage_api_keys",
+          surface: "options",
+        },
+      },
+    )
+  })
+
+  it("hides refresh controls, shows the unsupported hint, and omits the post-import refresh callback when lookup is unsupported", async () => {
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+    tokenListPropsSpy.mockReset()
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: false,
+    })
+
+    render(<KeyManagement />)
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+    expect(
+      screen.queryByRole("button", {
+        name: "keyManagement:managedSiteStatus.actions.refresh",
+      }),
+    ).toBeNull()
+    expect(
+      screen.getByText("keyManagement:managedSiteStatus.pageUnsupported"),
+    ).toBeInTheDocument()
+    expect(
+      tokenListPropsSpy.mock.lastCall?.[0]?.onManagedSiteImportSuccess,
+    ).toBe(undefined)
+    expect(
+      tokenListPropsSpy.mock.lastCall?.[0]?.onManagedSiteVerificationRetry,
+    ).toBe(undefined)
+  })
+
+  it("marks a single-account token reload as a key-management command", async () => {
+    const refreshServiceCredentials = vi.fn().mockResolvedValue(undefined)
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: false,
+      refreshServiceCredentials,
+    })
+
+    render(<KeyManagement />)
+
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: "keyManagement:refreshTokenList",
+      }),
+    )
+
+    expect(withProtectionBypassUserCommandMock).toHaveBeenCalledWith(
+      "manage_api_keys",
+      "options",
+      expect.any(Function),
+    )
+    expect(refreshServiceCredentials).toHaveBeenCalledWith(undefined, {
+      protectionBypassExecution: {
+        version: 2,
+        kind: "user_command",
+        command: "manage_api_keys",
+        surface: "options",
+      },
+    })
+  })
+
+  it("marks an all-account token reload as a key-management command", async () => {
+    const refreshServiceCredentials = vi.fn().mockResolvedValue(undefined)
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+      isManagedSiteChannelStatusSupported: false,
+      refreshServiceCredentials,
+    })
+
+    render(<KeyManagement />)
+
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: "keyManagement:refreshTokenList",
+      }),
+    )
+
+    expect(withProtectionBypassUserCommandMock).toHaveBeenCalledWith(
+      "manage_api_keys",
+      "options",
+      expect.any(Function),
+    )
+    expect(refreshServiceCredentials).toHaveBeenCalledWith(undefined, {
+      protectionBypassExecution: expect.objectContaining({
+        command: "manage_api_keys",
+      }),
+    })
+  })
+
+  it("marks a current-account token retry as a key-management command", async () => {
+    const refreshServiceCredentials = vi.fn().mockResolvedValue(undefined)
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: false,
+      refreshServiceCredentials,
+    })
+
+    render(<KeyManagement />)
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+
+    await tokenListPropsSpy.mock.lastCall?.[0]?.onRetryCurrentAccount?.()
+
+    expect(withProtectionBypassUserCommandMock).toHaveBeenCalledWith(
+      "manage_api_keys",
+      "options",
+      expect.any(Function),
+    )
+    expect(refreshServiceCredentials).toHaveBeenCalledWith("acc-1", {
+      protectionBypassExecution: expect.objectContaining({
+        command: "manage_api_keys",
+      }),
+    })
+  })
+
+  it("tries the concrete channel key before opening verification when a candidate channel is known", async () => {
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+    loadNewApiChannelKeyWithVerificationMock.mockImplementation(
+      async ({ setKey, onLoaded }) => {
+        setKey("token-1-secret")
+        await onLoaded()
+        return true
+      },
+    )
+
+    const refreshManagedSiteTokenStatusForToken = vi.fn()
+    const confirmManagedSiteTokenStatusWithChannelKey = vi
+      .fn()
+      .mockResolvedValue({
+        status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.ADDED,
+        matchedChannel: {
+          ref: matchingResourceRef(88),
+          name: "Managed Channel 88",
+        },
+      })
+
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: true,
+      refreshManagedSiteTokenStatusForToken,
+      confirmManagedSiteTokenStatusWithChannelKey,
+    })
+
+    render(<KeyManagement />)
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+
+    const retry = tokenListPropsSpy.mock.lastCall?.[0]
+      ?.onManagedSiteVerificationRetry as
+      | ((token: any, managedSiteStatus: any) => Promise<void>)
+      | undefined
+
+    await retry?.(nativeRuntimeKey, {
+      status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+      reason:
+        MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      assessment: {
+        searchBaseUrl: "https://example.com",
+        searchCompleted: true,
+        url: {
+          matched: true,
+          candidateCount: 1,
+          channel: {
+            ref: matchingResourceRef(88),
+            name: "Managed Channel 88",
+          },
+        },
+        key: {
+          comparable: false,
+          matched: false,
+          reason: "comparison-unavailable",
+        },
+        models: {
+          comparable: true,
+          matched: true,
+          reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.EXACT,
+          channel: {
+            ref: matchingResourceRef(88),
+            name: "Managed Channel 88",
+          },
+        },
+      },
+      recovery: {
+        siteType: "new-api",
+        managedBaseUrl: "https://managed.example",
+        searchBaseUrl: "https://example.com",
+        loginCredentialsConfigured: true,
+        authenticatedBrowserSessionExists: false,
+        automaticCodeConfigured: true,
+      },
+    })
+
+    expect(loadNewApiChannelKeyWithVerificationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceRef: matchingResourceRef(88),
+        requestKind: "token",
+        label: "Token 1",
+        config: expect.objectContaining({
+          baseUrl: "https://managed.example",
+          userId: "1",
+          username: "admin",
+          password: "secret-password",
+          totpSecret: "JBSWY3DPEHPK3PXP",
+        }),
+      }),
+    )
+    expect(confirmManagedSiteTokenStatusWithChannelKey).toHaveBeenCalledWith(
+      nativeRuntimeKey,
+      expect.objectContaining({
+        reason:
+          MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      }),
+      {
+        resourceRef: matchingResourceRef(88),
+        channelKey: "token-1-secret",
+      },
+    )
+    expect(refreshManagedSiteTokenStatusForToken).not.toHaveBeenCalled()
+    expect(openNewApiManagedVerificationMock).not.toHaveBeenCalled()
+  })
+
+  it("refreshes the token status before opening verification retry", async () => {
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+
+    const refreshManagedSiteTokenStatusForToken = vi.fn().mockResolvedValue({
+      status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+      reason:
+        MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      assessment: {
+        searchBaseUrl: "https://example.com",
+        searchCompleted: true,
+        url: {
+          matched: true,
+          candidateCount: 1,
+          channel: { ref: matchingResourceRef(88), name: "Managed Channel 88" },
+        },
+        key: {
+          comparable: false,
+          matched: false,
+          reason: "comparison-unavailable",
+        },
+        models: {
+          comparable: true,
+          matched: true,
+          reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.EXACT,
+          channel: { ref: matchingResourceRef(88), name: "Managed Channel 88" },
+        },
+      },
+      recovery: {
+        siteType: "new-api",
+        managedBaseUrl: "https://managed.example",
+        searchBaseUrl: "https://example.com",
+        loginCredentialsConfigured: false,
+        authenticatedBrowserSessionExists: true,
+        automaticCodeConfigured: true,
+      },
+    })
+
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: true,
+      refreshManagedSiteTokenStatusForToken,
+    })
+
+    render(<KeyManagement />)
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+
+    const retry = tokenListPropsSpy.mock.lastCall?.[0]
+      ?.onManagedSiteVerificationRetry as
+      | ((token: any, managedSiteStatus: any) => Promise<void>)
+      | undefined
+
+    expect(retry).toEqual(expect.any(Function))
+
+    await retry?.(nativeRuntimeKey, {
+      status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+      reason:
+        MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      recovery: {
+        siteType: "new-api",
+        managedBaseUrl: "https://managed.example",
+        searchBaseUrl: "https://example.com",
+        loginCredentialsConfigured: false,
+        authenticatedBrowserSessionExists: true,
+        automaticCodeConfigured: true,
+      },
+    })
+
+    expect(refreshManagedSiteTokenStatusForToken).toHaveBeenCalledWith(
+      nativeRuntimeKey,
+      {
+        protectionBypassExecution: {
+          version: 2,
+          kind: "user_command",
+          command: "manage_api_keys",
+          surface: "options",
+        },
+      },
+    )
+    expect(openNewApiManagedVerificationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "token",
+        label: "Token 1",
+      }),
+    )
+    const onVerified =
+      openNewApiManagedVerificationMock.mock.calls[0]?.[0]?.onVerified
+    await onVerified()
+    expect(withProtectionBypassUserCommandMock).toHaveBeenCalledWith(
+      "manage_api_keys",
+      "options",
+      expect.any(Function),
+    )
+    expect(refreshManagedSiteTokenStatusForToken).toHaveBeenLastCalledWith(
+      nativeRuntimeKey,
+      {
+        protectionBypassExecution: {
+          version: 2,
+          kind: "user_command",
+          command: "manage_api_keys",
+          surface: "options",
+        },
+      },
+    )
+  })
+
+  it("skips the verification dialog when the refresh already resolves the token", async () => {
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+
+    const refreshManagedSiteTokenStatusForToken = vi.fn().mockResolvedValue({
+      status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.NOT_ADDED,
+      assessment: {
+        searchBaseUrl: "https://example.com",
+        searchCompleted: true,
+        url: {
+          matched: false,
+          candidateCount: 0,
+        },
+        key: {
+          comparable: false,
+          matched: false,
+          reason: "comparison-unavailable",
+        },
+        models: {
+          comparable: false,
+          matched: false,
+          reason: "comparison-unavailable",
+        },
+      },
+    })
+
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: true,
+      refreshManagedSiteTokenStatusForToken,
+    })
+
+    render(<KeyManagement />)
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+
+    const retry = tokenListPropsSpy.mock.lastCall?.[0]
+      ?.onManagedSiteVerificationRetry as
+      | ((token: any, managedSiteStatus: any) => Promise<void>)
+      | undefined
+
+    await retry?.(nativeRuntimeKey, {
+      status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+      reason:
+        MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      recovery: {
+        siteType: "new-api",
+        managedBaseUrl: "https://managed.example",
+        searchBaseUrl: "https://example.com",
+        loginCredentialsConfigured: true,
+        authenticatedBrowserSessionExists: false,
+        automaticCodeConfigured: true,
+      },
+    })
+
+    expect(refreshManagedSiteTokenStatusForToken).toHaveBeenCalledWith(
+      nativeRuntimeKey,
+      {
+        protectionBypassExecution: {
+          version: 2,
+          kind: "user_command",
+          command: "manage_api_keys",
+          surface: "options",
+        },
+      },
+    )
+    expect(openNewApiManagedVerificationMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps verification closed when the refreshed status has no recoverable channel", async () => {
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+
+    const refreshManagedSiteTokenStatusForToken = vi
+      .fn()
+      .mockResolvedValue(undefined)
+
+    useKeyManagementMock.mockReturnValue({
+      ...baseHookResult,
+      isManagedSiteChannelStatusSupported: true,
+      refreshManagedSiteTokenStatusForToken,
+    })
+
+    render(<KeyManagement />)
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+
+    const retry = tokenListPropsSpy.mock.lastCall?.[0]
+      ?.onManagedSiteVerificationRetry as
+      | ((token: any, managedSiteStatus: any) => Promise<void>)
+      | undefined
+
+    await retry?.(nativeRuntimeKey, {
+      status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+      reason:
+        MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      recovery: {
+        siteType: "new-api",
+        managedBaseUrl: "https://managed.example",
+        searchBaseUrl: "https://example.com",
+        loginCredentialsConfigured: true,
+        authenticatedBrowserSessionExists: false,
+        automaticCodeConfigured: true,
+      },
+    })
+
+    expect(refreshManagedSiteTokenStatusForToken).toHaveBeenCalled()
+    expect(openNewApiManagedVerificationMock).not.toHaveBeenCalled()
+  })
+})

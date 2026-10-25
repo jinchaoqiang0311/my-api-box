@@ -1,0 +1,86 @@
+import { isAccountTodayMetricComplete } from "~/services/accounts/metrics/accountTodayStats"
+import { supportsMonetaryBalance } from "~/services/accounts/metrics/monetaryBalancePolicy"
+import type {
+  AccountNativeBalance,
+  AccountTodayStatsAvailability,
+} from "~/types"
+import type {
+  BalanceHistoryPreferences,
+  DailyBalanceHistoryCaptureSource,
+  DailyBalanceSnapshot,
+} from "~/types/dailyBalanceHistory"
+import { DEFAULT_BALANCE_HISTORY_PREFERENCES } from "~/types/dailyBalanceHistory"
+import { getDayKeyFromUnixSeconds } from "~/utils/core/dayKey"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+
+import { dailyBalanceHistoryStorage } from "./storage"
+
+const logger = createLogger("DailyBalanceHistoryCapture")
+
+/**
+ * Best-effort snapshot upsert used by refresh-driven and alarm-driven capture.
+ *
+ * Cashflow fields are stored independently only when their refreshed metric is
+ * complete, avoiding placeholder or partial values in historical estimates.
+ */
+export async function maybeCaptureDailyBalanceSnapshot(params: {
+  config?: BalanceHistoryPreferences
+  accountId: string
+  quota: number
+  nativeBalance?: AccountNativeBalance
+  today_income: number
+  today_quota_consumption: number
+  todayStatsAvailability: AccountTodayStatsAvailability
+  source: DailyBalanceHistoryCaptureSource
+  capturedAtMs?: number
+  timeZone?: string
+}): Promise<boolean> {
+  const config = params.config ?? DEFAULT_BALANCE_HISTORY_PREFERENCES
+  if (!config.enabled || !supportsMonetaryBalance(params.nativeBalance)) {
+    return false
+  }
+
+  const capturedAtMs =
+    typeof params.capturedAtMs === "number" &&
+    Number.isFinite(params.capturedAtMs)
+      ? params.capturedAtMs
+      : Date.now()
+
+  const dayKey = getDayKeyFromUnixSeconds(
+    Math.floor(capturedAtMs / 1000),
+    params.timeZone,
+  )
+
+  const snapshot: DailyBalanceSnapshot = {
+    quota: params.quota,
+    today_income: isAccountTodayMetricComplete(
+      params.todayStatsAvailability.income,
+    )
+      ? params.today_income
+      : null,
+    today_quota_consumption: isAccountTodayMetricComplete(
+      params.todayStatsAvailability.consumption,
+    )
+      ? params.today_quota_consumption
+      : null,
+    capturedAt: capturedAtMs,
+    source: params.source,
+  }
+
+  try {
+    return await dailyBalanceHistoryStorage.upsertSnapshot({
+      accountId: params.accountId,
+      dayKey,
+      snapshot,
+      retentionDays: config.retentionDays,
+      timeZone: params.timeZone,
+    })
+  } catch (error) {
+    logger.error(
+      `Failed to upsert daily balance snapshot (accountId=${params.accountId}, dayKey=${dayKey})`,
+      getErrorMessage(error),
+    )
+    return false
+  }
+}

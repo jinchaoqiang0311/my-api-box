@@ -1,0 +1,200 @@
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import {
+  buildControlDefinition,
+  buildSectionDefinition,
+  DEFAULT_BREADCRUMBS,
+} from "~/features/OptionsSearch/registryHelpers"
+import type {
+  OptionsSearchContext,
+  OptionsSearchItemDefinition,
+} from "~/features/OptionsSearch/types"
+import {
+  OPTIONAL_PERMISSIONS,
+  type ManifestOptionalPermissions,
+} from "~/services/permissions/permissionManager"
+
+/** Search must only link to controls declared by this browser's manifest. */
+const isOptionalPermissionVisible =
+  (permission: ManifestOptionalPermissions) =>
+  (context: OptionsSearchContext) =>
+    context.hasOptionalPermissions && OPTIONAL_PERMISSIONS.includes(permission)
+
+export const permissionsSearchSections: OptionsSearchItemDefinition[] = [
+  buildSectionDefinition(
+    "section:permissions",
+    "permissions",
+    "permissions",
+    "settings:permissions.title",
+    400,
+    {
+      isVisible: (context) => context.hasOptionalPermissions,
+    },
+  ),
+]
+
+export const permissionsSearchControls: OptionsSearchItemDefinition[] = [
+  buildControlDefinition(
+    "control:permissions-incognito",
+    "permissions",
+    SETTINGS_ANCHORS.INCOGNITO_ACCESS,
+    "settings:permissions.incognito.title",
+    708,
+    {
+      descriptionKey: "settings:permissions.incognito.summary",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: [
+        "incognito",
+        "private",
+        "InPrivate",
+        "无痕",
+        "隐私",
+        "permission",
+      ],
+      isVisible: (context) => context.hasOptionalPermissions,
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-refresh",
+    "permissions",
+    "permissions-refresh-status",
+    "settings:permissions.actions.refresh",
+    700,
+    {
+      descriptionKey: "settings:permissions.statusCaption",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "refresh", "cookies", "webrequest"],
+      isVisible: (context) => context.hasOptionalPermissions,
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-cookies",
+    "permissions",
+    "cookies",
+    "settings:permissions.items.cookies.title",
+    701,
+    {
+      descriptionKey: "settings:permissions.items.cookies.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "cookies", "cookie"],
+      isVisible: isOptionalPermissionVisible("cookies"),
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-dnr-host-access",
+    "permissions",
+    "declarativeNetRequestWithHostAccess",
+    "settings:permissions.items.declarativeNetRequestWithHostAccess.title",
+    702,
+    {
+      descriptionKey:
+        "settings:permissions.items.declarativeNetRequestWithHostAccess.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "declarativeNetRequest", "host access", "dnr"],
+      isVisible: isOptionalPermissionVisible(
+        "declarativeNetRequestWithHostAccess",
+      ),
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-webrequest",
+    "permissions",
+    "webRequest",
+    "settings:permissions.items.webRequest.title",
+    703,
+    {
+      descriptionKey: "settings:permissions.items.webRequest.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "webrequest", "network"],
+      isVisible: isOptionalPermissionVisible("webRequest"),
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-webrequest-blocking",
+    "permissions",
+    "webRequestBlocking",
+    "settings:permissions.items.webRequestBlocking.title",
+    704,
+    {
+      descriptionKey:
+        "settings:permissions.items.webRequestBlocking.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "webrequest blocking", "blocking"],
+      isVisible: isOptionalPermissionVisible("webRequestBlocking"),
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-clipboard-read",
+    "permissions",
+    "clipboardRead",
+    "settings:permissions.items.clipboardRead.title",
+    705,
+    {
+      descriptionKey: "settings:permissions.items.clipboardRead.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "clipboard", "clipboard read"],
+      isVisible: isOptionalPermissionVisible("clipboardRead"),
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-notifications",
+    "permissions",
+    "notifications",
+    "settings:permissions.items.notifications.title",
+    706,
+    {
+      descriptionKey: "settings:permissions.items.notifications.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "notification", "system notification"],
+      isVisible: isOptionalPermissionVisible("notifications"),
+    },
+  ),
+  buildControlDefinition(
+    "control:permissions-bookmarks",
+    "permissions",
+    "bookmarks",
+    "settings:permissions.items.bookmarks.title",
+    707,
+    {
+      descriptionKey: "settings:permissions.items.bookmarks.description",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.permissions",
+        "settings:permissions.title",
+      ],
+      keywords: ["permission", "bookmark", "bookmarks", "browser bookmarks"],
+      isVisible: isOptionalPermissionVisible("bookmarks"),
+    },
+  ),
+]

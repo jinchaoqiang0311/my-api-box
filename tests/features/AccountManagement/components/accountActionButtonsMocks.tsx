@@ -1,0 +1,284 @@
+import { vi } from "vitest"
+
+import type { UserPreferences } from "~/services/preferences/preferencesSchema"
+
+/**
+ * Shared mock declarations for the AccountActionButtons tests. Every split
+ * test file must side-effect import this module as its FIRST import so the
+ * hoisted vi.mock registrations apply to that test module graph.
+ */
+
+const {
+  mockHandleSetAccountDisabled,
+  mockHandleRefreshAccount,
+  mockTogglePinAccount,
+  fetchAccountTokensMock,
+  fetchDisplayAccountInviteLinkMock,
+  canFetchDisplayAccountInviteLinkMock,
+  getManagedSiteCapabilitiesMock,
+  openKeysPageMock,
+  openManagedSiteChannelsPageMock,
+  openModelsPageMock,
+  sendRuntimeMessageMock,
+  loadAccountDataMock,
+  exportShareSnapshotWithToastMock,
+  userPreferencesContextValue,
+  accountDataContextValue,
+  accountActionsContextValue,
+  toastDismissMock,
+  toastLoadingMock,
+  toastSuccessMock,
+  toastErrorMock,
+  toastWarningMock,
+  hasValidManagedSiteConfigMock,
+  clipboardWriteTextMock,
+  trackStartedMock,
+  startProductAnalyticsActionMock,
+  completeProductAnalyticsActionMock,
+  resolveProductAnalyticsErrorCategoryFromErrorMock,
+  resolveDisplayAccountRuntimeKeySecretMock,
+  resolveManagedUpstreamResourceFeatureCapabilitiesMock,
+  getCurrentTempWindowRequestSourceMock,
+  withProtectionBypassUserCommandMock,
+} = vi.hoisted(() => ({
+  mockHandleSetAccountDisabled: vi.fn(),
+  mockHandleRefreshAccount: vi.fn(),
+  mockTogglePinAccount: vi.fn(),
+  fetchAccountTokensMock: vi.fn(),
+  fetchDisplayAccountInviteLinkMock: vi.fn(),
+  canFetchDisplayAccountInviteLinkMock: vi.fn(),
+  getManagedSiteCapabilitiesMock: vi.fn(),
+  openKeysPageMock: vi.fn(),
+  openManagedSiteChannelsPageMock: vi.fn(),
+  openModelsPageMock: vi.fn(),
+  sendRuntimeMessageMock: vi.fn(),
+  loadAccountDataMock: vi.fn(),
+  exportShareSnapshotWithToastMock: vi.fn(),
+  userPreferencesContextValue: {
+    currencyType: "USD",
+    showTodayCashflow: true,
+    preferences: {
+      managedSiteType: "new-api",
+      newApi: {
+        baseUrl: "https://admin.example",
+        adminToken: "t",
+        userId: "1",
+      },
+    } as Partial<UserPreferences>,
+  },
+  accountDataContextValue: {
+    isAccountPinned: vi.fn(() => false),
+    togglePinAccount: vi.fn(),
+    isPinFeatureEnabled: false,
+    loadAccountData: vi.fn(),
+  },
+  accountActionsContextValue: {
+    refreshingAccountId: null as string | null,
+  },
+  toastDismissMock: vi.fn(),
+  toastLoadingMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+  toastWarningMock: vi.fn(),
+  hasValidManagedSiteConfigMock: vi.fn(() => true),
+  clipboardWriteTextMock: vi.fn(),
+  trackStartedMock: vi.fn(),
+  startProductAnalyticsActionMock: vi.fn(),
+  completeProductAnalyticsActionMock: vi.fn(),
+  resolveProductAnalyticsErrorCategoryFromErrorMock: vi.fn(),
+  resolveDisplayAccountRuntimeKeySecretMock: vi.fn(),
+  resolveManagedUpstreamResourceFeatureCapabilitiesMock: vi.fn(),
+  getCurrentTempWindowRequestSourceMock: vi.fn(),
+  withProtectionBypassUserCommandMock: vi.fn(
+    async (
+      command: unknown,
+      surface: unknown,
+      work: (execution: unknown) => Promise<unknown>,
+    ) =>
+      work({
+        version: 2,
+        kind: "user_command",
+        command,
+        surface,
+      }),
+  ),
+}))
+
+vi.mock("~/utils/browser/tempWindowRequestSource", () => ({
+  getCurrentTempWindowRequestSource: getCurrentTempWindowRequestSourceMock,
+}))
+
+vi.mock("~/lib/notify", () => ({
+  default: {
+    dismiss: toastDismissMock,
+    loading: toastLoadingMock,
+    success: toastSuccessMock,
+    error: toastErrorMock,
+    warning: toastWarningMock,
+  },
+}))
+
+vi.mock("~/services/apiAdapters/registry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/services/apiAdapters/registry")>()),
+  getManagedSiteCapabilities: getManagedSiteCapabilitiesMock,
+}))
+vi.mock(
+  "~/services/managedSites/configuration/runtimeConfig",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("~/services/managedSites/configuration/runtimeConfig")
+    >()),
+    hasValidManagedSiteConfig: hasValidManagedSiteConfigMock,
+  }),
+)
+
+vi.mock("~/utils/browser/runtimeMessages", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/runtimeMessages")>()
+  return { ...actual, sendRuntimeMessage: sendRuntimeMessageMock }
+})
+
+vi.mock("~/services/checkin/autoCheckin/messaging", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/checkin/autoCheckin/messaging")
+    >()
+
+  return {
+    ...actual,
+    sendAutoCheckinMessage: (type: string, data?: Record<string, unknown>) =>
+      sendRuntimeMessageMock(type, data),
+  }
+})
+
+vi.mock("~/services/protectionBypass/client", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/services/protectionBypass/client")>()
+  return {
+    ...actual,
+    withProtectionBypassUserCommand: withProtectionBypassUserCommandMock,
+  }
+})
+
+vi.mock("~/features/AccountManagement/actions/AccountActionsContext", () => ({
+  useAccountActionsContext: () => ({
+    refreshingAccountId: accountActionsContextValue.refreshingAccountId,
+    handleRefreshAccount: mockHandleRefreshAccount,
+    handleSetAccountDisabled: mockHandleSetAccountDisabled,
+  }),
+}))
+
+vi.mock("~/features/AccountManagement/data/AccountDataContext", () => ({
+  useAccountDataContext: () => accountDataContextValue,
+}))
+
+vi.mock("~/features/AccountManagement/dialogs/useDialogStateContext", () => ({
+  useDialogStateContext: () => ({
+    openEditAccount: vi.fn(),
+  }),
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", () => ({
+  UserPreferencesProvider: ({ children }: { children: any }) => children,
+  useUserPreferencesContext: () => userPreferencesContextValue,
+}))
+
+vi.mock("~/utils/navigation", () => ({
+  openKeysPage: openKeysPageMock,
+  openManagedSiteChannelsPage: openManagedSiteChannelsPageMock,
+  openModelsPage: openModelsPageMock,
+}))
+vi.mock("~/utils/navigation/sitePages", () => ({
+  openRedeemPage: vi.fn(),
+  openUsagePage: vi.fn(),
+}))
+
+vi.mock("~/features/ShareSnapshots/utils/exportShareSnapshotWithToast", () => ({
+  exportShareSnapshotWithToast: exportShareSnapshotWithToastMock,
+}))
+
+vi.mock("~/services/productAnalytics/actions", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/services/productAnalytics/actions")>()
+
+  return {
+    ...actual,
+    trackProductAnalyticsActionStarted: trackStartedMock,
+    startProductAnalyticsAction: (...args: unknown[]) =>
+      startProductAnalyticsActionMock(...args),
+    resolveProductAnalyticsErrorCategoryFromError:
+      resolveProductAnalyticsErrorCategoryFromErrorMock,
+  }
+})
+
+vi.mock(
+  "~/services/accounts/utils/apiServiceRequest",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("~/services/accounts/utils/apiServiceRequest")
+      >()
+    const runtimeKeyHelpers = await import(
+      "~~/tests/test-utils/accountKeyFixtures"
+    )
+
+    return {
+      ...actual,
+      fetchDisplayAccountRuntimeKeys: async (...args: unknown[]) => {
+        const result = await fetchAccountTokensMock(...args)
+        if (Array.isArray(result)) {
+          const account = args[0] as any
+          return result.map((token) =>
+            "source" in Object(token)
+              ? token
+              : runtimeKeyHelpers.buildNewApiRuntimeKey(account, token as any),
+          )
+        }
+
+        throw new Error("Native inventory unavailable")
+      },
+      fetchDisplayAccountInviteLink: (...args: unknown[]) =>
+        fetchDisplayAccountInviteLinkMock(...args),
+      canFetchDisplayAccountInviteLink: (...args: unknown[]) =>
+        canFetchDisplayAccountInviteLinkMock(...args),
+      resolveDisplayAccountRuntimeKeySecret: async (
+        account: unknown,
+        runtimeKey: { secret: string },
+      ) => resolveDisplayAccountRuntimeKeySecretMock(account, runtimeKey),
+    }
+  },
+)
+
+export {
+  accountActionsContextValue,
+  accountDataContextValue,
+  canFetchDisplayAccountInviteLinkMock,
+  clipboardWriteTextMock,
+  completeProductAnalyticsActionMock,
+  exportShareSnapshotWithToastMock,
+  fetchAccountTokensMock,
+  fetchDisplayAccountInviteLinkMock,
+  getCurrentTempWindowRequestSourceMock,
+  getManagedSiteCapabilitiesMock,
+  hasValidManagedSiteConfigMock,
+  loadAccountDataMock,
+  mockHandleRefreshAccount,
+  mockHandleSetAccountDisabled,
+  mockTogglePinAccount,
+  openKeysPageMock,
+  openManagedSiteChannelsPageMock,
+  openModelsPageMock,
+  resolveDisplayAccountRuntimeKeySecretMock,
+  resolveManagedUpstreamResourceFeatureCapabilitiesMock,
+  resolveProductAnalyticsErrorCategoryFromErrorMock,
+  sendRuntimeMessageMock,
+  startProductAnalyticsActionMock,
+  toastWarningMock,
+  toastDismissMock,
+  toastErrorMock,
+  toastLoadingMock,
+  toastSuccessMock,
+  trackStartedMock,
+  userPreferencesContextValue,
+  withProtectionBypassUserCommandMock,
+}

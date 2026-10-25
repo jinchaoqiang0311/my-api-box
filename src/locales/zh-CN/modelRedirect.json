@@ -1,0 +1,89 @@
+{
+  "bulkClear": {
+    "action": "清空模型重定向映射",
+    "actionDesc": "将所选渠道的 model_mapping 设置为空对象（{}）。此操作不可撤销。",
+    "actions": {
+      "cancel": "取消",
+      "close": "关闭",
+      "confirm": "清空",
+      "continue": "继续",
+      "selectAll": "全选",
+      "selectNone": "全不选"
+    },
+    "confirm": {
+      "description": "即将清空 {{count}} 个渠道的模型重定向映射（model_mapping）。此操作不可撤销。",
+      "details": "已选择渠道数：{{count}}",
+      "title": "确认清空模型重定向映射？",
+      "warningTitle": "危险操作"
+    },
+    "messages": {
+      "allSuccess": "已成功清空 {{count}} 个渠道的模型重定向映射",
+      "failed": "清空模型重定向映射失败：{{error}}",
+      "nothingToClear": "无需清空（所选渠道的 model_mapping 已为空）",
+      "partialFailure": "已清空 {{success}}/{{total}} 个渠道，{{failed}} 个失败",
+      "successWithSkips": "已清空 {{cleared}} 个渠道，{{skipped}} 个本来就是空的"
+    },
+    "preview": {
+      "channelListLabel": "渠道列表",
+      "description": "请选择需要清空的渠道。未选择的渠道不会被修改。",
+      "mappingCount": "映射数：{{count}}",
+      "mappingEmptyInline": "当前 model_mapping 为空（{}）",
+      "mappingInvalid": "当前 model_mapping 不是有效 JSON，将展示原始文本。",
+      "mappingInvalidBadge": "JSON 无效",
+      "mappingToggle": "预览当前 model_mapping",
+      "selectedCount": "已选择 {{selected}}/{{total}}",
+      "title": "清空模型重定向映射"
+    },
+    "result": {
+      "title": "失败详情"
+    },
+    "search": {
+      "filteredCount": "当前显示 {{filtered}}/{{total}}",
+      "label": "搜索渠道",
+      "noResults": "未找到匹配的渠道",
+      "placeholder": "搜索渠道（名称或 ID）…"
+    },
+    "status": {
+      "clearing": "正在清空…",
+      "emptySelection": "请至少选择一个渠道后继续。",
+      "loadFailed": "加载渠道失败：{{error}}",
+      "loading": "正在加载渠道…",
+      "noChannels": "未找到任何渠道"
+    }
+  },
+  "description": "自动模型重定向映射，解决因模型名称导致无法统一调用的问题",
+  "enable": "启用模型重定向",
+  "enableDesc": "启用模型重定向映射功能，将在模型同步时自动运行并允许手动运行",
+  "messages": {
+    "regenerateFailed": "重新生成模型映射失败：{{error}}",
+    "regenerateSuccess": "模型映射已成功重新生成",
+    "updateFailed": "更新模型重定向设置失败",
+    "updateSuccess": "模型重定向设置已更新"
+  },
+  "modelDiscovery": {
+    "failed": {
+      "description": "无法从托管站点获取模型，当前改用预置模型列表。请检查连接或凭据后重试。",
+      "title": "模型获取失败"
+    },
+    "not-ready": {
+      "description": "请先完成托管站点地址和管理员凭据配置。当前暂用预置模型列表。",
+      "title": "尚未配置模型获取"
+    },
+    "unsupported": {
+      "description": "当前站点没有注册账户模型查询能力，因此这里使用预置模型列表。",
+      "title": "当前站点不支持自动获取模型"
+    }
+  },
+  "pruneMissingTargetsOnModelSync": "同步后清理无效的重定向目标",
+  "pruneMissingTargetsOnModelSyncDesc": "危险操作：在模型同步刷新后，将删除 model_mapping 中目标模型不在最新模型列表里的映射",
+  "regenerateButton": "立即重新生成映射",
+  "regenerating": "正在重新生成…",
+  "standardModels": "标准模型",
+  "standardModelsDesc": "选择需要生成重定向映射的标准模型",
+  "standardModelsPlaceholder": "请选择模型…",
+  "title": "模型重定向",
+  "unsupported": {
+    "description": "当前托管站点未提供读取和更新模型映射所需的渠道能力。",
+    "title": "当前站点不支持模型重定向"
+  }
+}

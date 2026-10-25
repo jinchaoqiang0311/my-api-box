@@ -1,0 +1,1676 @@
+import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { DIALOG_MODES } from "~/constants/dialogModes"
+import { SITE_TYPES } from "~/constants/siteType"
+import AccountDialog from "~/features/AccountManagement/components/AccountDialog"
+import {
+  ACCOUNT_DIALOG_FORM_SOURCES,
+  ACCOUNT_DIALOG_PHASES,
+  createEmptyAccountDialogDraft,
+} from "~/features/AccountManagement/components/AccountDialog/models"
+import { SPONSOR_CATALOG_SCHEMA_VERSION } from "~/features/AccountManagement/sponsors/constants"
+import type { SponsorRecommendation } from "~/features/AccountManagement/sponsors/types"
+import { ACCOUNT_MANAGEMENT_TEST_IDS } from "~/features/AccountManagement/testIds"
+import { TOKEN_PROVISIONING_TEST_IDS } from "~/features/TokenProvisioning/testIds"
+import toast from "~/lib/notify"
+import enAccountDialog from "~/locales/en/accountDialog.json"
+import { ACCOUNT_POST_SAVE_WORKFLOW_STEPS } from "~/services/accounts/accountPostSaveWorkflow"
+import { CREATED_RUNTIME_SECRET_CORRELATION_KINDS as correlationKinds } from "~/services/accounts/keys/createdRuntimeSecret"
+import { AutoDetectErrorType } from "~/services/accounts/utils/autoDetectUtils"
+import { API_CREDENTIAL_PROFILE_CAPTURE_STATUSES } from "~/services/apiCredentialProfiles/links/contracts"
+import { autoCheckinStorage } from "~/services/checkin/autoCheckin/storage"
+import { AuthTypeEnum } from "~/types"
+import { buildDisplaySiteData } from "~~/tests/test-utils/factories"
+import { testI18n } from "~~/tests/test-utils/i18n"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+import { act, render, screen, waitFor } from "~~/tests/test-utils/render"
+
+vi.mock("~/services/checkin/autoCheckin/storage", () => ({
+  autoCheckinStorage: { getStatus: vi.fn().mockResolvedValue(null) },
+}))
+vi.mock("~/services/checkin/feedback/scan", async (original) => ({
+  ...(await original<typeof import("~/services/checkin/feedback/scan")>()),
+  collectCheckInFeedbackClues: vi
+    .fn()
+    .mockRejectedValue(new Error("unavailable")),
+}))
+
+const {
+  mockState,
+  mockSetters,
+  mockHandlers,
+  mockCreateTag,
+  mockRenameTag,
+  mockDeleteTag,
+  mockOpenEditAccount,
+  mockSponsorRecommendationItems,
+  mockUseSponsorRecommendations,
+  mockOpenFullBookmarkManagerPage,
+  mockOpenApiCredentialProfilesPage,
+  mockOpenSiteSupportRequestPage,
+  mockCreateApiCredentialProfile,
+  mockCaptureApiCredentialProfile,
+  mockLoggerError,
+} = vi.hoisted(() => ({
+  mockSponsorRecommendationItems: [
+    {
+      id: "anyrouter",
+      name: "AnyRouter",
+      tagline: "Supported provider.",
+      supportStatus: "supported",
+      links: {
+        primary: "https://anyrouter.example.com/register",
+      },
+      actions: {
+        addAccount: {
+          siteType: "anyrouter",
+          siteUrl: "https://anyrouter.example.com",
+          authType: "cookie",
+        },
+      },
+      schemaVersion: 4,
+      source: "bundled",
+      rank: 1,
+    },
+  ] as SponsorRecommendation[],
+  mockState: {
+    url: "https://api.example.com",
+    phase: "site-input",
+    formSource: "manual",
+    isDetecting: false,
+    isDetectingSlow: false,
+    isSaving: false,
+    isFormValid: true,
+    isAutoConfiguring: false,
+    detectionError: null,
+    openRouterBootstrapRecovery: null,
+    isDetected: false,
+    siteType: "unknown",
+    authType: "access_token",
+    currentTabUrl: null,
+    draft: {
+      siteName: "Example Site",
+      username: "alice",
+      accessToken: "secret-token",
+      userId: "12",
+      exchangeRate: "7.2",
+      manualBalanceUsd: "",
+      notes: "existing note",
+      tagIds: [],
+      excludeFromTotalBalance: false,
+      checkIn: {
+        automaticExecutionEnabled: true,
+        methodKnowledge: { methods: {} },
+        selection: { mode: "automatic" },
+        customCheckIn: {
+          url: "",
+          redeemUrl: "",
+          openRedeemWithCheckIn: true,
+          isCheckedInToday: false,
+        },
+      },
+      siteType: "unknown",
+      authType: "access_token",
+      cookieAuthSessionCookie: "",
+      sub2apiUseRefreshToken: false,
+      sub2apiRefreshToken: "",
+      sub2apiTokenExpiresAt: null,
+    },
+    checkIn: {
+      automaticExecutionEnabled: true,
+      methodKnowledge: { methods: {} },
+      selection: { mode: "automatic" },
+      customCheckIn: {
+        url: "",
+        redeemUrl: "",
+        openRedeemWithCheckIn: true,
+        isCheckedInToday: false,
+      },
+    },
+    isImportingSub2apiSession: false,
+    isManualBalanceUsdInvalid: false,
+    showAccessToken: false,
+    isImportingCookies: false,
+    showCookiePermissionWarning: false,
+    duplicateAccountWarning: {
+      isOpen: false,
+      siteUrl: "",
+      existingAccountsCount: 0,
+      existingUsername: "",
+      existingUserId: "",
+    },
+    managedSiteConfigPrompt: {
+      isOpen: false,
+      managedSiteLabel: "",
+      missingMessage: "",
+    },
+    aihubmixPostSaveKeyPrompt: {
+      isOpen: false,
+      accountName: "",
+      isCreating: false,
+    },
+    postSaveOneTimeSecret: null,
+    postSaveKeyInputAccount: null,
+    postSaveKeyInputSessionId: null,
+  } as any,
+  mockSetters: {
+    setSiteName: vi.fn(),
+    setUsername: vi.fn(),
+    setUserId: vi.fn(),
+    setAccessToken: vi.fn(),
+    setSub2apiRefreshToken: vi.fn(),
+    setExchangeRate: vi.fn(),
+    setManualBalanceUsd: vi.fn(),
+    setShowAccessToken: vi.fn(),
+    setNotes: vi.fn(),
+    setTagIds: vi.fn(),
+    setExcludeFromTotalBalance: vi.fn(),
+    setCheckIn: vi.fn(),
+    setSiteType: vi.fn(),
+    setCookieAuthSessionCookie: vi.fn(),
+    setAuthType: vi.fn(),
+  },
+  mockHandlers: {
+    handleAutoDetect: vi.fn(),
+    handleShowManualForm: vi.fn(),
+    handleClose: vi.fn(),
+    handleAutoConfig: vi.fn(),
+    handleUrlChange: vi.fn(),
+    handleClearUrl: vi.fn(),
+    handleUseCurrentTabUrl: vi.fn(),
+    handleSub2apiUseRefreshTokenChange: vi.fn(),
+    handleImportSub2apiSession: vi.fn(),
+    handleImportCookieAuthSessionCookie: vi.fn(),
+    handleOpenCookiePermissionSettings: vi.fn(),
+    handleSaveAccount: vi.fn(),
+    handleDuplicateAccountWarningCancel: vi.fn(),
+    handleDuplicateAccountWarningContinue: vi.fn(),
+    handleManagedSiteConfigPromptClose: vi.fn(),
+    handleOpenManagedSiteSettings: vi.fn(),
+    handleAihubmixPostSaveKeyPromptCancel: vi.fn(),
+    handleAihubmixPostSaveKeyPromptConfirm: vi.fn(),
+    shouldDeferAccountSaveSuccess: vi.fn(),
+    handlePostSaveOneTimeSecretClose: vi.fn(),
+    handlePostSaveKeyProvisioningClose: vi.fn(),
+    handlePostSaveKeyInputTokenDialogClose: vi.fn(),
+    handlePostSaveKeyInputTokenCreated: vi.fn(),
+    getPostSaveKeyInputDialogHandlers: vi.fn(),
+  },
+  mockCreateTag: vi.fn(),
+  mockRenameTag: vi.fn(),
+  mockDeleteTag: vi.fn(),
+  mockOpenEditAccount: vi.fn(),
+  mockUseSponsorRecommendations: vi.fn(),
+  mockOpenFullBookmarkManagerPage: vi.fn(),
+  mockOpenApiCredentialProfilesPage: vi.fn(),
+  mockOpenSiteSupportRequestPage: vi.fn(),
+  mockCreateApiCredentialProfile: vi.fn(),
+  mockCaptureApiCredentialProfile: vi.fn(),
+  mockLoggerError: vi.fn(),
+}))
+
+function resetMockState() {
+  const emptyDraft = createEmptyAccountDialogDraft()
+
+  Object.assign(mockState, {
+    url: "https://api.example.com",
+    phase: ACCOUNT_DIALOG_PHASES.SITE_INPUT,
+    formSource: ACCOUNT_DIALOG_FORM_SOURCES.MANUAL,
+    isDetecting: false,
+    isDetectingSlow: false,
+    isSaving: false,
+    isFormValid: true,
+    isAutoConfiguring: false,
+    detectionError: null,
+    openRouterBootstrapRecovery: null,
+    isDetected: false,
+    siteType: emptyDraft.siteType,
+    authType: AuthTypeEnum.AccessToken,
+    currentTabUrl: null,
+    draft: {
+      ...emptyDraft,
+      siteName: "Example Site",
+      username: "alice",
+      accessToken: "secret-token",
+      userId: "12",
+      exchangeRate: "7.2",
+      notes: "existing note",
+    },
+    checkIn: emptyDraft.checkIn,
+    isImportingSub2apiSession: false,
+    isManualBalanceUsdInvalid: false,
+    showAccessToken: false,
+    isImportingCookies: false,
+    showCookiePermissionWarning: false,
+    duplicateAccountWarning: {
+      isOpen: false,
+      siteUrl: "",
+      existingAccountsCount: 0,
+      existingUsername: "",
+      existingUserId: "",
+    },
+    managedSiteConfigPrompt: {
+      isOpen: false,
+      managedSiteLabel: "",
+      missingMessage: "",
+    },
+    aihubmixPostSaveKeyPrompt: {
+      isOpen: false,
+      accountName: "",
+      isCreating: false,
+    },
+    accountPostSaveWorkflowStep: ACCOUNT_POST_SAVE_WORKFLOW_STEPS.Idle,
+    postSaveOneTimeSecret: null,
+    postSaveKeyInputAccount: null,
+    postSaveKeyInputSessionId: null,
+  })
+  mockState.postSaveKeyProvisioning = null
+}
+
+vi.mock(
+  "~/features/TokenProvisioning/creation/AccountKeyProvisioningDialog",
+  () => ({
+    AccountKeyProvisioningDialog: ({
+      account,
+      mode,
+      onClose,
+    }: {
+      account: { name: string }
+      mode: string
+      onClose: () => void
+    }) => (
+      <button onClick={onClose}>
+        Finish {account.name} {mode}
+      </button>
+    ),
+  }),
+)
+
+vi.mock("~/features/TokenProvisioning/creation/AddTokenDialog", () => ({
+  default: (props: {
+    isOpen: boolean
+    preSelectedAccountId?: string
+    createPrefill?: Record<string, unknown>
+    prefillNotice?: string
+    showOneTimeKeyDialog?: boolean
+  }) => (
+    <div data-testid="post-save-add-token-dialog">
+      <div data-testid="post-save-add-token-open">{String(props.isOpen)}</div>
+      <div data-testid="post-save-add-token-account">
+        {props.preSelectedAccountId}
+      </div>
+      <div data-testid="post-save-add-token-prefill">
+        {JSON.stringify(props.createPrefill)}
+      </div>
+      <div data-testid="post-save-add-token-notice">{props.prefillNotice}</div>
+      <div data-testid="post-save-add-token-one-time">
+        {String(props.showOneTimeKeyDialog)}
+      </div>
+    </div>
+  ),
+}))
+
+vi.mock("~/services/apiCredentialProfiles/links", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/apiCredentialProfiles/links")
+    >()
+
+  return {
+    ...actual,
+    apiCredentialProfileLinks: {
+      ...actual.apiCredentialProfileLinks,
+      capture: async (input: { profile: unknown }) => {
+        mockCaptureApiCredentialProfile(input)
+        return {
+          status: API_CREDENTIAL_PROFILE_CAPTURE_STATUSES.Captured,
+          profile: await mockCreateApiCredentialProfile(input.profile),
+        }
+      },
+    },
+  }
+})
+
+vi.mock("~/lib/notify", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/lib/notify")>()
+
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      success: vi.fn(),
+      error: vi.fn(),
+    },
+  }
+})
+
+vi.mock("~/utils/core/logger", () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    error: mockLoggerError,
+    info: vi.fn(),
+    warn: vi.fn(),
+  }),
+}))
+
+vi.mock("~/features/AccountManagement/data/AccountDataContext", () => ({
+  useAccountDataContext: () => ({
+    accounts: [],
+    displayData: [],
+    detectedSiteAccounts: [],
+    detectedAccount: null,
+    tags: [],
+    tagCountsById: {},
+    createTag: mockCreateTag,
+    renameTag: mockRenameTag,
+    deleteTag: mockDeleteTag,
+  }),
+}))
+
+vi.mock("~/features/AccountManagement/dialogs/useDialogStateContext", () => ({
+  useDialogStateContext: () => ({
+    openEditAccount: mockOpenEditAccount,
+  }),
+}))
+
+vi.mock("~/contexts/ReleaseUpdateStatusContext", () => ({
+  ReleaseUpdateStatusProvider: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", () => ({
+  UserPreferencesProvider: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
+  useUserPreferencesContext: () => ({
+    managedSiteType: SITE_TYPES.NEW_API,
+    themeMode: "light",
+    updateThemeMode: vi.fn(),
+  }),
+}))
+
+vi.mock(
+  "~/features/AccountManagement/sponsors/useSponsorRecommendations",
+  () => ({
+    useSponsorRecommendations: mockUseSponsorRecommendations,
+  }),
+)
+
+vi.mock(
+  "~/features/AccountManagement/components/AccountDialog/workspace/useAccountDialog",
+  () => ({
+    useAccountDialog: () => ({
+      state: mockState,
+      setters: mockSetters,
+      handlers: mockHandlers,
+    }),
+  }),
+)
+
+vi.mock("~/utils/navigation", () => ({
+  openFullBookmarkManagerPage: mockOpenFullBookmarkManagerPage,
+  openApiCredentialProfilesPage: mockOpenApiCredentialProfilesPage,
+}))
+vi.mock("~/utils/navigation/feedbackPages", () => ({
+  openSiteSupportRequestPage: mockOpenSiteSupportRequestPage,
+}))
+
+describe("AccountDialog", () => {
+  it("detects the entered site instead of saving an incomplete account on Enter", async () => {
+    const user = userEvent.setup()
+    const onError = vi.fn()
+    mockState.isFormValid = false
+    mockHandlers.handleSaveAccount.mockRejectedValueOnce(
+      new Error("Please fill in all account information"),
+    )
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={onError}
+      />,
+    )
+
+    await user.click(screen.getByRole("textbox", { name: /siteInfo.siteUrl/ }))
+    await user.keyboard("{Enter}")
+
+    expect(onError).not.toHaveBeenCalled()
+    expect(mockHandlers.handleSaveAccount).not.toHaveBeenCalled()
+    expect(mockHandlers.handleAutoDetect).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    { scenario: "empty URL", url: "   ", isDetecting: false },
+    {
+      scenario: "detection in progress",
+      url: "https://example.com",
+      isDetecting: true,
+    },
+  ])("ignores Enter with $scenario", async ({ url, isDetecting }) => {
+    const user = userEvent.setup()
+    mockState.url = url
+    mockState.isDetecting = isDetecting
+    mockState.isFormValid = false
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole("textbox", { name: /siteInfo.siteUrl/ }))
+    await user.keyboard("{Enter}")
+
+    expect(mockHandlers.handleAutoDetect).not.toHaveBeenCalled()
+    expect(mockHandlers.handleSaveAccount).not.toHaveBeenCalled()
+  })
+
+  it("lets the saved account provisioning dialog complete its owning workflow", async () => {
+    mockState.postSaveKeyProvisioning = {
+      account: buildDisplaySiteData({ name: "Saved account" }),
+      mode: "all-groups",
+    }
+    render(
+      <AccountDialog
+        isOpen
+        mode={DIALOG_MODES.ADD}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    await userEvent
+      .setup()
+      .click(
+        screen.getByRole("button", { name: "Finish Saved account all-groups" }),
+      )
+    expect(
+      mockHandlers.handlePostSaveKeyProvisioningClose,
+    ).toHaveBeenCalledTimes(1)
+  })
+  beforeEach(() => {
+    vi.resetAllMocks()
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    })
+    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+    resetMockState()
+    mockSponsorRecommendationItems.splice(
+      0,
+      mockSponsorRecommendationItems.length,
+      {
+        id: "anyrouter",
+        name: "AnyRouter",
+        tagline: "Supported provider.",
+        supportStatus: "supported",
+        links: {
+          primary: "https://anyrouter.example.com/register",
+        },
+        actions: {
+          addAccount: {
+            siteType: SITE_TYPES.ANYROUTER,
+            siteUrl: "https://anyrouter.example.com",
+            authType: AuthTypeEnum.Cookie,
+          },
+        },
+        schemaVersion: SPONSOR_CATALOG_SCHEMA_VERSION,
+        source: "bundled",
+        rank: 1,
+      },
+    )
+    mockHandlers.shouldDeferAccountSaveSuccess.mockReturnValue(false)
+    mockCreateApiCredentialProfile.mockResolvedValue({
+      id: "profile-1",
+      name: "AIHubMix - Default API Key",
+      apiType: "openai-compatible",
+      baseUrl: "https://aihubmix.com",
+      apiKey: "sk-one-time",
+      tagIds: [],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    })
+    mockCaptureApiCredentialProfile.mockReset()
+    mockUseSponsorRecommendations.mockImplementation(() => ({
+      isLoading: false,
+      items: mockSponsorRecommendationItems,
+    }))
+  })
+
+  it.each(["same", "changed-url", "changed-user", "changed-site-type"])(
+    "preserves editor history only for the original account: %s",
+    async (scenario) => {
+      const user = userEvent.setup()
+      mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+      mockState.draft.userId = scenario === "changed-user" ? "99" : "12"
+      if (scenario === "changed-site-type")
+        mockState.draft.siteType = SITE_TYPES.NEW_API
+      mockState.url =
+        scenario === "changed-url"
+          ? "https://other.example"
+          : "https://api.example.com"
+      vi.mocked(autoCheckinStorage.getStatus).mockResolvedValue({
+        perAccount: {
+          edited: {
+            accountId: "edited",
+            accountName: "Private",
+            status: "failed",
+            reasonCode: "permission_denied",
+            timestamp: 1,
+          },
+        },
+      })
+      render(
+        <AccountDialog
+          isOpen
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+          onError={vi.fn()}
+          mode={DIALOG_MODES.EDIT}
+          account={buildDisplaySiteData({
+            id: "edited",
+            baseUrl: "https://api.example.com",
+            userId: "12",
+          })}
+        />,
+      )
+      await user.click(
+        screen.getByRole("button", {
+          name: /accountDialog:checkInFeedback\.(request|feedback)/,
+        }),
+      )
+      // First use loads the feedback dialog lazily; await that module boundary
+      // before the form query starts its normal DOM-readiness timeout.
+      await act(async () => {
+        await vi.dynamicImportSettled()
+      })
+      await screen.findByLabelText("accountDialog:checkInFeedback.notes")
+      await user.click(
+        screen.getByText("accountDialog:checkInFeedback.preview"),
+      )
+      const report = (
+        screen.getByLabelText(
+          "accountDialog:checkInFeedback.fullReport",
+        ) as HTMLTextAreaElement
+      ).value
+      expect(report).toContain(
+        `<th scope="row">execution</th><td>${scenario === "same" ? "failed" : "unavailable"}</td>`,
+      )
+    },
+  )
+
+  it("hides the form before the dialog reaches the account-form phase", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await screen.findByLabelText("accountDialog:siteInfo.siteUrl")
+    expect(
+      screen.queryByTestId("account-management-site-name-input"),
+    ).not.toBeInTheDocument()
+    expect(
+      await screen.findByTestId("account-management-auth-type-trigger"),
+    ).toBeInTheDocument()
+  })
+
+  it("presents canonical OpenRouter detection as Management Key creation", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.url = "https://openrouter.ai/settings/management-keys"
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      await screen.findByRole("button", {
+        name: "accountDialog:mode.createOpenRouterManagementKey",
+      }),
+    ).toBeEnabled()
+  })
+
+  it.each([
+    ACCOUNT_DIALOG_FORM_SOURCES.MANUAL,
+    ACCOUNT_DIALOG_FORM_SOURCES.DETECTED,
+  ])(
+    "uses the shared outline when adding an account (%s)",
+    async (formSource) => {
+      mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+      mockState.formSource = formSource
+
+      render(
+        <AccountDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          mode={DIALOG_MODES.ADD}
+          onSuccess={vi.fn()}
+          onError={vi.fn()}
+        />,
+      )
+
+      expect(
+        await screen.findByTestId("account-management-site-name-input"),
+      ).toBeInTheDocument()
+      expect(screen.getByRole("navigation")).toBeVisible()
+      expect(
+        screen.getByTestId(
+          ACCOUNT_MANAGEMENT_TEST_IDS.accountFormSectionSiteInfo,
+        ),
+      ).toContainElement(
+        screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteUrlInput),
+      )
+      expect(screen.getByRole("note")).toHaveTextContent(
+        formSource === ACCOUNT_DIALOG_FORM_SOURCES.DETECTED
+          ? "accountDialog:infoPanel.confirmAddInfo"
+          : "accountDialog:infoPanel.manualInfo",
+      )
+    },
+  )
+
+  it("groups the site URL into the continuous edit form", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    render(
+      <AccountDialog
+        isOpen
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.EDIT}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    expect(
+      await screen.findByRole("navigation", {
+        name: "accountDialog:sections.navigation",
+      }),
+    ).toBeVisible()
+    const siteSection = screen.getByTestId(
+      ACCOUNT_MANAGEMENT_TEST_IDS.accountFormSectionSiteInfo,
+    )
+    expect(siteSection).toContainElement(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteUrlInput),
+    )
+  })
+
+  it("does not show manual guidance for completed OpenRouter provisioning", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.DETECTED
+    mockState.openRouterBootstrapRecovery = null
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await screen.findByTestId("account-management-site-name-input")
+    expect(
+      screen.queryByText("accountDialog:openrouterBootstrapRecovery.title"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        "accountDialog:openrouterBootstrapRecovery.manualRevocation",
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows the recognizable label and manual guidance for created-key recovery", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.DETECTED
+    mockState.openRouterBootstrapRecovery = {
+      message: "Review the created key",
+      label: "OpenRouter extension created-recovery-request-placeholder",
+      requiresManualRecovery: true,
+    }
+
+    testI18n.addResource(
+      "en",
+      "accountDialog",
+      "openrouterBootstrapRecovery.label",
+      enAccountDialog.openrouterBootstrapRecovery.label,
+    )
+
+    try {
+      render(
+        <AccountDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          mode={DIALOG_MODES.ADD}
+          onSuccess={vi.fn()}
+          onError={vi.fn()}
+        />,
+      )
+
+      expect(await screen.findByText("Review the created key")).toBeVisible()
+      expect(
+        screen.getByText(
+          enAccountDialog.openrouterBootstrapRecovery.label.replace(
+            "{{label}}",
+            "OpenRouter extension created-recovery-request-placeholder",
+          ),
+        ),
+      ).toBeVisible()
+      expect(
+        screen.getByText(
+          "accountDialog:openrouterBootstrapRecovery.manualRevocation",
+        ),
+      ).toBeInTheDocument()
+    } finally {
+      testI18n.removeResourceBundle("en", "accountDialog")
+    }
+  })
+
+  it("shows manual guidance without manufacturing a missing recognizable label", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.DETECTED
+    mockState.openRouterBootstrapRecovery = {
+      requiresManualRecovery: true,
+    }
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      await screen.findByText(
+        "accountDialog:openrouterBootstrapRecovery.manualRevocation",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("accountDialog:openrouterBootstrapRecovery.label"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("does not show the entry auth selector in edit mode", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.EDIT}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await screen.findByLabelText("accountDialog:siteInfo.siteUrl")
+    expect(
+      screen.queryByTestId("account-management-auth-type-trigger"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("renders sponsor recommendations only in add-mode site input", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    const { unmount } = render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      await screen.findByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorRecommendations,
+      ),
+    ).toBeInTheDocument()
+
+    unmount()
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+
+    const accountFormRender = render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.sponsorRecommendations),
+    ).not.toBeInTheDocument()
+
+    accountFormRender.unmount()
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.EDIT}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.sponsorRecommendations),
+    ).not.toBeInTheDocument()
+  })
+
+  it("keeps bookmark batch import out of the add-account entry phase", async () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByText("accountDialog:bookmarkImportBatch.prompt"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "accountDialog:bookmarkImportBatch.action",
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it.each([false, true])(
+    "prepares the visible access-token input when opening site security settings (narrow: %s)",
+    async (narrow) => {
+      const user = userEvent.setup()
+      const media = window.matchMedia("(max-width: 639px)")
+      vi.mocked(window.matchMedia).mockImplementation((query) => ({
+        ...media,
+        media: query,
+        matches: narrow && query === "(max-width: 639px)",
+      }))
+      mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+      mockState.siteType = SITE_TYPES.NEW_API
+      mockState.draft.siteType = SITE_TYPES.NEW_API
+      mockState.draft.accessToken = ""
+      mockState.detectionError = {
+        type: AutoDetectErrorType.ACCESS_TOKEN_VERIFICATION_REQUIRED,
+        message: "Complete security verification on the site",
+      }
+
+      render(
+        <AccountDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          mode={DIALOG_MODES.ADD}
+          onSuccess={vi.fn()}
+          onError={vi.fn()}
+        />,
+      )
+
+      expect(
+        screen.getByPlaceholderText("accountDialog:form.accessToken"),
+      ).toBeVisible()
+
+      const openSecurityButton = screen.getByRole("button", {
+        name: "accountDialog:accessTokenVerification.openSecurity",
+      })
+      await user.click(openSecurityButton)
+
+      const accessTokenInput = await screen.findByPlaceholderText(
+        "accountDialog:form.accessToken",
+      )
+      await waitFor(() => expect(accessTokenInput).toHaveFocus())
+      expect(accessTokenInput).toHaveAttribute("type", "password")
+      await user.paste("manually-copied-access-token")
+      expect(mockSetters.setAccessToken).toHaveBeenLastCalledWith(
+        "manually-copied-access-token",
+      )
+      expect(
+        screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteNameInput),
+      ).toHaveValue("Example Site")
+
+      await user.click(
+        screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteNameInput),
+      )
+      await user.click(openSecurityButton)
+      await waitFor(() => expect(accessTokenInput).toHaveFocus())
+    },
+  )
+
+  it("exposes manual recovery guidance for a documented site type", () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+    mockState.siteType = SITE_TYPES.NEW_API
+    mockState.draft.siteType = SITE_TYPES.NEW_API
+    mockState.detectionError = {
+      type: AutoDetectErrorType.INVALID_RESPONSE,
+      message: "Detection returned unexpected data",
+    }
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.autoDetectErrorMessage),
+    ).toHaveTextContent("Detection returned unexpected data")
+    expect(
+      screen.getByText("accountDialog:manualAddRecovery.title"),
+    ).toBeVisible()
+    expect(
+      screen.getByText("accountDialog:manualAddRecovery.description"),
+    ).toBeVisible()
+    expect(
+      screen.getByRole("button", {
+        name: "accountDialog:actions.openManualAddGuide",
+      }),
+    ).toBeVisible()
+  })
+
+  it("opens API credential profiles and closes from auto-detect fallback guidance", async () => {
+    const user = userEvent.setup()
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+    mockState.siteType = SITE_TYPES.NEW_API
+    mockState.draft.siteType = SITE_TYPES.NEW_API
+    mockState.detectionError = {
+      type: AutoDetectErrorType.INVALID_RESPONSE,
+      message: "Detection returned unexpected data",
+    }
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "accountDialog:actions.openApiCredentialProfiles",
+      }),
+    )
+
+    expect(mockOpenApiCredentialProfilesPage).toHaveBeenCalledTimes(1)
+    expect(mockHandlers.handleClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("disables sponsor recommendations outside the add-account entry phase", () => {
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.DETECTED
+
+    const accountFormRender = render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(mockUseSponsorRecommendations).toHaveBeenLastCalledWith({
+      surface: "add-account-dialog",
+      enabled: false,
+    })
+
+    accountFormRender.unmount()
+    mockUseSponsorRecommendations.mockClear()
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.EDIT}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(mockUseSponsorRecommendations).toHaveBeenLastCalledWith({
+      surface: "add-account-dialog",
+      enabled: false,
+    })
+  })
+
+  it("prefills url and site type when continuing a supported sponsor", async () => {
+    const user = userEvent.setup()
+    const openSpy = vi.fn()
+    vi.stubGlobal("open", openSpy)
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      await screen.findByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorContinueAddAccountAction,
+      ),
+    )
+
+    expect(mockHandlers.handleUrlChange).toHaveBeenCalledWith(
+      "https://anyrouter.example.com",
+      { applyAuthDefault: false },
+    )
+    expect(mockSetters.setSiteType).toHaveBeenCalledWith(SITE_TYPES.ANYROUTER)
+    expect(mockSetters.setAuthType).toHaveBeenCalledWith(AuthTypeEnum.Cookie)
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://anyrouter.example.com/register",
+      "_blank",
+      "noopener,noreferrer",
+    )
+  })
+
+  it("applies profile default auth when continuing a sponsor without explicit auth", async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal("open", vi.fn())
+    mockSponsorRecommendationItems[0] = {
+      ...atIndex(mockSponsorRecommendationItems, 0),
+      actions: {
+        addAccount: {
+          siteType: SITE_TYPES.ANYROUTER,
+          siteUrl: "https://anyrouter.top",
+        },
+      },
+    }
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      await screen.findByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorContinueAddAccountAction,
+      ),
+    )
+
+    expect(mockHandlers.handleUrlChange).toHaveBeenCalledWith(
+      "https://anyrouter.top",
+      { applyAuthDefault: false },
+    )
+    expect(mockSetters.setSiteType).toHaveBeenCalledWith(SITE_TYPES.ANYROUTER)
+    expect(mockSetters.setAuthType).toHaveBeenCalledWith(AuthTypeEnum.Cookie)
+  })
+
+  it("shows the selected sponsor post-click note below the site URL helpers", async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal("open", vi.fn())
+    mockSponsorRecommendationItems[0] = {
+      ...atIndex(mockSponsorRecommendationItems, 0),
+      postClickNote: "充值时输入 APIHUB 可查看服务商活动。",
+    }
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.sponsorPostClickNote),
+    ).not.toBeInTheDocument()
+
+    await user.click(
+      await screen.findByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorContinueAddAccountAction,
+      ),
+    )
+
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.sponsorPostClickNote),
+    ).toHaveTextContent("充值时输入 APIHUB 可查看服务商活动。")
+  })
+
+  it("opens sponsor fallback destinations from add-mode site input", async () => {
+    const user = userEvent.setup()
+    mockSponsorRecommendationItems.splice(
+      0,
+      mockSponsorRecommendationItems.length,
+      {
+        id: "manual-provider",
+        name: "Manual Provider",
+        tagline: "Needs manual setup.",
+        supportStatus: "unsupported",
+        postClickNote: "充值时输入 APIHUB 可查看服务商活动。",
+        links: {
+          primary: "https://manual-provider.example.com/register",
+        },
+        actions: {
+          bookmarkFallback: {
+            url: "https://manual-provider.example.com",
+          },
+          apiCredentialProfileFallback: {
+            baseUrl: "https://manual-provider.example.com",
+            apiKeyCreateUrl:
+              "https://manual-provider.example.com/dashboard/keys?aff=all-api-hub",
+            apiKeyCreateHint: "充值时输入 APIHUB 可查看服务商活动。",
+          },
+        },
+        schemaVersion: SPONSOR_CATALOG_SCHEMA_VERSION,
+        source: "bundled",
+        rank: 1,
+      },
+    )
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      await screen.findByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorFallbackBookmarkAction,
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorFallbackApiCredentialProfilesAction,
+      ),
+    )
+
+    expect(mockOpenSiteSupportRequestPage).not.toHaveBeenCalled()
+    expect(mockOpenFullBookmarkManagerPage).toHaveBeenCalledWith({
+      create: {
+        name: "Manual Provider",
+        url: "https://manual-provider.example.com",
+      },
+    })
+    expect(mockOpenApiCredentialProfilesPage).toHaveBeenCalledWith({
+      create: {
+        name: "Manual Provider",
+        baseUrl: "https://manual-provider.example.com",
+        apiKeyCreateUrl:
+          "https://manual-provider.example.com/dashboard/keys?aff=all-api-hub",
+        apiKeyCreateHint: "充值时输入 APIHUB 可查看服务商活动。",
+      },
+    })
+  })
+
+  it("does not render sponsor recommendations when no items are available", () => {
+    mockSponsorRecommendationItems.splice(0)
+    mockState.phase = ACCOUNT_DIALOG_PHASES.SITE_INPUT
+    mockState.formSource = ACCOUNT_DIALOG_FORM_SOURCES.MANUAL
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.sponsorRecommendations),
+    ).not.toBeInTheDocument()
+  })
+
+  it.each([SITE_TYPES.SUB2API, SITE_TYPES.NEW_API])(
+    "delegates post-save %s input requirements to the native editor",
+    async (siteType) => {
+      mockState.postSaveKeyInputAccount = {
+        id: "sub2-account-id",
+        name: "Sub2API",
+        siteType,
+      }
+      mockState.postSaveKeyInputSessionId = 42
+      mockHandlers.getPostSaveKeyInputDialogHandlers.mockReturnValue({
+        onClose: vi.fn(),
+        onSuccess: vi.fn(),
+      })
+
+      render(
+        <AccountDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          mode={DIALOG_MODES.ADD}
+          onSuccess={vi.fn()}
+          onError={vi.fn()}
+        />,
+      )
+
+      expect(
+        await screen.findByTestId("post-save-add-token-dialog"),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByTestId("post-save-add-token-account"),
+      ).toHaveTextContent("sub2-account-id")
+      expect(
+        screen.getByTestId("post-save-add-token-prefill"),
+      ).toBeEmptyDOMElement()
+      expect(
+        screen.getByTestId("post-save-add-token-notice"),
+      ).toBeEmptyDOMElement()
+      expect(
+        screen.getByTestId("post-save-add-token-one-time"),
+      ).toHaveTextContent("false")
+      expect(
+        mockHandlers.getPostSaveKeyInputDialogHandlers,
+      ).toHaveBeenCalledWith(42)
+    },
+  )
+
+  it("renders the post-save one-time key dialog only when a created secret is pending", async () => {
+    mockState.postSaveOneTimeSecret = {
+      correlation: {
+        kind: correlationKinds.AccountCreate,
+        accountId: "created-secret-fixture",
+      },
+      displayName: "Default API Key",
+      secret: "sk-one-time",
+      secretAvailability: "create-response-only",
+      credential: {
+        accountName: "AIHubMix",
+        apiType: "openai-compatible",
+        baseUrl: "https://aihubmix.com",
+        siteType: SITE_TYPES.AIHUBMIX,
+        tagIds: [],
+      },
+    }
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      await screen.findByText("keyManagement:oneTimeKey.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByLabelText("keyManagement:oneTimeKey.keyLabel"),
+    ).toHaveValue("sk-one-time")
+    expect(
+      screen.getByTestId(TOKEN_PROVISIONING_TEST_IDS.oneTimeKeySaveButton),
+    ).toBeInTheDocument()
+  })
+
+  it("saves an AIHubMix one-time key to API credential profiles without navigating", async () => {
+    const user = userEvent.setup()
+    mockState.draft.siteName = "AIHubMix"
+    mockState.draft.tagIds = ["tag-a"]
+    mockState.postSaveOneTimeSecret = {
+      correlation: {
+        kind: correlationKinds.AccountKeyResource,
+        ref: {
+          accountId: "aihubmix-account",
+          siteType: SITE_TYPES.AIHUBMIX,
+          scopeKey: "account",
+          resourceId: "10",
+        },
+      },
+      displayName: "Default API Key",
+      secret: "sk-one-time-full",
+      secretAvailability: "create-response-only",
+      credential: {
+        accountName: "AIHubMix",
+        apiType: "openai-compatible",
+        baseUrl: "https://aihubmix.com",
+        siteType: SITE_TYPES.AIHUBMIX,
+        tagIds: ["tag-a"],
+      },
+    }
+    mockCreateApiCredentialProfile.mockResolvedValueOnce({
+      id: "profile-1",
+      name: "AIHubMix - Default API Key",
+      apiType: "openai-compatible",
+      baseUrl: "https://aihubmix.com",
+      apiKey: "sk-one-time-full",
+      tagIds: ["tag-a"],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      await screen.findByTestId(
+        TOKEN_PROVISIONING_TEST_IDS.oneTimeKeySaveButton,
+      ),
+    )
+
+    await waitFor(() => {
+      expect(mockCreateApiCredentialProfile).toHaveBeenCalledWith({
+        name: "AIHubMix - Default API Key",
+        apiType: "openai-compatible",
+        baseUrl: "https://aihubmix.com",
+        apiKey: "sk-one-time-full",
+        tagIds: ["tag-a"],
+      })
+    })
+    expect(mockCaptureApiCredentialProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locator: {
+          source: "account_key_resource",
+          ref: {
+            accountId: "aihubmix-account",
+            siteType: SITE_TYPES.AIHUBMIX,
+            scopeKey: "account",
+            resourceId: "10",
+          },
+        },
+        linkedBy: "creation-response",
+      }),
+    )
+    expect(toast.success).toHaveBeenCalledWith(
+      "keyManagement:messages.savedToApiProfiles",
+    )
+    expect(mockHandlers.handlePostSaveOneTimeSecretClose).not.toHaveBeenCalled()
+    expect(mockOpenApiCredentialProfilesPage).not.toHaveBeenCalled()
+  })
+
+  it("keeps the AIHubMix one-time key dialog open when API profile save fails", async () => {
+    const user = userEvent.setup()
+    mockState.draft.siteName = "AIHubMix"
+    mockState.postSaveOneTimeSecret = {
+      correlation: {
+        kind: correlationKinds.AccountCreate,
+        accountId: "created-secret-fixture",
+      },
+      displayName: "Default API Key",
+      secret: "sk-one-time-full",
+      secretAvailability: "create-response-only",
+      credential: {
+        accountName: "AIHubMix",
+        apiType: "openai-compatible",
+        baseUrl: "https://aihubmix.com",
+        siteType: SITE_TYPES.AIHUBMIX,
+        tagIds: [],
+      },
+    }
+    mockCreateApiCredentialProfile.mockRejectedValueOnce(
+      new Error("storage failed for sk-one-time-full"),
+    )
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      await screen.findByTestId(
+        TOKEN_PROVISIONING_TEST_IDS.oneTimeKeySaveButton,
+      ),
+    )
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "keyManagement:messages.saveToApiProfilesFailed",
+      )
+    })
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to save one-time key to API profiles from AccountDialog",
+      {
+        message: "storage failed for [REDACTED]",
+      },
+    )
+    expect(mockHandlers.handlePostSaveOneTimeSecretClose).not.toHaveBeenCalled()
+  })
+
+  it("renders the AIHubMix post-save key confirmation dialog", async () => {
+    const user = userEvent.setup()
+    mockState.aihubmixPostSaveKeyPrompt = {
+      isOpen: true,
+      accountName: "AIHubMix",
+      isCreating: false,
+    }
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      await screen.findByText("accountDialog:aihubmixDefaultKeyPrompt.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("accountDialog:aihubmixDefaultKeyPrompt.description"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.cancel",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.confirm",
+      }),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.cancel",
+      }),
+    )
+    expect(
+      mockHandlers.handleAihubmixPostSaveKeyPromptCancel,
+    ).toHaveBeenCalledTimes(1)
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.confirm",
+      }),
+    )
+    expect(
+      mockHandlers.handleAihubmixPostSaveKeyPromptConfirm,
+    ).toHaveBeenCalledTimes(1)
+  })
+
+  it("renders the AIHubMix key prompt creating state with disabled actions", async () => {
+    const user = userEvent.setup()
+    mockState.aihubmixPostSaveKeyPrompt = {
+      isOpen: true,
+      accountName: "AIHubMix",
+      isCreating: true,
+    }
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+
+    expect(
+      await screen.findByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.creating",
+      }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.cancel",
+      }),
+    ).toBeDisabled()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.cancel",
+      }),
+    )
+    await user.click(
+      screen.getByRole("button", {
+        name: "accountDialog:aihubmixDefaultKeyPrompt.creating",
+      }),
+    )
+
+    expect(
+      mockHandlers.handleAihubmixPostSaveKeyPromptCancel,
+    ).not.toHaveBeenCalled()
+    expect(
+      mockHandlers.handleAihubmixPostSaveKeyPromptConfirm,
+    ).not.toHaveBeenCalled()
+  })
+
+  it("calls onSuccess immediately when save success is not deferred", async () => {
+    const onSuccess = vi.fn()
+    const saveResult = {
+      success: true,
+      accountId: "regular-account",
+      message: "Saved",
+    }
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockHandlers.handleSaveAccount.mockResolvedValueOnce(saveResult)
+    mockHandlers.shouldDeferAccountSaveSuccess.mockReturnValueOnce(false)
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={onSuccess}
+        onError={vi.fn()}
+      />,
+    )
+
+    const form = await screen.findByTestId("account-management-account-form")
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(saveResult)
+    })
+  })
+
+  it("does not close the dialog immediately when save success is deferred for AIHubMix key creation", async () => {
+    const onSuccess = vi.fn()
+    const saveResult = {
+      success: true,
+      accountId: "aihubmix-account",
+      message: "Saved",
+    }
+    mockState.phase = ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM
+    mockHandlers.handleSaveAccount.mockResolvedValueOnce(saveResult)
+    mockHandlers.shouldDeferAccountSaveSuccess.mockReturnValueOnce(true)
+
+    render(
+      <AccountDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        mode={DIALOG_MODES.ADD}
+        onSuccess={onSuccess}
+        onError={vi.fn()}
+      />,
+    )
+
+    const form = await screen.findByTestId("account-management-account-form")
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+
+    expect(mockHandlers.handleSaveAccount).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(mockHandlers.shouldDeferAccountSaveSuccess).toHaveBeenCalledWith(
+        saveResult,
+      )
+    })
+    expect(onSuccess).not.toHaveBeenCalled()
+  })
+})

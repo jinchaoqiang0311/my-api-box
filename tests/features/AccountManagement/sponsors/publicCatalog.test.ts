@@ -1,0 +1,443 @@
+import { existsSync } from "node:fs"
+import { resolve } from "node:path"
+import { describe, expect, it } from "vitest"
+
+import { PORTUGUESE_BRAZIL_LANG } from "~/constants/i18n"
+import { SITE_TYPES } from "~/constants/siteType"
+import { bundledSponsorCatalog } from "~/features/AccountManagement/sponsors/bundledCatalog"
+import { normalizeSponsorCatalog } from "~/features/AccountManagement/sponsors/catalog"
+import { validateStrictSponsorCatalogArtifact } from "~/features/AccountManagement/sponsors/catalogSchema"
+import {
+  SPONSOR_CATALOG_SCHEMA_VERSION,
+  SPONSOR_REMOTE_CATALOG_V5_URL,
+} from "~/features/AccountManagement/sponsors/constants"
+import { SPONSOR_CATALOG_SOURCES } from "~/features/AccountManagement/sponsors/types"
+import { AuthTypeEnum } from "~/types"
+import legacySponsorCatalog from "~~/public/sponsor-catalog.json"
+import publicSponsorCatalogV4 from "~~/public/sponsor-catalog.v4.json"
+import publicSponsorCatalogV5 from "~~/public/sponsor-catalog.v5.json"
+
+const now = Date.UTC(2026, 4, 25)
+const publicSponsorCatalogs = [
+  legacySponsorCatalog,
+  publicSponsorCatalogV4,
+  publicSponsorCatalogV5,
+]
+
+function expectHttpsUrl(value: unknown) {
+  expect(typeof value).toBe("string")
+  const url = new URL(value as string)
+  expect(url.protocol).toBe("https:")
+}
+
+describe("public sponsor catalog artifacts", () => {
+  it("localizes every production sponsor for Brazilian Portuguese", () => {
+    publicSponsorCatalogs.forEach((catalog) => {
+      catalog.items.forEach((item) => {
+        expect(item.locales).toHaveProperty(PORTUGUESE_BRAZIL_LANG)
+      })
+    })
+  })
+
+  it("selects Brazilian Portuguese campaigns from the runtime catalog", () => {
+    const result = normalizeSponsorCatalog(publicSponsorCatalogV5, {
+      locale: PORTUGUESE_BRAZIL_LANG,
+      now,
+      source: SPONSOR_CATALOG_SOURCES.Bundled,
+      currentVersion: "3.52.0",
+      browserFamily: "chromium",
+    })
+
+    expect(result.errors).toEqual([])
+    expect(result.ok).toBe(true)
+    result.items.forEach((item) => {
+      expect(item.selectedLocale).toBe(PORTUGUESE_BRAZIL_LANG)
+    })
+  })
+
+  it("keeps the V3 public catalog as a legacy artifact for old clients", () => {
+    expect(legacySponsorCatalog.schemaVersion).toBe(3)
+    expect(legacySponsorCatalog.items.length).toBeGreaterThan(0)
+  })
+
+  it("keeps the V4 public catalog as a legacy artifact for old clients", () => {
+    expect(publicSponsorCatalogV4.schemaVersion).toBe(4)
+    expect(publicSponsorCatalogV4.items.length).toBeGreaterThan(0)
+  })
+
+  it("does not publish a runtime manifest artifact for catalog clients", () => {
+    expect(
+      existsSync(
+        resolve(process.cwd(), "public/sponsor-catalog-manifest.json"),
+      ),
+    ).toBe(false)
+  })
+
+  it("uses the V5 public catalog as the runtime source", () => {
+    expect(publicSponsorCatalogV5.schemaVersion).toBe(
+      SPONSOR_CATALOG_SCHEMA_VERSION,
+    )
+    expect(new URL(SPONSOR_REMOTE_CATALOG_V5_URL).pathname).toBe(
+      "/qixing-jk/all-api-hub/main/public/sponsor-catalog.v5.json",
+    )
+
+    const productionResult = normalizeSponsorCatalog(publicSponsorCatalogV5, {
+      locale: "zh-CN",
+      now,
+      source: SPONSOR_CATALOG_SOURCES.Remote,
+      currentVersion: "3.52.0",
+      browserFamily: "chromium",
+    })
+
+    expect(productionResult.errors).toEqual([])
+    expect(productionResult.ok).toBe(true)
+    expect(productionResult.items.length).toBeGreaterThan(0)
+    productionResult.items.forEach((item) => {
+      expect(item.schemaVersion).toBe(SPONSOR_CATALOG_SCHEMA_VERSION)
+      expect(item.source).toBe(SPONSOR_CATALOG_SOURCES.Remote)
+      expect(item.selectedLocale).toBeTruthy()
+      expectHttpsUrl(item.links.primary)
+
+      const { addAccount, apiCredentialProfileFallback, bookmarkFallback } =
+        item.actions
+      if (addAccount) {
+        expectHttpsUrl(addAccount.siteUrl)
+      }
+      if (apiCredentialProfileFallback) {
+        expectHttpsUrl(apiCredentialProfileFallback.baseUrl)
+        if (apiCredentialProfileFallback.apiKeyCreateUrl) {
+          expectHttpsUrl(apiCredentialProfileFallback.apiKeyCreateUrl)
+        }
+      }
+      if (bookmarkFallback) {
+        expectHttpsUrl(bookmarkFallback.url)
+      }
+    })
+
+    expect(bundledSponsorCatalog).toBe(publicSponsorCatalogV5)
+  })
+
+  it("strictly validates served V5 catalog artifacts against closed-world V5 schema", () => {
+    const errors = validateStrictSponsorCatalogArtifact(publicSponsorCatalogV5)
+    expect(errors).toEqual([])
+
+    const firstItem = publicSponsorCatalogV5.items[0]!
+    const locales = firstItem.locales as Record<string, Record<string, unknown>>
+    const firstLocale = locales.en ?? Object.values(locales)[0]!
+
+    const mutatedTopLevel = {
+      ...publicSponsorCatalogV5,
+      items: [
+        {
+          ...firstItem,
+          iconURL: "https://example.com/icon.png",
+        },
+      ],
+    }
+    expect(
+      validateStrictSponsorCatalogArtifact(mutatedTopLevel).join("\n"),
+    ).toContain("unsupported top-level fields: iconURL")
+
+    const mutatedCampaign = {
+      ...publicSponsorCatalogV5,
+      items: [
+        {
+          ...firstItem,
+          locales: {
+            ...locales,
+            en: {
+              ...firstLocale,
+              futureField: "unsupported-in-v5",
+            },
+          },
+        },
+      ],
+    }
+    expect(
+      validateStrictSponsorCatalogArtifact(mutatedCampaign).join("\n"),
+    ).toContain("unsupported campaign fields: futureField")
+  })
+
+  it("strictly validates valid nested actions, links, and visibility without unsupported fields", () => {
+    const validCustomItem = {
+      items: [
+        {
+          id: "custom-valid",
+          locales: {
+            en: {
+              links: {
+                primary: "https://example.com",
+              },
+              actions: {
+                addAccount: {
+                  siteUrl: "https://example.com",
+                },
+                bookmarkFallback: {
+                  url: "https://example.com",
+                },
+                apiCredentialProfileFallback: {
+                  baseUrl: "https://example.com",
+                },
+              },
+              visibility: {
+                extensionVersions: ">=3.52.0",
+                excludedBrowserFamilies: ["firefox"],
+              },
+            },
+          },
+        },
+      ],
+    }
+    expect(validateStrictSponsorCatalogArtifact(validCustomItem)).toEqual([])
+  })
+
+  it("rejects non-object root and non-array items in strict validation", () => {
+    expect(validateStrictSponsorCatalogArtifact(null)).toEqual([
+      "catalog payload must be an object",
+    ])
+    expect(validateStrictSponsorCatalogArtifact("string")).toEqual([
+      "catalog payload must be an object",
+    ])
+    expect(validateStrictSponsorCatalogArtifact({})).toEqual([
+      "catalog items must be an array",
+    ])
+    expect(validateStrictSponsorCatalogArtifact({ items: null })).toEqual([
+      "catalog items must be an array",
+    ])
+  })
+
+  it("rejects invalid item structures and unsupported nested fields in strict validation", () => {
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: ["not-an-object"],
+      }),
+    ).toEqual(["item at index 0 must be an object"])
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [{ locales: null }],
+      }),
+    ).toEqual(["item index_0 locales must be an object"])
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [{ id: "test", locales: { en: "not-an-object" } }],
+      }),
+    ).toEqual(["item test locale en campaign must be an object"])
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [{ id: "test", locales: { en: { links: "invalid" } } }],
+      }),
+    ).toContain("item test locale en links must be an object")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: {
+              en: { links: { primary: "https://example.com", extra: 1 } },
+            },
+          },
+        ],
+      }),
+    ).toContain("item test locale en has unsupported link fields: extra")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [{ id: "test", locales: { en: { actions: "invalid" } } }],
+      }),
+    ).toContain("item test locale en actions must be an object")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: { en: { actions: { unknownAction: true } } },
+          },
+        ],
+      }),
+    ).toContain(
+      "item test locale en has unsupported action fields: unknownAction",
+    )
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: { en: { actions: { addAccount: "invalid" } } },
+          },
+        ],
+      }),
+    ).toContain("item test locale en addAccount action must be an object")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: {
+              en: {
+                actions: {
+                  addAccount: {
+                    siteUrl: "https://example.com",
+                    extra: true,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    ).toContain("item test locale en has unsupported addAccount fields: extra")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: { en: { actions: { bookmarkFallback: "invalid" } } },
+          },
+        ],
+      }),
+    ).toContain("item test locale en bookmarkFallback action must be an object")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: {
+              en: {
+                actions: {
+                  bookmarkFallback: {
+                    url: "https://example.com",
+                    extra: true,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    ).toContain(
+      "item test locale en has unsupported bookmarkFallback fields: extra",
+    )
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: {
+              en: { actions: { apiCredentialProfileFallback: "invalid" } },
+            },
+          },
+        ],
+      }),
+    ).toContain(
+      "item test locale en apiCredentialProfileFallback action must be an object",
+    )
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: {
+              en: {
+                actions: {
+                  apiCredentialProfileFallback: {
+                    baseUrl: "https://example.com",
+                    extra: true,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    ).toContain(
+      "item test locale en has unsupported apiCredentialProfileFallback fields: extra",
+    )
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: { en: { visibility: "invalid" } },
+          },
+        ],
+      }),
+    ).toContain("item test locale en visibility must be an object")
+
+    expect(
+      validateStrictSponsorCatalogArtifact({
+        items: [
+          {
+            id: "test",
+            locales: { en: { visibility: { extra: true } } },
+          },
+        ],
+      }),
+    ).toContain("item test locale en has unsupported visibility fields: extra")
+  })
+
+  it("validates V5 development examples", () => {
+    const examplesResult = normalizeSponsorCatalog(
+      {
+        schemaVersion: publicSponsorCatalogV5.schemaVersion,
+        items: publicSponsorCatalogV5._examples?.devSponsors ?? [],
+      },
+      {
+        locale: "zh-CN",
+        now,
+        source: SPONSOR_CATALOG_SOURCES.Bundled,
+        currentVersion: "3.52.0",
+        browserFamily: "chromium",
+      },
+    )
+
+    expect(examplesResult.errors).toEqual([])
+    expect(examplesResult.ok).toBe(true)
+    expect(examplesResult.items.map((item) => item.id)).toContain(
+      "dev-supported-direct",
+    )
+
+    expect(
+      examplesResult.items.find((item) => item.id === "dev-supported-direct"),
+    ).toMatchObject({
+      postClickNote:
+        "测试 Cookie 认证预填后的提示，会显示在新建账号 URL 下方。",
+      actions: {
+        addAccount: {
+          siteType: SITE_TYPES.NEW_API,
+          siteUrl: "https://dev-supported.example.test",
+          authType: AuthTypeEnum.Cookie,
+        },
+      },
+    })
+
+    expect(
+      examplesResult.items.find(
+        (item) => item.id === "dev-unsupported-all-fallbacks",
+      ),
+    ).toMatchObject({
+      actions: {
+        apiCredentialProfileFallback: {
+          apiKeyCreateUrl:
+            "https://dev-all-fallbacks.example.test/dashboard/api-keys?utm_source=all-api-hub",
+          apiKeyCreateHint:
+            "测试赞助商提供的活动提示，可同时显示在添加账号和获取 API Key 的引导中。",
+        },
+        bookmarkFallback: {
+          url: "https://dev-all-fallbacks.example.test",
+        },
+      },
+    })
+  })
+})

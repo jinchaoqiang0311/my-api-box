@@ -1,0 +1,348 @@
+import { normalizeApiTokenKey } from "~/services/accountTokens/apiTokenKey"
+import {
+  invalidateResolvedApiTokenKeyCache,
+  syncResolvedApiTokenKeyCache,
+} from "~/services/accountTokens/tokenKeyResolver"
+import { resolveApiTokenKey } from "~/services/apiService/newApiFamily/default/tokenKeyResolver"
+import { newApiFamilyRequests } from "~/services/apiService/newApiFamily/request"
+import type {
+  NewApiToken,
+  NewApiTokenWrite,
+} from "~/services/apiService/newApiFamily/tokenTypes"
+import { REQUEST_CONFIG } from "~/services/apiTransport/constant"
+import { API_ERROR_CODES, ApiError } from "~/services/apiTransport/errors"
+import {
+  fetchAllItems,
+  inferHasMoreFromNumberedPage,
+} from "~/services/apiTransport/pagination"
+import type { ApiServiceRequest } from "~/services/apiTransport/type"
+import type { UserGroupInfo } from "~/services/models/userGroup"
+import { createLogger } from "~/utils/core/logger"
+import { isRecord } from "~/utils/core/object"
+
+const logger = createLogger("NewApiFamilyKeyManagement")
+
+interface KeyManagementImplementation {
+  fetchAccountTokens: (request: ApiServiceRequest) => Promise<NewApiToken[]>
+  fetchCurrentUserGroup: (request: ApiServiceRequest) => Promise<string>
+  createApiToken: (
+    request: ApiServiceRequest,
+    tokenData: NewApiTokenWrite,
+  ) => Promise<boolean | NewApiToken>
+  updateApiToken: (
+    request: ApiServiceRequest,
+    tokenId: number,
+    tokenData: NewApiTokenWrite,
+  ) => Promise<boolean | void>
+  resolveApiTokenKey: (
+    request: ApiServiceRequest,
+    token: Pick<NewApiToken, "id" | "key">,
+  ) => Promise<string>
+  deleteApiToken: (
+    request: ApiServiceRequest,
+    tokenId: number,
+  ) => Promise<boolean | void>
+  fetchUserGroups: (
+    request: ApiServiceRequest,
+  ) => Promise<Record<string, UserGroupInfo>>
+  fetchAccountAvailableModels: (request: ApiServiceRequest) => Promise<string[]>
+}
+
+interface AccountTokenPaginationOptions {
+  startPage?: number
+  pageSizeParamName?: string
+  detectsNormalizedFirstPage?: boolean
+  trustsRequestedPageSize?: boolean
+}
+
+/**
+ * Fetch the complete New API-family token list behind provider pagination.
+ * New API uses one-based page numbers and normalizes `p=0` to page one, which
+ * lets compatibility callers probe from zero before selecting their next page:
+ * https://github.com/QuantumNous/new-api/blob/9c97e78aced572d540f227007a675d7d007666ac/common/page_info.go
+ * One API uses zero-based pages, ignores the requested size, and returns bare
+ * arrays, so only an empty page proves completion:
+ * https://github.com/songquanpeng/one-api/blob/main/controller/token.go
+ * Veloera uses zero-based pages but honors the requested size, so a short
+ * array page proves completion:
+ * https://github.com/Veloera/Veloera/blob/main/controller/token.go
+ */
+export async function fetchAccountTokens(
+  request: ApiServiceRequest,
+  options: number | AccountTokenPaginationOptions = {},
+): Promise<NewApiToken[]> {
+  const {
+    startPage = 1,
+    pageSizeParamName = "size",
+    detectsNormalizedFirstPage = false,
+    trustsRequestedPageSize = false,
+  } = typeof options === "number" ? { startPage: options } : options
+
+  const tokens = await fetchAllItems<NewApiToken>(
+    async (page) => {
+      const searchParams = new URLSearchParams({
+        p: page.toString(),
+        [pageSizeParamName]: REQUEST_CONFIG.DEFAULT_PAGE_SIZE.toString(),
+      })
+      const tokensData = await newApiFamilyRequests.data<unknown>(request, {
+        endpoint: `/api/token/?${searchParams.toString()}`,
+      })
+
+      if (Array.isArray(tokensData)) {
+        const items = tokensData.map(normalizeApiTokenKey)
+        return {
+          items,
+          hasMore:
+            items.length > 0 &&
+            (!trustsRequestedPageSize ||
+              items.length >= REQUEST_CONFIG.DEFAULT_PAGE_SIZE),
+        }
+      }
+
+      if (!isRecord(tokensData) || !Array.isArray(tokensData.items)) {
+        throw new Error("invalid_token_page_payload")
+      }
+
+      const items = tokensData.items.map(normalizeApiTokenKey)
+      const normalizedFirstPage =
+        detectsNormalizedFirstPage && page === 0 && tokensData.page === 1
+      const responsePage = normalizedFirstPage ? 1 : page
+      const metadataHasMore = inferHasMoreFromNumberedPage({
+        requestedPage: responsePage,
+        responsePage: tokensData.page,
+        responsePageSize: tokensData.page_size,
+        total: tokensData.total,
+        itemCount: items.length,
+      })
+      const hasMore = metadataHasMore ?? items.length > 0
+
+      if (normalizedFirstPage) {
+        return {
+          items,
+          nextPage: hasMore ? 2 : null,
+        }
+      }
+
+      return {
+        items,
+        hasMore,
+      }
+    },
+    {
+      pageSize: REQUEST_CONFIG.DEFAULT_PAGE_SIZE,
+      startPage,
+      requireComplete: true,
+    },
+  )
+
+  syncResolvedApiTokenKeyCache(request, tokens)
+  return tokens
+}
+
+/**
+ * Fetch the list of downstream model identifiers that an account can access.
+ */
+export async function fetchAccountAvailableModels(
+  request: ApiServiceRequest,
+): Promise<string[]> {
+  try {
+    return await newApiFamilyRequests.data<string[]>(request, {
+      endpoint: "/api/user/models",
+    })
+  } catch (error) {
+    logger.error("获取模型列表失败", error)
+    throw error
+  }
+}
+
+/**
+ * Fetch user-group assignments for the authenticated account.
+ */
+export async function fetchUserGroups(
+  request: ApiServiceRequest,
+): Promise<Record<string, UserGroupInfo>> {
+  try {
+    return await newApiFamilyRequests.data<Record<string, UserGroupInfo>>(
+      request,
+      {
+        endpoint: "/api/user/self/groups",
+      },
+    )
+  } catch (error) {
+    logger.error("获取分组信息失败", error)
+    throw error
+  }
+}
+
+/**
+ * Fetch the account group inherited by tokens whose own group is empty.
+ * New API exposes the authenticated user's group in its self DTO:
+ * https://github.com/QuantumNous/new-api/blob/3d5dc36f1d85ccae8d5cb2864764011795b559b5/controller/user.go
+ */
+export async function fetchCurrentUserGroup(
+  request: ApiServiceRequest,
+): Promise<string> {
+  const userData = await newApiFamilyRequests.data<unknown>(request, {
+    endpoint: "/api/user/self",
+  })
+  if (!isRecord(userData) || typeof userData.group !== "string") {
+    throw new Error("invalid_current_user_group_payload")
+  }
+  const group = userData.group.trim()
+  if (!group) throw new Error("invalid_current_user_group_payload")
+  return group
+}
+
+/**
+ * Fetch the complete list of user groups defined on the site.
+ */
+export async function fetchSiteUserGroups(
+  request: ApiServiceRequest,
+): Promise<Array<string>> {
+  try {
+    return await newApiFamilyRequests.data<Array<string>>(request, {
+      endpoint: "/api/group",
+    })
+  } catch (error) {
+    logger.error("获取站点分组信息失败", error)
+    throw error
+  }
+}
+
+/**
+ * Create a new API token for the specified account.
+ */
+export async function createApiToken(
+  request: ApiServiceRequest,
+  tokenData: NewApiTokenWrite,
+): Promise<boolean | NewApiToken> {
+  try {
+    const response = await newApiFamilyRequests.envelope<
+      NewApiToken | undefined
+    >(request, {
+      endpoint: "/api/token/",
+      options: {
+        method: "POST",
+        body: JSON.stringify(tokenData),
+      },
+    })
+
+    if (!response.success) {
+      throw new ApiError(
+        response.message || "创建令牌失败",
+        undefined,
+        "/api/token",
+        API_ERROR_CODES.BUSINESS_ERROR,
+      )
+    }
+
+    invalidateResolvedApiTokenKeyCache(request)
+    if (
+      isRecord(response.data) &&
+      Number.isSafeInteger(response.data.id) &&
+      response.data.id > 0 &&
+      typeof response.data.name === "string" &&
+      typeof response.data.key === "string"
+    )
+      return normalizeApiTokenKey(response.data)
+    return true
+  } catch (error) {
+    logger.error("创建令牌失败", error)
+    throw error
+  }
+}
+
+/**
+ * Fetch a single API token by its identifier.
+ */
+export async function fetchTokenById(
+  request: ApiServiceRequest,
+  tokenId: number,
+): Promise<NewApiToken> {
+  try {
+    const token = await newApiFamilyRequests.data<NewApiToken>(request, {
+      endpoint: `/api/token/${tokenId}`,
+    })
+    return normalizeApiTokenKey(token)
+  } catch (error) {
+    logger.error("获取令牌详情失败", error)
+    throw error
+  }
+}
+
+/**
+ * Update an existing API token in place.
+ */
+export async function updateApiToken(
+  request: ApiServiceRequest,
+  tokenId: number,
+  tokenData: NewApiTokenWrite,
+): Promise<boolean> {
+  try {
+    const response = await newApiFamilyRequests.envelope<any>(request, {
+      endpoint: "/api/token/",
+      options: {
+        method: "PUT",
+        body: JSON.stringify({ ...tokenData, id: tokenId }),
+      },
+    })
+
+    if (!response.success) {
+      throw new ApiError(
+        response.message || "更新令牌失败",
+        undefined,
+        "/api/token",
+        API_ERROR_CODES.BUSINESS_ERROR,
+      )
+    }
+
+    invalidateResolvedApiTokenKeyCache(request)
+    return true
+  } catch (error) {
+    logger.error("更新令牌失败", error)
+    throw error
+  }
+}
+
+/**
+ * Delete an API token permanently.
+ */
+export async function deleteApiToken(
+  request: ApiServiceRequest,
+  tokenId: number,
+): Promise<boolean> {
+  try {
+    const response = await newApiFamilyRequests.envelope<any>(request, {
+      endpoint: `/api/token/${tokenId}`,
+      options: {
+        method: "DELETE",
+      },
+    })
+
+    if (!response.success) {
+      throw new ApiError(
+        response.message || "删除令牌失败",
+        undefined,
+        `/api/token/${tokenId}`,
+        API_ERROR_CODES.BUSINESS_ERROR,
+      )
+    }
+
+    invalidateResolvedApiTokenKeyCache(request)
+    return true
+  } catch (error) {
+    logger.error("删除令牌失败", error)
+    throw error
+  }
+}
+
+export const defaultKeyManagementImplementation: KeyManagementImplementation = {
+  fetchAccountTokens,
+  fetchCurrentUserGroup,
+  createApiToken,
+  updateApiToken,
+  resolveApiTokenKey,
+  deleteApiToken,
+  fetchUserGroups,
+  fetchAccountAvailableModels,
+}

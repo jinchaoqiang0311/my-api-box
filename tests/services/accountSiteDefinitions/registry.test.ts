@@ -1,0 +1,996 @@
+import { describe, expect, expectTypeOf, it } from "vitest"
+
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import {
+  getAccountSiteApiRouter,
+  isAccountSiteType as isLegacyAccountSiteType,
+  isManagedSiteType as isLegacyManagedSiteType,
+  ACCOUNT_SITE_TYPE_VALUES as LEGACY_ACCOUNT_SITE_TYPE_VALUES,
+  ACCOUNT_SITE_TYPES as LEGACY_ACCOUNT_SITE_TYPES,
+  MANAGED_SITE_TYPES as LEGACY_MANAGED_SITE_TYPES,
+  SITE_TYPES as LEGACY_SITE_TYPES,
+} from "~/constants/siteType"
+import { getAccountSiteProductProfile } from "~/services/accounts/accountSiteProfile"
+import {
+  ACCOUNT_SITE_CREATED_TOKEN_SECRET_HANDLING,
+  ACCOUNT_SITE_MODEL_LIST_DISPLAY_CAPABILITY_SOURCES,
+  ACCOUNT_SITE_MODEL_LIST_GROUP_SEMANTICS,
+  ACCOUNT_SITE_MODEL_LIST_STATUS_SCOPES,
+  ACCOUNT_SITE_SUPPLEMENTAL_AUTH_KINDS,
+  ACCOUNT_SITE_TOKEN_FORM_NETWORK_LIMIT_POLICIES,
+} from "~/services/accounts/accountSiteProfile/contracts"
+import {
+  ACCOUNT_SITE_ADAPTER_FAMILIES,
+  ACCOUNT_SITE_DEFINITION_SCOPES,
+  ACCOUNT_SITE_MANUAL_ADD_GUIDE_ANCHORS,
+  ACCOUNT_SITE_TYPE_VALUES,
+  ACCOUNT_SITE_TYPES,
+  AIHUBMIX_API_ORIGIN,
+  AIHUBMIX_HOSTNAMES,
+  AIHUBMIX_WEB_ORIGIN,
+  getAccountSiteDefinition,
+  getAccountSiteDefinitions,
+  getAccountSiteOnboardingDefinitions,
+  getAccountSiteProductProfileOverride,
+  getAccountSiteTypeValues,
+  getManagedSiteTypeValues,
+  MANAGED_RESOURCE_KINDS,
+  MANAGED_SITE_TYPES,
+  OPENROUTER_HOSTNAMES,
+  OPENROUTER_WEB_ORIGIN,
+  SHAREDCHAT_HOSTNAMES,
+  SITE_TYPES,
+  type AccountSiteDefinition,
+  type AccountSiteType,
+  type ManagedSiteType,
+} from "~/services/accountSiteDefinitions"
+import type {
+  AccountSiteRouteConfig,
+  RegisteredAccountSiteDefinition,
+} from "~/services/accountSiteDefinitions/contracts"
+import {
+  ACCOUNT_SITE_TYPE_ORDER,
+  MANAGED_SITE_TYPE_ORDER,
+  SITE_TYPE_DEFINITIONS,
+} from "~/services/accountSiteDefinitions/definitions"
+import {
+  RELAYFOR_HOSTNAMES,
+  RIGHTCODE_HOSTNAMES,
+} from "~/services/accountSiteDefinitions/identifiers"
+import type { SiteType } from "~/services/accountSiteDefinitions/identifiers"
+import { getManagedResourceRegistration } from "~/services/apiAdapters/managedResources/registry"
+import { AuthTypeEnum } from "~/types"
+import { ACCOUNT_TODAY_METRIC_REASONS } from "~/types/accountTodayStats"
+
+it("routes Daya manual redemption to the current purchase form", () => {
+  expect(
+    getAccountSiteDefinition(SITE_TYPES.DAYA)?.onboarding?.routes.redeemPath,
+  ).toBe("/purchase")
+})
+
+describe("access-token verification guide metadata", () => {
+  it.each([
+    [SITE_TYPES.NEW_API, "security", true],
+    [SITE_TYPES.APIYI, "apiyi", false],
+    [SITE_TYPES.LAOZHANG, "laozhang", false],
+  ])(
+    "declares the existing guide presentation for %s",
+    (siteType, copy, showRotationWarning) => {
+      expect(
+        getAccountSiteDefinition(siteType)?.onboarding
+          ?.accessTokenVerificationGuide,
+      ).toEqual({
+        copy,
+        showRotationWarning,
+      })
+    },
+  )
+
+  it("returns independent verification guide configuration in both projections", () => {
+    const definition = getAccountSiteDefinition(SITE_TYPES.NEW_API)!
+    const projection = getAccountSiteOnboardingDefinitions().find(
+      (row) => row.siteType === SITE_TYPES.NEW_API,
+    )!
+    definition.onboarding!.accessTokenVerificationGuide!.showRotationWarning =
+      false
+    projection.accessTokenVerificationGuide!.copy = "apiyi"
+
+    expect(
+      getAccountSiteDefinition(SITE_TYPES.NEW_API)?.onboarding
+        ?.accessTokenVerificationGuide,
+    ).toEqual({
+      copy: "security",
+      showRotationWarning: true,
+    })
+  })
+})
+
+it.each([
+  [SITE_TYPES.APIYI, "apiyi"],
+  [SITE_TYPES.LAOZHANG, "apiyi"],
+  [SITE_TYPES.V_API, "v-api"],
+])("declares the shared browser user storage for %s", (siteType, storage) => {
+  expect(
+    getAccountSiteDefinition(siteType)?.onboarding?.browserUserStorage,
+  ).toBe(storage)
+})
+
+it("does not expose an unsupported Grsai announcements route", () => {
+  expect(
+    getAccountSiteDefinition(SITE_TYPES.GRSAI)?.onboarding?.routes
+      ?.siteAnnouncementsPath,
+  ).toBeNull()
+})
+
+type ExpectExact<T, Expected> = [T] extends [Expected]
+  ? [Expected] extends [T]
+    ? true
+    : never
+  : never
+
+type ExpectedAccountSiteType =
+  | typeof SITE_TYPES.ONE_API
+  | typeof SITE_TYPES.NEW_API
+  | typeof SITE_TYPES.APIYI
+  | typeof SITE_TYPES.LAOZHANG
+  | typeof SITE_TYPES.MODELFLARE
+  | typeof SITE_TYPES.ANYROUTER
+  | typeof SITE_TYPES.VELOERA
+  | typeof SITE_TYPES.ONE_HUB
+  | typeof SITE_TYPES.DONE_HUB
+  | typeof SITE_TYPES.V_API
+  | typeof SITE_TYPES.VO_API_V2
+  | typeof SITE_TYPES.VO_API
+  | typeof SITE_TYPES.SUPER_API
+  | typeof SITE_TYPES.RIX_API
+  | typeof SITE_TYPES.NEO_API
+  | typeof SITE_TYPES.WONG_GONGYI
+  | typeof SITE_TYPES.SUB2API
+  | typeof SITE_TYPES.AIHUBMIX
+  | typeof SITE_TYPES.SHAREDCHAT
+  | typeof SITE_TYPES.FREEMODEL
+  | typeof SITE_TYPES.DAHL
+  | typeof SITE_TYPES.FOXCODE
+  | typeof SITE_TYPES.XIAOEN
+  | typeof SITE_TYPES.EMRANK
+  | typeof SITE_TYPES.KRILL
+  | typeof SITE_TYPES.DAYA
+  | typeof SITE_TYPES.CUBENCE
+  | typeof SITE_TYPES.RIGHT_CODE
+  | typeof SITE_TYPES.OPENROUTER
+  | typeof SITE_TYPES.KIMI
+  | typeof SITE_TYPES.KIMI_GLOBAL
+  | typeof SITE_TYPES.GRSAI
+  | typeof SITE_TYPES.RELAYFOR
+  | typeof SITE_TYPES.UNKNOWN
+
+type ExpectedManagedSiteType =
+  | typeof SITE_TYPES.CLI_PROXY_API
+  | typeof SITE_TYPES.NEW_API
+  | typeof SITE_TYPES.VELOERA
+  | typeof SITE_TYPES.DONE_HUB
+  | typeof SITE_TYPES.OCTOPUS
+  | typeof SITE_TYPES.AXON_HUB
+  | typeof SITE_TYPES.CLAUDE_CODE_HUB
+  | typeof SITE_TYPES.SUB2API
+  | typeof SITE_TYPES.OMNIROUTE
+  | typeof SITE_TYPES.GPT_LOAD
+  | typeof SITE_TYPES.MAGPIE
+
+const accountSiteTypeIsExact: ExpectExact<
+  AccountSiteType,
+  ExpectedAccountSiteType
+> = true
+const managedSiteTypeIsExact: ExpectExact<
+  ManagedSiteType,
+  ExpectedManagedSiteType
+> = true
+const accountSiteTypeDoesNotWidenToAllSiteTypes: SiteType extends AccountSiteType
+  ? never
+  : true = true
+const managedSiteTypeDoesNotWidenToAllSiteTypes: SiteType extends ManagedSiteType
+  ? never
+  : true = true
+const typeAssertions = [
+  accountSiteTypeIsExact,
+  managedSiteTypeIsExact,
+  accountSiteTypeDoesNotWidenToAllSiteTypes,
+  managedSiteTypeDoesNotWidenToAllSiteTypes,
+] as const
+const productProfileSiteTypeIsForbidden: "siteType" extends keyof NonNullable<
+  AccountSiteDefinition["productProfile"]
+>
+  ? never
+  : true = true
+
+describe("account site definition registry", () => {
+  it.each([
+    [SITE_TYPES.NEW_API, "/keys"],
+    [SITE_TYPES.SUB2API, "/keys"],
+    [SITE_TYPES.VELOERA, "/app/tokens"],
+    [SITE_TYPES.DONE_HUB, "/panel/token"],
+    [SITE_TYPES.OCTOPUS, "/keys"],
+    [SITE_TYPES.AXON_HUB, "/api-keys"],
+    [SITE_TYPES.CLAUDE_CODE_HUB, "/dashboard/users"],
+  ])("preserves the registered token console path for %s", (siteType, path) => {
+    expect(
+      getAccountSiteDefinition(siteType)?.managedResource?.consoleRoutes.tokens,
+    ).toBe(path)
+  })
+
+  it("requires every account registration to explicitly declare every page or null", () => {
+    const routeKeys = [
+      "loginPath",
+      "usagePath",
+      "checkInPath",
+      "adminCredentialsPath",
+      "accessTokenPath",
+      "redeemPath",
+      "siteAnnouncementsPath",
+    ]
+    for (const definition of getAccountSiteOnboardingDefinitions()) {
+      const { pricingPath, pricingSearchParam, ...requiredRoutes } =
+        definition.routes
+      expect(Object.keys(requiredRoutes).sort(), definition.siteType).toEqual(
+        [...routeKeys].sort(),
+      )
+      expect(definition.routes.loginPath).toMatch(/^\/(?!\/)/)
+      for (const path of Object.values(requiredRoutes)) {
+        if (path !== null) expect(path).toMatch(/^\/(?!\/)/)
+      }
+      if (pricingPath != null) expect(pricingPath).toMatch(/^\/(?!\/)/)
+      if (pricingSearchParam !== undefined) {
+        expect(pricingPath).toEqual(expect.any(String))
+        expect(pricingSearchParam).toMatch(/^[A-Za-z][A-Za-z0-9_]*$/)
+      }
+    }
+    expectTypeOf<
+      Partial<AccountSiteRouteConfig>
+    >().not.toExtend<AccountSiteRouteConfig>()
+    expectTypeOf<
+      Omit<RegisteredAccountSiteDefinition, "onboarding">
+    >().not.toExtend<RegisteredAccountSiteDefinition>()
+  })
+
+  it.each([undefined, null, "", "unregistered", "toString"])(
+    "uses unknown routes only for an unregistered input: %s",
+    (siteType) => {
+      expect(getAccountSiteApiRouter(siteType)).toEqual(
+        getAccountSiteApiRouter(SITE_TYPES.UNKNOWN),
+      )
+    },
+  )
+
+  it("preserves explicit unsupported pages and returns independent route objects", () => {
+    const routes = getAccountSiteApiRouter(SITE_TYPES.SHAREDCHAT)
+    expect(routes.redeemPath).toBeNull()
+    routes.redeemPath = "/changed"
+    expect(getAccountSiteApiRouter(SITE_TYPES.SHAREDCHAT).redeemPath).toBeNull()
+  })
+  it("keeps public site type aliases exact", () => {
+    expect([...typeAssertions, productProfileSiteTypeIsForbidden]).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+    ])
+  })
+
+  it("keeps scoped definitions covered exactly once by order constants", () => {
+    const accountScopedDefinitions = SITE_TYPE_DEFINITIONS.filter(
+      (definition) =>
+        definition.scopes.includes(ACCOUNT_SITE_DEFINITION_SCOPES.Account),
+    )
+    const managedScopedDefinitions = SITE_TYPE_DEFINITIONS.filter(
+      (definition) =>
+        definition.scopes.includes(ACCOUNT_SITE_DEFINITION_SCOPES.Managed),
+    )
+
+    expect(new Set(ACCOUNT_SITE_TYPE_ORDER).size).toBe(
+      ACCOUNT_SITE_TYPE_ORDER.length,
+    )
+    expect(new Set(MANAGED_SITE_TYPE_ORDER).size).toBe(
+      MANAGED_SITE_TYPE_ORDER.length,
+    )
+    expect([...ACCOUNT_SITE_TYPE_ORDER].sort()).toEqual(
+      accountScopedDefinitions.map((definition) => definition.siteType).sort(),
+    )
+    expect([...MANAGED_SITE_TYPE_ORDER].sort()).toEqual(
+      managedScopedDefinitions.map((definition) => definition.siteType).sort(),
+    )
+  })
+
+  it("explicitly declares legacy numeric-channel compatibility for every managed site", () => {
+    for (const siteType of MANAGED_SITE_TYPES) {
+      expect(
+        getAccountSiteDefinition(siteType)?.managedResource
+          ?.legacyNumericChannelConfig,
+      ).toBe(siteType !== SITE_TYPES.AXON_HUB && siteType !== SITE_TYPES.MAGPIE)
+    }
+  })
+
+  it("matches current legacy site-type surfaces", () => {
+    expect(ACCOUNT_SITE_TYPES).toEqual(LEGACY_ACCOUNT_SITE_TYPES)
+    expect(ACCOUNT_SITE_TYPE_VALUES).toEqual(LEGACY_ACCOUNT_SITE_TYPE_VALUES)
+    expect(MANAGED_SITE_TYPES).toEqual(LEGACY_MANAGED_SITE_TYPES)
+  })
+
+  it("keeps the legacy constants facade aligned with definitions", () => {
+    expect(LEGACY_SITE_TYPES).toBe(SITE_TYPES)
+    expect(LEGACY_ACCOUNT_SITE_TYPES).toEqual(getAccountSiteTypeValues())
+    expect(LEGACY_ACCOUNT_SITE_TYPE_VALUES).toEqual(getAccountSiteTypeValues())
+    expect(LEGACY_MANAGED_SITE_TYPES).toEqual(getManagedSiteTypeValues())
+    expect(isLegacyAccountSiteType(SITE_TYPES.AIHUBMIX)).toBe(true)
+    expect(isLegacyAccountSiteType(SITE_TYPES.SHAREDCHAT)).toBe(true)
+    expect(isLegacyAccountSiteType(SITE_TYPES.OCTOPUS)).toBe(false)
+    expect(isLegacyManagedSiteType(SITE_TYPES.OCTOPUS)).toBe(true)
+    expect(isLegacyManagedSiteType(SITE_TYPES.SUB2API)).toBe(true)
+  })
+
+  it("keeps the public route facade aligned with definition route metadata", () => {
+    for (const siteType of ACCOUNT_SITE_TYPES) {
+      const routes = getAccountSiteOnboardingDefinitions().find(
+        (definition) => definition.siteType === siteType,
+      )?.routes
+
+      expect(getAccountSiteApiRouter(siteType)).toEqual(routes)
+      expect(routes).toEqual(
+        getAccountSiteDefinition(siteType)?.onboarding?.routes,
+      )
+    }
+  })
+
+  it("registers RightCode as an account-only site with its verified console routes", () => {
+    const definition = getAccountSiteDefinition(SITE_TYPES.RIGHT_CODE)
+
+    expect(definition).toMatchObject({
+      scopes: [ACCOUNT_SITE_DEFINITION_SCOPES.Account],
+      adapterFamily: ACCOUNT_SITE_ADAPTER_FAMILIES.RightCode,
+      onboarding: {
+        displayName: "RightCode",
+        detection: { hostnames: RIGHTCODE_HOSTNAMES },
+        routes: {
+          loginPath: "/login",
+          usagePath: "/use-logs",
+          adminCredentialsPath: "/api-keys",
+          siteAnnouncementsPath: "/dashboard",
+          pricingPath: "/models",
+          // Right Code runs no check-in flow and its activation-code
+          // redemption contract is unverified, so neither page is offered.
+          checkInPath: null,
+          redeemPath: null,
+          accessTokenPath: null,
+        },
+      },
+    })
+    // Keys arrive already prefixed with `sk-`, so the One/New API style
+    // optional-prefix rewriting must stay off.
+    expect(definition?.tokenKey).toBeUndefined()
+  })
+
+  it("keeps RightCode's token-only auth and plan for unaided manual adds", () => {
+    const profile = getAccountSiteProductProfile(SITE_TYPES.RIGHT_CODE)
+
+    expect(profile.auth.allowedAuthTypes).toEqual([AuthTypeEnum.AccessToken])
+    expect(profile.auth.defaultAuthType).toBe(AuthTypeEnum.AccessToken)
+    expect(profile.identity.usernameRequired).toBe(true)
+    // The console never exposes the numeric account id.
+    expect(profile.identity.userIdRequired).toBe(false)
+    expect(profile.modelList.groupSemantics).toBe(
+      ACCOUNT_SITE_MODEL_LIST_GROUP_SEMANTICS.NOT_APPLICABLE,
+    )
+  })
+
+  it("registers RelayFor as an account-only site with its verified console routes", () => {
+    const definition = getAccountSiteDefinition(SITE_TYPES.RELAYFOR)
+
+    expect(definition).toMatchObject({
+      scopes: [ACCOUNT_SITE_DEFINITION_SCOPES.Account],
+      adapterFamily: ACCOUNT_SITE_ADAPTER_FAMILIES.RelayFor,
+      onboarding: {
+        displayName: "RelayFor",
+        detection: { hostnames: RELAYFOR_HOSTNAMES },
+        routes: {
+          loginPath: "/auth/?mode=login",
+          usagePath: "/console/#usage",
+          adminCredentialsPath: "/console/#tokens",
+          siteAnnouncementsPath: "/console/#overview",
+          pricingPath: "/console/#models",
+          checkInPath: "/console/#overview",
+          redeemPath: "/console/#redeem",
+          accessTokenPath: null,
+        },
+      },
+    })
+    expect(definition?.tokenKey).toBeUndefined()
+  })
+
+  it("keeps RelayFor's token-only auth and plan for unaided manual adds", () => {
+    const profile = getAccountSiteProductProfile(SITE_TYPES.RELAYFOR)
+
+    expect(profile.auth.allowedAuthTypes).toEqual([AuthTypeEnum.AccessToken])
+    expect(profile.auth.defaultAuthType).toBe(AuthTypeEnum.AccessToken)
+    expect(profile.identity.usernameRequired).toBe(true)
+    expect(profile.identity.userIdRequired).toBe(false)
+    expect(profile.modelList.groupSemantics).toBe(
+      ACCOUNT_SITE_MODEL_LIST_GROUP_SEMANTICS.NOT_APPLICABLE,
+    )
+  })
+
+  it("matches current product-profile behavior for overridden sites", () => {
+    const anyrouterOverride = getAccountSiteProductProfileOverride(
+      SITE_TYPES.ANYROUTER,
+    )
+    const sub2apiOverride = getAccountSiteProductProfileOverride(
+      SITE_TYPES.SUB2API,
+    )
+    const aihubmixOverride = getAccountSiteProductProfileOverride(
+      SITE_TYPES.AIHUBMIX,
+    )
+
+    const anyrouterProfile = getAccountSiteProductProfile(SITE_TYPES.ANYROUTER)
+    expect(anyrouterProfile.auth.defaultAuthType).toBe(
+      anyrouterOverride?.auth?.defaultAuthType,
+    )
+    expect(anyrouterProfile.auth.defaultAuthHostnames).toEqual(
+      anyrouterOverride?.auth?.defaultAuthHostnames,
+    )
+    expect(getAccountSiteProductProfile(SITE_TYPES.SUB2API)).toMatchObject({
+      auth: sub2apiOverride?.auth,
+      authSession: sub2apiOverride?.authSession,
+      identity: sub2apiOverride?.identity,
+      modelList: sub2apiOverride?.modelList,
+    })
+    expect(getAccountSiteProductProfile(SITE_TYPES.AIHUBMIX)).toMatchObject({
+      auth: aihubmixOverride?.auth,
+      createdToken: aihubmixOverride?.createdToken,
+      identity: aihubmixOverride?.identity,
+      modelList: aihubmixOverride?.modelList,
+      tokenForm: aihubmixOverride?.tokenForm,
+      urls: aihubmixOverride?.urls,
+    })
+  })
+
+  it("projects account site types in the public order", () => {
+    expect(getAccountSiteTypeValues()).toEqual(ACCOUNT_SITE_TYPES)
+    expect(getAccountSiteTypeValues()).toEqual([
+      SITE_TYPES.ONE_API,
+      SITE_TYPES.NEW_API,
+      SITE_TYPES.APIYI,
+      SITE_TYPES.LAOZHANG,
+      SITE_TYPES.MODELFLARE,
+      SITE_TYPES.ANYROUTER,
+      SITE_TYPES.VELOERA,
+      SITE_TYPES.ONE_HUB,
+      SITE_TYPES.DONE_HUB,
+      SITE_TYPES.V_API,
+      SITE_TYPES.VO_API_V2,
+      SITE_TYPES.VO_API,
+      SITE_TYPES.SUPER_API,
+      SITE_TYPES.RIX_API,
+      SITE_TYPES.NEO_API,
+      SITE_TYPES.WONG_GONGYI,
+      SITE_TYPES.SUB2API,
+      SITE_TYPES.AIHUBMIX,
+      SITE_TYPES.SHAREDCHAT,
+      SITE_TYPES.FREEMODEL,
+      SITE_TYPES.DAHL,
+      SITE_TYPES.FOXCODE,
+      SITE_TYPES.XIAOEN,
+      SITE_TYPES.EMRANK,
+      SITE_TYPES.KRILL,
+      SITE_TYPES.DAYA,
+      SITE_TYPES.CUBENCE,
+      SITE_TYPES.RIGHT_CODE,
+      SITE_TYPES.RELAYFOR,
+      SITE_TYPES.OPENROUTER,
+      SITE_TYPES.KIMI,
+      SITE_TYPES.KIMI_GLOBAL,
+      SITE_TYPES.GRSAI,
+      SITE_TYPES.UNKNOWN,
+    ])
+  })
+
+  it("projects managed site types in the public order", () => {
+    expect(getManagedSiteTypeValues()).toEqual(MANAGED_SITE_TYPES)
+    expect(getManagedSiteTypeValues()).toEqual([
+      SITE_TYPES.OMNIROUTE,
+      SITE_TYPES.CLI_PROXY_API,
+      SITE_TYPES.NEW_API,
+      SITE_TYPES.SUB2API,
+      SITE_TYPES.MAGPIE,
+      SITE_TYPES.GPT_LOAD,
+      SITE_TYPES.AXON_HUB,
+      SITE_TYPES.CLAUDE_CODE_HUB,
+      SITE_TYPES.OCTOPUS,
+      SITE_TYPES.VELOERA,
+      SITE_TYPES.DONE_HUB,
+    ])
+  })
+
+  it("defines every site type once", () => {
+    const siteTypes = getAccountSiteDefinitions().map(
+      (definition) => definition.siteType,
+    )
+
+    expect(new Set(siteTypes).size).toBe(siteTypes.length)
+  })
+
+  it("gives every account site account scope and an adapter family", () => {
+    for (const definition of getAccountSiteDefinitions().filter((definition) =>
+      definition.scopes.includes(ACCOUNT_SITE_DEFINITION_SCOPES.Account),
+    )) {
+      expect(definition.scopes).toContain(
+        ACCOUNT_SITE_DEFINITION_SCOPES.Account,
+      )
+      expect(definition.adapterFamily).toBeTruthy()
+    }
+  })
+
+  it("gives every managed site managed scope", () => {
+    for (const siteType of MANAGED_SITE_TYPES) {
+      expect(getAccountSiteDefinition(siteType)?.scopes).toContain(
+        ACCOUNT_SITE_DEFINITION_SCOPES.Managed,
+      )
+    }
+  })
+
+  it("registers ModelFlare as an account-only New API family site", () => {
+    expect(getAccountSiteDefinition(SITE_TYPES.MODELFLARE)).toMatchObject({
+      siteType: SITE_TYPES.MODELFLARE,
+      scopes: [ACCOUNT_SITE_DEFINITION_SCOPES.Account],
+      adapterFamily: ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily,
+    })
+    expect(MANAGED_SITE_TYPES).not.toContain(SITE_TYPES.MODELFLARE)
+  })
+
+  it("keeps managed-resource presentation policy for every managed site", () => {
+    for (const siteType of MANAGED_SITE_TYPES) {
+      const policy = getAccountSiteDefinition(siteType)?.managedResource
+      expect(policy).toMatchObject({
+        primaryKind: MANAGED_RESOURCE_KINDS.Channel,
+        settingsTarget: { tabId: "managedSite" },
+      })
+      expect(policy).not.toHaveProperty("mode")
+      expect(policy).not.toHaveProperty("actions")
+    }
+  })
+
+  it("switches AxonHub to the registered native channel path", () => {
+    const policy = getAccountSiteDefinition(
+      SITE_TYPES.AXON_HUB,
+    )?.managedResource
+
+    expect(policy).toMatchObject({
+      primaryKind: MANAGED_RESOURCE_KINDS.Channel,
+      settingsTarget: {
+        tabId: "managedSite",
+        anchor: SETTINGS_ANCHORS.AXON_HUB,
+      },
+    })
+    expect(
+      getManagedResourceRegistration(
+        SITE_TYPES.AXON_HUB,
+        MANAGED_RESOURCE_KINDS.Channel,
+      ),
+    ).toMatchObject({
+      siteType: SITE_TYPES.AXON_HUB,
+      kind: MANAGED_RESOURCE_KINDS.Channel,
+    })
+  })
+
+  it("keeps Veloera channel presentation policy separate from registration", () => {
+    const policy = getAccountSiteDefinition(SITE_TYPES.VELOERA)?.managedResource
+
+    expect(policy).toMatchObject({
+      primaryKind: MANAGED_RESOURCE_KINDS.Channel,
+    })
+    expect(policy).not.toHaveProperty("mode")
+    expect(policy).not.toHaveProperty("actions")
+  })
+
+  it("registers the Veloera native channel workspace", () => {
+    expect(
+      getManagedResourceRegistration(
+        SITE_TYPES.VELOERA,
+        MANAGED_RESOURCE_KINDS.Channel,
+      ),
+    ).toMatchObject({
+      siteType: SITE_TYPES.VELOERA,
+      kind: MANAGED_RESOURCE_KINDS.Channel,
+    })
+  })
+
+  it("keeps DoneHub channel presentation policy separate from registration", () => {
+    const policy = getAccountSiteDefinition(
+      SITE_TYPES.DONE_HUB,
+    )?.managedResource
+
+    expect(policy).toMatchObject({
+      primaryKind: MANAGED_RESOURCE_KINDS.Channel,
+    })
+    expect(policy).not.toHaveProperty("mode")
+    expect(policy).not.toHaveProperty("actions")
+  })
+
+  it("registers the DoneHub native channel workspace", () => {
+    expect(
+      getManagedResourceRegistration(
+        SITE_TYPES.DONE_HUB,
+        MANAGED_RESOURCE_KINDS.Channel,
+      ),
+    ).toMatchObject({
+      siteType: SITE_TYPES.DONE_HUB,
+      kind: MANAGED_RESOURCE_KINDS.Channel,
+    })
+  })
+
+  it("returns defensive managed-resource policy copies", () => {
+    const first = getAccountSiteDefinition(SITE_TYPES.AXON_HUB)!
+    const mutableDetailFields = first.managedResource!
+      .detailFieldIds as string[]
+    first.managedResource!.settingsTarget.anchor = "changed"
+    first.managedResource!.consoleRoutes.channels = "/changed"
+    expect(
+      getAccountSiteDefinition(SITE_TYPES.AXON_HUB)?.managedResource
+        ?.consoleRoutes.channels,
+    ).toBe("/channels")
+    mutableDetailFields[0] = "changed"
+
+    expect(
+      getAccountSiteDefinition(SITE_TYPES.AXON_HUB)?.managedResource
+        ?.settingsTarget,
+    ).toEqual({
+      tabId: "managedSite",
+      anchor: SETTINGS_ANCHORS.AXON_HUB,
+    })
+    expect(
+      getAccountSiteDefinition(SITE_TYPES.AXON_HUB)?.managedResource
+        ?.detailFieldIds[0],
+    ).toBe("name")
+  })
+
+  it("keeps managed-resource field policy values unique", () => {
+    for (const siteType of MANAGED_SITE_TYPES) {
+      const policy = getAccountSiteDefinition(siteType)?.managedResource
+
+      expect(new Set(policy?.tableFieldIds).size).toBe(
+        policy?.tableFieldIds.length,
+      )
+      expect(new Set(policy?.detailFieldIds).size).toBe(
+        policy?.detailFieldIds.length,
+      )
+    }
+  })
+
+  it("projects representative adapter families", () => {
+    expect(getAccountSiteDefinition(SITE_TYPES.NEW_API)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily,
+    )
+    expect(getAccountSiteDefinition(SITE_TYPES.SUB2API)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.Sub2Api,
+    )
+    expect(getAccountSiteDefinition(SITE_TYPES.VO_API_V2)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.VoApiV2,
+    )
+    expect(getAccountSiteDefinition(SITE_TYPES.AIHUBMIX)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.Aihubmix,
+    )
+    expect(getAccountSiteDefinition(SITE_TYPES.SHAREDCHAT)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.SharedChat,
+    )
+    expect(getAccountSiteDefinition(SITE_TYPES.OCTOPUS)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.Unsupported,
+    )
+    expect(getAccountSiteDefinition(SITE_TYPES.OPENROUTER)).toMatchObject({
+      scopes: [ACCOUNT_SITE_DEFINITION_SCOPES.Account],
+      adapterFamily: ACCOUNT_SITE_ADAPTER_FAMILIES.OpenRouter,
+    })
+  })
+
+  it("defines OpenRouter account-only access-token policy and canonical origins", () => {
+    const definition = getAccountSiteDefinition(SITE_TYPES.OPENROUTER)
+    const profile = getAccountSiteProductProfile(SITE_TYPES.OPENROUTER)
+
+    expect(definition?.onboarding?.routes?.adminCredentialsPath).toBe(
+      "/settings/management-keys",
+    )
+    expect(profile.auth).toMatchObject({
+      allowedAuthTypes: [AuthTypeEnum.AccessToken],
+      defaultAuthType: AuthTypeEnum.AccessToken,
+      defaultAuthHostnames: [],
+    })
+    expect(profile.identity).toMatchObject({
+      usernameRequired: false,
+      storedUserIdentityFields: [],
+    })
+    expect(profile.identity).not.toHaveProperty("input")
+    expect(profile.identity).not.toHaveProperty("presentation")
+    expect(profile.identity).not.toHaveProperty("scope")
+    expect(profile.identity).not.toHaveProperty("fallbackScope")
+    expect(profile.urls).toMatchObject({
+      storageOrigin: OPENROUTER_WEB_ORIGIN,
+      duplicateOrigin: OPENROUTER_WEB_ORIGIN,
+      recognizedHostnames: OPENROUTER_HOSTNAMES,
+    })
+  })
+
+  it("accepts a username identity for Rix API deployments without a numeric id", () => {
+    // Rix API 6.x omits `id` from its self DTO while keeping `username`, so the
+    // manual-add flow must not demand a numeric id. `id` stays first so older
+    // deployments that still expose it keep resolving to the same identity.
+    const profile = getAccountSiteProductProfile(SITE_TYPES.RIX_API)
+
+    expect(profile.identity).toMatchObject({
+      usernameRequired: true,
+      userIdRequired: false,
+      storedUserIdentityFields: ["id", "username"],
+    })
+  })
+
+  it("defines VoAPI v2 before old VoAPI with account-only policy", () => {
+    const voApiV2 = getAccountSiteDefinition(SITE_TYPES.VO_API_V2)
+
+    expect(voApiV2).toMatchObject({
+      siteType: SITE_TYPES.VO_API_V2,
+      adapterFamily: ACCOUNT_SITE_ADAPTER_FAMILIES.VoApiV2,
+    })
+    expect(voApiV2?.scopes).toEqual([ACCOUNT_SITE_DEFINITION_SCOPES.Account])
+    expect(voApiV2?.onboarding?.routes).toMatchObject({
+      usagePath: "/dash?_userMenuKey=dash",
+      checkInPath: "/checkIn?_userMenuKey=checkIn",
+      adminCredentialsPath: "/keys?_userMenuKey=keys",
+    })
+    expect(ACCOUNT_SITE_TYPE_ORDER.indexOf(SITE_TYPES.VO_API_V2)).toBeLessThan(
+      ACCOUNT_SITE_TYPE_ORDER.indexOf(SITE_TYPES.VO_API),
+    )
+  })
+
+  it("projects onboarding metadata", () => {
+    const onboardingDefinitions = getAccountSiteOnboardingDefinitions()
+
+    expect(
+      onboardingDefinitions.map((definition) => definition.siteType),
+    ).toEqual(ACCOUNT_SITE_TYPES)
+    expect(
+      onboardingDefinitions.find(
+        (definition) => definition.siteType === SITE_TYPES.AIHUBMIX,
+      )?.detection?.hostnames,
+    ).toEqual(AIHUBMIX_HOSTNAMES)
+    expect(
+      onboardingDefinitions.find(
+        (definition) => definition.siteType === SITE_TYPES.SHAREDCHAT,
+      )?.detection?.hostnames,
+    ).toEqual(SHAREDCHAT_HOSTNAMES)
+    expect(
+      onboardingDefinitions.find(
+        (definition) => definition.siteType === SITE_TYPES.VO_API_V2,
+      )?.routes,
+    ).toMatchObject({
+      usagePath: "/dash?_userMenuKey=dash",
+      checkInPath: "/checkIn?_userMenuKey=checkIn",
+      adminCredentialsPath: "/keys?_userMenuKey=keys",
+    })
+    expect(
+      onboardingDefinitions.find(
+        (definition) => definition.siteType === SITE_TYPES.SUB2API,
+      )?.routes,
+    ).toMatchObject({
+      usagePath: "/usage",
+      redeemPath: "/redeem",
+      siteAnnouncementsPath: "/dashboard",
+    })
+    expect(
+      onboardingDefinitions.find(
+        (definition) => definition.siteType === SITE_TYPES.NEW_API,
+      )?.manualAddGuideAnchor,
+    ).toBe(ACCOUNT_SITE_MANUAL_ADD_GUIDE_ANCHORS.NewApi)
+  })
+
+  it("registers manual-add guide anchors only for documented site types", () => {
+    expect(
+      getAccountSiteDefinitions()
+        .filter((definition) => definition.onboarding?.manualAddGuideAnchor)
+        .map((definition) => ({
+          siteType: definition.siteType,
+          anchor: definition.onboarding!.manualAddGuideAnchor,
+        })),
+    ).toEqual([
+      {
+        siteType: SITE_TYPES.NEW_API,
+        anchor: "manual-new-api",
+      },
+      {
+        siteType: SITE_TYPES.SUB2API,
+        anchor: "manual-sub2api",
+      },
+      {
+        siteType: SITE_TYPES.OPENROUTER,
+        anchor: "manual-openrouter",
+      },
+    ])
+  })
+
+  it("returns defensive definition and projection copies", () => {
+    const definition = getAccountSiteDefinition(SITE_TYPES.AIHUBMIX)
+    const onboardingDefinition = getAccountSiteOnboardingDefinitions().find(
+      (definition) => definition.siteType === SITE_TYPES.AIHUBMIX,
+    )
+
+    ;(definition!.onboarding!.detection!.hostnames as string[]).push(
+      "mutated.example.invalid",
+    )
+    definition!.adapterFamily = ACCOUNT_SITE_ADAPTER_FAMILIES.Unsupported
+    ;(onboardingDefinition!.detection!.hostnames as string[]).push(
+      "mutated.example.invalid",
+    )
+    onboardingDefinition!.adapterFamily =
+      ACCOUNT_SITE_ADAPTER_FAMILIES.Unsupported
+
+    expect(
+      getAccountSiteDefinition(SITE_TYPES.AIHUBMIX)?.onboarding?.detection
+        ?.hostnames,
+    ).not.toContain("mutated.example.invalid")
+    expect(getAccountSiteDefinition(SITE_TYPES.AIHUBMIX)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.Aihubmix,
+    )
+    expect(
+      getAccountSiteOnboardingDefinitions().find(
+        (definition) => definition.siteType === SITE_TYPES.AIHUBMIX,
+      )?.detection?.hostnames,
+    ).not.toContain("mutated.example.invalid")
+    expect(
+      getAccountSiteOnboardingDefinitions().find(
+        (definition) => definition.siteType === SITE_TYPES.AIHUBMIX,
+      )?.adapterFamily,
+    ).toBe(ACCOUNT_SITE_ADAPTER_FAMILIES.Aihubmix)
+  })
+
+  it("isolates login configuration and nested arrays between callers and site types", () => {
+    const first = getAccountSiteDefinition(SITE_TYPES.NEW_API)!.accountLogin!
+    first.protocols!.newApi!.userIdHeader = "Changed-User"
+    ;(first.methods as string[]).pop()
+    ;(first.protocols!.newApi!.completionPaths as string[]).push("/changed")
+
+    const second = getAccountSiteDefinition(SITE_TYPES.NEW_API)!.accountLogin!
+    expect(second.protocols!.newApi!.userIdHeader).toBe("New-Api-User")
+    expect(second.methods).toContain("oidc")
+    expect(second.protocols!.newApi!.completionPaths).not.toContain("/changed")
+
+    const compatible = getAccountSiteDefinition(
+      SITE_TYPES.SUPER_API,
+    )!.accountLogin!
+    ;(compatible.methods as string[]).pop()
+    ;(compatible.protocols!.newApi!.completionPaths as string[]).push(
+      "/changed",
+    )
+    const other = getAccountSiteDefinition(
+      SITE_TYPES.WONG_GONGYI,
+    )!.accountLogin!
+    expect(other.methods).toContain("linuxdo")
+    expect(other.protocols!.newApi!.completionPaths).not.toContain("/changed")
+  })
+
+  it("returns defensive RegExp copies for onboarding detection", () => {
+    const firstDefinition = getAccountSiteDefinition(SITE_TYPES.SUB2API)
+    const secondDefinition = getAccountSiteDefinition(SITE_TYPES.SUB2API)
+    const firstOnboardingDefinition =
+      getAccountSiteOnboardingDefinitions().find(
+        (definition) => definition.siteType === SITE_TYPES.SUB2API,
+      )
+    const secondOnboardingDefinition =
+      getAccountSiteOnboardingDefinitions().find(
+        (definition) => definition.siteType === SITE_TYPES.SUB2API,
+      )
+
+    expect(firstDefinition?.onboarding?.detection?.titlePatterns?.[0]).not.toBe(
+      secondDefinition?.onboarding?.detection?.titlePatterns?.[0],
+    )
+    expect(firstOnboardingDefinition?.detection?.titlePatterns?.[0]).not.toBe(
+      secondOnboardingDefinition?.detection?.titlePatterns?.[0],
+    )
+  })
+
+  it("returns defensive product-profile override copies", () => {
+    const aihubmixProfile = getAccountSiteProductProfileOverride(
+      SITE_TYPES.AIHUBMIX,
+    )
+    const sub2apiProfile = getAccountSiteProductProfileOverride(
+      SITE_TYPES.SUB2API,
+    )
+
+    ;(aihubmixProfile!.urls!.recognizedHostnames as string[]).push(
+      "mutated.example.invalid",
+    )
+    ;(sub2apiProfile!.auth!.allowedAuthTypes as AuthTypeEnum[]).push(
+      AuthTypeEnum.Cookie,
+    )
+    ;(sub2apiProfile!.identity!.storedUserIdentityFields as string[]).push(
+      "mutated",
+    )
+    aihubmixProfile!.metrics!.legacyTodayStatsAvailability!.consumption!.reason =
+      ACCOUNT_TODAY_METRIC_REASONS.NotCollected
+
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.AIHUBMIX)?.urls
+        ?.recognizedHostnames,
+    ).not.toContain("mutated.example.invalid")
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.SUB2API)?.auth
+        ?.allowedAuthTypes,
+    ).toEqual([AuthTypeEnum.AccessToken])
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.SUB2API)?.identity
+        ?.storedUserIdentityFields,
+    ).toEqual(["id"])
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.AIHUBMIX)?.metrics
+        ?.legacyTodayStatsAvailability?.consumption?.reason,
+    ).toBe(ACCOUNT_TODAY_METRIC_REASONS.WrongPeriod)
+  })
+
+  it("projects product-profile overrides", () => {
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.ANYROUTER),
+    ).toMatchObject({
+      auth: {
+        defaultAuthType: AuthTypeEnum.Cookie,
+        defaultAuthHostnames: ["anyrouter.top"],
+      },
+    })
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.SUB2API),
+    ).toMatchObject({
+      auth: {
+        allowedAuthTypes: [AuthTypeEnum.AccessToken],
+        defaultAuthType: AuthTypeEnum.AccessToken,
+        defaultAuthHostnames: [],
+      },
+      authSession: {
+        kind: ACCOUNT_SITE_SUPPLEMENTAL_AUTH_KINDS.Sub2ApiRefreshToken,
+      },
+      identity: {
+        usernameRequired: false,
+        storedUserIdentityFields: ["id"],
+      },
+      modelList: {
+        statusScope: ACCOUNT_SITE_MODEL_LIST_STATUS_SCOPES.Token,
+        displayCapabilitiesSource:
+          ACCOUNT_SITE_MODEL_LIST_DISPLAY_CAPABILITY_SOURCES.Response,
+      },
+    })
+    expect(
+      getAccountSiteProductProfileOverride(SITE_TYPES.AIHUBMIX),
+    ).toMatchObject({
+      auth: {
+        allowedAuthTypes: [AuthTypeEnum.AccessToken],
+        defaultAuthType: AuthTypeEnum.AccessToken,
+        defaultAuthHostnames: [],
+      },
+      createdToken: {
+        secretHandling:
+          ACCOUNT_SITE_CREATED_TOKEN_SECRET_HANDLING.OneTimeSecretDialog,
+      },
+      identity: {
+        usernameRequired: true,
+        storedUserIdentityFields: ["username"],
+      },
+      modelList: {
+        statusScope: ACCOUNT_SITE_MODEL_LIST_STATUS_SCOPES.Account,
+        displayCapabilitiesSource:
+          ACCOUNT_SITE_MODEL_LIST_DISPLAY_CAPABILITY_SOURCES.Response,
+      },
+      tokenForm: {
+        networkLimitPolicy:
+          ACCOUNT_SITE_TOKEN_FORM_NETWORK_LIMIT_POLICIES.SubnetLimit,
+      },
+      urls: {
+        recognizedHostnames: AIHUBMIX_HOSTNAMES,
+        storageOrigin: AIHUBMIX_WEB_ORIGIN,
+        duplicateOrigin: AIHUBMIX_WEB_ORIGIN,
+        managedChannelOrigin: AIHUBMIX_API_ORIGIN,
+      },
+    })
+  })
+})

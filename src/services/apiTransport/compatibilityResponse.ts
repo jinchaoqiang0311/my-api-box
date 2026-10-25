@@ -1,0 +1,170 @@
+import type { TempWindowResponseType } from "~/types/tempWindowFetch"
+import { getErrorMessage } from "~/utils/core/error"
+import { t } from "~/utils/i18n/core"
+
+import { API_ERROR_CODES, ApiError, type ApiErrorCode } from "./errors"
+import { extractDataFromApiResponseBody } from "./response"
+import {
+  extractHeuristicResponseErrorMessage,
+  resolveResponseErrorDetails,
+} from "./responseError"
+import type {
+  ApiResponse,
+  ApiResponseErrorDecoder,
+  ApiTransportResponse,
+} from "./type"
+
+type CompatibilityTransportResponse<T> = ApiTransportResponse<T> & {
+  decodeError?: ApiError
+}
+
+type CompatibilityResponseContext = {
+  endpoint: string
+  responseType: TempWindowResponseType
+  onlyData: boolean
+  decodeApplicationError: boolean
+  errorResponseDecoder?: ApiResponseErrorDecoder
+}
+
+/** Maps provider-declared application failures carried by a successful HTTP response. */
+function createProviderBusinessError(
+  response: ApiTransportResponse<unknown>,
+  context: CompatibilityResponseContext,
+): ApiError | null {
+  if (
+    context.responseType !== "json" ||
+    !context.decodeApplicationError ||
+    !context.errorResponseDecoder
+  ) {
+    return null
+  }
+
+  const decoded = resolveResponseErrorDetails(
+    response,
+    context.endpoint,
+    context.errorResponseDecoder,
+  )
+  if (decoded?.kind !== "business") return null
+
+  return new ApiError(
+    getErrorMessage(
+      decoded.message,
+      t("messages:errors.api.invalidResponseFormat"),
+    ),
+    undefined,
+    context.endpoint,
+    API_ERROR_CODES.BUSINESS_ERROR,
+    decoded.upstreamCode,
+  )
+}
+
+/** Converts an unsuccessful HTTP result into the legacy shared ApiError. */
+function createCompatibilityHttpError(
+  response: ApiTransportResponse<unknown>,
+  context: CompatibilityResponseContext,
+): ApiError {
+  let errorCode: ApiErrorCode = API_ERROR_CODES.HTTP_OTHER
+  const fixedFallback = `请求失败: ${response.status}`
+
+  if (response.status === 401) {
+    errorCode = API_ERROR_CODES.HTTP_401
+  } else if (response.status === 403) {
+    errorCode = API_ERROR_CODES.HTTP_403
+  } else if (response.status === 429) {
+    errorCode = API_ERROR_CODES.HTTP_429
+  }
+
+  if (
+    context.responseType === "json" &&
+    (response.status === 401 || response.status === 429)
+  ) {
+    const retryAfter =
+      response.status === 429 ? response.headers["retry-after"] : undefined
+    const hasRetryAfter = response.status === 429 && retryAfter !== undefined
+    const contentType = response.headers["content-type"] || ""
+    const looksLikeHtml =
+      /\btext\/html\b/i.test(contentType) ||
+      /\bapplication\/xhtml\+xml\b/i.test(contentType)
+
+    if (!hasRetryAfter && looksLikeHtml) {
+      errorCode = API_ERROR_CODES.CONTENT_TYPE_MISMATCH
+    }
+  }
+
+  const decoded =
+    context.responseType === "json" &&
+    errorCode !== API_ERROR_CODES.CONTENT_TYPE_MISMATCH
+      ? resolveResponseErrorDetails(
+          response,
+          context.endpoint,
+          context.errorResponseDecoder,
+        )
+      : null
+
+  if (decoded?.kind === "business" && response.status === 403) {
+    errorCode = API_ERROR_CODES.BUSINESS_ERROR
+  }
+
+  const heuristicMessage =
+    !decoded?.message &&
+    context.responseType === "json" &&
+    errorCode !== API_ERROR_CODES.CONTENT_TYPE_MISMATCH
+      ? extractHeuristicResponseErrorMessage(response.body)
+      : undefined
+  const message = getErrorMessage(
+    decoded?.message,
+    getErrorMessage(heuristicMessage, fixedFallback),
+  )
+
+  const error = new ApiError(
+    message,
+    response.status,
+    context.endpoint,
+    errorCode,
+    decoded?.upstreamCode,
+  )
+  // Only a decoded envelope is the site's own answer. Every other message here
+  // is either the transport's fixed fallback or text recovered from a body the
+  // site's protocol did not produce (an interceptor page, a proxy refusal, a
+  // login redirect). Content type cannot tell the two apart — a proxy may well
+  // answer in JSON — so attribution follows the source of the message.
+  if (!decoded?.message) {
+    error.unattributedMessage = true
+  }
+
+  return error
+}
+
+/** Applies the existing envelope and error behavior above raw HTTP transport. */
+export function mapCompatibilityResponse<T>(
+  response: CompatibilityTransportResponse<T>,
+  context: CompatibilityResponseContext,
+): T | ApiResponse<T> {
+  if (!response.ok) {
+    throw createCompatibilityHttpError(response, context)
+  }
+
+  if (response.decodeError) throw response.decodeError
+
+  if (context.responseType === "json" && typeof response.body === "string") {
+    const contentType = response.headers["content-type"] || "unknown"
+    throw new ApiError(
+      t("messages:errors.api.nonJsonContent", {
+        contentType,
+        status: response.status,
+      }),
+      response.status,
+      context.endpoint,
+      API_ERROR_CODES.JSON_PARSE_ERROR,
+    )
+  }
+
+  const providerBusinessError = createProviderBusinessError(response, context)
+  if (providerBusinessError) throw providerBusinessError
+
+  if (context.responseType === "json" && context.onlyData) {
+    return extractDataFromApiResponseBody<T>(response.body, context.endpoint)
+  }
+
+  return response.body as T | ApiResponse<T>
+}

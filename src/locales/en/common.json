@@ -1,0 +1,103 @@
+{
+  "actions": {
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "close": "Close",
+    "copyKey": "Copy Key",
+    "delete": "Delete",
+    "edit": "Edit",
+    "export": "Export",
+    "goToSettings": "Go to Settings",
+    "import": "Import",
+    "loadField": "Load {{field}}",
+    "more": "More",
+    "moveDownItem": "Move {{name}} down",
+    "moveUpItem": "Move {{name}} up",
+    "openSidePanel": "Open in SidePanel",
+    "refresh": "Refresh",
+    "refreshField": "Refresh {{field}}",
+    "reset": "Reset",
+    "retry": "Retry",
+    "save": "Save"
+  },
+  "currency": {
+    "clickToSwitch": "Click to switch to {{currency}}",
+    "cny": "CNY",
+    "usd": "USD"
+  },
+  "datePicker": {
+    "in1Year": "+1 year",
+    "in30Days": "+30 days",
+    "in7Days": "+7 days",
+    "in90Days": "+90 days",
+    "naturalInput": {
+      "invalid": "Enter a recognizable date, such as YYYY-MM-DD or in 7 days",
+      "label": "Enter date",
+      "openCalendar": "Open calendar",
+      "placeholder": "Try in 7 days, tomorrow, or 2026-08-01",
+      "preview": "Will set to: {{date}}"
+    },
+    "noExpiration": "No expiration",
+    "placeholder": "Select date"
+  },
+  "labels": {
+    "apiKey": "API Key",
+    "notAvailable": "N/A",
+    "settings": "Settings",
+    "token": "Token",
+    "unknown": "Unknown"
+  },
+  "quota": {
+    "unlimited": "Unlimited"
+  },
+  "rootErrorBoundary": {
+    "genericDescription": "The page could not be displayed correctly. Reload first. If this keeps happening, report the problem so we can help.",
+    "reload": "Reload page",
+    "reportIssue": "Report problem",
+    "requestLanguage": "Request a language",
+    "title": "Page display failed",
+    "translationDescription": "If you are using automatic translation, turn it off for this page or switch to the language you need in extension settings."
+  },
+  "status": {
+    "applying": "Applying...",
+    "cancelled": "Cancelled",
+    "cancelling": "Cancelling...",
+    "checking": "Checking...",
+    "configurationRequired": "Configuration required",
+    "copying": "Copying...",
+    "creating": "Creating...",
+    "deleting": "Deleting...",
+    "disabled": "Disabled",
+    "disabling": "Disabling...",
+    "enabled": "Enabled",
+    "enabling": "Enabling...",
+    "error": "Error",
+    "exporting": "Exporting...",
+    "failed": "Failed",
+    "importing": "Importing...",
+    "loading": "Loading...",
+    "loadingField": "Loading {{field}}...",
+    "opening": "Opening...",
+    "processing": "Processing...",
+    "refreshing": "Refreshing...",
+    "resetting": "Resetting...",
+    "retrying": "Retrying...",
+    "saving": "Saving...",
+    "starting": "Starting...",
+    "success": "Success",
+    "testing": "Testing...",
+    "uploading": "Uploading..."
+  },
+  "tagFilter": {
+    "allTags": "All tags",
+    "noResults": "No matching tags",
+    "search": "Search tags",
+    "selected": "Selected"
+  },
+  "time": {
+    "neverExpires": "Never Expires",
+    "seconds": "seconds",
+    "updatedAt": "Updated at {{time}}"
+  },
+  "total": "Total"
+}

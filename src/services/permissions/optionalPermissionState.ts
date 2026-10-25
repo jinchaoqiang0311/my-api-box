@@ -1,0 +1,63 @@
+import { Storage } from "@plasmohq/storage"
+
+import { createLogger } from "~/utils/core/logger"
+
+import { OPTIONAL_PERMISSIONS } from "./permissionManager"
+
+/**
+ * Unified logger scoped to persisted optional-permission acknowledgment state.
+ */
+const logger = createLogger("OptionalPermissionState")
+
+const STORAGE_KEY = "optional_permissions_state"
+
+interface OptionalPermissionState {
+  lastSeen: string[]
+}
+
+const storage = new Storage({
+  area: "local",
+})
+
+/**
+ * Read the last acknowledged optional permissions from local (non-synced) storage.
+ */
+async function getLastSeenOptionalPermissions(): Promise<string[] | null> {
+  try {
+    const state = (await storage.get(
+      STORAGE_KEY,
+    )) as OptionalPermissionState | null
+    return state?.lastSeen ?? null
+  } catch (error) {
+    logger.error("Failed to read last seen optional permissions", error)
+    return null
+  }
+}
+
+/**
+ * Persist the current optional permissions as acknowledged.
+ */
+export async function setLastSeenOptionalPermissions(
+  permissions: string[] = OPTIONAL_PERMISSIONS,
+): Promise<void> {
+  try {
+    const sorted = [...permissions].sort()
+    await storage.set(STORAGE_KEY, { lastSeen: sorted })
+  } catch (error) {
+    logger.error("Failed to store last seen optional permissions", error)
+  }
+}
+
+/**
+ * Returns true when the current optional permissions include any new entries
+ * compared with what the user last acknowledged.
+ */
+export async function hasNewOptionalPermissions(
+  current: string[] = OPTIONAL_PERMISSIONS,
+): Promise<boolean> {
+  const lastSeen = await getLastSeenOptionalPermissions()
+  if (!lastSeen) return true
+
+  const lastSeenSet = new Set(lastSeen)
+  return current.some((perm) => !lastSeenSet.has(perm))
+}

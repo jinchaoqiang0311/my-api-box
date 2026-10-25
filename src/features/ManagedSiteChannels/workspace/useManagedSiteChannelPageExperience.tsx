@@ -1,0 +1,197 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
+import { useTranslation } from "react-i18next"
+
+import { WorkflowTransitionIcon } from "~/components/icons/WorkflowTransitionIcon"
+import Tooltip from "~/components/Tooltip"
+import { Button, IconButton, Notice } from "~/components/ui"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import type { ManagedSiteType } from "~/constants/siteType"
+import {
+  KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS,
+  KEY_MANAGEMENT_ROUTE_PARAMS,
+} from "~/features/KeyManagement/constants"
+import { GatewayGuidanceDescription } from "~/features/UnifiedApiGuidance/GatewayGuidanceDescription"
+import { buildGuidedAccountKeyImportTarget } from "~/features/UnifiedApiGuidance/navigation"
+import { runGatewayGuidanceAction } from "~/features/UnifiedApiGuidance/runGatewayGuidanceAction"
+import { accountPresentation } from "~/services/accounts/accountStorage/accountPresentation"
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { canResolveAccountRuntimeKeySecret } from "~/services/accounts/keys/keyProductCapabilities"
+import { apiCredentialProfilesStorage } from "~/services/apiCredentialProfiles/storage/profiles"
+import { buildManagedSiteChannelConsoleUrl } from "~/services/managedSites/managedSiteConsoleRoutes"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { createTab } from "~/utils/browser/tabs"
+import { createLogger } from "~/utils/core/logger"
+import { pushWithinOptionsPage } from "~/utils/navigation/optionsPage"
+
+const logger = createLogger("ManagedSiteChannelPageExperience")
+
+type ManagedSiteChannelPageExperience = {
+  titleActions?: ReactNode
+  description: ReactNode
+  emptyContent?: ReactNode
+  guidanceContent: ReactNode
+}
+
+type Options = {
+  siteType: ManagedSiteType
+  baseUrl?: string
+  isConfigurationMissing: boolean
+  isLoadedEmpty: boolean
+  canImportChannel: boolean
+}
+
+/** Owns the gateway guidance shared by managed-site channel pages. */
+export function useManagedSiteChannelPageExperience({
+  siteType,
+  baseUrl = "",
+  isConfigurationMissing,
+  isLoadedEmpty,
+  canImportChannel,
+}: Options): ManagedSiteChannelPageExperience {
+  const { t } = useTranslation("managedSiteChannels")
+  const [importAccountId, setImportAccountId] = useState<string>()
+  const [hasCredentialProfiles, setHasCredentialProfiles] = useState(false)
+  const [isInventoryLoaded, setIsInventoryLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!canImportChannel || isInventoryLoaded) return
+    let isCurrent = true
+
+    void Promise.all([
+      accountQueries.getAllAccounts().catch((error) => {
+        logger.warn(
+          "Failed to load account context for gateway guidance",
+          error,
+        )
+        return []
+      }),
+      apiCredentialProfilesStorage.listProfiles().catch((error) => {
+        logger.warn(
+          "Failed to load API credential context for gateway guidance",
+          error,
+        )
+        return []
+      }),
+    ]).then(([accounts, profiles]) => {
+      if (!isCurrent) return
+      const displayAccounts = accountPresentation.convertToDisplayData(accounts)
+      setImportAccountId(
+        displayAccounts.find(canResolveAccountRuntimeKeySecret)?.id,
+      )
+      setHasCredentialProfiles(profiles.length > 0)
+      setIsInventoryLoaded(true)
+    })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [canImportChannel, isInventoryLoaded])
+
+  const channelConsoleUrl = buildManagedSiteChannelConsoleUrl(baseUrl, siteType)
+  const openAccountImport = useCallback(() => {
+    const target = buildGuidedAccountKeyImportTarget(importAccountId)
+    void runGatewayGuidanceAction(() =>
+      pushWithinOptionsPage(`#${target.menuItemId}`, target.params),
+    )
+  }, [importAccountId])
+  const openCredentialProfiles = useCallback(() => {
+    void runGatewayGuidanceAction(() =>
+      pushWithinOptionsPage(`#${MENU_ITEM_IDS.API_CREDENTIAL_PROFILES}`, {
+        [KEY_MANAGEMENT_ROUTE_PARAMS.GuidedImport]:
+          KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS.ManagedSite,
+      }),
+    )
+  }, [])
+  const importActions = useMemo(() => {
+    if (!isInventoryLoaded) return []
+    const account = {
+      label: t("gatewayGuidance.empty.importFromAccountKey"),
+      onClick: openAccountImport,
+    }
+    const profile = {
+      label: t("gatewayGuidance.empty.importFromApiKeyLibrary"),
+      onClick: openCredentialProfiles,
+    }
+    return !importAccountId && hasCredentialProfiles
+      ? [profile, account]
+      : [account, profile]
+  }, [
+    hasCredentialProfiles,
+    importAccountId,
+    isInventoryLoaded,
+    openAccountImport,
+    openCredentialProfiles,
+    t,
+  ])
+
+  return {
+    titleActions:
+      !isConfigurationMissing && channelConsoleUrl ? (
+        <Tooltip content={t("gatewayGuidance.openChannelConsole")}>
+          <IconButton
+            type="button"
+            size="sm"
+            variant="outline"
+            aria-label={t("gatewayGuidance.openChannelConsole")}
+            analyticsAction={{
+              featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ManagedSiteChannels,
+              actionId:
+                PRODUCT_ANALYTICS_ACTION_IDS.OpenManagedSiteChannelManagement,
+              surfaceId:
+                PRODUCT_ANALYTICS_SURFACE_IDS.OptionsManagedSiteChannelsToolbar,
+              entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+            }}
+            onClick={() => void createTab(channelConsoleUrl, true)}
+          >
+            <WorkflowTransitionIcon className="h-4 w-4" aria-hidden />
+          </IconButton>
+        </Tooltip>
+      ) : undefined,
+    description: t("gatewayGuidance.headerDescription"),
+    guidanceContent: (
+      <Notice tone="default" className="text-left">
+        <GatewayGuidanceDescription>
+          {t("gatewayGuidance.unconfiguredValueDescription")}
+        </GatewayGuidanceDescription>
+      </Notice>
+    ),
+    emptyContent:
+      isLoadedEmpty && canImportChannel ? (
+        <div className="gap-y-density-3 py-density-4 mx-auto flex max-w-md flex-col items-center gap-x-3 text-center">
+          <div className="space-y-density-1">
+            <div className="text-foreground text-sm font-medium">
+              {t("gatewayGuidance.empty.title")}
+            </div>
+            <div className="text-muted-foreground text-sm">
+              {t("gatewayGuidance.empty.description")}
+            </div>
+          </div>
+          <div className="gap-y-density-2 flex w-full max-w-full flex-wrap items-center justify-center gap-x-2">
+            {importActions.map((action, index) => (
+              <Button
+                key={action.label}
+                type="button"
+                variant={index === 0 ? "default" : "outline"}
+                size="sm"
+                className="h-auto min-h-(--density-control-sm) max-w-full break-words whitespace-normal"
+                onClick={action.onClick}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : undefined,
+  }
+}

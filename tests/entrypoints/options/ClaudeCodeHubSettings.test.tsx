@@ -1,0 +1,445 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { I18nextProvider } from "react-i18next"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import ClaudeCodeHubSettings from "~/features/BasicSettings/components/tabs/ManagedSite/providers/ClaudeCodeHubSettings"
+import settings from "~/locales/en/settings.json"
+import { validateClaudeCodeHubConfig } from "~/services/apiService/claudeCodeHub"
+import { showUpdateToast } from "~/utils/feedback/preferenceFeedback"
+import { createResourceTestI18n, testI18n } from "~~/tests/test-utils/i18n"
+
+testI18n.addResourceBundle(
+  "en",
+  "settings",
+  {
+    managedSiteConnection: {
+      failed: settings.managedSiteConnection.failed,
+    },
+  },
+  true,
+  true,
+)
+
+const { showUpdateToastMock, toSanitizedErrorSummaryMock } = vi.hoisted(() => ({
+  showUpdateToastMock: vi.fn(),
+  toSanitizedErrorSummaryMock: vi.fn(),
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", () => ({
+  useUserPreferencesContext: vi.fn(),
+}))
+
+vi.mock("~/services/apiService/claudeCodeHub", () => ({
+  validateClaudeCodeHubConfig: vi.fn(),
+}))
+
+vi.mock("~/services/verification/aiApiVerification/utils", () => ({
+  toSanitizedErrorSummary: toSanitizedErrorSummaryMock,
+}))
+
+vi.mock("~/utils/feedback/preferenceFeedback", () => ({
+  runPreferenceUpdateWithToast: async ({
+    expectedLastUpdated,
+    setting,
+    update,
+  }: {
+    expectedLastUpdated: number
+    setting: string
+    update: (options: { expectedLastUpdated: number }) => Promise<any>
+  }) => {
+    const result = await update({ expectedLastUpdated })
+    showUpdateToastMock(result, setting)
+    return result
+  },
+  showUpdateToast: showUpdateToastMock,
+}))
+
+vi.mock("~/lib/notify", () => ({
+  default: {
+    loading: vi.fn(),
+    warning: vi.fn(),
+    dismiss: vi.fn(),
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}))
+
+const mockedValidateClaudeCodeHubConfig =
+  validateClaudeCodeHubConfig as ReturnType<typeof vi.fn>
+const mockedShowUpdateToast = showUpdateToast as ReturnType<typeof vi.fn>
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+
+  return { promise, resolve, reject }
+}
+
+describe("ClaudeCodeHubSettings", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    toSanitizedErrorSummaryMock.mockReturnValue("safe provider failure")
+  })
+
+  const renderSubject = (i18n = testI18n) =>
+    render(
+      <I18nextProvider i18n={i18n}>
+        <ClaudeCodeHubSettings />
+      </I18nextProvider>,
+    )
+
+  it("trims the base URL before persisting", async () => {
+    const updateClaudeCodeHubBaseUrl = vi
+      .fn()
+      .mockResolvedValue({ ok: true, preferences: {} })
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 1 },
+      claudeCodeHubBaseUrl: "https://cch.example.com",
+      claudeCodeHubAdminToken: "admin-token",
+      updateClaudeCodeHubBaseUrl,
+      updateClaudeCodeHubAdminToken: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      resetClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+    } as any)
+
+    renderSubject()
+
+    const input = screen.getByPlaceholderText(
+      "settings:claudeCodeHub.fields.baseUrlPlaceholder",
+    )
+
+    fireEvent.change(input, {
+      target: { value: "  https://managed-cch.example.com/  " },
+    })
+    fireEvent.blur(input)
+
+    await waitFor(() => {
+      expect(updateClaudeCodeHubBaseUrl).toHaveBeenCalledWith(
+        "https://managed-cch.example.com/",
+        {
+          expectedLastUpdated: 1,
+        },
+      )
+    })
+
+    expect(mockedShowUpdateToast).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: true }),
+      "settings:claudeCodeHub.fields.baseUrlLabel",
+    )
+  })
+
+  it("trims the admin token before persisting and skips unchanged trimmed values", async () => {
+    const updateClaudeCodeHubAdminToken = vi
+      .fn()
+      .mockResolvedValue({ ok: true, preferences: {} })
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 2 },
+      claudeCodeHubBaseUrl: "https://cch.example.com",
+      claudeCodeHubAdminToken: "same-token",
+      updateClaudeCodeHubBaseUrl: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubAdminToken,
+      updateClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      resetClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+    } as any)
+
+    renderSubject()
+
+    const input = screen.getByDisplayValue("same-token")
+    fireEvent.change(input, {
+      target: { value: "  next-token  " },
+    })
+    fireEvent.blur(input)
+
+    await waitFor(() => {
+      expect(updateClaudeCodeHubAdminToken).toHaveBeenCalledWith("next-token", {
+        expectedLastUpdated: 2,
+      })
+    })
+
+    fireEvent.change(input, {
+      target: { value: "  same-token  " },
+    })
+    fireEvent.blur(input)
+
+    expect(updateClaudeCodeHubAdminToken).toHaveBeenCalledTimes(1)
+    expect(mockedShowUpdateToast).toHaveBeenCalledTimes(1)
+    expect(mockedShowUpdateToast).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: true }),
+      "settings:claudeCodeHub.fields.adminTokenLabel",
+    )
+  })
+
+  it("shows a missing-fields error when validation inputs are blank after trimming", async () => {
+    const toast = await import("~/lib/notify")
+
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 3 },
+      claudeCodeHubBaseUrl: "",
+      claudeCodeHubAdminToken: "",
+      updateClaudeCodeHubBaseUrl: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubAdminToken: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      resetClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+    } as any)
+
+    renderSubject()
+
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "settings:claudeCodeHub.fields.baseUrlPlaceholder",
+      ),
+      {
+        target: { value: "   " },
+      },
+    )
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "settings:claudeCodeHub.fields.adminTokenPlaceholder",
+      ),
+      {
+        target: { value: "   " },
+      },
+    )
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:managedSiteConnection.check",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(vi.mocked(toast.default.error)).toHaveBeenCalledWith(
+        "settings:claudeCodeHub.validation.missingFields",
+      )
+    })
+    expect(mockedValidateClaudeCodeHubConfig).not.toHaveBeenCalled()
+  })
+
+  it("exposes only validation as busy, suppresses duplicate clicks, and restores on success", async () => {
+    const toast = await import("~/lib/notify")
+    const deferredValidation = createDeferred<{ ok: boolean }>()
+    const updateClaudeCodeHubConfig = vi
+      .fn()
+      .mockResolvedValue({ ok: true, preferences: {} })
+
+    mockedValidateClaudeCodeHubConfig.mockReturnValue(
+      deferredValidation.promise,
+    )
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 4 },
+      claudeCodeHubBaseUrl: "https://cch.example.com",
+      claudeCodeHubAdminToken: "admin-token",
+      updateClaudeCodeHubBaseUrl: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubAdminToken: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubConfig,
+      resetClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+    } as any)
+
+    renderSubject()
+
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "settings:claudeCodeHub.fields.baseUrlPlaceholder",
+      ),
+      {
+        target: { value: "  https://managed-cch.example.com  " },
+      },
+    )
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "settings:claudeCodeHub.fields.adminTokenPlaceholder",
+      ),
+      {
+        target: { value: "  next-admin-token  " },
+      },
+    )
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:managedSiteConnection.check",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(mockedValidateClaudeCodeHubConfig).toHaveBeenCalledWith({
+        baseUrl: "https://managed-cch.example.com",
+        adminToken: "next-admin-token",
+      })
+    })
+
+    const validatingButton = screen.getByRole("button", {
+      name: "settings:managedSiteConnection.checking",
+    })
+    expect(validatingButton).toBeDisabled()
+    expect(validatingButton).toHaveAttribute("aria-busy", "true")
+    expect(
+      screen.getByRole("button", { name: "common:actions.reset" }),
+    ).not.toHaveAttribute("aria-busy")
+
+    fireEvent.click(validatingButton)
+    expect(mockedValidateClaudeCodeHubConfig).toHaveBeenCalledTimes(1)
+
+    deferredValidation.resolve({ ok: true })
+
+    await waitFor(() => {
+      expect(vi.mocked(toast.default.success)).toHaveBeenCalledWith(
+        "settings:managedSiteConnection.success",
+        expect.objectContaining({ id: expect.any(String) }),
+      )
+    })
+    expect(updateClaudeCodeHubConfig).not.toHaveBeenCalled()
+    const restoredButton = screen.getByRole("button", {
+      name: "settings:managedSiteConnection.check",
+    })
+    expect(restoredButton).toBeEnabled()
+    expect(restoredButton).not.toHaveAttribute("aria-busy")
+  })
+
+  it("shows a validation failure toast when Claude Code Hub rejects the config", async () => {
+    const toast = await import("~/lib/notify")
+
+    mockedValidateClaudeCodeHubConfig.mockRejectedValueOnce(
+      new Error("request failed"),
+    )
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 5 },
+      claudeCodeHubBaseUrl: "https://cch.example.com",
+      claudeCodeHubAdminToken: "admin-token",
+      updateClaudeCodeHubBaseUrl: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubAdminToken: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      updateClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+      resetClaudeCodeHubConfig: vi
+        .fn()
+        .mockResolvedValue({ ok: true, preferences: {} }),
+    } as any)
+
+    renderSubject()
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:managedSiteConnection.check",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(vi.mocked(toast.default.error)).toHaveBeenCalledWith(
+        expect.stringContaining("settings:claudeCodeHub.validation.failed"),
+        expect.objectContaining({ id: expect.any(String) }),
+      )
+    })
+  })
+
+  it("redacts the draft admin token at the validation toast boundary", async () => {
+    const toast = await import("~/lib/notify")
+    mockedValidateClaudeCodeHubConfig.mockRejectedValueOnce(
+      new Error("token admin-token rejected"),
+    )
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 5 },
+      claudeCodeHubBaseUrl: "https://cch.example.com",
+      claudeCodeHubAdminToken: "admin-token",
+      updateClaudeCodeHubBaseUrl: vi.fn(),
+      updateClaudeCodeHubAdminToken: vi.fn(),
+      updateClaudeCodeHubConfig: vi.fn(),
+      resetClaudeCodeHubConfig: vi.fn(),
+    } as any)
+
+    renderSubject()
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:managedSiteConnection.check",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(vi.mocked(toast.default.error)).toHaveBeenCalledWith(
+        expect.stringContaining("settings:claudeCodeHub.validation.failed"),
+        expect.objectContaining({ id: expect.any(String) }),
+      )
+    })
+    expect(toSanitizedErrorSummaryMock).toHaveBeenCalledWith(
+      expect.any(Error),
+      ["admin-token"],
+    )
+  })
+
+  it("shows a fixed validation error when sanitization yields no message", async () => {
+    const toast = await import("~/lib/notify")
+    const i18n = await createResourceTestI18n({
+      en: {
+        settings: {
+          managedSiteConnection: {
+            check: "Check connection",
+            failed: settings.managedSiteConnection.failed,
+          },
+          claudeCodeHub: {
+            validation: {
+              validate: "Validate configuration",
+              failed: "Validation failed: {{error}}",
+            },
+          },
+        },
+      },
+    })
+    toSanitizedErrorSummaryMock.mockReturnValueOnce("")
+    mockedValidateClaudeCodeHubConfig.mockRejectedValueOnce(undefined)
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      preferences: { lastUpdated: 5 },
+      claudeCodeHubBaseUrl: "https://cch.example.invalid",
+      claudeCodeHubAdminToken: "admin-token",
+      updateClaudeCodeHubBaseUrl: vi.fn(),
+      updateClaudeCodeHubAdminToken: vi.fn(),
+      updateClaudeCodeHubConfig: vi.fn(),
+      resetClaudeCodeHubConfig: vi.fn(),
+    } as any)
+
+    renderSubject(i18n)
+    fireEvent.click(screen.getByRole("button", { name: "Check connection" }))
+
+    await waitFor(() => {
+      expect(vi.mocked(toast.default.error)).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Validation failed: Claude Code Hub request failed",
+        ),
+        expect.objectContaining({ id: expect.any(String) }),
+      )
+    })
+  })
+})

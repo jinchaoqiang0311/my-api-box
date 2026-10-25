@@ -1,0 +1,414 @@
+{
+  "actions": {
+    "open": "Abrir"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "Las cuentas desactivadas quedan fuera de la actualización, el registro y otras automatizaciones. Reactiva las que sigas usando.",
+      "title_one": "La única cuenta está desactivada",
+      "title_many": "Las {{count}} cuentas están desactivadas",
+      "title_other": "Las {{count}} cuentas están desactivadas"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} necesita revisar la configuración del navegador"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} tiene un problema de salud"
+    },
+    "actions": {
+      "addAccount": "Agregar cuenta",
+      "addProfile": "Agregar credencial de API",
+      "editAccount": "Editar cuenta",
+      "fixAccount": "Reparar cuenta",
+      "handleCheckIn": "Resolver check-in",
+      "manageAccounts": "Gestionar cuentas",
+      "openSettings": "Abrir ajustes",
+      "refreshAccounts": "Actualizar cuentas",
+      "signInAgain": "Iniciar sesión de nuevo",
+      "viewAccount": "Ver cuenta",
+      "viewAnnouncements": "Ver anuncios",
+      "viewCheckIn": "Ver check-in",
+      "viewCheckInResults": "Ver resultados"
+    },
+    "addAccount": {
+      "description": "Agrega una cuenta antes de resumir saldos, uso y automatización.",
+      "title": "Aún no hay cuentas"
+    },
+    "addProfile": {
+      "description": "La biblioteca guarda API Keys, claves de coding plan y otros tipos de clave, y monitorea saldo y uso en un solo lugar — incluido cuánto queda de la cuota de 5 horas / 7 días / mes de un coding plan.",
+      "title": "Aún no hay credenciales de API"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_one": "{{count}} cuenta tiene el check-in automático activado, pero no se ejecutará mientras el interruptor global esté desactivado. Vuelve a activarlo en los ajustes de check-in.",
+      "description_many": "{{count}} cuentas tienen el check-in automático activado, pero no se ejecutará mientras el interruptor global esté desactivado. Vuelve a activarlo en los ajustes de check-in.",
+      "description_other": "{{count}} cuentas tienen el check-in automático activado, pero no se ejecutará mientras el interruptor global esté desactivado. Vuelve a activarlo en los ajustes de check-in.",
+      "title": "El check-in automático está desactivado globalmente"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "La última ejecución tuvo fallos o resultados sin confirmar. Abre el check-in automático para revisar los motivos y reintentar.",
+      "title_one": "{{count}} cuenta necesita revisión de check-in",
+      "title_many": "{{count}} cuentas necesitan revisión de check-in",
+      "title_other": "{{count}} cuentas necesitan revisión de check-in"
+    },
+    "categories": {
+      "accounts": "Cuentas",
+      "automation": "Automatización",
+      "credentials": "Credenciales",
+      "data": "Datos"
+    },
+    "categoryFilterLabel": "Categoría",
+    "checkInAccountDataMissing": {
+      "description": "Las credenciales o los datos de la cuenta están incompletos. Vuelve a detectar la cuenta en Gestión de cuentas y reintenta el registro.",
+      "title_one": "{{count}} cuenta no tiene datos de inicio de sesión guardados",
+      "title_many": "{{count}} cuentas no tienen datos de inicio de sesión guardados",
+      "title_other": "{{count}} cuentas no tienen datos de inicio de sesión guardados"
+    },
+    "checkInMethodUnresolved": {
+      "description": "El check-in automático está activado, pero aún no hay un método disponible. En Cuentas, vuelve a detectar o elige un método antes de la próxima ejecución.",
+      "title": "{{name}} necesita un método de check-in"
+    },
+    "checkInPermissionDenied": {
+      "description": "El sitio rechazó la solicitud de registro. Inicia sesión de nuevo o revisa los permisos de la cuenta antes de reintentar.",
+      "title_one": "{{count}} cuenta recibió un rechazo durante el registro",
+      "title_many": "{{count}} cuentas recibieron un rechazo durante el registro",
+      "title_other": "{{count}} cuentas recibieron un rechazo durante el registro"
+    },
+    "checkInReloginRequired": {
+      "description": "La última ejecución omitió estas cuentas porque la sesión del sitio expiró. Inicia sesión en el sitio y vuelve a ejecutar el registro.",
+      "title_one": "{{count}} cuenta necesita iniciar sesión de nuevo",
+      "title_many": "{{count}} cuentas necesitan iniciar sesión de nuevo",
+      "title_other": "{{count}} cuentas necesitan iniciar sesión de nuevo"
+    },
+    "filterAll": "Todos",
+    "severityFilterLabel": "Gravedad",
+    "siteTypeMismatch": {
+      "description": "Este sitio corresponde a {{suggestedType}}, pero la cuenta está configurada como {{storedType}}. Edita la cuenta y define el Tipo de sitio como {{suggestedType}}.",
+      "title": "{{name}} podría tener el tipo de sitio equivocado"
+    },
+    "siteTypeUnknown": {
+      "description": "El check-in automático no puede determinar el protocolo de este sitio. Edita la cuenta y elige el tipo correcto, o vuelve a ejecutar la detección automática.",
+      "title": "{{name}} tiene un tipo de sitio desconocido"
+    },
+    "sortHint": "Ordenado por impacto",
+    "summary_one": "{{count}} pendiente",
+    "summary_many": "{{count}} pendientes",
+    "summary_other": "{{count}} pendientes",
+    "unreadSiteAnnouncements": {
+      "description": "Abre los anuncios del sitio para marcarlos como leídos y no perder avisos de mantenimiento o riesgos.",
+      "title_one": "{{count}} anuncio del sitio sin leer",
+      "title_many": "{{count}} anuncios del sitio sin leer",
+      "title_other": "{{count}} anuncios del sitio sin leer"
+    },
+    "usageRefreshPending": {
+      "description": "Actualiza las cuentas para completar las estadísticas de solicitudes, tokens y costo de hoy.",
+      "title_one": "{{count}} cuenta necesita actualizar sus estadísticas",
+      "title_many": "{{count}} cuentas necesitan actualizar sus estadísticas",
+      "title_other": "{{count}} cuentas necesitan actualizar sus estadísticas"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "Ver check-in",
+      "retryFailed": "Reintentar fallidos"
+    },
+    "empty": {
+      "disabled": {
+        "description": "El check-in automático está desactivado. Vuelve a activarlo cuando quieras que la extensión reclame recompensas de check-in por ti."
+      },
+      "notRun": {
+        "description": "Aún no se ha ejecutado ningún check-in. Después de habilitar la detección de cuentas, la próxima programación lo manejará, o puedes abrir el check-in automático para ejecutarlo manualmente."
+      }
+    },
+    "lastRun": "Última ejecución",
+    "metrics": {
+      "failed": "Fallidos",
+      "skipped": "Omitidos",
+      "success": "Correctos"
+    },
+    "nextRetry": "Próximo reintento",
+    "nextRun": "Próxima ejecución",
+    "notRunYet": "Aún no ejecutado",
+    "notScheduled": "No programado",
+    "status": {
+      "disabled": "Deshabilitado",
+      "failed": "Fallido",
+      "not_run": "Esperando la primera ejecución",
+      "partial": "Éxito parcial",
+      "ready": "Listo",
+      "skipped": "No ejecutado",
+      "success": "Correcto"
+    },
+    "summary": "Resumen de ejecución de check-in automático"
+  },
+  "automation": {
+    "automaticEnabled": "La ejecución automática está activada",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "Activa el check-in automático cuando quieras reclamar recompensas automáticamente. Las programaciones y resultados futuros aparecerán aquí."
+      },
+      "managedSiteModelSync": {
+        "disabled": "Activa la sincronización de modelos cuando quieras actualizar automáticamente los modelos del AI gateway autohospedado. El intervalo y alcance de sincronización aparecerán aquí."
+      },
+      "siteAnnouncements": {
+        "disabled": "Activa el sondeo de anuncios cuando quieras ver actualizaciones del sitio aquí. Las comprobaciones recientes y los conteos de anuncios aparecerán aquí."
+      },
+      "webdavAutoSync": {
+        "disabled": "Configura la sincronización automática de WebDAV cuando quieras copias de seguridad entre dispositivos. La estrategia y el alcance de sincronización aparecerán aquí."
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "Check-in automático"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "Modelos permitidos",
+        "concurrency": "Concurrencia",
+        "interval": "Intervalo de sincronización (horas)",
+        "label": "Sincronización de modelos del AI gateway autohospedado",
+        "open": "Abrir sincronización"
+      },
+      "siteAnnouncements": {
+        "interval": "Intervalo de sondeo (minutos)",
+        "label": "Sondeo de anuncios del sitio",
+        "lastChecked": "Última comprobación",
+        "openPage": "Ver anuncios",
+        "openSettings": "Configuración de sondeo",
+        "records": "Total de anuncios",
+        "unread": "Anuncios no leídos"
+      },
+      "webdavAutoSync": {
+        "domains": "Alcances de sincronización",
+        "interval": "Intervalo de sincronización (minutos)",
+        "label": "Sincronización de copias WebDAV",
+        "open": "Abrir sincronización de copias",
+        "strategy": "Estrategia de sincronización"
+      }
+    },
+    "metrics": {
+      "failed": "Fallidos",
+      "skipped": "Omitidos",
+      "success": "Correctos",
+      "unsupported": "No compatibles"
+    },
+    "neverChecked": "Aún no comprobado",
+    "openItem": "Abrir {{name}}",
+    "status": {
+      "disabled": "Desactivado",
+      "failed": "Falló la ejecución",
+      "limited": "Compatibilidad parcial",
+      "notRun": "Esperando primera ejecución",
+      "partial": "Falló parcialmente",
+      "ready": "Listo",
+      "running": "En ejecución",
+      "skipped": "Sin ejecutar",
+      "success": "Ejecución correcta",
+      "unknown": "Estado desconocido",
+      "unsupported": "No compatible"
+    },
+    "statusUnavailable": "El estado de ejecución no está disponible. Abre los detalles o actualiza para volver a intentarlo."
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "Cuentas, saldos y estado de salud de los que dependen otras funciones.",
+      "label": "Base de cuentas",
+      "state": {
+        "disabled": "El estado de la cuenta aún no se puede leer. Revisa que la configuración de la cuenta esté completa.",
+        "needs_setup": "Agrega al menos una cuenta para que el resumen pueda mostrar saldos, uso y estado de automatización.",
+        "not_applicable": "Puedes continuar sin agregar una cuenta en este entorno."
+      }
+    },
+    "automation": {
+      "description": "Si el check-in automático y el sondeo de anuncios están listos para ejecutarse.",
+      "label": "Automatización",
+      "state": {
+        "disabled": "Por ahora no se ejecutará ninguna tarea automáticamente. Activa el check-in o el sondeo de anuncios cuando los necesites.",
+        "needs_setup": "La automatización aún necesita una cuenta elegible o configuración de detección antes de poder ejecutarse.",
+        "not_applicable": "Aún no hay tareas de automatización disponibles en este entorno."
+      }
+    },
+    "backupSync": {
+      "description": "Configuración de copia de seguridad local y sincronización entre dispositivos.",
+      "label": "Copia y sincronización",
+      "state": {
+        "disabled": "Tus datos permanecen en este dispositivo. Activa la sincronización WebDAV cuando quieras una copia entre dispositivos.",
+        "needs_setup": "Conecta WebDAV primero para poder respaldar los datos locales de forma remota.",
+        "not_applicable": "La copia y sincronización no está disponible aún en este entorno."
+      }
+    },
+    "credentialAssets": {
+      "description": "Almacenamiento de tus claves, además del monitoreo de saldo, cuota y uso.",
+      "label": "Credenciales",
+      "state": {
+        "disabled": "Aún no hay credenciales reutilizables. Revisa la configuración de cuenta o credencial de API.",
+        "needs_setup": "Guarda una credencial de API (Base URL + API Key) para monitorear saldo, cuota y uso en un solo lugar.",
+        "not_applicable": "Este entorno no necesita credenciales de API separadas."
+      }
+    },
+    "dataHistory": {
+      "description": "Si el historial de uso y saldo tiene datos para revisar.",
+      "label": "Historial de datos",
+      "state": {
+        "disabled": "El historial aún no se está guardando. Actívalo para conservar cambios futuros de uso y saldo.",
+        "needs_setup": "El historial está habilitado, pero aún necesita una cuenta o el primer dato. Esta sección se actualizará cuando aparezcan datos.",
+        "not_applicable": "Aún no hay historial de datos para ver en este entorno."
+      }
+    },
+    "managedSite": {
+      "description": "Administración de canales y sincronización de modelos para tu AI gateway autohospedado.",
+      "label": "AI gateway autohospedado",
+      "state": {
+        "disabled": "Aún no hay ningún AI gateway autohospedado configurado. Configura uno cuando necesites administrar canales o modelos.",
+        "needs_setup": "Configura primero un AI gateway autohospedado; luego podrás administrar canales o sincronizar modelos aquí.",
+        "not_applicable": "Este tipo de sitio aún no admite administración de AI gateway autohospedado."
+      }
+    },
+    "subItems": {
+      "accounts": "Cuentas",
+      "apiKeys": "Claves de API",
+      "apiProfiles": "Credenciales de API",
+      "autoCheckin": "Check-in automático",
+      "balanceHistory": "Historial de saldo",
+      "managedSiteChannels": "Administración de canales",
+      "managedSiteModelSync": "Sincronización de modelos",
+      "siteAnnouncements": "Anuncios del sitio",
+      "usageAnalytics": "Analítica de uso",
+      "webdavAutoSync": "Sincronización automática WebDAV",
+      "webdavManual": "Copia manual WebDAV"
+    }
+  },
+  "coverageStatus": {
+    "configured": "Configurado",
+    "disabled": "No habilitado",
+    "needs_setup": "Requiere configuración",
+    "not_applicable": "No aplica"
+  },
+  "description": "Consulta el resumen de cuentas, claves y uso, y da seguimiento a tareas automáticas y acciones pendientes.",
+  "sections": {
+    "automationOverview": "Ejecuciones de automatización",
+    "configurationOverview": "Resumen de configuración",
+    "needsAttention": "Requiere atención",
+    "recentUsage": "Uso reciente",
+    "unifiedApiGuidance": "Configuración de Unified API"
+  },
+  "severity": {
+    "error": "Error",
+    "info": "Info",
+    "warning": "Advertencia"
+  },
+  "states": {
+    "allClear": "No hay nada que requiera atención en este momento.",
+    "allClearDescription": "Los problemas de cuentas, métodos de check-in faltantes y estadísticas pendientes aparecerán aquí automáticamente.",
+    "loadDetailUnavailable": "Parte de la información del resumen no está disponible temporalmente. Intenta cargarla de nuevo.",
+    "loadedWithError": "No se pudo cargar parte de la información. Se muestran los datos disponibles.",
+    "loading": "Cargando resumen..."
+  },
+  "status": {
+    "accounts": {
+      "label": "Cuentas"
+    },
+    "attention": {
+      "label": "Atención"
+    },
+    "profiles": {
+      "label": "Credenciales"
+    },
+    "todayUsage": {
+      "label": "Hoy"
+    }
+  },
+  "title": "Resumen",
+  "todayMetricAvailability": {
+    "coverage": "Completas {{complete}} · Parciales {{partial}} · Elegibles {{eligible}}",
+    "coverageWithRefresh": "Completas {{complete}} · Parciales {{partial}} · Requieren actualización {{refresh}} · Elegibles {{eligible}}",
+    "includesPendingRefresh": "Incluye actualizaciones pendientes",
+    "partial": "Estadística diaria parcial",
+    "pendingRefresh": "Actualización pendiente",
+    "pendingRefreshHelp": "Las estadísticas de hoy aún no se han confirmado. Actualiza la cuenta correspondiente desde la lista de cuentas.",
+    "unavailable": "No disponible"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "Agregar cuenta",
+      "addApiCredential": "Agregar credencial de API",
+      "addGatewayChannel": "Agregar primer canal de gateway",
+      "configureManagedSite": "Configurar AI gateway autohospedado",
+      "manageChannels": "Administrar canales",
+      "openApiCredentialProfiles": "Abrir Biblioteca de credenciales de API",
+      "openModelSync": "Abrir Sincronización de modelos"
+    },
+    "boundaryNote": "My API Box administra e importa la configuración; no hace proxy de las solicitudes de modelos. Los clientes externos llaman a tu AI gateway autohospedado.",
+    "description": {
+      "has_gateway_channels": "La guía de configuración del gateway está completa. Abre la administración de canales para consultar el estado actual.",
+      "needs_importable_source": "Ya tienes cuentas, pero sus tipos actuales no pueden exponer claves importables. Primero guarda una API key o agrega un tipo de cuenta que permita acceder a claves, y luego impórtala en tu AI gateway autohospedado.",
+      "needs_managed_site": "Ya tienes claves de cuenta o API keys. Después de configurar tu AI gateway autohospedado, puedes importarlas como canales del gateway para que varias claves usen una sola AI API.",
+      "needs_sources": "Agrega una cuenta o guarda una clave API y luego impórtala a tu puerta de enlace de IA autoalojada para ofrecer una API de IA unificada.",
+      "ready_accounts": "La configuración básica del AI gateway autohospedado está completa. Continúa importando una clave de cuenta o API key; el flujo de importación validará la conexión y creará un canal.",
+      "ready_profiles": "La configuración básica del AI gateway autohospedado está completa. Abre la biblioteca de credenciales para validar e importar una API key guardada como canal del gateway."
+    },
+    "headline": "Reúne varias claves de cuenta o API keys en una AI API unificada",
+    "modelSyncOptional": "La sincronización de modelos puede actualizar automáticamente la lista de modelos del gateway y reducir mantenimiento manual; puedes activarla cuando haga falta después de crear canales.",
+    "optionalLabel": "Mantenimiento opcional",
+    "overview": {
+      "collapse": "Contraer",
+      "completedDescription": "La guía de configuración está completa. Puedes revisar los pasos o administrar los canales del gateway cuando quieras.",
+      "description": "Importa claves de cuentas o credenciales de API a tu gateway para usar una sola dirección de API.",
+      "progress": "Progreso {{completed}}/{{total}}",
+      "reopen": "Guía de configuración",
+      "resume": "Continuar configuración",
+      "start": "Ver pasos",
+      "title": "API unificada"
+    },
+    "sources": {
+      "account": "Fuentes de cuentas",
+      "accountUnavailable": "Cuentas no importables",
+      "both": "Cuentas + credenciales",
+      "none": "Aún no hay fuentes",
+      "profile": "Fuentes de credenciales"
+    },
+    "stepper": {
+      "label": "Progreso de configuración de la API unificada",
+      "states": {
+        "completed": "Completado",
+        "current": "Paso actual",
+        "upcoming": "Más adelante"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "Importa al menos una clave de cuenta o credencial de API guardada.",
+          "title": "Crear un canal del gateway"
+        },
+        "gatewaySettings": {
+          "description": "Ingresa los datos de conexión de administrador de tu AI gateway autohospedado.",
+          "title": "Guardar configuración del gateway"
+        },
+        "source": {
+          "description": "Agrega una cuenta que permita obtener claves o guarda una credencial de API.",
+          "title": "Preparar una fuente"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "No se pudieron cargar las cuentas, las credenciales o la configuración del gateway. No se asumirá que faltan fuentes.",
+      "retry": "Volver a comprobar",
+      "title": "No se pudo confirmar la configuración"
+    }
+  },
+  "usage": {
+    "activityMix": "Tendencia reciente",
+    "empty": {
+      "description": "Después de enviar una solicitud o sincronizar el historial de uso, esta tarjeta resumirá las solicitudes, tokens, costo de hoy y la tendencia más reciente de 7 días.",
+      "title": "Aún no hay uso registrado"
+    },
+    "noRecentActivity": "No hay uso reciente registrado.",
+    "requestShare": "Proporción de solicitudes",
+    "sevenDayRequests": "Solicitudes de 7 días",
+    "sevenDayTokens": "Tokens de 7 días",
+    "todayCost": "Costo de hoy",
+    "todayRequests": "Solicitudes de hoy",
+    "todayShare": "Proporción de hoy en los últimos 7 días",
+    "todayTokens": "Tokens de hoy",
+    "tokenShare": "Proporción de tokens"
+  }
+}

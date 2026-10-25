@@ -1,0 +1,1649 @@
+import type { BrowserContext, Route } from "@playwright/test"
+
+import { OPTIONS_PAGE_PATH } from "~/constants/extensionPages"
+import { QUOTA_PER_USD } from "~/constants/money"
+import {
+  OPENROUTER_MANAGEMENT_KEY_TRANSPORT_MARGIN_MS,
+  OPENROUTER_MANAGEMENT_KEY_TRANSPORT_TIMEOUT_MS,
+} from "~/constants/openRouterBootstrap"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import {
+  AIHUBMIX_API_ORIGIN,
+  AIHUBMIX_WEB_ORIGIN,
+  OPENROUTER_WEB_ORIGIN,
+  SITE_TYPES,
+} from "~/constants/siteType"
+import {
+  ACCOUNT_MANAGEMENT_TEST_IDS,
+  getAccountManagementListItemTestId,
+} from "~/features/AccountManagement/testIds"
+import { BASIC_SETTINGS_TEST_IDS } from "~/features/BasicSettings/testIds"
+import { TOKEN_PROVISIONING_TEST_IDS } from "~/features/TokenProvisioning/testIds"
+import enMessages from "~/locales/en/messages.json" with { type: "json" }
+import { OPENROUTER_API_BASE_URL } from "~/services/accountSiteDefinitions/identifiers"
+import type { NewApiToken } from "~/services/apiService/newApiFamily/tokenTypes"
+import { STORAGE_KEYS } from "~/services/core/storageKeys"
+import type { SiteAccount } from "~/types"
+import { expect, test } from "~~/e2e/fixtures/extensionTest"
+import { runAccountAutoDetectScenario } from "~~/e2e/scenarios/accountAutoDetect"
+import { saveExistingAccountTokenToApiProfileScenario } from "~~/e2e/scenarios/accountKeyToApiProfile"
+import { refreshAccountRowsAndReadStorage } from "~~/e2e/scenarios/accountManualAdd"
+import {
+  openApiCredentialProfilesPopupScenario,
+  verifyApiCredentialProfileModelsProbeScenario,
+} from "~~/e2e/scenarios/apiCredentialProfileVerification"
+import { verifyCcSwitchModelExportDeepLink } from "~~/e2e/scenarios/ccSwitchExport"
+import {
+  createStoredAccount,
+  E2E_NEW_API_RC22_AUTH,
+  forceExtensionLanguage,
+  installExtensionPageGuards,
+  seedStoredAccounts,
+  seedUserPreferences,
+  stubLlmMetadataIndex,
+  stubNewApiSiteRoutes,
+} from "~~/e2e/utils/commonUserFlows"
+import {
+  expectPermissionOnboardingHidden,
+  getPlasmoStorageRawValue,
+  getServiceWorker,
+} from "~~/e2e/utils/extensionState"
+import { waitForExtensionRoot } from "~~/e2e/utils/lazyLoading"
+import { parallelizeShardableSpec } from "~~/e2e/utils/parallelizeShardableSpec"
+import {
+  expectAccountListItemVisibleBySite,
+  waitForSavedAccount,
+} from "~~/e2e/utils/realSite/accountAdd"
+
+parallelizeShardableSpec()
+
+const DEFAULT_AUTO_PROVISION_TOKEN_NAME = "user group (auto)"
+const AIHUBMIX_SITE_URL = AIHUBMIX_WEB_ORIGIN
+const MANAGED_SITE_BASE_URL = "https://managed-site.example.com"
+const MANAGED_SITE_ADMIN_TOKEN = "managed-site-admin-token"
+const MANAGED_SITE_USER_ID = "1"
+const OPENROUTER_API_PATH = new URL(OPENROUTER_API_BASE_URL).pathname
+const OPENROUTER_MANAGEMENT_KEY = "sk-or-e2e-management-key"
+const OPENROUTER_CREATOR_USER_ID = "openrouter-user-placeholder"
+const RIGHTCODE_SITE_URL = "https://www.right.codes"
+const RIGHTCODE_ACCOUNT_ID = 4242
+const RIGHTCODE_ACCOUNT_USERNAME = "rightcode-user"
+const RIGHTCODE_ACCOUNT_TOKEN = "rightcode-e2e-account-token"
+const GRSAI_SITE_URL = "https://grsai.com"
+/** The console serves its data API from a second host, as it does in production. */
+const GRSAI_CONSOLE_API_ORIGIN = "https://eb.grsaiapi.com"
+const GRSAI_ACCOUNT_ID = "6aba891720c8e541cff9d0e3"
+const GRSAI_ACCOUNT_EMAIL = "grsai-e2e@example.invalid"
+const GRSAI_SESSION_TOKEN = "grsai-e2e-session-token"
+/** Balances and consumption are credits; the console sells 66,600 per dollar. */
+const GRSAI_CREDITS_PER_USD = 66_600
+const GRSAI_CREDITS = 5000
+const GRSAI_TODAY_CREDITS = 1332
+/** Balance the console reports after the account was saved. */
+const GRSAI_REFRESHED_CREDITS = 12_000
+
+type OpenRouterManagementKeyFixtureMode = "authenticated" | "logged_out"
+
+async function stubOpenRouterManagementKeyRoutes(
+  context: BrowserContext,
+  mode: OpenRouterManagementKeyFixtureMode,
+) {
+  let createCount = 0
+
+  await context.exposeBinding(
+    "__aahRecordOpenRouterManagementKeyCreate",
+    (_source, label: unknown) => {
+      if (typeof label === "string" && label.trim()) {
+        createCount += 1
+      }
+    },
+  )
+
+  await context.route(`${OPENROUTER_WEB_ORIGIN}/**`, async (route: Route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/settings/management-keys"
+    ) {
+      const body =
+        mode === "logged_out"
+          ? `<!doctype html>
+            <html>
+              <head><title>Sign in | OpenRouter</title></head>
+              <body><a href="/auth/login">Sign in</a></body>
+            </html>`
+          : `<!doctype html>
+            <html>
+              <head><title>Management Keys | OpenRouter</title></head>
+              <body>
+                <main>
+                  <h1>Management Keys</h1>
+                  <button id="new-key" type="button">New Key</button>
+                </main>
+                <div id="create-dialog" role="dialog" hidden>
+                  <label for="name">Name</label>
+                  <input id="name" placeholder="e.g. &quot;Management Key&quot;" />
+                  <button type="button" data-disabled disabled>Create</button>
+                  <button type="button">Close</button>
+                </div>
+                <script>
+                  window.Clerk = {
+                    user: {
+                      id: "${OPENROUTER_CREATOR_USER_ID}",
+                      fullName: "OpenRouter Example",
+                      username: "ignored-placeholder",
+                      primaryEmailAddress: {
+                        emailAddress: "ignored@example.invalid",
+                      },
+                    },
+                  }
+                  const createDialog = document.getElementById("create-dialog")
+                  const input = createDialog.querySelector("input")
+                  const createButton = Array.from(createDialog.querySelectorAll("button"))
+                    .find((button) => button.textContent.trim() === "Create")
+                  input.addEventListener("input", () => {
+                    createButton.disabled = !input.value.trim()
+                    createButton.toggleAttribute("data-disabled", createButton.disabled)
+                  })
+                  document.getElementById("new-key").addEventListener("click", () => {
+                    createDialog.hidden = false
+                    createDialog.setAttribute("data-open", "")
+                  })
+                  createButton.addEventListener("click", () => {
+                    void window.__aahRecordOpenRouterManagementKeyCreate(input.value)
+                    createDialog.remove()
+                    const resultDialog = document.createElement("div")
+                    resultDialog.setAttribute("role", "dialog")
+                    resultDialog.setAttribute("data-open", "")
+                    resultDialog.innerHTML = [
+                      "<p>Your new management key:</p>",
+                      "<code>${OPENROUTER_MANAGEMENT_KEY}</code>",
+                      '<button type="button">Close</button>',
+                    ].join("")
+                    resultDialog.querySelector("button").addEventListener("click", () => {
+                      resultDialog.remove()
+                    })
+                    document.body.append(resultDialog)
+                  })
+                </script>
+              </body>
+            </html>`
+
+      await route.fulfill({ status: 200, contentType: "text/html", body })
+      return
+    }
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === `${OPENROUTER_API_PATH}/key`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            is_management_key: true,
+            creator_user_id: OPENROUTER_CREATOR_USER_ID,
+          },
+        }),
+      })
+      return
+    }
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === `${OPENROUTER_API_PATH}/credits`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: { total_credits: 10, total_usage: 2 },
+        }),
+      })
+      return
+    }
+
+    if (request.method() === "GET" && url.pathname === "/favicon.ico") {
+      await route.fulfill({ status: 204, body: "" })
+      return
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: `Unhandled OpenRouter E2E route: ${request.method()} ${url.pathname}`,
+      }),
+    })
+  })
+
+  return {
+    getCreateCount: () => createCount,
+  }
+}
+
+function createCopyDialogToken(
+  overrides: Partial<NewApiToken> = {},
+): NewApiToken {
+  const nowSeconds = Math.floor(Date.now() / 1000)
+
+  return {
+    id: 1,
+    user_id: 1,
+    key: "sk-copy-dialog-token",
+    status: 1,
+    name: "Copy Dialog Key",
+    created_time: nowSeconds,
+    accessed_time: nowSeconds,
+    expired_time: -1,
+    remain_quota: -1,
+    unlimited_quota: true,
+    model_limits_enabled: false,
+    model_limits: "",
+    allow_ips: "",
+    used_quota: 0,
+    group: "default",
+    ...overrides,
+  }
+}
+
+async function readStoredAccounts(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+): Promise<SiteAccount[]> {
+  const raw = await getPlasmoStorageRawValue<unknown>(
+    serviceWorker,
+    STORAGE_KEYS.ACCOUNTS,
+  )
+
+  if (typeof raw !== "string") return []
+
+  try {
+    const parsed = JSON.parse(raw) as { accounts?: SiteAccount[] }
+    return Array.isArray(parsed.accounts) ? parsed.accounts : []
+  } catch {
+    return []
+  }
+}
+
+async function findStoredAccountIdByUsername(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+  username: string,
+  siteUrl = "https://example.com",
+): Promise<string | null> {
+  const account = (await readStoredAccounts(serviceWorker)).find(
+    (storedAccount) =>
+      storedAccount.site_url === siteUrl &&
+      storedAccount.account_info.username === username,
+  )
+
+  return account?.id ?? null
+}
+
+async function stubAIHubMixRoutes(context: BrowserContext) {
+  await context.route(`${AIHUBMIX_SITE_URL}/**`, async (route: Route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+
+    // The history follow-up uses the saved console URL.
+    if (request.method() === "GET" && url.pathname === "/api/log/self") {
+      await route.fulfill({
+        json: { success: true, data: { items: [], total: 0 } },
+      })
+      return
+    }
+
+    if (request.method() === "GET" && url.pathname === "/") {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<!doctype html><html><head><title>AIHubMix</title></head><body>AIHubMix</body></html>",
+      })
+      return
+    }
+
+    if (request.method() === "GET" && url.pathname === "/favicon.ico") {
+      await route.fulfill({
+        status: 204,
+        body: "",
+      })
+      return
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: false,
+        message: `Unhandled AIHubMix console route: ${request.method()} ${url.pathname}`,
+      }),
+    })
+  })
+
+  await context.route(`${AIHUBMIX_API_ORIGIN}/**`, async (route: Route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const method = request.method()
+
+    if (method === "GET" && url.pathname === "/") {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: `<!doctype html>
+          <html>
+            <head><title>AIHubMix</title></head>
+            <body>
+              <script>
+                window.localStorage.setItem("user", JSON.stringify({
+                  id: 808,
+                  username: "aihubmix-user",
+                  display_name: "aihubmix-user",
+                  quota: 250000,
+                  used_quota: 0
+                }))
+              </script>
+              AIHubMix
+            </body>
+          </html>`,
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/favicon.ico") {
+      await route.fulfill({
+        status: 204,
+        body: "",
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/call/usr/self") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 808,
+            username: "aihubmix-user",
+            display_name: "aihubmix-user",
+            quota: 250000,
+            used_quota: 0,
+          },
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/call/usr/tkn") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: "aihubmix-account-access-token",
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/user/self") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 808,
+            username: "aihubmix-user",
+            display_name: "aihubmix-user",
+            access_token: "aihubmix-account-access-token",
+            quota: 250000,
+            used_quota: 0,
+          },
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/token/") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: [],
+        }),
+      })
+      return
+    }
+
+    if (method === "POST" && url.pathname === "/api/token/") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 501,
+            user_id: 808,
+            name: DEFAULT_AUTO_PROVISION_TOKEN_NAME,
+            full_key: "sk-aihubmix-created-one-time-key",
+            status: 1,
+            unlimited_quota: true,
+            remain_quota: -1,
+            models: "",
+            subnet: "",
+            used_quota: 0,
+          },
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/user/available_models") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: [{ model: "gpt-aihubmix-mini" }],
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/models") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: {
+            openai: [{ id: "gpt-aihubmix-mini" }],
+          },
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/v1/models") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: [{ id: "gpt-aihubmix-mini" }],
+        }),
+      })
+      return
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: false,
+        message: `Unhandled AIHubMix API route: ${method} ${url.pathname}`,
+      }),
+    })
+  })
+}
+
+/**
+ * Serves the RightCode console and the account endpoints detection reads.
+ *
+ * The console keeps its bearer token as plain page state, so the stub seeds
+ * `localStorage` the way the real console does; detection reads it through the
+ * content-session extractor rather than through a title or a login form.
+ */
+async function stubRightCodeRoutes(context: BrowserContext) {
+  await context.route(`${RIGHTCODE_SITE_URL}/**`, async (route: Route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const method = request.method()
+
+    if (method === "GET" && url.pathname === "/") {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: `<!doctype html>
+          <html>
+            <head><title>Right Code - 企业级 AI Agent 中转平台</title></head>
+            <body>
+              <script>
+                window.localStorage.setItem(${JSON.stringify(
+                  "userToken",
+                )}, ${JSON.stringify(RIGHTCODE_ACCOUNT_TOKEN)})
+                window.localStorage.setItem(${JSON.stringify(
+                  "auth-storage",
+                )}, JSON.stringify({
+                  state: {
+                    user: {
+                      id: ${RIGHTCODE_ACCOUNT_ID},
+                      username: ${JSON.stringify(RIGHTCODE_ACCOUNT_USERNAME)},
+                      email: ${JSON.stringify(
+                        `${RIGHTCODE_ACCOUNT_USERNAME}@example.invalid`,
+                      )},
+                    },
+                    token: ${JSON.stringify(RIGHTCODE_ACCOUNT_TOKEN)},
+                    isAuthenticated: true,
+                  },
+                  version: 0,
+                }))
+              </script>
+              Right Code
+            </body>
+          </html>`,
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/favicon.ico") {
+      await route.fulfill({ status: 204, body: "" })
+      return
+    }
+
+    const json = (body: unknown) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      })
+
+    // Saving refreshes the account and starts the default usage-history follow-up.
+    if (method === "GET" && url.pathname === "/api/log/self") {
+      await json({ success: true, data: { items: [], total: 0 } })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/auth/me") {
+      await json({
+        id: RIGHTCODE_ACCOUNT_ID,
+        username: RIGHTCODE_ACCOUNT_USERNAME,
+        email: `${RIGHTCODE_ACCOUNT_USERNAME}@example.invalid`,
+        balance: 12.5,
+        user_token: RIGHTCODE_ACCOUNT_TOKEN,
+        invite_code: "rightcode-invite",
+      })
+      return
+    }
+
+    // The deployment's own CNY price for one site dollar.
+    if (method === "GET" && url.pathname === "/configs") {
+      await json({ "public.balance.price": "1.0" })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/use-log/stats") {
+      await json({
+        total_requests: 4,
+        total_tokens: 50,
+        total_cost: 0.4,
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/use-log/stats/overall") {
+      await json({
+        total_requests: 40,
+        total_tokens: 500,
+        total_cost: 3,
+        note: "统计范围为全部历史",
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/subscriptions/list") {
+      await json({ subscriptions: [], total: 0 })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/subscriptions/summary/total") {
+      await json({
+        total_quota: 0,
+        used_quota: 0,
+        remaining_quota: 0,
+        active_subscription_count: 0,
+      })
+      return
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: `Unhandled RightCode route: ${method} ${url.pathname}`,
+      }),
+    })
+  })
+}
+
+/**
+ * Serves the Grsai console and the console API.
+ *
+ * The console keeps its session token as plain page state and serves its data
+ * API from `eb.grsaiapi.com`, so detection reads `localStorage.Token` through
+ * the content-session extractor and then calls the console API, which needs
+ * cross-origin headers because that call comes from the console's own page.
+ * The reported balance is read per request so a test can change it and prove a
+ * later read really reached the API with no console tab open.
+ */
+async function stubGrsaiRoutes(
+  context: BrowserContext,
+  options: { getCredits?: () => number } = {},
+) {
+  const getCredits = options.getCredits ?? (() => GRSAI_CREDITS)
+  const corsHeaders = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "authorization,xtx,content-type",
+    "access-control-allow-methods": "POST,OPTIONS",
+  }
+
+  await context.route(
+    `${GRSAI_CONSOLE_API_ORIGIN}/**`,
+    async (route: Route) => {
+      const method = route.request().method()
+      if (method === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: corsHeaders, body: "" })
+        return
+      }
+
+      const json = (body: unknown) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: corsHeaders,
+          body: JSON.stringify(body),
+        })
+
+      const endpoint = new URL(route.request().url()).pathname
+
+      if (endpoint === "/client/common/getConfig") {
+        // Material the console hands out per call; these reads never sign, so
+        // placeholder values are enough to satisfy the session contract.
+        await json({
+          code: 0,
+          msg: "success",
+          data: {
+            token: GRSAI_SESSION_TOKEN,
+            kis: "kis-blob",
+            ra1: "ra1",
+            ra2: "ra2",
+            random: "1234567890",
+            isAuth: true,
+          },
+        })
+        return
+      }
+
+      if (endpoint === "/client/grsai/getUserInfo") {
+        await json({
+          code: 0,
+          msg: "success",
+          data: {
+            id: GRSAI_ACCOUNT_ID,
+            mail: GRSAI_ACCOUNT_EMAIL,
+            credits: getCredits(),
+          },
+        })
+        return
+      }
+
+      if (endpoint === "/client/grsai/getDashboardData") {
+        await json({
+          code: 0,
+          msg: "success",
+          data: {
+            credits: getCredits(),
+            todayConsumed: GRSAI_TODAY_CREDITS,
+            totalConsumed: 400_000,
+          },
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        headers: corsHeaders,
+        body: JSON.stringify({ message: `Unhandled Grsai route: ${endpoint}` }),
+      })
+    },
+  )
+
+  await context.route(`${GRSAI_SITE_URL}/**`, async (route: Route) => {
+    const url = new URL(route.request().url())
+
+    if (url.pathname === "/favicon.ico") {
+      await route.fulfill({ status: 204, body: "" })
+      return
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `<!doctype html>
+        <html>
+          <head><title>Grsai API</title></head>
+          <body>
+            <script>
+              window.localStorage.setItem(${JSON.stringify(
+                "Token",
+              )}, ${JSON.stringify(GRSAI_SESSION_TOKEN)})
+            </script>
+            Grsai
+          </body>
+        </html>`,
+    })
+  })
+}
+
+async function stubManagedSiteAdminRoutes(context: BrowserContext) {
+  const origin = new URL(MANAGED_SITE_BASE_URL).origin
+
+  await context.route(`${origin}/**`, async (route: Route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const method = request.method()
+
+    if (method === "GET" && url.pathname === "/api/channel/") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          message: "ok",
+          data: {
+            items: [],
+            total: 0,
+            type_counts: {},
+          },
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/channel/search") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          message: "ok",
+          data: {
+            items: [],
+            total: 0,
+            type_counts: {},
+          },
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/group") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          message: "ok",
+          data: ["default", "vip"],
+        }),
+      })
+      return
+    }
+
+    if (method === "GET" && url.pathname === "/api/user/models") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          message: "ok",
+          data: ["gpt-aihubmix-mini"],
+        }),
+      })
+      return
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: false,
+        message: `Unhandled managed-site E2E route: ${method} ${url.pathname}`,
+      }),
+    })
+  })
+}
+
+test.beforeEach(async ({ context, page }) => {
+  installExtensionPageGuards(page)
+  await forceExtensionLanguage(page, "en")
+  await stubLlmMetadataIndex(context)
+  await stubNewApiSiteRoutes(context, {
+    systemName: "E2E New API",
+  })
+})
+
+test("adds an account through the real add-account auto-detect flow", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    // This scenario enters its URL manually; avoid racing current-tab autofill.
+    autoFillCurrentSiteUrlOnAccountAdd: false,
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+
+  await runAccountAutoDetectScenario({
+    extensionId,
+    extensionPage: page,
+    baseUrl: "https://example.com",
+    siteType: SITE_TYPES.NEW_API,
+    getServiceWorker: async () => serviceWorker,
+    openSitePage: async () => {
+      const sitePage = await context.newPage()
+      await sitePage.addInitScript(() => {
+        window.localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: 1,
+            username: "e2e-user",
+            quota: 1000,
+          }),
+        )
+      })
+      await sitePage.goto("https://example.com")
+      await sitePage.bringToFront()
+      return sitePage
+    },
+    prepareDetectableSite: async () => undefined,
+  })
+
+  const persistedAccounts = await serviceWorker.evaluate(async () => {
+    const chromeApi = (globalThis as any).chrome
+
+    return await new Promise<string | undefined>((resolve, reject) => {
+      chromeApi.storage.local.get(
+        "site_accounts",
+        (stored: Record<string, string>) => {
+          const error = chromeApi.runtime?.lastError
+          if (error) {
+            reject(new Error(error.message))
+            return
+          }
+          const entry = Object.entries(stored).find(
+            ([storedKey]) => storedKey === "site_accounts",
+          )
+          resolve(entry ? entry[1] : undefined)
+        },
+      )
+    })
+  })
+
+  expect(persistedAccounts).toContain('"username":"e2e-user"')
+})
+
+test("adds an rc22 account from AuthBundle and persists only its PAT", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const baseUrl = "https://rc22.example.invalid"
+  const { dashboardToken, managementPat, sessionId } = E2E_NEW_API_RC22_AUTH
+
+  await stubNewApiSiteRoutes(context, {
+    baseUrl,
+    dashboardAuthMode: "auth-bundle",
+    accessToken: managementPat,
+  })
+
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    // This scenario enters its URL manually; avoid racing current-tab autofill.
+    autoFillCurrentSiteUrlOnAccountAdd: false,
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+
+  const fixture = await runAccountAutoDetectScenario({
+    extensionId,
+    extensionPage: page,
+    baseUrl,
+    siteType: SITE_TYPES.NEW_API,
+    getServiceWorker: async () => serviceWorker,
+    openSitePage: async () => {
+      const sitePage = await context.newPage()
+      await sitePage.goto(baseUrl)
+      expect(
+        await sitePage.evaluate(() => localStorage.getItem("user")),
+      ).toBeNull()
+      await sitePage.bringToFront()
+      return sitePage
+    },
+    prepareDetectableSite: async (sitePage) => ({
+      cleanupDetectableSite: async () => {
+        const cleanupResult = await sitePage.evaluate(
+          async ({ dashboardToken, managementPat, sessionId }) => {
+            const logoutResponse = await fetch("/api/user/auth/logout", {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                Authorization: `Bearer ${dashboardToken}`,
+                "X-Auth-Session": sessionId,
+              },
+            })
+            const revokedDashboardResponse = await fetch("/api/user/self", {
+              headers: { Authorization: `Bearer ${dashboardToken}` },
+            })
+            const patResponse = await fetch("/api/user/self", {
+              headers: { Authorization: `Bearer ${managementPat}` },
+            })
+
+            return {
+              logoutStatus: logoutResponse.status,
+              revokedDashboardStatus: revokedDashboardResponse.status,
+              patStatus: patResponse.status,
+            }
+          },
+          { dashboardToken, managementPat, sessionId },
+        )
+
+        expect(cleanupResult).toEqual({
+          logoutStatus: 200,
+          revokedDashboardStatus: 401,
+          patStatus: 200,
+        })
+      },
+    }),
+  })
+
+  const accounts = await readStoredAccounts(serviceWorker)
+  const saved = accounts.find((account) => account.id === fixture.accountId)
+  expect(saved?.account_info.access_token).toBe(managementPat)
+  expect(JSON.stringify(saved)).not.toContain(dashboardToken)
+})
+
+test("OpenRouter auto-detect bootstrap creates and saves one management key", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+  const openRouterFixture = await stubOpenRouterManagementKeyRoutes(
+    context,
+    "authenticated",
+  )
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.ACCOUNT}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.addAccountButton).click()
+  const dialog = page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountDialog)
+  await dialog
+    .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteUrlInput)
+    .fill(OPENROUTER_WEB_ORIGIN)
+  await dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.autoDetectButton).click()
+
+  await expect(
+    dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteTypeTrigger),
+  ).toHaveAttribute("data-site-type", SITE_TYPES.OPENROUTER)
+  await expect(
+    dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accessTokenInput),
+  ).toHaveValue(OPENROUTER_MANAGEMENT_KEY)
+  const usernameInput = dialog.getByTestId(
+    ACCOUNT_MANAGEMENT_TEST_IDS.usernameInput,
+  )
+  const userIdInput = dialog.getByTestId(
+    ACCOUNT_MANAGEMENT_TEST_IDS.userIdInput,
+  )
+  await expect(usernameInput).toBeVisible()
+  await expect(usernameInput).toBeEditable()
+  await expect(usernameInput).toHaveJSProperty("required", false)
+  await expect(usernameInput).toHaveValue("OpenRouter Example")
+  await expect(userIdInput).toBeVisible()
+  await expect(userIdInput).toBeEditable()
+  await expect(userIdInput).toHaveJSProperty("required", false)
+  await expect(userIdInput).toHaveValue(OPENROUTER_CREATOR_USER_ID)
+  await expect.poll(openRouterFixture.getCreateCount).toBe(1)
+
+  await usernameInput.fill("Edited Example")
+  await userIdInput.fill("edited-user-placeholder")
+  await dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.confirmAddButton).click()
+  await expect(dialog).toBeHidden()
+
+  await expectAccountListItemVisibleBySite(page, {
+    siteType: SITE_TYPES.OPENROUTER,
+    baseUrl: OPENROUTER_WEB_ORIGIN,
+  })
+  await expect
+    .poll(async () => {
+      const accounts = await readStoredAccounts(serviceWorker)
+      return accounts.find(
+        (account) =>
+          account.site_type === SITE_TYPES.OPENROUTER &&
+          account.site_url === OPENROUTER_WEB_ORIGIN,
+      )
+    })
+    .toMatchObject({
+      site_type: SITE_TYPES.OPENROUTER,
+      site_url: OPENROUTER_WEB_ORIGIN,
+      account_info: {
+        id: "edited-user-placeholder",
+        username: "Edited Example",
+        access_token: OPENROUTER_MANAGEMENT_KEY,
+      },
+    })
+
+  expect(openRouterFixture.getCreateCount()).toBe(1)
+})
+
+test("OpenRouter auto-detect bootstrap shows manual fallback while logged out", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+  const openRouterFixture = await stubOpenRouterManagementKeyRoutes(
+    context,
+    "logged_out",
+  )
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.ACCOUNT}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.addAccountButton).click()
+  const dialog = page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountDialog)
+  await dialog
+    .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteUrlInput)
+    .fill(OPENROUTER_WEB_ORIGIN)
+  await dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.autoDetectButton).click()
+
+  const loggedOutGuidance = dialog.getByTestId(
+    ACCOUNT_MANAGEMENT_TEST_IDS.autoDetectErrorMessage,
+  )
+  await expect(loggedOutGuidance).toBeVisible({
+    timeout:
+      OPENROUTER_MANAGEMENT_KEY_TRANSPORT_TIMEOUT_MS +
+      OPENROUTER_MANAGEMENT_KEY_TRANSPORT_MARGIN_MS,
+  })
+  await expect(loggedOutGuidance).toHaveText(
+    enMessages.openrouter.bootstrap.logged_out,
+  )
+  await expect(
+    dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteTypeTrigger),
+  ).toHaveAttribute("data-site-type", SITE_TYPES.OPENROUTER)
+  await expect(
+    dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteUrlInput),
+  ).toBeDisabled()
+  await expect(
+    dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accessTokenInput),
+  ).toBeVisible()
+  await expect(
+    dialog.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accessTokenInput),
+  ).toBeEmpty()
+  await expect.poll(openRouterFixture.getCreateCount).toBe(0)
+})
+
+test("enables all-group key provisioning, adds an account, saves a created key as a reusable API profile, and verifies it from the popup", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  const createdGroups: string[] = []
+  context.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname === "/api/token/"
+    ) {
+      const payload = request.postDataJSON() as { group: string }
+      createdGroups.push(payload.group)
+    }
+  })
+  await seedUserPreferences(serviceWorker, {
+    // This scenario fills the URL manually; avoid a competing current-tab autofill.
+    autoFillCurrentSiteUrlOnAccountAdd: false,
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}?tab=accountManagement#${MENU_ITEM_IDS.BASIC}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  const autoProvisionSwitch = page.getByTestId(
+    BASIC_SETTINGS_TEST_IDS.autoProvisionKeyEnabledSwitch,
+  )
+  await expect(autoProvisionSwitch).toHaveAttribute("aria-checked", "false")
+  await autoProvisionSwitch.click()
+  await expect(autoProvisionSwitch).toHaveAttribute("aria-checked", "true")
+  const allGroups = page.getByTestId(
+    BASIC_SETTINGS_TEST_IDS.autoProvisionKeyAllGroupsButton,
+  )
+  await allGroups.click()
+  await expect(allGroups).toHaveAttribute("aria-pressed", "true")
+  await page.reload()
+  await waitForExtensionRoot(page)
+  await expect(allGroups).toHaveAttribute("aria-pressed", "true")
+
+  const accountFixture = await runAccountAutoDetectScenario({
+    extensionId,
+    extensionPage: page,
+    baseUrl: "https://example.com",
+    siteType: SITE_TYPES.NEW_API,
+    getServiceWorker: async () => serviceWorker,
+    openSitePage: async () => {
+      const sitePage = await context.newPage()
+      await forceExtensionLanguage(sitePage, "en")
+      await sitePage.addInitScript(() => {
+        window.localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: 1,
+            username: "e2e-user",
+            quota: 1000,
+          }),
+        )
+      })
+      await sitePage.goto("https://example.com")
+      await sitePage.bringToFront()
+      return sitePage
+    },
+    prepareDetectableSite: async () => undefined,
+  })
+  await expect(
+    page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListView),
+  ).toContainText("e2e-user")
+  await expect(
+    page.getByText("Account keys ready: 2 created, 0 already covered.", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  expect(createdGroups).toHaveLength(2)
+  expect(createdGroups).toEqual(expect.arrayContaining(["default", "vip"]))
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.KEYS}?accountId=${accountFixture.accountId}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await expect(
+    page.getByRole("heading", { name: DEFAULT_AUTO_PROVISION_TOKEN_NAME }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "vip group (auto)" }),
+  ).toBeVisible()
+  await expect(page.getByText("default", { exact: true })).toBeVisible()
+
+  const savedProfile = await saveExistingAccountTokenToApiProfileScenario({
+    extensionId,
+    extensionPage: page,
+    getServiceWorker: async () => serviceWorker,
+    resolveAccountFixture: async () => accountFixture,
+    tokenName: DEFAULT_AUTO_PROVISION_TOKEN_NAME,
+    openFromAccountRow: false,
+    expectedProfile: {
+      baseUrl: "https://example.com",
+      apiKey: "sk-created-1",
+    },
+    cleanupCreatedProfile: false,
+  })
+
+  const popupPage = await openApiCredentialProfilesPopupScenario({
+    page: await context.newPage(),
+    extensionId,
+  })
+  await verifyApiCredentialProfileModelsProbeScenario({
+    page: popupPage,
+    profileName: savedProfile.name,
+    expectedModelCount: 2,
+  })
+})
+
+test("exports an account key from the copy-key dialog to CC Switch", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [
+    createStoredAccount({
+      id: "e2e-copy-dialog-cc-switch-account",
+      site_name: "Copy Dialog CC Source",
+      site_url: "https://copy-dialog-cc.example.com",
+      account_info: {
+        id: "45",
+        username: "copy-dialog-user",
+        access_token: "copy-dialog-access-token",
+      },
+    }),
+  ])
+  await stubNewApiSiteRoutes(context, {
+    baseUrl: "https://copy-dialog-cc.example.com",
+    models: ["gpt-copy-dialog-cc"],
+    initialTokens: [
+      createCopyDialogToken({
+        id: 1,
+        name: "Copy Dialog CC Key",
+        key: "sk-copy-dialog-cc",
+      }),
+      createCopyDialogToken({
+        id: 2,
+        name: "Copy Dialog Secondary Key",
+        key: "sk-copy-dialog-secondary",
+      }),
+    ],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.ACCOUNT}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  const accountRow = page.getByTestId(
+    getAccountManagementListItemTestId("e2e-copy-dialog-cc-switch-account"),
+  )
+  await expect(accountRow).toBeVisible()
+  await accountRow.hover()
+  await accountRow
+    .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.rowCopyKeyButton)
+    .click()
+
+  await expect(page.getByRole("heading", { name: "Key List" })).toBeVisible()
+  await page
+    .getByRole("button", {
+      name: "View details for Copy Dialog CC Key",
+      exact: true,
+    })
+    .click()
+  await page
+    .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.copyKeyDialogExportMenuButton)
+    .click()
+  await page
+    .getByTestId(
+      ACCOUNT_MANAGEMENT_TEST_IDS.copyKeyDialogExportToCCSwitchButton,
+    )
+    .click()
+
+  await verifyCcSwitchModelExportDeepLink({
+    page,
+    modelName: "gpt-copy-dialog-cc",
+    expected: {
+      app: "claude",
+      name: "Copy Dialog CC Source",
+      homepage: "https://copy-dialog-cc.example.com",
+      endpoint: "https://copy-dialog-cc.example.com",
+      apiKey: "sk-copy-dialog-cc",
+    },
+  })
+})
+
+test("adds an AIHubMix account, preserves its one-time key, and opens managed-site channel setup", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    // This scenario enters its URL manually; avoid racing current-tab autofill.
+    autoFillCurrentSiteUrlOnAccountAdd: false,
+    tempWindowFallback: {
+      enabled: false,
+    },
+    managedSiteType: SITE_TYPES.NEW_API,
+    newApi: {
+      baseUrl: MANAGED_SITE_BASE_URL,
+      adminToken: MANAGED_SITE_ADMIN_TOKEN,
+      userId: MANAGED_SITE_USER_ID,
+      username: "",
+      password: "",
+      totpSecret: "",
+    },
+  })
+  await stubAIHubMixRoutes(context)
+  await stubManagedSiteAdminRoutes(context)
+
+  const sitePage = await context.newPage()
+  installExtensionPageGuards(sitePage)
+  await forceExtensionLanguage(sitePage, "en")
+  await sitePage.addInitScript(() => {
+    window.localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: 808,
+        username: "aihubmix-user",
+        display_name: "aihubmix-user",
+        quota: 250000,
+        used_quota: 0,
+      }),
+    )
+  })
+  await sitePage.goto(AIHUBMIX_API_ORIGIN)
+  await sitePage.bringToFront()
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.ACCOUNT}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.addAccountButton).click()
+  await page.locator("#site-url").fill(AIHUBMIX_SITE_URL)
+  await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.autoDetectButton).click()
+
+  await expect(
+    page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteTypeTrigger),
+  ).toHaveAttribute("data-site-type", SITE_TYPES.AIHUBMIX)
+  await expect(
+    page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.autoConfigButton),
+  ).toBeVisible()
+
+  await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.autoConfigButton).click()
+
+  const oneTimeKeyInput = page.getByTestId(
+    TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyInput,
+  )
+  await expect(oneTimeKeyInput).toBeVisible({ timeout: 30_000 })
+  await expect(oneTimeKeyInput).toHaveValue("sk-aihubmix-created-one-time-key")
+
+  await page
+    .getByTestId(TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyCloseButton)
+    .click()
+
+  await expect(
+    page.getByRole("heading", { name: "Create Channel" }),
+  ).toBeVisible()
+  await expect(page.locator("#channel-name")).toHaveValue(
+    /Aihubmix \| user group \(auto\)/,
+  )
+  await expect(
+    page
+      .getByRole("group", { name: "API Key 1", exact: true })
+      .getByLabel("API Key 1", { exact: true }),
+  ).toHaveValue("sk-aihubmix-created-one-time-key")
+  await expect(page.locator("#channel-base-url")).toHaveValue(
+    "https://aihubmix.com",
+  )
+  await expect(page.getByText("gpt-aihubmix-mini")).toBeVisible()
+
+  await expect
+    .poll(() =>
+      findStoredAccountIdByUsername(
+        serviceWorker,
+        "aihubmix-user",
+        AIHUBMIX_SITE_URL,
+      ),
+    )
+    .not.toBeNull()
+
+  await sitePage.close()
+})
+
+test("adds a RightCode account from its logged-in console without a one-time key step", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    // This scenario enters its URL manually; avoid racing current-tab autofill.
+    autoFillCurrentSiteUrlOnAccountAdd: false,
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+  await stubRightCodeRoutes(context)
+
+  const fixture = await runAccountAutoDetectScenario({
+    extensionId,
+    extensionPage: page,
+    baseUrl: RIGHTCODE_SITE_URL,
+    siteType: SITE_TYPES.RIGHT_CODE,
+    getServiceWorker: async () => serviceWorker,
+    openSitePage: async () => {
+      const sitePage = await context.newPage()
+      installExtensionPageGuards(sitePage)
+      await forceExtensionLanguage(sitePage, "en")
+      await sitePage.goto(RIGHTCODE_SITE_URL)
+      await sitePage.bringToFront()
+      return sitePage
+    },
+    prepareDetectableSite: async () => undefined,
+  })
+
+  // The whole point of the integration: this deployment is not a One/New API
+  // backend, so detection resolves it from the console session instead of
+  // reporting a payload that does not match any known site.
+  expect(fixture.siteType).toBe(SITE_TYPES.RIGHT_CODE)
+
+  // RightCode re-reveals keys on every read, so saving must not raise the
+  // created-secret dialog that warns the value would be lost.
+  await expect(
+    page.getByTestId(TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyInput),
+  ).toHaveCount(0)
+
+  const savedAccount = await waitForSavedAccount({
+    serviceWorker,
+    siteType: SITE_TYPES.RIGHT_CODE,
+    baseUrl: RIGHTCODE_SITE_URL,
+    predicate: (account) => account.account_info.quota > 0,
+  })
+  expect(savedAccount.account_info.username).toBe(RIGHTCODE_ACCOUNT_USERNAME)
+  expect(savedAccount.account_info.id).toBe(String(RIGHTCODE_ACCOUNT_ID))
+  expect(savedAccount.account_info.access_token).toBe(RIGHTCODE_ACCOUNT_TOKEN)
+  // Saving reads the account through the same producer the refresh button uses:
+  // the stubbed wallet balance and today cost, converted into quota points.
+  expect(savedAccount.account_info.quota).toBe(12.5 * QUOTA_PER_USD)
+  expect(savedAccount.account_info.today_quota_consumption).toBe(
+    0.4 * QUOTA_PER_USD,
+  )
+  expect(savedAccount.account_info.today_requests_count).toBe(4)
+  // RightCode runs no check-in flow, so no method may be learned or selected.
+  expect(Object.keys(savedAccount.checkIn.methodKnowledge.methods)).toEqual([])
+  expect(savedAccount.checkIn.selection.methodId).toBeUndefined()
+
+  await fixture.cleanup()
+})
+
+test("adds a Grsai account from its logged-in console session", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    // This scenario enters its URL manually; avoid racing current-tab autofill.
+    autoFillCurrentSiteUrlOnAccountAdd: false,
+    tempWindowFallback: {
+      enabled: false,
+    },
+  })
+  let grsaiCredits = GRSAI_CREDITS
+  await stubGrsaiRoutes(context, { getCredits: () => grsaiCredits })
+
+  const fixture = await runAccountAutoDetectScenario({
+    extensionId,
+    extensionPage: page,
+    baseUrl: GRSAI_SITE_URL,
+    siteType: SITE_TYPES.GRSAI,
+    getServiceWorker: async () => serviceWorker,
+    openSitePage: async () => {
+      const sitePage = await context.newPage()
+      installExtensionPageGuards(sitePage)
+      await forceExtensionLanguage(sitePage, "en")
+      await sitePage.goto(GRSAI_SITE_URL)
+      await sitePage.bringToFront()
+      return sitePage
+    },
+    prepareDetectableSite: async () => undefined,
+  })
+
+  // The console is not a One/New API backend, so detection has to resolve it
+  // from the console session instead of reporting an unmatched payload.
+  expect(fixture.siteType).toBe(SITE_TYPES.GRSAI)
+
+  // The console re-reveals keys on every read, so saving must not raise the
+  // created-secret dialog that warns the value would be lost.
+  await expect(
+    page.getByTestId(TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyInput),
+  ).toHaveCount(0)
+
+  const savedAccount = await waitForSavedAccount({
+    serviceWorker,
+    siteType: SITE_TYPES.GRSAI,
+    baseUrl: GRSAI_SITE_URL,
+    predicate: (account) => account.account_info.quota > 0,
+  })
+  expect(savedAccount.account_info.username).toBe(GRSAI_ACCOUNT_EMAIL)
+  expect(savedAccount.account_info.id).toBe(GRSAI_ACCOUNT_ID)
+  expect(savedAccount.account_info.access_token).toBe(GRSAI_SESSION_TOKEN)
+  // Saving reads the account through the same producer the refresh button uses:
+  // the stubbed credit balance and today consumption, normalized into quota
+  // points at the console's own base credit rate.
+  expect(savedAccount.account_info.quota).toBe(
+    Math.round((GRSAI_CREDITS / GRSAI_CREDITS_PER_USD) * QUOTA_PER_USD),
+  )
+  expect(savedAccount.account_info.today_quota_consumption).toBe(
+    Math.round((GRSAI_TODAY_CREDITS / GRSAI_CREDITS_PER_USD) * QUOTA_PER_USD),
+  )
+  // The console runs no check-in flow, so no method may be learned or selected.
+  expect(Object.keys(savedAccount.checkIn.methodKnowledge.methods)).toEqual([])
+  expect(savedAccount.checkIn.selection.methodId).toBeUndefined()
+
+  // Saving closed the console tab, and the balance the stub now reports is a
+  // different one, so this refresh can only succeed if the extension reaches
+  // the console API by itself: the account is usable without the site's page.
+  grsaiCredits = GRSAI_REFRESHED_CREDITS
+  await refreshAccountRowsAndReadStorage({
+    page,
+    serviceWorker,
+    accountIds: [savedAccount.id],
+    expectedQuotas: [
+      Math.round(
+        (GRSAI_REFRESHED_CREDITS / GRSAI_CREDITS_PER_USD) * QUOTA_PER_USD,
+      ),
+    ],
+  })
+
+  await fixture.cleanup()
+})
+
+for (const scenario of [
+  { userId: 99, duplicate: true },
+  { userId: 100, duplicate: false },
+]) {
+  test(`checks a manual addition by identity before saving: ${scenario.duplicate ? "same user" : "different user"}`, async ({
+    context,
+    extensionId,
+    page,
+  }) => {
+    const serviceWorker = await getServiceWorker(context)
+    await seedStoredAccounts(serviceWorker, [
+      createStoredAccount({
+        id: "existing-account",
+        site_name: "Existing Example",
+        site_url: "https://example.com",
+        account_info: {
+          id: "99",
+          username: "existing-user",
+          access_token: "existing-token",
+        },
+      }),
+    ])
+    await seedUserPreferences(serviceWorker, {
+      warnOnDuplicateAccountAdd: true,
+      autoProvisionKeyOnAccountAdd: false,
+    })
+    await stubNewApiSiteRoutes(context, {
+      userId: scenario.userId,
+      username: "added-user",
+      accessToken: "added-token",
+    })
+
+    await page.goto(
+      `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#account`,
+    )
+    await waitForExtensionRoot(page)
+    await expectPermissionOnboardingHidden(page)
+
+    await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.addAccountButton).click()
+
+    await expect(page.locator("#site-url")).toBeVisible()
+    await page.locator("#site-url").fill("https://example.com")
+    await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.manualAddButton).click()
+
+    await expect(page.getByLabel("Site Type")).toBeVisible()
+    const duplicateHeading = page.getByRole("heading", {
+      name: "Duplicate account",
+      exact: true,
+    })
+    await expect(duplicateHeading).toBeHidden()
+    await page.getByLabel("Site Type").click()
+    await page
+      .getByRole("option", { name: SITE_TYPES.NEW_API, exact: true })
+      .click()
+    await page
+      .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.siteNameInput)
+      .fill("Added Example")
+    await page
+      .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.usernameInput)
+      .fill("added-user")
+    await page
+      .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.userIdInput)
+      .fill(String(scenario.userId))
+    await page
+      .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accessTokenInput)
+      .fill("added-token")
+    await page.getByPlaceholder("Please enter exchange rate").fill("7")
+    await page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.confirmAddButton).click()
+
+    if (scenario.duplicate) {
+      await expect(duplicateHeading).toBeVisible()
+      await expect(
+        page.getByText(/user ID 99 is already saved \(existing-user\)/),
+      ).toBeVisible()
+      expect(await readStoredAccounts(serviceWorker)).toHaveLength(1)
+      await page
+        .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.duplicateWarningContinueButton)
+        .click()
+    }
+
+    await expect
+      .poll(async () => (await readStoredAccounts(serviceWorker)).length)
+      .toBe(2)
+    await expect(duplicateHeading).toBeHidden()
+    await expect(
+      page.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountDialog),
+    ).toBeHidden()
+  })
+}

@@ -1,0 +1,99 @@
+name: Bug Report / Bug 反馈
+description: Tell us what happened so we can look into it / 告诉我们发生了什么，方便我们尽快排查
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report this. Even a brief description helps us understand what went wrong. If you can share the details below, it usually helps us reproduce the issue without asking you to repeat yourself.
+
+        感谢您愿意告诉我们这个问题。哪怕只是简要描述，也能帮助我们理解发生了什么。如果方便的话，补充下面这些信息，通常能帮助我们更快复现问题，也尽量减少反复向您确认。
+
+  - type: input
+    id: browser-info
+    attributes:
+      label: Browser and Version / 浏览器和版本
+      description: Which browser and version are you using? This often helps us tell whether the issue is related to a specific environment. / 您使用的是哪个浏览器及其版本？这通常有助于我们判断是否与特定环境有关。
+      placeholder: e.g., Chrome 120.0.6099.109
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension Version / 扩展版本
+      description: |
+        What version of the extension are you using? If you are not sure, the steps below can help you find it. / 您使用的扩展版本是什么？如果暂时不确定，可以按下面的方式查看。
+        Recommended: On any extension page, the version number appears to the right of the extension name in the top-left corner. / 推荐：在扩展任意界面的左上角，扩展名称右侧会显示版本号。
+        You can also find it here / 也可按以下方式查看：
+        - Chrome: Open `chrome://extensions/?id=YOUR-CHROME-EXTENSION-ID` / 打开 `chrome://extensions/?id=YOUR-CHROME-EXTENSION-ID`
+        - Edge: Open `edge://extensions/?id=YOUR-EDGE-EXTENSION-ID` / 打开 `edge://extensions/?id=YOUR-EDGE-EXTENSION-ID`
+        - Firefox: Open `about:addons`, find `My API Box`, open its details page, then check the version. / 打开 `about:addons`，找到 `My API Box`，进入详情页后查看版本号。
+      placeholder: e.g., 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description / Bug 描述
+      description: A clear and concise description of what the bug is / 清晰简洁地描述这个 bug 是什么
+      placeholder: |
+        A short summary of what went wrong...
+        简要描述遇到了什么问题...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce / 复现步骤
+      description: If you remember the steps, listing them here helps us verify the problem on our side. / 如果您还记得复现步骤，写在这里会帮助我们在本地验证问题。
+      placeholder: |
+        1. Open... / 打开...
+        2. Do... / 执行...
+        3. Then... / 然后...
+        4. The issue appears / 问题出现
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior / 预期行为
+      description: A clear and concise description of what you expected to happen / 清晰简洁地描述您期望发生什么
+      placeholder: |
+        What did you hope would happen here?
+        您原本期望这里会发生什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior / 实际行为
+      description: A clear and concise description of what actually happened / 清晰简洁地描述实际发生了什么
+      placeholder: |
+        What happened instead?
+        实际上发生了什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / 截图
+      description: If applicable, add screenshots to help explain your problem / 如果适用，请添加截图以帮助解释您的问题
+      placeholder: |
+        If you have a screenshot, you can drop it here or paste an image link
+        如果您有截图，可以拖到这里或粘贴图片链接
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context / 其他信息
+      description: Add any other context about the problem here / 在此处添加有关该问题的任何其他信息
+      placeholder: |
+        Anything else that may help us understand the issue...
+        任何可能帮助我们理解问题的补充信息...

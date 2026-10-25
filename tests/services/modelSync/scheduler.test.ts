@@ -1,0 +1,325 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { ModelSyncService } from "~/services/models/modelSync/modelSyncService"
+import {
+  getModelSyncNextRun,
+  modelSyncScheduler,
+} from "~/services/models/modelSync/scheduler"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import {
+  clearAlarm,
+  createAlarm,
+  getAlarm,
+  hasAlarmsAPI,
+} from "~/utils/browser/alarms"
+
+vi.mock(
+  "~/services/preferences/preferencesDefaults",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("~/services/preferences/preferencesDefaults")
+      >()
+    return {
+      ...actual,
+      DEFAULT_PREFERENCES: {
+        managedSiteType: "new-api",
+        newApi: {
+          baseUrl: "",
+          adminToken: "",
+          userId: "",
+        },
+        managedSiteModelSync: {
+          enabled: true,
+          interval: 60_000,
+          concurrency: 1,
+          maxRetries: 1,
+          rateLimit: { requestsPerMinute: 10, burst: 2 },
+          allowedModels: [],
+          globalChannelModelFilters: [],
+        },
+      },
+    }
+  },
+)
+
+const {
+  ensureLegacyChannelConfigMigrationReadyMock,
+  getConfigsForScopeMock,
+  modelSyncListChannelsMock,
+  modelSyncServiceConstructorMock,
+} = vi.hoisted(() => ({
+  ensureLegacyChannelConfigMigrationReadyMock: vi
+    .fn()
+    .mockResolvedValue(undefined),
+  getConfigsForScopeMock: vi.fn().mockResolvedValue({}),
+  modelSyncListChannelsMock: vi.fn(),
+  modelSyncServiceConstructorMock: vi.fn(),
+}))
+
+vi.mock(
+  "~/services/managedSites/configuration/legacyChannelConfigMigration",
+  () => ({
+    ensureLegacyChannelConfigMigrationReady:
+      ensureLegacyChannelConfigMigrationReadyMock,
+  }),
+)
+
+vi.mock("~/services/preferences/userPreferences", () => ({
+  userPreferences: {
+    getPreferences: vi.fn(),
+    savePreferences: vi.fn(),
+  },
+}))
+
+vi.mock("~/utils/browser/alarms", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/browser/alarms")>()
+  return {
+    ...actual,
+    clearAlarm: vi.fn(),
+    createAlarm: vi.fn(),
+    getAlarm: vi.fn(),
+    hasAlarmsAPI: vi.fn(),
+    onAlarm: vi.fn(),
+  }
+})
+
+vi.mock("~/services/apiAdapters/registry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/services/apiAdapters/registry")>()),
+  getManagedSiteCapabilities: vi.fn(),
+}))
+
+vi.mock("~/services/models/modelSync/modelSyncService", () => ({
+  ModelSyncService: vi.fn(function (this: unknown, ...args: unknown[]) {
+    modelSyncServiceConstructorMock(...args)
+    return {
+      listChannels: modelSyncListChannelsMock,
+    }
+  }),
+}))
+
+vi.mock("~/services/managedSites/configuration/channelConfigStorage", () => ({
+  channelConfigStorage: {
+    getConfigsForScope: getConfigsForScopeMock,
+  },
+}))
+
+const mockedUserPreferences = userPreferences as unknown as {
+  getPreferences: ReturnType<typeof vi.fn>
+}
+
+const mockedBrowserApi = {
+  clearAlarm: clearAlarm as unknown as ReturnType<typeof vi.fn>,
+  createAlarm: createAlarm as unknown as ReturnType<typeof vi.fn>,
+  getAlarm: getAlarm as unknown as ReturnType<typeof vi.fn>,
+  hasAlarmsAPI: hasAlarmsAPI as unknown as ReturnType<typeof vi.fn>,
+}
+
+const mockedModelSyncService = ModelSyncService as unknown as ReturnType<
+  typeof vi.fn
+>
+
+describe("modelSyncScheduler.setupAlarm", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedBrowserApi.hasAlarmsAPI.mockReturnValue(true)
+    mockedBrowserApi.getAlarm.mockResolvedValue(undefined)
+    mockedUserPreferences.getPreferences.mockResolvedValue({
+      managedSiteModelSync: {
+        ...(DEFAULT_PREFERENCES as any).managedSiteModelSync,
+        enabled: true,
+      },
+    })
+  })
+
+  it("clears and recreates the canonical alarm when enabled and missing", async () => {
+    mockedBrowserApi.getAlarm
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        name: "managedSiteModelSync",
+        scheduledTime: Date.now() + 60_000,
+        periodInMinutes: 1,
+      })
+
+    await modelSyncScheduler.setupAlarm()
+
+    expect(mockedBrowserApi.clearAlarm).toHaveBeenCalledWith(
+      "managedSiteModelSync",
+    )
+    expect(mockedBrowserApi.createAlarm).toHaveBeenCalled()
+  })
+
+  it("preserves an existing alarm when the interval matches", async () => {
+    mockedBrowserApi.getAlarm.mockResolvedValue({
+      name: "managedSiteModelSync",
+      scheduledTime: Date.now() + 60_000,
+      periodInMinutes: 1,
+    })
+
+    await modelSyncScheduler.setupAlarm()
+
+    expect(mockedBrowserApi.clearAlarm).not.toHaveBeenCalled()
+    expect(mockedBrowserApi.createAlarm).not.toHaveBeenCalled()
+  })
+
+  it("recreates the alarm when the interval changes", async () => {
+    mockedBrowserApi.getAlarm
+      .mockResolvedValueOnce({
+        name: "managedSiteModelSync",
+        scheduledTime: Date.now() + 60_000,
+        periodInMinutes: 2,
+      })
+      .mockResolvedValueOnce({
+        name: "managedSiteModelSync",
+        scheduledTime: Date.now() + 60_000,
+        periodInMinutes: 1,
+      })
+
+    await modelSyncScheduler.setupAlarm()
+
+    expect(mockedBrowserApi.clearAlarm).toHaveBeenCalledWith(
+      "managedSiteModelSync",
+    )
+    expect(mockedBrowserApi.createAlarm).toHaveBeenCalled()
+  })
+})
+
+describe("model sync operation helpers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedBrowserApi.hasAlarmsAPI.mockReturnValue(true)
+    modelSyncListChannelsMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      type_counts: {},
+    })
+  })
+
+  it("returns next scheduled time from the alarm", async () => {
+    const scheduledTime = Date.now() + 60_000
+    mockedBrowserApi.getAlarm.mockResolvedValue({
+      name: "managedSiteModelSync",
+      scheduledTime,
+      periodInMinutes: 1,
+    })
+
+    await expect(getModelSyncNextRun()).resolves.toEqual({
+      success: true,
+      data: {
+        nextScheduledAt: new Date(scheduledTime).toISOString(),
+        periodInMinutes: 1,
+      },
+    })
+  })
+
+  it("rejects model sync for Claude Code Hub because the backend does not support it", async () => {
+    mockedUserPreferences.getPreferences.mockResolvedValueOnce({
+      managedSiteType: SITE_TYPES.CLAUDE_CODE_HUB,
+      claudeCodeHub: {
+        baseUrl: "https://cch.example.com",
+        adminToken: "admin-token",
+      },
+      managedSiteModelSync: {
+        ...(DEFAULT_PREFERENCES as any).managedSiteModelSync,
+      },
+    })
+
+    await expect(modelSyncScheduler.executeSync()).rejects.toThrow(
+      "messages:managedSite.unsupportedModelSync",
+    )
+  })
+
+  it("rejects model sync for AxonHub because model fetch and writeback are not supported", async () => {
+    mockedUserPreferences.getPreferences.mockResolvedValueOnce({
+      managedSiteType: SITE_TYPES.AXON_HUB,
+      axonHub: {
+        baseUrl: "https://axon.example.com",
+        email: "admin@example.com",
+        password: "admin-password",
+      },
+      managedSiteModelSync: {
+        ...(DEFAULT_PREFERENCES as any).managedSiteModelSync,
+      },
+    })
+
+    await expect(modelSyncScheduler.executeSync()).rejects.toThrow(
+      "messages:managedSite.unsupportedModelSync",
+    )
+    expect(mockedModelSyncService).not.toHaveBeenCalled()
+  })
+
+  it("rejects Sub2API model sync with provider-correct copy", async () => {
+    mockedUserPreferences.getPreferences.mockResolvedValueOnce({
+      managedSiteType: SITE_TYPES.SUB2API,
+      sub2apiManagedSite: {
+        baseUrl: "https://sub2api.example.invalid",
+        adminToken: "admin-api-key",
+      },
+      managedSiteModelSync: {
+        ...(DEFAULT_PREFERENCES as any).managedSiteModelSync,
+      },
+    })
+
+    await expect(modelSyncScheduler.executeSync()).rejects.toThrow(
+      "messages:managedSite.unsupportedModelSync",
+    )
+    expect(mockedModelSyncService).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    SITE_TYPES.CLAUDE_CODE_HUB,
+    SITE_TYPES.AXON_HUB,
+    SITE_TYPES.SUB2API,
+  ])(
+    "rejects model-sync inventory for unsupported provider %s",
+    async (siteType) => {
+      mockedUserPreferences.getPreferences.mockResolvedValue({
+        managedSiteType: siteType,
+      })
+      await expect(modelSyncScheduler.listChannels()).rejects.toThrow(
+        "messages:managedSite.unsupportedModelSync",
+      )
+      expect(mockedModelSyncService).not.toHaveBeenCalled()
+    },
+  )
+
+  it("constructs model sync with the current runtime config object", async () => {
+    const managedConfig = {
+      baseUrl: "https://new-api.example.com",
+      adminToken: "admin-token",
+      userId: "42",
+    }
+    mockedUserPreferences.getPreferences.mockResolvedValue({
+      managedSiteType: SITE_TYPES.NEW_API,
+      newApi: managedConfig,
+      managedSiteModelSync: {
+        ...(DEFAULT_PREFERENCES as any).managedSiteModelSync,
+      },
+    })
+
+    await modelSyncScheduler.listChannels()
+
+    expect(mockedModelSyncService).toHaveBeenCalledTimes(1)
+    expect(modelSyncServiceConstructorMock).toHaveBeenCalledWith(
+      {
+        siteType: SITE_TYPES.NEW_API,
+        config: managedConfig,
+      },
+      expect.anything(),
+      expect.any(Array),
+      {},
+      [],
+      {
+        version: 2,
+        kind: "automatic",
+        feature: "managed_site_model_sync",
+        trigger: "background_recovery",
+        surface: "background",
+      },
+    )
+    expect(modelSyncListChannelsMock).toHaveBeenCalled()
+    expect(ensureLegacyChannelConfigMigrationReadyMock).not.toHaveBeenCalled()
+  })
+})

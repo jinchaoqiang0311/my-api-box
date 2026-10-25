@@ -1,0 +1,163 @@
+{
+  "actions": {
+    "applySettings": "設定を適用",
+    "prune": "整理",
+    "refreshNow": "今すぐ更新"
+  },
+  "breakdown": {
+    "chartTypes": {
+      "histogram": "ヒストグラム",
+      "pie": "円グラフ"
+    },
+    "controls": {
+      "chartType": "グラフ種別",
+      "reference": "参照"
+    },
+    "coverage": "データあり {{covered}}/{{total}} アカウント",
+    "empty": "この内訳に表示できるデータがありません。",
+    "hints": {
+      "pieDisabledForNegative": "負の値では円グラフを利用できません。"
+    },
+    "title": "アカウント内訳"
+  },
+  "description": "毎日の残高と収支の推移から、アカウントの資金の変化を確認します。",
+  "empty": {
+    "description": "残高履歴を有効化し、アカウントを更新して最初のスナップショットを記録してください。",
+    "title": "まだスナップショットがありません"
+  },
+  "emptyRange": {
+    "description": "スナップショットは存在しますが、選択した期間内のものがありません。期間を広げるか、アカウントを更新してください。",
+    "title": "この期間にはスナップショットがありません"
+  },
+  "filters": {
+    "accounts": "アカウント",
+    "accountsHint": "グラフに含めるアカウントを選択します。",
+    "allAccounts": "すべてのアカウント",
+    "allTags": "すべてのタグ",
+    "endDay": "終了日",
+    "noDataInRange": "この期間のデータはありません",
+    "quickRanges": {
+      "180d": "180 日",
+      "30d": "30 日",
+      "365d": "1 年",
+      "7d": "7 日",
+      "90d": "90 日"
+    },
+    "range": "期間",
+    "rangeHint": "保持期間（{{days}} 日）内で制限されます。",
+    "startDay": "開始日",
+    "tags": "タグ",
+    "tagsHint": "タグでアカウントを絞り込みます。"
+  },
+  "hints": {
+    "disabled": {
+      "actions": {
+        "openSettings": "設定を開く"
+      },
+      "description": "スナップショット記録を開始するには、設定で残高履歴を有効にしてください。",
+      "title": "残高履歴は無効です"
+    },
+    "incompleteSelection": {
+      "description": "合計値は、各日にデータのあるアカウントを合算するベストエフォート方式で計算されます。カバー率が不完全な場合（{{minCovered}}–{{maxCovered}}/{{totalAccounts}} アカウント）、合計値は実際より少なく見積もられる可能性があります。",
+      "title": "合計値が不完全な可能性があります"
+    }
+  },
+  "messages": {
+    "error": {
+      "pruneFailed": "整理に失敗しました: {{error}}",
+      "refreshFailed": "更新に失敗しました: {{error}}",
+      "settingsSaveFailed": "設定の保存に失敗しました: {{error}}"
+    },
+    "loading": {
+      "loadingData": "読み込み中…",
+      "pruning": "整理中…",
+      "refreshing": "更新中…",
+      "savingSettings": "設定を保存中…"
+    },
+    "success": {
+      "pruneCompleted": "整理が完了しました",
+      "refreshCompleted": "更新が完了しました",
+      "settingsSaved": "設定を保存しました"
+    }
+  },
+  "metrics": {
+    "balance": "残高",
+    "estimatedIncome": "推定収入",
+    "income": "収入",
+    "net": "純増減",
+    "outcome": "支出"
+  },
+  "overview": {
+    "kpis": {
+      "coverageAccounts": "{{covered}}/{{total}} アカウント",
+      "endBalance": {
+        "label": "期末残高"
+      },
+      "incomeTotal": {
+        "label": "総収入"
+      },
+      "outcomeTotal": {
+        "label": "総支出"
+      },
+      "rangeNet": {
+        "label": "期間純増減"
+      }
+    },
+    "title": "概要"
+  },
+  "settings": {
+    "alarmUnsupported": "このブラウザでは Alarms API を利用できないため、日次終了時の自動記録は有効にできません。",
+    "enabled": "残高履歴を有効化",
+    "enabledHint": "無効にすると、スナップショットは記録されず、定期取得も停止します。",
+    "endOfDayCapture": "日次終了時の記録",
+    "endOfDayCaptureHint": "{{time}} 付近でベストエフォートの日次記録を行います（Alarms API が必要です）。",
+    "estimatedTodayIncome": "推定の本日収入を表示",
+    "estimatedTodayIncomeHint": "残高履歴を使って、サイトの収入ログに出ない報酬を推定します。前日の基準スナップショットがない場合は利用できません。",
+    "retentionDays": "保持日数"
+  },
+  "summary": {
+    "coverage": "データのある日数: 残高 {{snapshotAvailableDays}}/{{totalDays}}（完全 {{snapshotCompleteDays}}/{{totalDays}}）、キャッシュフロー {{cashflowAvailableDays}}/{{totalDays}}（完全 {{cashflowCompleteDays}}/{{totalDays}}）。"
+  },
+  "table": {
+    "columns": {
+      "account": "アカウント",
+      "cashflowCoverage": "キャッシュフローのカバー率",
+      "endBalance": "期末残高",
+      "estimatedIncomeTotal": "推定収入合計",
+      "incomeTotal": "総収入",
+      "outcomeTotal": "総支出",
+      "rangeNet": "期間純増減",
+      "snapshotCoverage": "スナップショットのカバー率",
+      "startBalance": "期首残高"
+    },
+    "coverageFormat": "{{covered}}/{{total}}",
+    "empty": "表示するアカウント概要がありません。",
+    "loading": "読み込み中…",
+    "title": "アカウント概要"
+  },
+  "title": "残高履歴",
+  "trend": {
+    "chartTypes": {
+      "bar": "棒グラフ",
+      "line": "折れ線"
+    },
+    "controls": {
+      "chartType": "グラフ種別",
+      "scope": "表示範囲"
+    },
+    "emptyMetric": "この期間には {{metric}} データがありません。",
+    "scopes": {
+      "accounts": "アカウント別",
+      "total": "合計"
+    },
+    "subtitle": "欠損日はギャップとして扱うアカウント別系列です。",
+    "subtitleTotal": "選択したアカウント全体の合計です。不完全な日には実際より少なく見積もられる場合があります。",
+    "title": "推移"
+  },
+  "warnings": {
+    "cashflowDisabled": {
+      "description": "本日のキャッシュフロー取得と日次終了時記録の両方が無効です。収入 / 支出の値を記録するには、「本日のキャッシュフローを表示」または「日次終了時の記録」のどちらかを有効にしてください。",
+      "title": "収入 / 支出履歴は空になります"
+    }
+  }
+}

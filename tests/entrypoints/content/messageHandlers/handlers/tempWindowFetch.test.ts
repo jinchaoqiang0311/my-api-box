@@ -1,0 +1,507 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { RuntimeActionIds } from "~/constants/runtimeActions"
+import {
+  EXTENSION_HEADER_NAME,
+  EXTENSION_HEADER_VALUE,
+} from "~/utils/browser/cookieHelper"
+
+const { logger, mockLogCloudflareGuard, mockSendRuntimeMessage } = vi.hoisted(
+  () => ({
+    logger: {
+      warn: vi.fn(),
+    },
+    mockLogCloudflareGuard: vi.fn(),
+    mockSendRuntimeMessage: vi.fn().mockResolvedValue(undefined),
+  }),
+)
+
+vi.mock("~/utils/browser/runtimeMessages", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/utils/browser/runtimeMessages")>()),
+  sendRuntimeMessage: mockSendRuntimeMessage,
+}))
+
+vi.mock("~/utils/core/logger", () => ({
+  createLogger: vi.fn(() => logger),
+}))
+
+vi.mock("~/entrypoints/content/messageHandlers/utils/cloudflareGuard", () => ({
+  logCloudflareGuard: mockLogCloudflareGuard,
+}))
+
+describe("handlePerformTempWindowFetch", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+    vi.stubGlobal("location", { origin: "https://example.com" })
+  })
+
+  it("adds the extension header, defaults credentials to include, and relays json responses", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "x-test-header": "value",
+        },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    const shouldKeepChannelOpen = handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/api/data",
+        fetchOptions: {
+          method: "POST",
+          redirect: "follow",
+          headers: {
+            authorization: "Bearer token",
+          },
+        },
+        responseType: "json",
+        requestId: "req-1",
+      },
+      sendResponse,
+    )
+
+    expect(shouldKeepChannelOpen).toBe(true)
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: true,
+        },
+        success: true,
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "x-test-header": "value",
+        },
+        data: { ok: true },
+        error: undefined,
+      })
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/data",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        redirect: "error",
+        headers: expect.objectContaining({
+          authorization: "Bearer token",
+          [EXTENSION_HEADER_NAME.toLowerCase()]: EXTENSION_HEADER_VALUE,
+        }),
+      }),
+    )
+    expect(mockSendRuntimeMessage).toHaveBeenCalledWith({
+      action: RuntimeActionIds.ApiTransportRemoteFetchDispatched,
+      requestId: "req-1",
+    })
+    expect(mockLogCloudflareGuard).toHaveBeenNthCalledWith(
+      1,
+      "tempFetchStart",
+      expect.objectContaining({
+        requestId: "req-1",
+        responseType: "json",
+      }),
+    )
+    expect(mockLogCloudflareGuard).toHaveBeenLastCalledWith(
+      "tempFetchDone",
+      expect.objectContaining({
+        requestId: "req-1",
+        ok: true,
+        status: 200,
+      }),
+    )
+  })
+
+  it("preserves caller-provided credentials and surfaces text errors for non-ok responses", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("forbidden", {
+        status: 403,
+        headers: { "content-type": "text/plain" },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/protected",
+        fetchOptions: {
+          credentials: "omit",
+          headers: [["x-request-id", "req-2"]],
+        },
+        responseType: "text",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: true,
+        },
+        success: false,
+        status: 403,
+        headers: {
+          "content-type": "text/plain",
+        },
+        data: "forbidden",
+        error: "forbidden",
+      })
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/protected",
+      expect.objectContaining({
+        credentials: "omit",
+        headers: expect.objectContaining({
+          "x-request-id": "req-2",
+          [EXTENSION_HEADER_NAME.toLowerCase()]: EXTENSION_HEADER_VALUE,
+        }),
+      }),
+    )
+  })
+
+  it("uses a response message field as the structured error for non-ok json responses", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "upstream denied" }), {
+        status: 429,
+        headers: { "content-type": "application/json" },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/rate-limited",
+        responseType: "json",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: true,
+        },
+        success: false,
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+        },
+        data: { message: "upstream denied" },
+        error: "upstream denied",
+      })
+    })
+
+    expect(mockLogCloudflareGuard).not.toHaveBeenCalled()
+  })
+
+  it("falls back to serializing a non-ok object response when no message field exists", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ code: "E_BAD_GATEWAY" }), {
+        status: 502,
+        headers: { "content-type": "application/json" },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/gateway",
+        responseType: "json",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: true,
+        },
+        success: false,
+        status: 502,
+        headers: {
+          "content-type": "application/json",
+        },
+        data: { code: "E_BAD_GATEWAY" },
+        error: '{"code":"E_BAD_GATEWAY"}',
+      })
+    })
+
+    expect(mockLogCloudflareGuard).not.toHaveBeenCalled()
+  })
+
+  it("keeps the response structured when parsing the body fails", async () => {
+    const response = {
+      ok: false,
+      status: 502,
+      headers: new Headers({ "x-edge": "cache" }),
+      blob: vi.fn().mockResolvedValue({
+        type: "application/octet-stream",
+        arrayBuffer: vi.fn().mockRejectedValue(new Error("blob-read-failed")),
+      }),
+    }
+    const fetchMock = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/binary",
+        responseType: "blob",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: true,
+        },
+        success: false,
+        status: 502,
+        headers: {
+          "x-edge": "cache",
+        },
+        data: null,
+        error: "{}",
+      })
+    })
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Failed to parse response",
+      expect.any(Error),
+    )
+  })
+
+  it("keeps a successful response successful when parsing fails", async () => {
+    const response = {
+      ok: true,
+      status: 204,
+      headers: new Headers({ "x-edge": "cache" }),
+      blob: vi.fn().mockResolvedValue({
+        type: "application/octet-stream",
+        arrayBuffer: vi.fn().mockRejectedValue(new Error("blob-read-failed")),
+      }),
+    }
+    const fetchMock = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/empty-success",
+        responseType: "blob",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: true,
+        },
+        success: true,
+        status: 204,
+        headers: {
+          "x-edge": "cache",
+        },
+        data: null,
+        error: undefined,
+      })
+    })
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Failed to parse response",
+      expect.any(Error),
+    )
+    expect(mockLogCloudflareGuard).not.toHaveBeenCalled()
+  })
+
+  it("returns a structured failure when the request is invalid before fetch starts", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch({}, sendResponse)
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: false,
+          upstreamResponseReceived: false,
+        },
+        success: false,
+        error: "Invalid fetch request",
+      })
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(mockSendRuntimeMessage).not.toHaveBeenCalled()
+    expect(mockLogCloudflareGuard).not.toHaveBeenCalled()
+  })
+
+  it("fails before dispatch when the content context no longer matches the authorized origin", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+    vi.stubGlobal("location", { origin: "https://navigated.example.com" })
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/api/data",
+        requestId: "req-origin-race",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: false,
+          upstreamResponseReceived: false,
+        },
+        success: false,
+        error: "Temporary context origin changed before fetch",
+      })
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(mockSendRuntimeMessage).not.toHaveBeenCalled()
+  })
+
+  it("fails before dispatch when the fetch URL no longer matches the authorized origin", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+    vi.stubGlobal("location", { origin: "https://example.com" })
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://attacker.example.invalid/api/data",
+        requestId: "req-fetch-origin-race",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: false,
+          upstreamResponseReceived: false,
+        },
+        success: false,
+        error: "Temporary context origin changed before fetch",
+      })
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(mockSendRuntimeMessage).not.toHaveBeenCalled()
+  })
+
+  it("logs request-scoped failures when fetch throws", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("network down"))
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch)
+
+    const { handlePerformTempWindowFetch } = await import(
+      "~/entrypoints/content/messageHandlers/handlers/tempWindowFetch"
+    )
+
+    const sendResponse = vi.fn()
+    handlePerformTempWindowFetch(
+      {
+        expectedOrigin: "https://example.com",
+        fetchUrl: "https://example.com/api/data",
+        requestId: "req-err",
+      },
+      sendResponse,
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        transportLifecycle: {
+          upstreamRequestDispatched: true,
+          upstreamResponseReceived: false,
+        },
+        success: false,
+        error: "network down",
+      })
+    })
+
+    expect(mockLogCloudflareGuard).toHaveBeenNthCalledWith(
+      1,
+      "tempFetchStart",
+      expect.objectContaining({
+        requestId: "req-err",
+      }),
+    )
+    expect(mockLogCloudflareGuard).toHaveBeenLastCalledWith(
+      "tempFetchError",
+      expect.objectContaining({
+        requestId: "req-err",
+        error: "network down",
+      }),
+    )
+    expect(mockSendRuntimeMessage).toHaveBeenCalledWith({
+      action: RuntimeActionIds.ApiTransportRemoteFetchDispatched,
+      requestId: "req-err",
+    })
+  })
+})

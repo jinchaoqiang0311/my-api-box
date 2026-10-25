@@ -1,0 +1,140 @@
+import { useEffect, useMemo, useState } from "react"
+
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { TempWindowFallbackReminderDialog } from "~/features/AccountManagement/components/TempWindowFallbackReminderDialog"
+import { useAccountDataContext } from "~/features/AccountManagement/data/AccountDataContext"
+import {
+  getTempWindowFallbackIssue,
+  isTempWindowFallbackReminderCode,
+  type TempWindowFallbackIssue,
+  type TempWindowFallbackReminderCode,
+} from "~/features/AccountManagement/utils/tempWindowFallbackReminder"
+import { getTempWindowFallbackBlockStatus } from "~/utils/browser/tempWindowFetch"
+
+/**
+ * Mount-point component that decides whether the temp-window fallback reminder dialog
+ * should be shown in the current UI surface.
+ */
+export function TempWindowFallbackReminderGate() {
+  const { displayData } = useAccountDataContext()
+  const {
+    tempWindowFallback,
+    tempWindowFallbackReminder,
+    updateTempWindowFallbackReminder,
+  } = useUserPreferencesContext()
+
+  const [isOpen, setIsOpen] = useState(false)
+  const [currentBlockCode, setCurrentBlockCode] =
+    useState<TempWindowFallbackReminderCode | null>(null)
+  const [resolvedBlockToken, setResolvedBlockToken] = useState<string | null>(
+    null,
+  )
+  const [hasShownInThisSession, setHasShownInThisSession] = useState(false)
+
+  const issue: TempWindowFallbackIssue | null = useMemo(() => {
+    return getTempWindowFallbackIssue(displayData)
+  }, [displayData])
+
+  const blockCheckToken = (() => {
+    if (!issue) {
+      return null
+    }
+
+    return JSON.stringify({
+      accountId: issue.accountId,
+      code: issue.code,
+      preferences: tempWindowFallback,
+    })
+  })()
+
+  useEffect(() => {
+    if (!issue || !blockCheckToken) {
+      setCurrentBlockCode(null)
+      setResolvedBlockToken(null)
+      return
+    }
+
+    let cancelled = false
+    const activeToken = blockCheckToken
+
+    void getTempWindowFallbackBlockStatus({
+      preferences: tempWindowFallback,
+    })
+      .then((status) => {
+        if (cancelled) {
+          return
+        }
+
+        setCurrentBlockCode(
+          status.kind === "blocked" &&
+            isTempWindowFallbackReminderCode(status.code)
+            ? status.code
+            : null,
+        )
+        setResolvedBlockToken(activeToken)
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+
+        setCurrentBlockCode(null)
+        setResolvedBlockToken(activeToken)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [blockCheckToken, issue, tempWindowFallback])
+
+  const hasConfirmedReminderIssue = useMemo(() => {
+    if (!issue || !blockCheckToken || resolvedBlockToken !== blockCheckToken) {
+      return false
+    }
+
+    return issue.code === currentBlockCode
+  }, [blockCheckToken, currentBlockCode, issue, resolvedBlockToken])
+
+  useEffect(() => {
+    if (tempWindowFallbackReminder.dismissed) {
+      setIsOpen(false)
+      return
+    }
+
+    if (!hasConfirmedReminderIssue) {
+      setIsOpen(false)
+      return
+    }
+
+    if (hasShownInThisSession) {
+      return
+    }
+
+    setHasShownInThisSession(true)
+    setIsOpen(true)
+  }, [
+    hasShownInThisSession,
+    hasConfirmedReminderIssue,
+    tempWindowFallbackReminder.dismissed,
+  ])
+
+  const isReminderDialogOpen =
+    hasConfirmedReminderIssue && !tempWindowFallbackReminder.dismissed && isOpen
+
+  const handleNeverRemind = async () => {
+    await updateTempWindowFallbackReminder({ dismissed: true })
+  }
+
+  if (!issue || !isReminderDialogOpen) {
+    return null
+  }
+
+  return (
+    <TempWindowFallbackReminderDialog
+      isOpen={isReminderDialogOpen}
+      issue={issue}
+      onClose={() => setIsOpen(false)}
+      onNeverRemind={handleNeverRemind}
+    />
+  )
+}

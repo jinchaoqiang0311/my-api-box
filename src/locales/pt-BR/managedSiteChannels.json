@@ -1,0 +1,719 @@
+{
+  "alerts": {
+    "authenticationFailed": {
+      "description": "As credenciais salvas do {{site}} foram recusadas. Abra os ajustes, atualize-as e depois atualize a lista de canais.",
+      "title": "Entre novamente no {{site}}"
+    },
+    "editorLoadError": {
+      "description": "Não foi possível carregar o formulário do canal. Atualize a lista de canais e tente novamente.",
+      "title": "Não foi possível abrir o editor de canais"
+    },
+    "editorSaveError": {
+      "description": "Suas alterações não foram salvas. Tente novamente.",
+      "title": "Não foi possível salvar o canal"
+    },
+    "loadError": {
+      "title": "Não foi possível carregar os canais"
+    },
+    "partialMutation": {
+      "description": "Alguns campos podem ter sido salvos, mas não foi possível confirmar o status. Atualize a lista de canais e revise o canal antes de tentar novamente.",
+      "title": "A atualização do canal precisa ser revisada"
+    },
+    "permissionDenied": {
+      "description": "Esta conta do {{site}} não pode gerenciar canais. Use uma conta de administrador ou atualize as permissões e depois atualize a lista.",
+      "title": "Acesso ao {{site}} negado"
+    },
+    "resourceChanged": {
+      "description": "Este canal foi alterado durante a edição. Suas alterações não foram salvas. Feche o editor, atualize a lista de canais e edite novamente."
+    },
+    "savedRefreshError": {
+      "description": "O canal foi salvo, mas não foi possível carregar a lista mais recente. Atualize a lista de canais antes de fazer outras alterações.",
+      "title": "Canal salvo; é necessário atualizar"
+    },
+    "unavailable": {
+      "description": "Não foi possível acessar o {{site}}. Verifique o servidor e a rede e depois atualize a lista de canais.",
+      "title": "O {{site}} está indisponível"
+    }
+  },
+  "cliProxyApi": {
+    "credentialWeightHelp": "Em branco equivale ao peso 1. Valores não positivos excluem esta chave do roteamento ponderado; máximo de 1.000.000.",
+    "excludedModels": "Modelos excluídos (um por linha)",
+    "headers": "Cabeçalhos da solicitação",
+    "headersHelp": "Um cabeçalho por linha, no formato Nome: valor.",
+    "prefix": "Prefixo do modelo",
+    "proxyUrl": "URL do proxy"
+  },
+  "dialog": {
+    "cancel": "Cancelar",
+    "confirm": "Excluir",
+    "deleteDescription": "Esta ação não pode ser desfeita. Os canais selecionados serão removidos permanentemente.",
+    "deleteRefreshAction": "Atualizar canais",
+    "deleteRefreshRequired": "Atualize a lista de canais para confirmar o estado atual antes de excluir novamente.",
+    "deleteResultStatus": {
+      "failed": "Falhou",
+      "success": "Excluído",
+      "uncertain": "Incerto"
+    },
+    "deleteResultsTitle": "Resultados da exclusão",
+    "deleteTitle": "Excluir canal?",
+    "deleteTitlePlural": "Excluir canais?"
+  },
+  "editor": {
+    "advanced": {
+      "autoBan": {
+        "help": "Permite que o New API desative este canal quando as condições de falha configuradas forem atendidas.",
+        "label": "Desativar canal automaticamente"
+      },
+      "autoSync": {
+        "help": "Requer a verificação de atualizações. Ao detectar alterações, o New API atualiza automaticamente a lista de modelos deste canal.",
+        "label": "Sincronizar modelos automaticamente"
+      },
+      "check": {
+        "help": "O New API verifica periodicamente no servidor. Isso é independente da sincronização de modelos da extensão.",
+        "label": "Verificar atualizações de modelos"
+      },
+      "detectedModels": "Modelos disponíveis para adicionar",
+      "groups": {
+        "detection": "Detecção de modelos do provedor",
+        "management": "Gerenciamento do canal",
+        "network": "Configurações de rede"
+      },
+      "ignored": {
+        "help": "Informe os nomes exatos dos modelos que devem ser excluídos da detecção e sincronização.",
+        "label": "Modelos ignorados do provedor"
+      },
+      "invalidExisting": "Não foi possível interpretar a configuração salva com segurança. Corrija-a na administração do site antes de editar este campo.",
+      "lastCheck": "Última verificação",
+      "mapping": {
+        "add": "Adicionar mapeamento",
+        "help": "Associe o modelo solicitado ao nome enviado ao provedor. Cada modelo solicitado deve ser único.",
+        "invalid": "Preencha os dois nomes em cada linha e remova modelos solicitados duplicados.",
+        "label": "Mapeamento de nomes de modelos",
+        "remove": "Remover mapeamento {{index}}",
+        "source": "Modelo solicitado {{index}}",
+        "sourcePlaceholder": "Modelo solicitado",
+        "target": "Modelo do provedor {{index}}",
+        "targetPlaceholder": "Modelo do provedor"
+      },
+      "neverChecked": "Ainda não verificado",
+      "noModels": "Nenhum",
+      "proxy": {
+        "help": "Proxy usado pelo servidor New API para este canal. Compatível com HTTP, HTTPS, SOCKS5 e SOCKS5H. Deixe vazio para remover o proxy do canal.",
+        "invalid": "Informe uma URL de proxy HTTP, HTTPS, SOCKS5 ou SOCKS5H válida.",
+        "label": "Endereço do proxy"
+      },
+      "remark": {
+        "help": "Registre a finalidade ou instruções de uso do canal (até 255 caracteres).",
+        "label": "Observações"
+      },
+      "removedModels": "Modelos detectados como removidos",
+      "tag": "Tag do canal",
+      "testModel": {
+        "help": "Selecione um modelo ou digite o nome. Deixe vazio para usar o modelo de teste padrão do New API.",
+        "label": "Modelo de teste"
+      },
+      "unsupportedDetection": "Este editor não oferece detecção para este tipo de canal. Canais personalizados avançados precisam de uma rota de listagem de modelos na administração do site."
+    },
+    "doneHub": {
+      "allowExtraBody": {
+        "help": "Encaminha ao provedor campos extras das solicitações do cliente, como parâmetros extra_body.",
+        "label": "Encaminhar campos extras"
+      },
+      "compatibleResponse": {
+        "help": "Quando ativado, o DoneHub converte solicitações Responses em Chat Completions. Quando desativado, prioriza Responses nativo, mas ainda pode recorrer à compatibilidade se não houver suporte.",
+        "label": "Compatibilidade com a Responses API"
+      },
+      "customParameter": {
+        "help": "Insira um objeto JSON. Por padrão, apenas campos ausentes são adicionados. overwrite: true substitui campos; per_model: true configura por modelo; pre_add: true aplica na entrada da solicitação. Deixe em branco para limpar.",
+        "invalid": "Insira um objeto JSON válido.",
+        "label": "Parâmetros adicionais",
+        "placeholder": "{\n  \"overwrite\": true,\n  \"temperature\": 0.7\n}"
+      },
+      "disabledStream": {
+        "help": "Solicitações de streaming para esses modelos ignoram o canal; não são convertidas para solicitações sem streaming. Selecione modelos ou digite nomes. Limpe a lista para restaurar o roteamento normal.",
+        "label": "Modelos excluídos do streaming"
+      },
+      "modelHeaders": {
+        "help": "Adicione cabeçalhos fixos com valores de texto. O canal gerencia os cabeçalhos de autenticação. Deixe em branco ou remova todas as linhas para limpar.",
+        "invalid": "Insira um objeto JSON com chaves únicas, não vazias, e valores de texto.",
+        "label": "Cabeçalhos personalizados",
+        "placeholder": "{\"X-Project\": \"example\"}"
+      },
+      "modelMapping": {
+        "addModels": "Adicionar nomes mapeados à lista de modelos",
+        "help": "As chaves são os modelos solicitados e os valores são os nomes no provedor. Adicione as chaves à lista de modelos do canal. O prefixo + no valor usa o modelo solicitado para cobrança.",
+        "invalid": "Insira um objeto JSON com chaves únicas, não vazias, e valores de texto.",
+        "label": "Mapeamento de modelos",
+        "placeholder": "{\"alias\": \"upstream-model\"}"
+      },
+      "proxy": {
+        "help": "Usado pelo servidor DoneHub para acessar o provedor. Aceita HTTP e SOCKS5; %s gera um identificador de sessão a partir da chave do canal. Deixe em branco para remover o proxy do canal.",
+        "invalid": "Insira uma URL de proxy HTTP ou SOCKS5 válida.",
+        "label": "URL do proxy",
+        "placeholder": "socks5://127.0.0.1:1080"
+      },
+      "responsesPath": {
+        "help": "Apenas para solicitações Responses nativas em canais personalizados. Deixe em branco para /v1/responses ou digite disable para bloqueá-las. Não usado no modo de compatibilidade.",
+        "label": "Caminho de solicitações Responses",
+        "placeholder": "/v1/responses"
+      },
+      "testModel": {
+        "help": "Escolha um modelo de chat do canal ou digite um nome. Sem modelo, o DoneHub não consegue testar a velocidade do canal. Máximo de 50 caracteres.",
+        "invalid": "O nome do modelo deve ter no máximo 50 caracteres.",
+        "label": "Modelo de teste",
+        "placeholder": "gpt-4o-mini"
+      }
+    },
+    "fields": {
+      "autoSyncModelPattern": {
+        "help": "Sincronize somente modelos correspondentes. Comece com (?i) para ignorar maiúsculas e minúsculas; deixe em branco para sincronizar todos os modelos.",
+        "invalid": "Insira um padrão de filtro de modelos válido.",
+        "label": "Padrão do filtro de modelos",
+        "placeholder": "Por exemplo, (?i)^model-example"
+      },
+      "autoSyncSupportedModels": {
+        "help": "O AxonHub atualiza os canais ativos pela API do provedor na frequência configurada nos ajustes do sistema do AxonHub.",
+        "label": "Sincronizar automaticamente os modelos compatíveis"
+      },
+      "channelStatusReason": {
+        "label": "Motivo da desativação"
+      },
+      "concurrency": {
+        "help": "Número máximo de solicitações simultâneas permitido para esta conta.",
+        "label": "Concorrência"
+      },
+      "defaultTestModel": {
+        "help": "Usado para testar a conexão deste canal. Escolha um dos modelos compatíveis.",
+        "label": "Modelo de teste padrão",
+        "placeholder": "Selecione um modelo configurado"
+      },
+      "extraModelPrefix": {
+        "help": "Configure prefixos adicionais para permitir o acesso a este canal usando nomes de modelos com prefixo. Por exemplo, com o prefixo 'deepseek', tanto 'deepseek/deepseek-chat' quanto 'deepseek-chat' podem acessar este canal.",
+        "label": "Prefixo adicional de modelo",
+        "placeholder": "ex.: deepseek"
+      },
+      "gptLoadBaseUrl": {
+        "help": "The upstream address this channel forwards requests to. Leave it empty on a known provider to let the gateway use the provider's own endpoint."
+      },
+      "gptLoadKey": {
+        "help": "A key this group can use. The gateway keeps a per-group credential pool: add rows here to import a key and remove rows to drop it."
+      },
+      "gptLoadPriceMultiplier": {
+        "help": "Scales the channel's reported cost for balance and rate accounting (for example 1.5).",
+        "label": "Price multiplier"
+      },
+      "gptLoadProvider": {
+        "help": "The gpt-load driver id for this channel (for example openai, anthropic, gemini). Use the load button to read the drivers your gateway actually ships."
+      },
+      "gptLoadWeight": {
+        "help": "A manual load-balancing weight. Higher values draw proportionally more traffic; leave empty to use the gateway default.",
+        "label": "Weight"
+      },
+      "magpieAnthropic": {
+        "help": "Use a raiz da API da Anthropic (ANTHROPIC_BASE_URL); não acrescente /v1/messages.",
+        "label": "URL de Anthropic"
+      },
+      "magpieBalancePath": {
+        "help": "Valor da resposta, como data.balance ou data.total / 500000. Vazia: padrão do Magpie. Somente leitura em provedores predefinidos.",
+        "label": "Expressão do saldo"
+      },
+      "magpieBalanceURL": {
+        "help": "API de saldo opcional para o Magpie. Aceita {key} na URL. Preserva os tokens de saldo salvos. Somente leitura em provedores predefinidos.",
+        "label": "URL de saldo"
+      },
+      "magpieCatalog": {
+        "help": "IDs de provedores do models.dev separados por vírgulas para nomes e níveis de raciocínio; a primeira correspondência vence. Somente leitura em provedores predefinidos.",
+        "label": "Catálogo de modelos"
+      },
+      "magpieChat": {
+        "help": "Inclua /v1 na URL base de Chat Completions; não acrescente /chat/completions.",
+        "label": "URL de Chat Completions",
+        "required": "Informe o endereço do tipo de API selecionado."
+      },
+      "magpieGemini": {
+        "help": "Inclua /v1beta na URL base do Gemini; não acrescente um modelo ou o caminho generateContent.",
+        "label": "URL de Gemini"
+      },
+      "magpieHeaders": {
+        "help": "Adicione nomes e valores de cabeçalhos por linha ou alterne para JSON. Esses cabeçalhos são enviados ao provedor de origem.",
+        "label": "Cabeçalhos personalizados"
+      },
+      "magpieMaxConcurrency": {
+        "help": "De 0 a 1000 por chave ou conta. Vazio: padrão do Magpie; 0: sem limite.",
+        "label": "Solicitações simultâneas por chave"
+      },
+      "magpieMaxRPM": {
+        "help": "De 0 a 10000 por chave ou conta a cada minuto. Vazio ou 0: sem limite.",
+        "label": "Solicitações por minuto por chave"
+      },
+      "magpieModels": {
+        "help": "Selecione modelos detectados ou digite um ID de modelo e pressione Enter. Busque modelos após preencher os dados de conexão. Deixe a seleção vazia para usar o catálogo automático do MAGPIE."
+      },
+      "magpieModelsURL": {
+        "help": "URL completa opcional, consultada com a chave e os cabeçalhos atuais. Vazia: usar os protocolos. Somente leitura para provedores predefinidos.",
+        "label": "URL de modelos"
+      },
+      "magpiePriceRate": {
+        "help": "Fator sobre o preço de tabela, como 0.8. De 0 a 1000, até 3 casas decimais. Vazio ou 0: preço de tabela.",
+        "label": "Multiplicador de preço"
+      },
+      "magpieProxy": {
+        "help": "Deixe vazio para usar o proxy global; use direct para conexão direta.",
+        "label": "Proxy"
+      },
+      "magpieResponses": {
+        "help": "A URL base de Responses geralmente termina em /v1; não acrescente /responses.",
+        "label": "URL de Responses"
+      },
+      "manualModels": {
+        "label": "Modelos manuais"
+      },
+      "notes": {
+        "help": "Observações opcionais sobre esta conta upstream.",
+        "label": "Observações",
+        "placeholder": "Adicionar observações sobre esta conta..."
+      },
+      "omnirouteBaseUrl": {
+        "help": "Deixe vazio para manter o endpoint padrão do provider escolhido; o gateway envia as requisições deste canal para o endereço informado. Um endereço salvo não pode ser removido: informe um novo em vez de apagá-lo."
+      },
+      "omnirouteDefaultModel": {
+        "help": "Usado quando a requisição não indica um modelo. O canal não guarda uma lista de modelos: os modelos vêm do catálogo de providers e dos aliases do gateway.",
+        "label": "Modelo padrão"
+      },
+      "omnirouteLastError": {
+        "label": "Último erro"
+      },
+      "omniroutePrefix": {
+        "help": "Preencher cria um provider node no gateway e endereça o canal como prefixo/modelo; deixar vazio usa o provider integrado. Um prefixo exige um endereço.",
+        "label": "Prefixo de modelo próprio"
+      },
+      "omniroutePriority": {
+        "help": "O gateway escolhe os canais em ordem crescente, então um número menor é usado primeiro. O gateway coloca uma conexão recém-criada no fim.",
+        "label": "Prioridade"
+      },
+      "omnirouteProvider": {
+        "help": "O identificador do provider integrado do gateway. Um relay próprio pode manter openai e sobrescrever o endereço. Use o botão de carregar para ler os providers que este gateway realmente atende."
+      },
+      "omnirouteTestStatus": {
+        "label": "Teste de conexão"
+      },
+      "orderingWeight": {
+        "help": "Valores mais altos têm preferência quando o AxonHub seleciona um canal; valores iguais têm a mesma prioridade de ordenação.",
+        "label": "Peso de ordenação"
+      },
+      "priority": {
+        "help": "Contas com valores menores são agendadas primeiro.",
+        "label": "Prioridade"
+      },
+      "remark": {
+        "help": "Adicione observações sobre este canal para referência.",
+        "label": "Observação",
+        "placeholder": "Insira uma observação sobre este canal..."
+      },
+      "sub2apiModels": {
+        "help": "Opcional. Deixe vazio para permitir todos os modelos compatíveis com o upstream; adicione modelos somente quando precisar restringi-los.",
+        "label": "Lista de modelos permitidos"
+      },
+      "sub2apiPlatform": {
+        "help": "Escolha o protocolo upstream. A plataforma não pode ser alterada depois que a conta é criada.",
+        "label": "Plataforma"
+      },
+      "supportedModels": {
+        "help": "Digite ou cole nomes de modelos. Os modelos adicionados aqui são mantidos durante a sincronização automática."
+      },
+      "tags": {
+        "help": "Adicione tags para categorizar e filtrar canais. Pressione Enter para adicionar uma tag. Você também pode colar tags separadas por vírgulas ou linhas.",
+        "label": "Tags",
+        "placeholder": "Adicionar tags..."
+      }
+    },
+    "json": {
+      "addRow": "Adicionar linha",
+      "editJson": "Editar JSON",
+      "editRows": "Editar linhas",
+      "format": "Formatar JSON",
+      "key": "Chave",
+      "keyAt": "{{field}}: chave da linha {{index}}",
+      "removeAt": "{{field}}: remover linha {{index}}",
+      "value": "Valor",
+      "valueAt": "{{field}}: valor da linha {{index}}"
+    },
+    "multiKeyMode": {
+      "label": "Seleção de chaves",
+      "polling": "Alternada",
+      "random": "Aleatória"
+    },
+    "options": {
+      "channelType": {
+        "anthropic": "Anthropic",
+        "anthropicAws": "Anthropic na AWS",
+        "anthropicGcp": "Anthropic no Google Cloud",
+        "claudeCode": "Claude Code",
+        "deepseek": "DeepSeek",
+        "deepseekAnthropic": "DeepSeek Anthropic",
+        "gemini": "Gemini",
+        "geminiOpenai": "Gemini OpenAI",
+        "geminiVertex": "Gemini Vertex",
+        "githubCopilot": "GitHub Copilot",
+        "nanogpt": "NanoGPT",
+        "ollama": "Ollama",
+        "openai": "OpenAI",
+        "openaiResponses": "OpenAI Responses",
+        "openrouter": "OpenRouter",
+        "siliconflow": "SiliconFlow",
+        "unsupported": "Tipo de canal não compatível",
+        "volcengine": "Volcengine",
+        "xai": "xAI"
+      },
+      "omnirouteTestStatus": {
+        "failed": "Falhou",
+        "ok": "OK",
+        "pending": "Não testado",
+        "unsupported": "Não testável"
+      },
+      "status": {
+        "archived": "Arquivado",
+        "disabled": "Desativado",
+        "enabled": "Ativado",
+        "unknown": "Desconhecido"
+      },
+      "unknown": "Opção desconhecida"
+    },
+    "secret": {
+      "actions": {
+        "cancelLoad": "Cancelar carregamento",
+        "clear": "Remover chave de API salva",
+        "restore": "Manter chave de API salva",
+        "retry": "Tentar novamente",
+        "view": "Ver chave de API salva"
+      },
+      "createHint": "Insira a chave de API do provedor para o novo canal.",
+      "keepExistingHint": "Deixe este campo em branco para manter a chave de API salva sem alterações.",
+      "loadableHint": "A chave de API salva não é exibida aqui. Deixe em branco para mantê-la sem alterações.",
+      "loadError": "Não foi possível carregar a chave de API salva.",
+      "loading": "Carregando a chave de API salva...",
+      "partialReplacementHint": "Ao substituir algumas chaves, elas são movidas para o fim da lista por padrão. Para manter a ordem original, revele primeiro uma chave salva (requer verificação).",
+      "placeholder": "Insira a chave de API do provedor",
+      "replacementBlocked": {
+        "multipleCredentials": "Este canal tem várias chaves de API. Gerencie-as no AxonHub."
+      },
+      "replacementDisabled": "Esta chave de API não pode ser substituída aqui.",
+      "replacePlaceholder": "Insira uma nova chave de API para substituir a salva",
+      "state": {
+        "available": "Há uma chave de API salva disponível.",
+        "masked": "Há uma chave de API mascarada salva.",
+        "permissionHidden": "A chave de API salva está oculta devido às permissões.",
+        "unavailable": "A chave de API salva não pode ser exibida aqui."
+      }
+    },
+    "sections": {
+      "advanced": "Avançado",
+      "basic": "Básico",
+      "basicConnection": "Básico e conexão",
+      "compatibility": "Compatibilidade de API",
+      "connection": "Conexão",
+      "metadata": "Metadados",
+      "models": "Modelos",
+      "requests": "Rede e requisições",
+      "routing": "Roteamento",
+      "sync": "Sincronização de modelos"
+    },
+    "validation": {
+      "inconsistentValue": "Este valor entra em conflito com outro campo.",
+      "invalidValue": "Insira um valor válido.",
+      "outOfRange": "Insira um valor dentro do intervalo permitido.",
+      "required": "Este campo é obrigatório.",
+      "unsupportedOption": "Esta opção não é compatível."
+    }
+  },
+  "filter": {
+    "statusLabel": "Filtrar por status"
+  },
+  "filters": {
+    "actionOptions": {
+      "exclude": "Excluir modelos correspondentes",
+      "include": "Incluir modelos correspondentes"
+    },
+    "actions": {
+      "cancel": "Cancelar",
+      "moveDown": "Mover filtro para baixo",
+      "moveUp": "Mover filtro para cima",
+      "save": "Salvar filtros"
+    },
+    "addPatternRule": "Adicionar regra de padrão",
+    "addProbeRule": "Adicionar regra de teste",
+    "empty": {
+      "description": "Adicione regras de inclusão ou exclusão com regex opcional para controlar os modelos sincronizados.",
+      "title": "Ainda não há filtros"
+    },
+    "hints": {
+      "probesAllPass": "Um modelo só corresponde a esta regra quando todos os testes selecionados são aprovados. Os testes usam a URL base do canal e a chave de canal obtida.",
+      "regex": "Regras de regex permitem correspondências avançadas com a sintaxe do JavaScript.",
+      "substring": "Regras simples procuram substrings diferenciando maiúsculas de minúsculas nos nomes dos modelos.",
+      "unsupportedChannelType": "As regras de teste não estão disponíveis para este tipo de canal porque ele não pode ser associado a uma API de verificação compatível."
+    },
+    "jsonEditor": {
+      "hint": "O JSON deve ser um array de objetos de regras de padrão ou de teste. Regras de padrão usam kind: 'pattern', name e pattern. Regras de teste usam kind: 'probe', name e probeIds. Campos de credencial como apiKey, key e baseUrl são ignorados.",
+      "label": "Editor JSON avançado",
+      "placeholder": "Cole ou edite aqui um array de objetos de regras de filtro para reutilizar rapidamente a mesma configuração em vários canais."
+    },
+    "labels": {
+      "action": "Ação",
+      "delete": "Excluir filtro",
+      "description": "Descrição",
+      "enabled": "Ativado",
+      "name": "Nome do filtro",
+      "pattern": "Padrão de correspondência",
+      "probes": "Testes de verificação",
+      "regex": "Modo regex",
+      "ruleType": "Tipo de regra"
+    },
+    "loading": "Carregando filtros do canal...",
+    "messages": {
+      "jsonArrayRequired": "O JSON deve ser um array de regras de filtro.",
+      "jsonInvalid": "JSON de filtros inválido: {{error}}",
+      "jsonItemNotObject": "O filtro no índice {{index}} deve ser um objeto.",
+      "loadFailed": "Falha ao carregar os filtros: {{error}}",
+      "saved": "Filtros salvos",
+      "saveFailed": "Falha ao salvar os filtros: {{error}}",
+      "validationName": "Informe um nome para cada filtro.",
+      "validationPattern": "O padrão do filtro não pode ficar em branco.",
+      "validationProbeIds": "Selecione pelo menos um teste de verificação para cada regra de teste.",
+      "validationRegex": "Padrão de regex inválido: {{error}}"
+    },
+    "modelSyncExclusionHelp": "Após salvar, a sincronização automática e Executar todos ignorarão este canal. Executar selecionados e Sincronizar na linha ainda permitem sincronizá-lo uma vez. Cancelar descarta as alterações deste diálogo.",
+    "placeholders": {
+      "description": "Observações opcionais sobre esta regra",
+      "name": "ex.: Permitir GPT-4",
+      "pattern": "Texto exato ou padrão regex",
+      "probes": "Selecionar testes",
+      "probeSearch": "Pesquisar testes"
+    },
+    "probes": {
+      "empty": "Nenhum teste encontrado",
+      "options": {
+        "structured-output": "Saída estruturada",
+        "text-generation": "Geração de texto",
+        "tool-calling": "Chamada de ferramentas",
+        "web-search": "Pesquisa na web"
+      }
+    },
+    "ruleTypeOptions": {
+      "pattern": "Padrão",
+      "probe": "Teste"
+    },
+    "subtitle": "Personalize as regras de filtro de {{channel}}",
+    "title": "Filtros do canal",
+    "viewMode": {
+      "json": "Edição em JSON",
+      "label": "Modo de edição",
+      "visual": "Edição visual"
+    }
+  },
+  "gatewayGuidance": {
+    "empty": {
+      "description": "Este gateway de IA auto-hospedado ainda não tem canais. Importe primeiro chaves de contas ou chaves de API; depois, o gateway poderá oferecer uma única API de IA a clientes externos.",
+      "importFromAccountKey": "Importar canal de uma chave de conta",
+      "importFromApiKeyLibrary": "Importar canal da biblioteca de credenciais de API",
+      "title": "Ainda não há canais no gateway de IA auto-hospedado"
+    },
+    "headerDescription": "Gerencie canais do seu gateway de IA para reunir fontes de API em um único ponto de acesso.",
+    "openChannelConsole": "Abrir gerenciamento de canais do gateway",
+    "unconfiguredValueDescription": "Após a configuração, você poderá importar chaves de contas e de API dispersas como canais do gateway e gerenciá-las diretamente no My API Box."
+  },
+  "magpieKeys": {
+    "anyProtocol": "Qualquer protocolo",
+    "enabled": "Ativada",
+    "help": "Adicione uma chave ou cole várias separadas por linhas, vírgulas ou espaços. Apenas a chave principal salva pode ser revelada. Para substituir uma chave adicional, adicione a nova e remova a antiga. As alterações são aplicadas ao salvar.",
+    "invalid": "Confira novas chaves, protocolos e pesos (0–1000). Mantenha pelo menos uma chave ativada.",
+    "name": "Nome da chave",
+    "order": "Em ordem (alternância por falha)",
+    "pace": "Cota restante por hora",
+    "primary": "Principal",
+    "primaryKey": "Chave API principal",
+    "protocol": "Protocolo",
+    "rotate": "Em rodízio",
+    "routing": "Distribuição de chaves",
+    "smart": "Inteligente (alternância automática)",
+    "title": "Grupo de chaves",
+    "usage": "Menor uso primeiro",
+    "weighted": "Ponderada",
+    "weightHelp": "0 ou 1 usa o peso padrão; 2–1000 ajusta a proporção na distribuição ponderada."
+  },
+  "magpieProtocols": {
+    "checkOther": "O endereço de outro tipo configurado é inválido. Alterne para esse tipo para verificá-lo.",
+    "configured": "Configurado",
+    "help": "Escolha um tipo para editar seu endereço. Para usar vários protocolos, configure cada um separadamente; cada tipo mantém seu próprio endereço.",
+    "type": "Tipo de API",
+    "unmanaged": "Gerenciado no Magpie"
+  },
+  "migration": {
+    "actions": {
+      "cancel": "Cancelar",
+      "close": "Fechar",
+      "refreshChannels": "Atualizar lista de canais",
+      "refreshPreview": "Atualizar prévia",
+      "running": "Migrando...",
+      "start": "Iniciar migração"
+    },
+    "betaBadge": "Beta",
+    "blockedReasons": {
+      "sourceKeyExportRestricted": "A exportação de chaves do site de origem exige uma verificação web que a Admin API Key configurada não pode concluir. Obtenha a chave no painel de origem e migre este canal manualmente.",
+      "sourceKeyMissing": "A chave do canal de origem está indisponível, portanto este canal ainda não pode ser migrado.",
+      "sourceKeyResolutionFailed": "Não foi possível carregar a chave do canal de origem. Se você acabou de concluir a verificação, atualize a prévia e tente novamente.",
+      "sourceKeysChanged": "A quantidade ou o estado de ativação dos Keys de origem mudou. Atualize a prévia antes de migrar novamente.",
+      "sourceMultiKeyUnsupported": "Esta origem ainda não permite exportar a lista completa de múltiplos Keys. Confira o site de origem e migre manualmente para evitar omissões.",
+      "sourceTypeUnsupported": "Este tipo de canal de origem não é compatível com a migração. Escolha um canal compatível ou faça a migração manualmente.",
+      "targetDraftPreparationFailed": "Não foi possível preparar o rascunho do canal de destino. Revise os detalhes do canal, atualize a prévia e tente novamente."
+    },
+    "confirm": {
+      "confirm": "Confirmar migração",
+      "description": "Serão criados canais de destino para os itens prontos ({{ready}} de {{total}}). Canais com vários Keys podem ter sido divididos em vários itens.",
+      "title": "Iniciar a migração de canais?",
+      "warningTitle": "Este fluxo apenas cria novos canais. Ele não sincroniza, elimina duplicatas nem reverte alterações."
+    },
+    "description": "Canais selecionados para copiar: {{selectedCount}}. Destino: outro site gerenciado configurado.",
+    "generalWarnings": {
+      "compactSummary": "Somente criação. Passe o cursor para ver detalhes.",
+      "createOnly": "Esta migração apenas cria novos canais no site de destino e não altera os canais de origem.",
+      "noDedupeOrSync": "Esta migração não procura duplicatas, não substitui canais de destino existentes nem os sincroniza.",
+      "noRollback": "Este fluxo não oferece reversão automática. Use a lista de resultados para revisar qualquer ação manual necessária.",
+      "targetRoutingDefaults": "As configurações de prioridade, peso e concorrência não são migradas. O destino usa seus valores padrão; ajuste-os no editor de destino após a migração.",
+      "title": "Limitações da migração"
+    },
+    "itemWarnings": {
+      "dropsAdvancedSettings": "As configurações avançadas específicas do provedor não podem ser copiadas diretamente e serão descartadas.",
+      "dropsModelMapping": "Os mapeamentos de redirecionamento de modelos não serão copiados.",
+      "dropsMultiKeyState": "O estado de ativação dos Keys é preservado; políticas de rotação, motivos de desativação e histórico de execução não são copiados.",
+      "dropsStatusCodeMapping": "As configurações de mapeamento de códigos de status não serão copiadas.",
+      "splitsKeys": "O destino não consegue preservar estes Keys e seus estados em um único canal. Será criado um canal por Key; a distribuição do tráfego pode mudar.",
+      "sub2apiDefaultGroup": "Os grupos de origem não são copiados. O destino usa o grupo padrão da plataforma, se existir. Confira as atribuições de grupo após a migração.",
+      "targetForcesDefaultGroup": "O site de destino substituirá os grupos de origem pelo grupo padrão.",
+      "targetNormalizesBaseUrl": "O site de destino normalizará a URL base antes da criação.",
+      "targetRemapsChannelType": "O site de destino remapeará o tipo de canal para o tipo compatível mais próximo.",
+      "targetSimplifiesStatus": "O site de destino simplificará o status de origem para ativado ou desativado."
+    },
+    "keyCount": "Quantidade de Keys",
+    "preview": {
+      "badges": {
+        "limitsLabel": "limitações",
+        "warningsLabel": "avisos"
+      },
+      "compare": {
+        "fieldLabel": "Campo"
+      },
+      "loadFailed": "Falha ao carregar a prévia da migração: {{error}}",
+      "loading": "Criando prévia da migração...",
+      "status": {
+        "blocked": "Bloqueado",
+        "ready": "Pronto"
+      },
+      "summary": "Prévia: {{ready}} prontos, {{blocked}} bloqueados, {{total}} itens de migração."
+    },
+    "results": {
+      "refreshRequired": "Alguns resultados da criação são incertos. Atualize a lista de canais antes de fechar.",
+      "status": {
+        "failed": "Falhou",
+        "skipped": "Ignorado",
+        "success": "Criado",
+        "uncertain": "Incerto"
+      },
+      "summary": "Resultados: {{created}}, {{failed}}, {{skipped}}, {{uncertain}}, {{total}}.",
+      "summaryMetrics": {
+        "created_one": "{{count}} criado",
+        "created_many": "{{count}} criados",
+        "created_other": "{{count}} criados",
+        "failed_one": "{{count}} falhou",
+        "failed_many": "{{count}} falharam",
+        "failed_other": "{{count}} falharam",
+        "skipped_one": "{{count}} ignorado",
+        "skipped_many": "{{count}} ignorados",
+        "skipped_other": "{{count}} ignorados",
+        "total_one": "{{count}} no total",
+        "total_many": "{{count}} no total",
+        "total_other": "{{count}} no total",
+        "uncertain_one": "{{count}} incerto",
+        "uncertain_many": "{{count}} incertos",
+        "uncertain_other": "{{count}} incertos"
+      },
+      "title": "Resultados da migração"
+    },
+    "sub2apiDefaultGroup": "Grupo padrão da plataforma (se existir)",
+    "target": {
+      "destinationLabel": "Site de destino",
+      "label": "Destino da migração",
+      "placeholder": "Selecione um site gerenciado de destino",
+      "sourceLabel": "Site de origem",
+      "unselected": "Não selecionado"
+    },
+    "title": "Migrar canais"
+  },
+  "statusLabels": {
+    "autoDisabled": "Desativado automaticamente",
+    "enabled": "Ativado",
+    "manualPause": "Pausado manualmente",
+    "unknown": "Desconhecido"
+  },
+  "table": {
+    "columns": {
+      "actions": "Ações",
+      "group": "Grupos disponíveis",
+      "id": "ID",
+      "models": "Modelos",
+      "name": "Canal",
+      "priority": "Prioridade",
+      "status": "Status",
+      "type": "Tipo",
+      "weight": "Peso"
+    },
+    "emptyFiltered": "Nenhum canal correspondente encontrado. Ajuste a pesquisa ou os filtros.",
+    "emptyNoChannels": "Ainda não há canais. Adicione um canal ou atualize a lista.",
+    "loading": "Carregando canais...",
+    "noEntries": "Nenhuma entrada",
+    "paginationNext": "Próxima página",
+    "paginationPrev": "Página anterior",
+    "paginationSummary": "Canais exibidos: {{start}} - {{end}} de {{total}}",
+    "rowActions": {
+      "delete": "Excluir",
+      "edit": "Editar",
+      "filters": "Editar regras de filtro do canal",
+      "migrate": "Migrar para outro site",
+      "openSync": "Abrir interface de sincronização de modelos",
+      "sync": "Sincronizar a lista de modelos agora",
+      "syncing": "Sincronizando...",
+      "view": "Ver canal"
+    },
+    "rowsPerPage": "Linhas por página",
+    "selectAll": "Selecionar todas as linhas",
+    "selectRow": "Selecionar linha"
+  },
+  "title": "Gerenciamento de canais",
+  "toasts": {
+    "channelSaved": "Canal salvo",
+    "channelsDeleted_one": "{{count}} canal excluído",
+    "channelsDeleted_many": "{{count}} canais excluídos",
+    "channelsDeleted_other": "{{count}} canais excluídos",
+    "channelUpdated": "Canal atualizado",
+    "syncCompleted": "Sincronização de modelos concluída ({{success}}/{{total}})",
+    "syncCompletedRefreshFailed": "Os modelos foram sincronizados ({{success}}/{{total}}), mas não foi possível atualizar a lista de canais. Atualize e tente novamente.",
+    "syncFailed": "Falha na sincronização de modelos: {{error}}",
+    "syncFailedFallback": "Não foi possível sincronizar os canais",
+    "syncIncomplete": "A sincronização de modelos não foi concluída totalmente ({{success}}/{{total}} com sucesso). Abra a sincronização de modelos para revisar os resultados e tentar novamente os canais com falha."
+  },
+  "toolbar": {
+    "addChannel": "Adicionar canal",
+    "cancelRefresh": "Interromper atualização",
+    "clearSearch": "Limpar pesquisa",
+    "columns": "Colunas",
+    "deleteSelected": "Excluir selecionados",
+    "enterMigrationMode": "Migração de canais",
+    "exitMigrationMode": "Sair do modo de migração",
+    "migrateFiltered": "Migrar todos os canais filtrados",
+    "migrateSelected": "Migrar selecionados",
+    "refresh": "Atualizar",
+    "searchPlaceholder": "Pesquisar por nome, URL ou grupo",
+    "status": "Status",
+    "syncSelected": "Sincronizar modelos dos canais selecionados",
+    "toggleColumns": "Mostrar ou ocultar colunas"
+  }
+}

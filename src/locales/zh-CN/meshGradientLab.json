@@ -1,0 +1,23 @@
+{
+  "actions": {
+    "shuffleSeed": "随机种子"
+  },
+  "captions": {
+    "layoutIndex": "布局 #{{index}}",
+    "paletteIndex": "调色板 #{{index}}"
+  },
+  "labels": {
+    "layout": "布局",
+    "overlay": "叠加层",
+    "palette": "调色板",
+    "seed": "种子",
+    "view": "视图"
+  },
+  "summaryLayout": "{{count}} 种布局",
+  "summaryPalette": "{{count}} 个调色板",
+  "title": "Mesh Gradient 实验室（Dev）",
+  "view": {
+    "layouts": "布局",
+    "palettes": "调色板"
+  }
+}

@@ -1,0 +1,58 @@
+import { Search } from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { Input } from "~/components/ui"
+
+interface AccountSearchInputProps {
+  autoFocus?: boolean
+  disabled?: boolean
+  value: string
+  onChange: (value: string) => void
+  onClear: () => void
+}
+
+/**
+ * Compact search field used to filter account list entries.
+ * @param props Component props containing search value and handlers.
+ * @param props.autoFocus Whether to focus the input automatically on mount.
+ * @param props.disabled Whether account reordering temporarily locks search.
+ * @param props.value Current search string.
+ * @param props.onChange Handler invoked when user types in the field.
+ * @param props.onClear Handler clearing the current search string.
+ */
+export default function AccountSearchInput({
+  autoFocus = true,
+  disabled = false,
+  value,
+  onChange,
+  onClear,
+}: AccountSearchInputProps) {
+  const { t } = useTranslation("account")
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault()
+      e.stopPropagation()
+      onClear()
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        autoFocus={autoFocus}
+        disabled={disabled}
+        type="text"
+        size="sm"
+        className="border-border bg-surface-subtle/70 dark:bg-foreground/5 min-h-(--density-control-lg) shadow-none [@container(min-width:40rem)]:min-h-(--density-control)"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={t("search.placeholder")}
+        leftIcon={<Search className="h-4 w-4" />}
+        onClear={onClear}
+        clearButtonLabel={t("common:actions.clear")}
+      />
+    </div>
+  )
+}

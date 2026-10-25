@@ -1,0 +1,288 @@
+{
+  "accountOperations": {
+    "autoProvisionAlreadyHad": "{{accountName}} ya tiene una clave de API. Se omitió la creación automática.",
+    "autoProvisionCreated": "Se creó una clave de API predeterminada para {{accountName}}.",
+    "autoProvisionFailed": "La cuenta se guardó, pero no se pudo crear automáticamente una clave de API. Puedes usar “{{actionLabel}}” en Gestión de claves para reintentar.",
+    "autoProvisionGroupsCovered": "Todos los grupos disponibles de {{accountName}} tienen ahora claves API utilizables.",
+    "autoProvisionGroupsCreated_one": "Se creó {{count}} clave API de grupo para {{accountName}}.",
+    "autoProvisionGroupsCreated_many": "Se crearon {{count}} claves API de grupo para {{accountName}}.",
+    "autoProvisionGroupsCreated_other": "Se crearon {{count}} claves API de grupo para {{accountName}}.",
+    "autoProvisionGroupsIncomplete_one": "Se creó {{count}} clave API de grupo para {{accountName}}, pero algunos grupos siguen pendientes. Revisa Administración de claves → {{actionLabel}}.",
+    "autoProvisionGroupsIncomplete_many": "Se crearon {{count}} claves API de grupo para {{accountName}}, pero algunos grupos siguen pendientes. Revisa Administración de claves → {{actionLabel}}.",
+    "autoProvisionGroupsIncomplete_other": "Se crearon {{count}} claves API de grupo para {{accountName}}, pero algunos grupos siguen pendientes. Revisa Administración de claves → {{actionLabel}}.",
+    "autoProvisionGroupsUnavailable": "No se obtuvieron grupos disponibles para {{accountName}}, por lo que no se crearon claves. Revisa Administración de claves → {{actionLabel}}.",
+    "autoProvisionGroupsUnsupported": "La creación automática de claves para todos los grupos no está disponible para {{accountName}}. Abre Administración de claves para ver las acciones disponibles para esta cuenta.",
+    "autoProvisionNeedsManualAction": "Se guardó {{accountName}}, pero la clave predeterminada requiere una selección manual o gestionar un secreto de un solo uso. Termina con “{{actionLabel}}” en Gestión de claves.",
+    "autoProvisionUnsupported": "Se guardó {{accountName}}, pero este tipo de sitio no admite la creación automática de una clave de API predeterminada.",
+    "checkingApiKeys": "Comprobando clave de API...",
+    "tokenNotFound": "No se pudo crear ni encontrar un token de API"
+  },
+  "aihubmix": {
+    "oneTimeKeyPromptCancelled": "Cuenta guardada. Puedes crear una clave de API de AIHubMix manualmente en Gestión de claves más tarde.",
+    "oneTimeKeyUnavailableAfterCreate": "La cuenta se guardó, pero no se pudo recuperar la clave de API completa de AIHubMix. Las claves de AIHubMix solo se muestran una vez después de crearlas; crea una clave nueva en Gestión de claves y guarda la clave completa de inmediato."
+  },
+  "aiToolbox": {
+    "attemptingRedirect": "Intentando redirigir a AI Toolbox",
+    "invalidApp": "Aplicación de destino de AI Toolbox no compatible",
+    "invalidBaseUrl": "URL base de API no válida o faltante",
+    "invalidHomepage": "URL de página principal no válida o faltante",
+    "missingCredentials": "Falta información requerida de cuenta o clave",
+    "unableToOpen": "No se puede abrir AI Toolbox; asegúrate de que esté instalado"
+  },
+  "autodetect": {
+    "currentTabNeedsReload": "Es posible que esta página se haya abierto antes de instalar o actualizar la extensión, por lo que la extensión todavía no puede leer datos de esta pestaña. Recarga la página actual y vuelve a intentar la detección automática.",
+    "failed": "La detección automática falló: {{error}}",
+    "forbidden": "Acceso denegado. Confirma si el firewall del sitio web está bloqueando la solicitud",
+    "loginThisSite": "Iniciar sesión en este sitio",
+    "networkError": "Falló la conexión de red; revisa tu conexión e inténtalo de nuevo",
+    "notFound": "No se pudo detectar este sitio automáticamente. Revisa que la dirección sea correcta, o inicia sesión en el sitio de destino y vuelve a intentarlo.",
+    "notLoggedIn": "No has iniciado sesión en el sitio actual, o la información de inicio de sesión expiró. No se puede agregar automáticamente. Revisa la documentación de ayuda o haz clic para iniciar sesión primero",
+    "serverError": "Error del servidor. Inténtalo de nuevo más tarde",
+    "timeout": "Tiempo de espera agotado en la detección automática; intenta agregar manualmente",
+    "unexpectedData": "La detección automática falló; el sitio devolvió datos inesperados. Ingresa la información manualmente o asegúrate de haber iniciado sesión en el sitio de destino"
+  },
+  "axonhub": {
+    "configMissing": "Primero configura la dirección de AxonHub, el correo de administrador y la contraseña en la configuración básica",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "background": {
+    "cannotCreateWindowOrTab": "No se puede crear la ventana ni obtener la pestaña",
+    "incognitoAccessRequired": "Se requiere acceso de incógnito para usar una ventana temporal privada. Habilita \"Permitir en incógnito\" para esta extensión y vuelve a intentarlo.",
+    "invalidFetchRequest": "Solicitud fetch no válida",
+    "pageLoadTimeout": "Tiempo de carga de la página agotado",
+    "tempWindowPolicyContextInvalid": "Esta operación no puede continuar. Iníciala de nuevo.",
+    "windowCreationUnavailable": "Este flujo necesita que el navegador abra una ventana temporal, pero la creación de ventanas no está disponible. Permite ventanas creadas por extensiones o reintenta en un navegador que las admita.",
+    "windowNotFound": "No se encontró la ventana o pestaña"
+  },
+  "ccswitch": {
+    "attemptingRedirect": "Intentando redirigir a CC Switch",
+    "invalidApp": "Aplicación de destino de CC Switch no compatible",
+    "invalidEndpoint": "Endpoint de API no válido o faltante",
+    "invalidHomepage": "URL de página principal no válida o faltante",
+    "missingCredentials": "Falta información requerida de cuenta o clave",
+    "unableToOpen": "No se puede abrir CC Switch; asegúrate de que esté instalado"
+  },
+  "cherryStudio": {
+    "attemptingRedirect": "Intentando redirigir a Cherry Studio",
+    "missingCredentials": "Falta información requerida de cuenta o clave",
+    "unableToOpen": "No se puede abrir; asegúrate de que Cherry Studio esté instalado"
+  },
+  "claudecodehub": {
+    "configMissing": "Primero configura la dirección de Claude Code Hub y el token de administrador en la configuración básica",
+    "noChannelsToSync": "No hay proveedores para sincronizar"
+  },
+  "claudeCodeRouter": {
+    "configMissing": "Primero configura la URL base de Claude Code Router en la configuración",
+    "importFailed": "No se pudo importar el proveedor a Claude Code Router",
+    "importSuccess": "Se importó correctamente el proveedor {{name}} a Claude Code Router",
+    "modelsMissing": "Proporciona al menos un modelo",
+    "updateSuccess": "Se actualizó correctamente el proveedor {{name}} de Claude Code Router"
+  },
+  "cliProxyApi": {
+    "managementApiForbidden": "CLIProxyAPI rechazó la solicitud. Revisa si la clave de administración se ingresó incorrectamente demasiadas veces o si el acceso está restringido en el servidor.",
+    "managementApiHttpError": "La API de administración de CLIProxyAPI devolvió un código de estado inesperado (HTTP {{status}})",
+    "managementApiInvalidKey": "La clave de administración de CLIProxyAPI no es válida. Verifica la clave en la configuración.",
+    "managementApiNotFound": "No se encontró la API de administración de CLIProxyAPI. Asegúrate de que la URL base termine en /v0/management y de que CLIProxyAPI tenga configurada una clave de administración.",
+    "managementApiUnreachable": "No se pudo acceder a la API de administración de CLIProxyAPI. Revisa la URL base, el estado del servicio y el acceso de red del navegador a esa dirección."
+  },
+  "content": {
+    "userInfoNotFound": "No se encontró información del usuario; asegúrate de haber iniciado sesión",
+    "waitUserInfoTimeout": "Se agotó el tiempo de espera para la información del usuario; asegúrate de haber iniciado sesión"
+  },
+  "cookieTransport": {
+    "permissionRequired": "Este navegador no puede enviar una solicitud con la Cookie de esta cuenta. Revisa los permisos de la extensión o actualiza el navegador y vuelve a intentarlo.",
+    "requestUnavailable": "No se pudo preparar la solicitud. Vuelve a intentarlo; si el error persiste, recarga la extensión.",
+    "scopeUnavailable": "Esta solicitud no puede usar el ámbito de cookies seleccionado. Importa la cookie de la cuenta deseada o usa su sesión normal del navegador.",
+    "sessionUnavailable": "La sesión no está disponible. Inicia sesión de nuevo en la misma cuenta; si usas una cookie importada, vuelve a importarla."
+  },
+  "donehub": {
+    "configMissing": "Primero configura la dirección de Done Hub, el token de administrador y el ID de usuario en la configuración básica",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "errors": {
+    "api": {
+      "invalidResponseFormat": "Formato de respuesta no válido",
+      "nonJsonContent": "devolvió {{contentType}} en lugar de JSON (HTTP {{status}})",
+      "onlyJsonSupported": "Solo se admiten respuestas JSON",
+      "requestFailed": "La solicitud falló: {{status}}"
+    },
+    "dayaRedemptionUnconfirmed": "Revisa el resultado en la consola oficial. Comprueba la entrega o termina de aplicar el descuento antes de volver a intentarlo.",
+    "operation": {
+      "accountDataFetchTimeout": "Se agotó el tiempo al obtener datos de la cuenta ({{seconds}}s)",
+      "failed": "La operación falló: {{error}}",
+      "saveFailed": "Error al guardar: {{error}}"
+    },
+    "relayForRedemptionUnconfirmed": "No se confirmó el canje. Revisa la consola oficial antes de reintentar.",
+    "relayForVerificationRequired": "Esta operación requiere un código de verificación. Complétala en la consola oficial y actualiza aquí.",
+    "unknown": "Error desconocido",
+    "validation": {
+      "bookmarkNameRequired": "El nombre del marcador no puede estar vacío",
+      "bookmarkUrlRequired": "La URL del marcador no puede estar vacía",
+      "incompleteAccountInfo": "Completa toda la información de la cuenta",
+      "loginProviderInUse": "El método de inicio de sesión {{provider}} ya lo usa la cuenta de AgentRouter «{{account}}» con el registro automático activado. Elige el otro método, desactiva el registro automático de esa cuenta o borra esta selección.",
+      "updateAccountFailed": "No se pudo actualizar la cuenta {{error}}",
+      "urlRequired": "La URL del sitio no puede estar vacía",
+      "userIdNumeric": "El ID de usuario debe ser un número"
+    }
+  },
+  "gptLoad": {
+    "configMissing": "Configure the gpt-load deployment address and management key in settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "grsai": {
+    "openApiTokenRejected": "Este es el Token que aparece en la página de información del usuario de Grsai. Está pensado para las API abiertas de la plataforma y la consola no lo acepta. Usa la detección automática para leer la sesión de la consola ya iniciada, o pega el token de sesión de la consola.",
+    "sessionExpired": "La sesión de la consola de Grsai guardada ha caducado (una sesión dura unos 30 días). Inicia sesión de nuevo en la consola de Grsai y luego añade la cuenta con la detección automática."
+  },
+  "kelivo": {
+    "copied": "Código de importación de Kelivo móvil copiado. Pégalo en la importación de proveedores de Kelivo móvil.",
+    "copyFailed": "No se pudo copiar el código de importación de Kelivo. Revisa el permiso del portapapeles e inténtalo de nuevo.",
+    "customGoogleEndpointUnsupported": "Los códigos de importación de Kelivo no pueden conservar direcciones personalizadas de la API de Google.",
+    "invalidBaseUrl": "La Base URL debe ser una dirección HTTP o HTTPS válida.",
+    "missingCredentials": "Se requiere un nombre de proveedor y una clave API completa.",
+    "unsupportedApiType": "Este protocolo de API no se puede exportar a Kelivo."
+  },
+  "magpie": {
+    "configMissing": "Primero configura la dirección de Magpie Web y la clave de administración Web en la configuración.",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "managedSite": {
+    "unsupportedModelSync": "{{siteName}} no admite la sincronización de modelos de sitios administrados en esta versión"
+  },
+  "newapi": {
+    "configMissing": "Primero configura la dirección de New API, el token de administrador y el ID de usuario en la configuración básica",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "octopus": {
+    "configMissing": "Primero configura la dirección, el nombre de usuario y la contraseña de Octopus en la configuración básica",
+    "corsError": "Esto puede deberse a la configuración de CORS. Revisa la lista de permitidos de CORS en la configuración de Octopus.",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "omniroute": {
+    "configMissing": "Configura primero la dirección y el token de acceso de OmniRoute en los ajustes",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "openrouter": {
+    "bootstrap": {
+      "cancelled_before_create": "La creación de la clave de OpenRouter se canceló antes de crear nada.",
+      "cancelledAfterCreate": "La clave se creó mientras se cancelaba la operación. Revísala abajo y guárdala o revócala.",
+      "failed": "No se pudo confirmar la creación de la clave de OpenRouter. Ingresa una clave manualmente o revisa las claves de administración.",
+      "invalid_origin": "La creación de claves de OpenRouter requiere la página canónica de OpenRouter.",
+      "logged_out": "Inicia sesión en OpenRouter y vuelve a intentar la detección automática.",
+      "mutationUnconfirmed": "Es posible que OpenRouter haya creado una clave, pero no se recibió el resultado. Revisa las claves de administración antes de volver a intentarlo.",
+      "page_changed": "Mantén abierta la página de claves de administración de OpenRouter y vuelve a intentar la detección automática.",
+      "timeout": "La creación de la clave de OpenRouter agotó el tiempo de espera. Revisa las claves de administración antes de volver a intentarlo.",
+      "validationFailed": "OpenRouter creó una clave, pero no se pudo validar. Pégala abajo o revócala desde las claves de administración."
+    },
+    "credentialInvalid": "La clave de administración de OpenRouter no es válida o fue revocada.",
+    "malformedResponse": "OpenRouter devolvió una respuesta inesperada. Inténtalo más tarde.",
+    "managementKeyRequired": "Crea una nueva clave de administración en OpenRouter y cópiala de inmediato. Las claves de administración existentes no se pueden volver a mostrar.",
+    "networkFallback": "No se pudo conectar con OpenRouter. Revisa tu conexión y vuelve a intentarlo.",
+    "permissionDenied": "Esta clave de administración de OpenRouter no tiene permiso para leer los créditos de la cuenta."
+  },
+  "operations": {
+    "detection": {
+      "failed": "La detección automática falló; ingresa la información manualmente o asegúrate de haber iniciado sesión en el sitio de destino",
+      "getAccessTokenFailedDetailed": "La cuenta fue detectada, pero no se pudo recuperar ningún token de acceso. Confirma que la cuenta pueda crear o ver tokens de API, o ingresa el token manualmente.",
+      "getInfoFailed": "No se pudo obtener el nombre de usuario o el token de acceso",
+      "getSiteStatusFailedDetailed": "La cuenta fue detectada, pero no se pudo leer el estado del sitio. Inténtalo más tarde; si sigue fallando, guarda la cuenta manualmente primero.",
+      "getUserIdFailed": "No se pudo obtener el ID de usuario",
+      "getUserIdFailedDetailed": "No se pudo confirmar la cuenta con la sesión iniciada. Abre el sitio de destino en este navegador, asegúrate de haber iniciado sesión y vuelve a intentarlo. Si sigue fallando, completa manualmente los datos de la cuenta.",
+      "getUsernameFailedDetailed": "La cuenta fue detectada, pero el sitio no devolvió un nombre de usuario. Asegúrate de haber iniciado sesión o ingresa la cuenta manualmente."
+    }
+  },
+  "storage": {
+    "accountDisabled": "La cuenta {{id}} está deshabilitada",
+    "accountNotFound": "La cuenta {{id}} no existe",
+    "updateFailed": "No se pudo actualizar la cuenta"
+  },
+  "sub2api": {
+    "authPersistenceFailed": "No se pudo guardar de forma segura el inicio de sesión actualizado de Sub2API en esta cuenta. Actualiza o vuelve a importar la cuenta y vuelve a intentarlo.",
+    "configMissing": "Configura primero la URL base y la Admin API Key de Sub2API en la configuración básica.",
+    "loginRequired": "Primero inicia sesión en el panel de Sub2API (para que la extensión pueda leer auth_token/auth_user desde localStorage) y vuelve a intentarlo.",
+    "refreshTokenInvalid": "El refresh token de Sub2API no es válido o fue rotado. Vuelve a importar la sesión desde el panel (recomendado: ventana de incógnito/privada) o pega un refresh_token actualizado, y vuelve a intentarlo."
+  },
+  "toast": {
+    "error": {
+      "copyFailed": "Error al copiar",
+      "duplicateCleanupFailed": "No se pudieron eliminar cuentas duplicadas: {{error}}",
+      "externalCheckInNonePending": "No hay estaciones externas de check-in que no se hayan abierto hoy.",
+      "externalCheckInPartialFailed_one": "Falló {{failedCount}} de {{totalCount}} check-in externo.",
+      "externalCheckInPartialFailed_many": "Fallaron {{failedCount}} de {{totalCount}} check-ins externos.",
+      "externalCheckInPartialFailed_other": "Fallaron {{failedCount}} de {{totalCount}} check-ins externos.",
+      "findAccountDetailsFailed": "No se pudieron encontrar los detalles de la cuenta",
+      "operationFailed": "La operación falló: {{error}}",
+      "operationFailedGeneric": "La operación falló",
+      "refreshAccount": "No se pudo actualizar {{accountName}}",
+      "saveFailed": "Error al guardar",
+      "shareSnapshotAccountDisabled": "Esta cuenta está deshabilitada",
+      "shareSnapshotNoEnabledAccounts": "No hay cuentas habilitadas para compartir"
+    },
+    "loading": {
+      "refreshingAccount": "Actualizando {{accountName}}..."
+    },
+    "success": {
+      "accountDisabled": "{{accountName}} deshabilitada",
+      "accountEnabled": "{{accountName}} habilitada",
+      "accountPinned": "{{accountName}} fijada",
+      "accountSaveSuccess": "Cuenta guardada correctamente",
+      "accountsDisabled_one": "{{count}} cuenta deshabilitada",
+      "accountsDisabled_many": "{{count}} cuentas deshabilitadas",
+      "accountsDisabled_other": "{{count}} cuentas deshabilitadas",
+      "accountsEnabled_one": "{{count}} cuenta habilitada",
+      "accountsEnabled_many": "{{count}} cuentas habilitadas",
+      "accountsEnabled_other": "{{count}} cuentas habilitadas",
+      "accountUnpinned": "{{accountName}} desfijada",
+      "accountUpdateSuccess": "Cuenta actualizada correctamente",
+      "bookmarkAdded": "Marcador {{name}} agregado correctamente.",
+      "bookmarkDeleted": "Marcador {{name}} eliminado",
+      "bookmarkPinned": "{{name}} fijado",
+      "bookmarkUnpinned": "{{name}} desfijado",
+      "bookmarkUpdated": "Marcador {{name}} actualizado correctamente.",
+      "bookmarkUrlCopied": "URL de {{name}} copiada al portapapeles",
+      "duplicateCleanupSuccess_one": "Se eliminó {{count}} cuenta de {{groups}} conjunto(s) duplicado(s).",
+      "duplicateCleanupSuccess_many": "Se eliminaron {{count}} cuentas de {{groups}} conjunto(s) duplicado(s).",
+      "duplicateCleanupSuccess_other": "Se eliminaron {{count}} cuentas de {{groups}} conjunto(s) duplicado(s).",
+      "externalCheckInModeAll": "todos",
+      "externalCheckInModeUnchecked": "solo no revisados",
+      "externalCheckInOpened_one": "Se abrió el check-in externo para {{count}} cuenta ({{mode}}).",
+      "externalCheckInOpened_many": "Se abrieron check-ins externos para {{count}} cuentas ({{mode}}).",
+      "externalCheckInOpened_other": "Se abrieron check-ins externos para {{count}} cuentas ({{mode}}).",
+      "operationCompleted": "Operación completada",
+      "refreshAccount": "{{accountName}} se actualizó correctamente.",
+      "refreshSkipped": "No se alcanzó el intervalo de actualización; se omitió",
+      "shareSnapshotCaptionCopied": "Leyenda copiada",
+      "shareSnapshotCopied": "Instantánea copiada al portapapeles",
+      "shareSnapshotDownloaded": "Instantánea descargada",
+      "urlCopied": "URL de {{accountName}} copiada al portapapeles"
+    }
+  },
+  "tokenProvisioning": {
+    "createRequiresGroup": "La creación de claves requiere un grupo confirmado. Elige un grupo disponible antes de continuar.",
+    "createRequiresGroupSelection": "Esta cuenta tiene varios grupos disponibles. Elige uno antes de crear la clave.",
+    "selectGroupTitle": "Elegir un grupo de claves"
+  },
+  "veloera": {
+    "configMissing": "Primero configura la dirección de Veloera, el token de administrador y el ID de usuario en la configuración básica",
+    "noChannelsToSync": "No hay canales para sincronizar"
+  },
+  "warnings": {
+    "accountSavedWithoutDataRefresh": "La cuenta se guardó, pero no se pudieron obtener el saldo, la cuota y el uso de hoy más recientes. Los valores actuales pueden ser marcadores de posición. Actualiza esta cuenta más tarde desde la lista de cuentas.",
+    "accountUpdatedWithoutDataRefresh": "La configuración de la cuenta se guardó, pero no se pudieron actualizar el saldo, la cuota y el uso de hoy más recientes. Los valores actuales podrían seguir desactualizados. Actualiza esta cuenta más tarde desde la lista de cuentas."
+  },
+  "webdav": {
+    "authFailed": "La autenticación falló; revisa el nombre de usuario y la contraseña",
+    "configIncomplete": "Completa la URL de WebDAV, el nombre de usuario y la contraseña",
+    "connectionFailed": "La conexión falló, código de estado: {{status}}",
+    "decryptFailed": "No se pudo descifrar la copia de seguridad; revisa tu contraseña",
+    "decryptFailedNoPassword": "La copia de seguridad está cifrada, pero no hay contraseña configurada",
+    "downloadFailed": "La descarga falló, código de estado: {{status}}",
+    "encryptFailedNoPassword": "El cifrado está habilitado, pero no hay contraseña configurada",
+    "fileNotFound": "El archivo remoto de copia de seguridad no existe",
+    "invalidBackupJson": "El archivo de copia de seguridad en la nube está incompleto y no se puede usar para sincronizar. La sincronización se detuvo para evitar fusionar datos dañados. Si este dispositivo tiene datos locales completos, usa Subir a WebDAV para recrear la copia en la nube. Si no, sube desde otro dispositivo que tenga datos completos o importa primero un archivo de copia de seguridad completo.",
+    "safeCommitFailed": "No se pudo confirmar que se guardó la copia de seguridad en la nube. Revisa la conexión y los permisos de lectura y escritura, e inténtalo de nuevo.",
+    "syncDataSelectionRequired": "Selecciona al menos un dominio de datos para sincronizar",
+    "uploadFailed": "La carga falló, código de estado: {{status}}",
+    "uploadStillProcessing": "El servicio en la nube todavía está procesando la copia de seguridad cargada, por lo que la verificación aún no pudo completarse. Inténtalo de nuevo más tarde.",
+    "uploadVerificationFailed": "La verificación de la copia de seguridad falló después de la carga. El archivo en la nube podría estar incompleto. Reintenta la sincronización o restaura una copia de seguridad local si es necesario."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "dialog": {
+    "actions": {
+      "cleanupOwnedSessionAndRetry": "Clean up extension sessions and retry",
+      "close": "Close",
+      "configureTotp": "Set up automatic verification",
+      "openSite": "Open site",
+      "retry": "Retry",
+      "retryAfterPasskey": "Retry after passkey",
+      "saveAndRetry": "Save and retry",
+      "submitLoginCode": "Submit login code",
+      "submitVerificationCode": "Submit verification code"
+    },
+    "body": {
+      "credentialsMissing": "Add a New API login username and password in Settings before session-assisted verification can run.",
+      "failure": "The New API verification flow could not be completed.",
+      "loggingIn": "Checking the current New API session and preparing verification if it is needed.",
+      "loginTwoFactor": "The New API login step requires a verification code before the browser-backed admin session can continue.",
+      "passkeyManual": "This account currently exposes passkey verification for the secure step. Complete the passkey check on the site, then return here and retry.",
+      "secureVerification": "The admin session is logged in, but New API still requires a secure verification code before hidden channel keys can be read.",
+      "sessionActiveLimit": "New API has reached its active-session limit. The extension has no session it can safely remove, so revoke an unused session on the site before retrying.",
+      "sessionActiveLimitCleanup": "New API has reached its active-session limit. The extension can revoke only the sessions it created, then retry this action.",
+      "sessionIssuanceLimit": "New API has reached its 24-hour session issuance limit. Removing active sessions will not reset it; wait for the issuance window to recover.",
+      "successChannel": "Verification succeeded for {{label}}. The real channel key has been loaded.",
+      "successSettings": "The New API login and verification flow completed successfully. You can now continue with actions that require login and verification.",
+      "successToken": "Verification succeeded for {{label}}. The managed-site status has been refreshed."
+    },
+    "fields": {
+      "codeLabel": "Verification code"
+    },
+    "hints": {
+      "configureTotp": "Verifying frequently? Add your TOTP secret in Settings → {{section}} → {{provider}} so the extension can generate and submit verification codes automatically.",
+      "manualFallback": "Enter a code manually to complete this verification.",
+      "openSettingsShortcut": "You can complete the missing configuration here and continue verification immediately.",
+      "passkey": "Open the site, complete the passkey prompt there, then come back here and retry."
+    },
+    "messages": {
+      "cleaningOwnedSession": "Cleaning up the New API sessions created by the extension...",
+      "completeRequiredConfig": "Complete the missing configuration fields first.",
+      "finishing": "Finalizing the New API session check...",
+      "missingBaseUrl": "Add the New API base URL before testing the session flow.",
+      "missingCode": "Enter the verification code first.",
+      "ownedSessionCleanupFailed": "The extension-created sessions could not all be removed. Open session management on the site and revoke unused sessions manually.",
+      "quickConfigSaveFailed": "Failed to save the quick configuration. Please try again.",
+      "refreshingChannel": "Loading the real channel key...",
+      "refreshingToken": "Refreshing this token's managed-site status...",
+      "starting": "Starting the New API verification flow...",
+      "submitting": "Submitting verification code..."
+    },
+    "title": {
+      "channel": "New API channel key verification",
+      "settings": "New API session check",
+      "token": "New API verification retry"
+    }
+  }
+}

@@ -1,0 +1,275 @@
+name: Real-Site E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      category:
+        description: Real-site E2E category to run
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - account
+          - cloud-sync
+          - managed-site
+          - webdav
+      target:
+        description: Optional target ID from scripts/real-site-e2e-matrix.mjs (for example new-api-account); all keeps category selection
+        required: false
+        default: all
+        type: string
+  schedule:
+    - cron: "17 19 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-site-matrix:
+    name: Prepare real-site E2E matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Generate matrix
+        id: matrix
+        env:
+          REAL_SITE_CATEGORY: ${{ github.event.inputs.category || 'all' }}
+          REAL_SITE_TARGET: ${{ github.event.inputs.target || 'all' }}
+        run: node scripts/github-real-site-e2e-matrix.mjs "$REAL_SITE_CATEGORY" "$REAL_SITE_TARGET"
+
+  e2e-build:
+    uses: ./.github/workflows/e2e-build.yml
+
+  real-site-e2e:
+    name: ${{ matrix.label }}
+    needs: [real-site-matrix, e2e-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AAH_E2E_BUILD_VARIANT: default
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.real-site-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Download E2E extension
+        uses: actions/download-artifact@v7
+        with:
+          name: e2e-extension-default
+          path: .output/chrome-mv3-test
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .output/chrome-mv3-test/.node-version
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Get Playwright version
+        id: playwright_version
+        run: |
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); console.log('version=' + (pkg.devDependencies?.['@playwright/test'] ?? 'unknown'))" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright_version.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Export selected real-site environment
+        env:
+          REAL_SITE_ENV_PREFIX: ${{ matrix.env_prefix }}
+          REAL_SITE_BASE_URL: ${{ secrets[format('AAH_E2E_{0}_BASE_URL', matrix.env_prefix)] }}
+          REAL_SITE_USERNAME: ${{ secrets[format('AAH_E2E_{0}_USERNAME', matrix.env_prefix)] }}
+          REAL_SITE_PASSWORD: ${{ secrets[format('AAH_E2E_{0}_PASSWORD', matrix.env_prefix)] }}
+          REAL_SITE_TOTP_SECRET: ${{ secrets[format('AAH_E2E_{0}_TOTP_SECRET', matrix.env_prefix)] }}
+          REAL_SITE_LOGIN_PATH: ${{ secrets[format('AAH_E2E_{0}_LOGIN_PATH', matrix.env_prefix)] }}
+          REAL_SITE_LOGIN_API_PATH: ${{ secrets[format('AAH_E2E_{0}_LOGIN_API_PATH', matrix.env_prefix)] }}
+          REAL_SITE_LOGIN_2FA_API_PATH: ${{ secrets[format('AAH_E2E_{0}_LOGIN_2FA_API_PATH', matrix.env_prefix)] }}
+          REAL_SITE_USERNAME_SELECTOR: ${{ secrets[format('AAH_E2E_{0}_USERNAME_SELECTOR', matrix.env_prefix)] }}
+          REAL_SITE_PASSWORD_SELECTOR: ${{ secrets[format('AAH_E2E_{0}_PASSWORD_SELECTOR', matrix.env_prefix)] }}
+          REAL_SITE_SUBMIT_SELECTOR: ${{ secrets[format('AAH_E2E_{0}_SUBMIT_SELECTOR', matrix.env_prefix)] }}
+          REAL_SITE_AGREE_SELECTOR: ${{ secrets[format('AAH_E2E_{0}_AGREE_SELECTOR', matrix.env_prefix)] }}
+          REAL_SITE_KIND: ${{ matrix.kind || 'account' }}
+          REAL_SITE_CATEGORY: ${{ matrix.category }}
+          MANAGED_SITE_TARGET: ${{ matrix.managed_site_target }}
+          MANAGED_SITE_ADMIN_TOKEN: ${{ secrets[format('AAH_E2E_{0}_ADMIN_TOKEN', matrix.env_prefix)] }}
+          MANAGED_SITE_MANAGEMENT_KEY: ${{ secrets[format('AAH_E2E_{0}_MANAGEMENT_KEY', matrix.env_prefix)] }}
+          MANAGED_SITE_WEB_KEY: ${{ secrets[format('AAH_E2E_{0}_WEB_KEY', matrix.env_prefix)] }}
+          MANAGED_SITE_ADMIN_USER_ID: ${{ secrets[format('AAH_E2E_{0}_ADMIN_USER_ID', matrix.env_prefix)] }}
+          MANAGED_SITE_ADMIN_USERNAME: ${{ secrets[format('AAH_E2E_{0}_ADMIN_USERNAME', matrix.env_prefix)] }}
+          MANAGED_SITE_ADMIN_PASSWORD: ${{ secrets[format('AAH_E2E_{0}_ADMIN_PASSWORD', matrix.env_prefix)] }}
+          MANAGED_SITE_ADMIN_TOTP_SECRET: ${{ secrets[format('AAH_E2E_{0}_ADMIN_TOTP_SECRET', matrix.env_prefix)] }}
+          MANAGED_SITE_EMAIL: ${{ secrets[format('AAH_E2E_{0}_EMAIL', matrix.env_prefix)] }}
+          WEBDAV_PROVIDER_NAME: ${{ matrix.provider_name }}
+          WEBDAV_PROVIDER_ACCOUNT_PREFIX: ${{ matrix.provider_account_prefix }}
+          WEBDAV_URL: ${{ secrets[format('AAH_E2E_{0}_URL', matrix.env_prefix)] }}
+          WEBDAV_USERNAME: ${{ secrets[format('AAH_E2E_{0}_USERNAME', matrix.env_prefix)] }}
+          WEBDAV_PASSWORD: ${{ secrets[format('AAH_E2E_{0}_PASSWORD', matrix.env_prefix)] }}
+          GITHUB_GIST_TOKEN: ${{ secrets[format('AAH_E2E_{0}_TOKEN', matrix.env_prefix)] }}
+        run: |
+          write_env() {
+            local key="$1"
+            local value="$2"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$key" "$value" >> "$GITHUB_ENV"
+            fi
+          }
+
+          prefix="$REAL_SITE_ENV_PREFIX"
+          write_env "AAH_E2E_REAL_SITE_CATEGORY" "$REAL_SITE_CATEGORY"
+          missing=()
+          if [ "$REAL_SITE_KIND" = "webdav" ]; then
+            write_env "AAH_E2E_WEBDAV_PROVIDER_PREFIX" "$prefix"
+            write_env "AAH_E2E_WEBDAV_PROVIDER_NAME" "$WEBDAV_PROVIDER_NAME"
+            write_env "AAH_E2E_WEBDAV_ACCOUNT_PREFIX" "$WEBDAV_PROVIDER_ACCOUNT_PREFIX"
+            write_env "AAH_E2E_WEBDAV_URL" "$WEBDAV_URL"
+            write_env "AAH_E2E_WEBDAV_USERNAME" "$WEBDAV_USERNAME"
+            write_env "AAH_E2E_WEBDAV_PASSWORD" "$WEBDAV_PASSWORD"
+            write_env "AAH_E2E_${prefix}_URL" "$WEBDAV_URL"
+            write_env "AAH_E2E_${prefix}_USERNAME" "$WEBDAV_USERNAME"
+            write_env "AAH_E2E_${prefix}_PASSWORD" "$WEBDAV_PASSWORD"
+            [ -z "$WEBDAV_URL" ] && missing+=("AAH_E2E_${prefix}_URL")
+            [ -z "$WEBDAV_USERNAME" ] && missing+=("AAH_E2E_${prefix}_USERNAME")
+            [ -z "$WEBDAV_PASSWORD" ] && missing+=("AAH_E2E_${prefix}_PASSWORD")
+          elif [ "$REAL_SITE_KIND" = "gist" ]; then
+            write_env "AAH_E2E_GITHUB_GIST_TOKEN" "$GITHUB_GIST_TOKEN"
+            [ -z "$GITHUB_GIST_TOKEN" ] && missing+=("AAH_E2E_${prefix}_TOKEN")
+          elif [ "$REAL_SITE_KIND" = "managed-site" ]; then
+            write_env "AAH_E2E_MANAGED_SITE_TARGET" "$MANAGED_SITE_TARGET"
+            write_env "AAH_E2E_${prefix}_BASE_URL" "$REAL_SITE_BASE_URL"
+            write_env "AAH_E2E_${prefix}_USERNAME" "$REAL_SITE_USERNAME"
+            write_env "AAH_E2E_${prefix}_PASSWORD" "$REAL_SITE_PASSWORD"
+            write_env "AAH_E2E_${prefix}_TOTP_SECRET" "$REAL_SITE_TOTP_SECRET"
+            write_env "AAH_E2E_${prefix}_LOGIN_PATH" "$REAL_SITE_LOGIN_PATH"
+            write_env "AAH_E2E_${prefix}_LOGIN_API_PATH" "$REAL_SITE_LOGIN_API_PATH"
+            write_env "AAH_E2E_${prefix}_LOGIN_2FA_API_PATH" "$REAL_SITE_LOGIN_2FA_API_PATH"
+            write_env "AAH_E2E_${prefix}_USERNAME_SELECTOR" "$REAL_SITE_USERNAME_SELECTOR"
+            write_env "AAH_E2E_${prefix}_PASSWORD_SELECTOR" "$REAL_SITE_PASSWORD_SELECTOR"
+            write_env "AAH_E2E_${prefix}_SUBMIT_SELECTOR" "$REAL_SITE_SUBMIT_SELECTOR"
+            write_env "AAH_E2E_${prefix}_AGREE_SELECTOR" "$REAL_SITE_AGREE_SELECTOR"
+            write_env "AAH_E2E_${prefix}_ADMIN_TOKEN" "$MANAGED_SITE_ADMIN_TOKEN"
+            write_env "AAH_E2E_${prefix}_MANAGEMENT_KEY" "$MANAGED_SITE_MANAGEMENT_KEY"
+            write_env "AAH_E2E_${prefix}_WEB_KEY" "$MANAGED_SITE_WEB_KEY"
+            write_env "AAH_E2E_${prefix}_ADMIN_USER_ID" "$MANAGED_SITE_ADMIN_USER_ID"
+            write_env "AAH_E2E_${prefix}_ADMIN_USERNAME" "$MANAGED_SITE_ADMIN_USERNAME"
+            write_env "AAH_E2E_${prefix}_ADMIN_PASSWORD" "$MANAGED_SITE_ADMIN_PASSWORD"
+            write_env "AAH_E2E_${prefix}_ADMIN_TOTP_SECRET" "$MANAGED_SITE_ADMIN_TOTP_SECRET"
+            write_env "AAH_E2E_${prefix}_EMAIL" "$MANAGED_SITE_EMAIL"
+            [ -z "$REAL_SITE_BASE_URL" ] && missing+=("AAH_E2E_${prefix}_BASE_URL")
+            case "$prefix" in
+              NEW_API|VELOERA|DONE_HUB)
+                [ -z "$MANAGED_SITE_ADMIN_TOKEN" ] && missing+=("AAH_E2E_${prefix}_ADMIN_TOKEN")
+                [ -z "$MANAGED_SITE_ADMIN_USER_ID" ] && missing+=("AAH_E2E_${prefix}_ADMIN_USER_ID")
+                ;;
+              OCTOPUS)
+                [ -z "$REAL_SITE_USERNAME" ] && missing+=("AAH_E2E_${prefix}_USERNAME")
+                [ -z "$REAL_SITE_PASSWORD" ] && missing+=("AAH_E2E_${prefix}_PASSWORD")
+                ;;
+              AXON_HUB)
+                [ -z "$MANAGED_SITE_EMAIL" ] && missing+=("AAH_E2E_${prefix}_EMAIL")
+                [ -z "$REAL_SITE_PASSWORD" ] && missing+=("AAH_E2E_${prefix}_PASSWORD")
+                ;;
+              CLAUDE_CODE_HUB|CLI_PROXY_API|OMNIROUTE)
+                [ -z "$MANAGED_SITE_ADMIN_TOKEN" ] && missing+=("AAH_E2E_${prefix}_ADMIN_TOKEN")
+                ;;
+              SUB2API)
+                [ -z "$MANAGED_SITE_ADMIN_TOKEN" ] && missing+=("AAH_E2E_${prefix}_ADMIN_TOKEN")
+                ;;
+              GPT_LOAD)
+                [ -z "$MANAGED_SITE_MANAGEMENT_KEY" ] && missing+=("AAH_E2E_${prefix}_MANAGEMENT_KEY")
+                ;;
+              MAGPIE)
+                [ -z "$MANAGED_SITE_WEB_KEY" ] && missing+=("AAH_E2E_${prefix}_WEB_KEY")
+                ;;
+            esac
+          else
+            write_env "AAH_E2E_${prefix}_BASE_URL" "$REAL_SITE_BASE_URL"
+            write_env "AAH_E2E_${prefix}_USERNAME" "$REAL_SITE_USERNAME"
+            write_env "AAH_E2E_${prefix}_PASSWORD" "$REAL_SITE_PASSWORD"
+            write_env "AAH_E2E_${prefix}_TOTP_SECRET" "$REAL_SITE_TOTP_SECRET"
+            write_env "AAH_E2E_${prefix}_LOGIN_PATH" "$REAL_SITE_LOGIN_PATH"
+            write_env "AAH_E2E_${prefix}_LOGIN_API_PATH" "$REAL_SITE_LOGIN_API_PATH"
+            write_env "AAH_E2E_${prefix}_LOGIN_2FA_API_PATH" "$REAL_SITE_LOGIN_2FA_API_PATH"
+            write_env "AAH_E2E_${prefix}_USERNAME_SELECTOR" "$REAL_SITE_USERNAME_SELECTOR"
+            write_env "AAH_E2E_${prefix}_PASSWORD_SELECTOR" "$REAL_SITE_PASSWORD_SELECTOR"
+            write_env "AAH_E2E_${prefix}_SUBMIT_SELECTOR" "$REAL_SITE_SUBMIT_SELECTOR"
+            write_env "AAH_E2E_${prefix}_AGREE_SELECTOR" "$REAL_SITE_AGREE_SELECTOR"
+            [ -z "$REAL_SITE_BASE_URL" ] && missing+=("AAH_E2E_${prefix}_BASE_URL")
+            [ -z "$REAL_SITE_USERNAME" ] && missing+=("AAH_E2E_${prefix}_USERNAME")
+            [ -z "$REAL_SITE_PASSWORD" ] && missing+=("AAH_E2E_${prefix}_PASSWORD")
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::warning::${REAL_SITE_CATEGORY}/${prefix} real-site E2E will skip without required secrets: ${missing[*]}"
+          else
+            echo "${REAL_SITE_CATEGORY}/${prefix} real-site E2E required secrets are configured."
+          fi
+
+      - name: Export shared inference credentials
+        if: matrix.category == 'managed-site'
+        env:
+          AAH_E2E_UPSTREAM_BASE_URL: ${{ secrets.AAH_E2E_UPSTREAM_BASE_URL }}
+          AAH_E2E_UPSTREAM_API_KEY: ${{ secrets.AAH_E2E_UPSTREAM_API_KEY }}
+        run: |
+          for key in AAH_E2E_UPSTREAM_BASE_URL AAH_E2E_UPSTREAM_API_KEY; do
+            if [ -n "${!key}" ]; then
+              printf '%s=%s\n' "$key" "${!key}" >> "$GITHUB_ENV"
+            else
+              echo "::warning::Credential import/model discovery needs $key; management CRUD remains available."
+            fi
+          done
+
+      - name: Run real-site E2E
+        env:
+          AAH_SKIP_E2E_BUILD: "1"
+          REAL_SITE_SPEC: ${{ matrix.spec }}
+        run: pnpm exec playwright test "$REAL_SITE_SPEC" --project=chromium --reporter=list --no-deps
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-site-failure-screenshots-${{ matrix.category }}-${{ matrix.env_prefix }}-${{ github.run_attempt }}
+          path: test-results/**/test-failed-*.png
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload account detection diagnostics
+        if: always() && matrix.kind == 'account'
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-site-detection-${{ matrix.env_prefix }}-${{ github.run_attempt }}
+          path: test-results/**/detection-*.json
+          if-no-files-found: ignore
+          retention-days: 3

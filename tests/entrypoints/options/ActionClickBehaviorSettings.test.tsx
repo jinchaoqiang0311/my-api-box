@@ -1,0 +1,180 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import ActionClickBehaviorSettings from "~/features/BasicSettings/components/tabs/General/ActionClickBehaviorSettings"
+import {
+  getSidePanelSupport,
+  type SidePanelSupport,
+} from "~/utils/browser/sidePanel"
+import { showResultToast } from "~/utils/feedback/operationFeedback"
+import { showUpdateToast } from "~/utils/feedback/preferenceFeedback"
+import { fireEvent, render, screen, waitFor } from "~~/tests/test-utils/render"
+
+vi.mock("~/contexts/UserPreferencesContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/contexts/UserPreferencesContext")>()
+  return {
+    ...actual,
+    useUserPreferencesContext: vi.fn(),
+  }
+})
+
+vi.mock("~/utils/browser/sidePanel", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/sidePanel")>()
+  return { ...actual, getSidePanelSupport: vi.fn() }
+})
+
+vi.mock("~/utils/feedback/operationFeedback", () => ({
+  showResultToast: vi.fn(),
+}))
+vi.mock("~/utils/feedback/preferenceFeedback", () => ({
+  showUpdateToast: vi.fn(),
+}))
+
+const preferenceWriteSuccess = () => ({
+  ok: true,
+  preferences: {},
+})
+
+describe("ActionClickBehaviorSettings (side panel fallback)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // Note: `renderSubject()` uses the shared test renderer; i18n runs in key-assertion mode
+  // so `t()` returns fully-qualified keys (e.g. "settings:...").
+  const renderSubject = () => render(<ActionClickBehaviorSettings />)
+
+  it("shows unsupported fallback messaging even when stored preference is sidepanel", async () => {
+    const sidePanelSupport = {
+      supported: false,
+      kind: "unsupported",
+      reason:
+        "Side panel API exposed, but current mobile runtime cannot present a usable side panel",
+    } satisfies SidePanelSupport
+    vi.mocked(getSidePanelSupport).mockReturnValue(sidePanelSupport)
+
+    const userPreferencesContext = {
+      actionClickBehavior: "sidepanel",
+      updateActionClickBehavior: vi.fn(),
+    } satisfies Partial<ReturnType<typeof useUserPreferencesContext>>
+    vi.mocked(useUserPreferencesContext).mockReturnValue(
+      userPreferencesContext as unknown as ReturnType<
+        typeof useUserPreferencesContext
+      >,
+    )
+
+    renderSubject()
+
+    expect(
+      await screen.findByText(
+        "settings:actionClick.sidepanelUnsupportedHelper",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("persists sidepanel selection and shows fallback toast when unsupported", async () => {
+    const sidePanelSupport = {
+      supported: false,
+      kind: "unsupported",
+      reason: "x",
+    } satisfies SidePanelSupport
+    vi.mocked(getSidePanelSupport).mockReturnValue(sidePanelSupport)
+
+    const updateActionClickBehavior = vi
+      .fn()
+      .mockResolvedValue(preferenceWriteSuccess())
+    const userPreferencesContext = {
+      actionClickBehavior: "popup",
+      updateActionClickBehavior,
+    } satisfies Partial<ReturnType<typeof useUserPreferencesContext>>
+    vi.mocked(useUserPreferencesContext).mockReturnValue(
+      userPreferencesContext as unknown as ReturnType<
+        typeof useUserPreferencesContext
+      >,
+    )
+
+    renderSubject()
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "settings:actionClick.sidepanelTitle",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(updateActionClickBehavior).toHaveBeenCalledWith("sidepanel")
+    })
+
+    expect(vi.mocked(showResultToast)).toHaveBeenCalledWith({
+      success: true,
+      message: "settings:actionClick.sidepanelFallbackToast",
+    })
+    expect(vi.mocked(showUpdateToast)).not.toHaveBeenCalled()
+  })
+
+  it("persists options page selection and shows the standard update toast", async () => {
+    vi.mocked(getSidePanelSupport).mockReturnValue({
+      supported: true,
+      kind: "chromium-side-panel",
+    } satisfies SidePanelSupport)
+
+    const updateActionClickBehavior = vi
+      .fn()
+      .mockResolvedValue(preferenceWriteSuccess())
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      actionClickBehavior: "popup",
+      updateActionClickBehavior,
+    } as unknown as ReturnType<typeof useUserPreferencesContext>)
+
+    renderSubject()
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "settings:actionClick.optionsTitle",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(updateActionClickBehavior).toHaveBeenCalledWith("options")
+    })
+
+    expect(vi.mocked(showUpdateToast)).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: true }),
+      "settings:actionClick.title",
+    )
+    expect(vi.mocked(showResultToast)).not.toHaveBeenCalled()
+  })
+
+  it("lets action behavior options wrap inside narrow settings cards", async () => {
+    vi.mocked(getSidePanelSupport).mockReturnValue({
+      supported: true,
+      kind: "chromium-side-panel",
+    } satisfies SidePanelSupport)
+
+    vi.mocked(useUserPreferencesContext).mockReturnValue({
+      actionClickBehavior: "popup",
+      updateActionClickBehavior: vi.fn(),
+    } as unknown as ReturnType<typeof useUserPreferencesContext>)
+
+    renderSubject()
+
+    const popupButton = await screen.findByRole("button", {
+      name: "settings:actionClick.popupTitle",
+    })
+    const optionGroup = popupButton.parentElement
+
+    expect(optionGroup).toHaveClass(
+      "flex",
+      "w-full",
+      "flex-wrap",
+      "[@container(min-width:42rem)]:w-auto",
+    )
+    expect(popupButton).toHaveClass(
+      "min-w-fit",
+      "flex-1",
+      "[@container(min-width:42rem)]:flex-none",
+    )
+  })
+})

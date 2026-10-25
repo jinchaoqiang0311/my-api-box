@@ -1,0 +1,138 @@
+{
+  "verifyDialog": {
+    "actions": {
+      "close": "閉じる",
+      "manageModelKey": "モデル対応キーを開く",
+      "retry": "再試行",
+      "run": "実行",
+      "running": "実行中...",
+      "runOne": "実行",
+      "stop": "停止",
+      "stopProbe": "{{probe}} を停止"
+    },
+    "apiTypes": {
+      "anthropic": "Anthropic",
+      "google": "Google/Gemini",
+      "openai": "OpenAI",
+      "openaiCompatible": "OpenAI 互換"
+    },
+    "details": {
+      "input": "入力",
+      "output": "出力"
+    },
+    "errors": {
+      "unexpected": "予期しないエラー"
+    },
+    "generatedImagePreview": "生成画像のプレビュー",
+    "generatedVideoPreview": "生成された動画のプレビュー",
+    "history": {
+      "clear": "履歴をクリア",
+      "lastVerified": "前回の検証"
+    },
+    "idleHint": "検証を開始するにはキーを選択してください。モデル依存のプローブにはモデル ID が必要です。",
+    "loadingRuntimeKeysHint": "キーを読み込み中...",
+    "mediaPreviewUnavailable": "プレビューを読み込めませんでした。",
+    "meta": {
+      "apiType": "API 種別",
+      "apiTypePlaceholder": "API 種別を選択",
+      "mode": "テスト方式",
+      "model": "モデル",
+      "modelPlaceholder": "モデル ID を入力",
+      "requestProfile": "クライアントの模擬",
+      "runtimeKey": "キー",
+      "runtimeKeyIncompatible": "このモデルでは使用不可",
+      "runtimeKeyPlaceholder": "キーを選択"
+    },
+    "modalityNotice": {
+      "image": "画像生成モデルです。テスト呼び出しは都度クォータを消費します。",
+      "quotaCost": "都度課金",
+      "video": "動画を生成し、再生まで最大2分待機します。停止はローカルの待機のみを終了します。サーバーのタスクは継続し、料金が発生する場合があります。"
+    },
+    "modes": {
+      "nonStreaming": "非ストリーミング",
+      "streaming": "ストリーミング"
+    },
+    "noCompatibleRuntimeKeyHint": "このモデルのグループで使用できるキーがありません。キー管理で有効なグループのキーを作成するか選択してください。",
+    "notRunYet": "未実行",
+    "openGeneratedMedia": "生成されたメディアを開く",
+    "probes": {
+      "decision": "ディシジョン",
+      "embedding": "埋め込み",
+      "image-generation": "画像生成",
+      "models": "モデル一覧",
+      "rerank": "リランカー",
+      "structured-output": "構造化出力（スキーマ JSON）",
+      "text-generation": "テキスト生成",
+      "tool-calling": "ツール / 関数呼び出し",
+      "video-generation": "動画生成タスク",
+      "web-search": "Web 検索 / grounding"
+    },
+    "requestProfiles": {
+      "claude": "Claude Code",
+      "codex": "Codex CLI",
+      "default": "なし（通常のリクエスト）",
+      "enhancedBadge": "強化",
+      "enhancedHint": "既知の識別プロンプト、SDK ヘッダー、キャッシュ、セッション情報を追加します。入力使用量が増える場合があり、サイトでの許可は保証されません。",
+      "enhancedLabel": "CLI シミュレーションの強化",
+      "gemini": "Gemini CLI",
+      "hint": "クライアントのリクエスト形式を模擬し、対応する API プロトコルに切り替えます。テスト内容は変わりません。"
+    },
+    "requiresModelId": "このテストを実行するにはモデル ID を入力してください。",
+    "selectedRuntimeKeyIncompatibleHint": "選択中のキーはこのモデルのグループでは使用できません。互換性のあるキーを選択してから検証してください。",
+    "status": {
+      "fail": "失敗",
+      "pass": "成功",
+      "pending": "保留中",
+      "unsupported": "未対応",
+      "unverified": "未検証"
+    },
+    "summaries": {
+      "decisionSucceeded": "ディシジョン検証に成功しました。",
+      "decisionUnexpectedResponse": "ディシジョン API の応答が予期されない形式です。",
+      "embeddingSucceeded": "埋め込みの生成に成功しました（次元: {{dimension}}）。",
+      "embeddingUnexpectedResponse": "埋め込みレスポンスが予期しない形式です。",
+      "embeddingUnsupportedAnthropic": "Anthropic はネイティブの埋め込みモデルに対応していません。",
+      "endpointNotFound": "エンドポイントが見つかりません (404): この API は未対応の可能性があります",
+      "forbidden": "禁止されています (403): アクセスが拒否されました",
+      "httpError": "HTTP エラー ({{status}})",
+      "imageGenerationNoData": "画像データが返されませんでした。",
+      "imageGenerationSucceeded": "画像生成に成功しました。",
+      "modelsFetched": "{{count}} 件のモデルを取得しました。",
+      "modelsFetched_other": "{{count}} 件のモデルを取得しました。",
+      "modelsProbeUnsupportedForApiType": "この API 種別では models プローブはサポートされていません。",
+      "noModelAvailableToRunProbes": "プローブを実行できるモデルがありません。",
+      "noModelIdProvided": "モデル ID が指定されていません。",
+      "noModelIdProvidedToRunProbe": "このプローブを実行するためのモデル ID が指定されていません。",
+      "noModelIdProvidedToRunProbes": "プローブを実行するためのモデル ID が指定されていません。",
+      "noModelsReturned": "モデルが返されませんでした。",
+      "noToolCallDetected": "ツール呼び出しが検出されませんでした（モデルがツールに対応していない可能性があります）。",
+      "probeRequiresOpenAiProtocol": "このテストには OpenAI 互換 API エンドポイントが必要です。サービスが対応している場合のみ、そのプロトコルを選択してください。",
+      "requestProfileIncompatible": "選択したクライアントの模擬は、この API プロトコルまたはテストに対応していません。",
+      "rerankSucceeded": "リランクテストに成功しました。",
+      "rerankUnexpectedResponse": "リランカーレスポンスが予期しない形式です。",
+      "stopped": "ユーザーが停止しました。",
+      "structuredOutputInvalid": "出力が不正です。",
+      "structuredOutputSucceeded": "構造化出力に成功しました。",
+      "textGenerationSucceeded": "テキスト生成に成功しました。",
+      "textGenerationUnexpectedResponse": "予期しない応答テキストです。",
+      "toolCallSucceeded": "ツール呼び出しに成功しました。",
+      "unauthorized": "認証されていません (401): 無効なキーまたは認証不足です",
+      "videoGenerationSucceeded": "動画を生成しました。",
+      "videoGenerationTimedOut": "動画の生成が2分以内に完了しませんでした。サーバーのタスクは実行中の可能性があります。",
+      "videoNoPlayableResult": "動画タスクは完了しましたが、再生可能な URL が返されませんでした。",
+      "videoNoTaskReturned": "動画タスク ID が返されませんでした。",
+      "videoTaskAccepted": "動画生成タスクが受付されました。",
+      "videoUnexpectedResponse": "動画タスクが失敗したか、無効な応答が返されました。",
+      "webSearchGroundingNoResults": "Web 検索 / grounding の結果がありません。",
+      "webSearchGroundingSucceeded": "Web 検索 / grounding に成功しました。",
+      "webSearchNoResults": "Web 検索結果がありません。",
+      "webSearchRequiresExplicitSupport": "Web 検索プローブには API 種別での明示的な対応が必要です。",
+      "webSearchSucceeded": "Web 検索に成功しました。",
+      "webSearchUnsupportedAnthropic": "Anthropic エンドポイントでは Web 検索プローブはサポートされていません。",
+      "webSearchUnsupportedForApiType": "この API 種別では Web 検索プローブはサポートされていません。"
+    },
+    "title": "API 検証",
+    "unsupportedProbeForApiType": "{{probe}} プローブはこの API 種別ではサポートされていません。",
+    "warning": "対応が検出された場合は実際に対応している可能性が高いですが、未検出でも実際には対応している場合があります。結果は参考情報として扱い、最終的には実際のツール利用結果を優先してください。"
+  }
+}

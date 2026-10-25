@@ -1,0 +1,20 @@
+{
+  "manifest_name": {
+    "message": "My API Box - Your All-in-One AI Asset Manager"
+  },
+  "manifest_description": {
+    "message": "balance/usage, auto check‑in, one‑click key export to popular clients, in‑page API checks, channel/model sync & redirect"
+  },
+  "manifest_commands_sidebar_action": {
+    "message": "Open My API Box in sidebar"
+  },
+  "manifest_commands_browser_action": {
+    "message": "Open My API Box in popup"
+  },
+  "context_menu_redeem_selection": {
+    "message": "Redeem selection with Redemption Assist"
+  },
+  "context_menu_ai_api_check": {
+    "message": "Quickly test the functional availability of AI APIs"
+  }
+}

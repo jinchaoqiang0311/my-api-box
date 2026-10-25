@@ -1,0 +1,687 @@
+/**
+ * Centralized preferences migration system
+ * Handles version-based migrations for UserPreferences configurations
+ */
+
+import { DATA_TYPE_CASHFLOW, DATA_TYPE_CONSUMPTION } from "~/constants"
+import { clampBalanceHistoryRetentionDays } from "~/services/history/dailyBalanceHistory/utils"
+import { DEFAULT_WEB_AI_API_CHECK_PREFERENCES } from "~/services/preferences/contentScriptFeatureDefaults"
+import { migrateAutoRefreshConfig } from "~/services/preferences/migrations/autoRefreshConfigMigration"
+import { migrateNewApiConfig } from "~/services/preferences/migrations/newApiConfigMigration"
+import { migrateWebDavConfig } from "~/services/preferences/migrations/webDavConfigMigration"
+import type { UserPreferences } from "~/services/preferences/preferencesSchema"
+import {
+  ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS,
+  ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS,
+  DEFAULT_ACCOUNT_AUTO_REFRESH,
+  type AccountAutoRefresh,
+} from "~/types/accountAutoRefresh"
+import {
+  DEFAULT_BALANCE_HISTORY_PREFERENCES,
+  type BalanceHistoryPreferences,
+} from "~/types/dailyBalanceHistory"
+import { DEFAULT_OCTOPUS_CONFIG } from "~/types/octopusConfig"
+import { normalizeSiteAnnouncementPreferences } from "~/types/siteAnnouncements"
+import {
+  DEFAULT_TASK_NOTIFICATION_PREFERENCES,
+  normalizeTaskNotificationPreferences,
+} from "~/types/taskNotifications"
+import {
+  DEFAULT_WEBDAV_SETTINGS,
+  resolveWebdavSyncDataSelection,
+} from "~/types/webdav"
+import { createLogger } from "~/utils/core/logger"
+import { normalizeAppLanguage } from "~/utils/i18n/language"
+
+import { normalizeTempWindowFallbackPreferences } from "../tempWindowFallbackPreferences"
+import { normalizeSharedPreferencesMetadata } from "../webdavSharedPreferences"
+import { migrateSortingConfig } from "./sortingConfigMigration"
+
+const logger = createLogger("PreferencesMigration")
+
+// Version that replaces legacy temporary-window surface switches with the
+// canonical per-feature protection-bypass policy.
+const AUTOMATIC_FEATURE_BYPASS_PREFERENCES_VERSION = 27
+
+/**
+ * Current version of the preferences schema.
+ */
+export const CURRENT_PREFERENCES_VERSION = 29
+
+/**
+ * Migration function type
+ * Takes preferences at version N and returns it at version N+1
+ */
+type PreferencesMigrationFunction = (prefs: UserPreferences) => UserPreferences
+
+/**
+ * Registry of migration functions
+ * Key: target version number
+ * Value: migration function to upgrade to that version
+ */
+const migrations: Record<number, PreferencesMigrationFunction> = {
+  // Version 28 -> 29: migrate directly to the final grouped sorting schema.
+  // This unreleased migration also removes link rules moved to user-selected sorting.
+  29: (prefs) => ({
+    ...prefs,
+    sortingPriorityConfig: migrateSortingConfig(prefs.sortingPriorityConfig),
+    preferencesVersion: 29,
+  }),
+  // Preserve the released integration credentials without replacing a new configuration.
+  28: (prefs) => {
+    const { cliProxy, ...rest } = prefs
+    return {
+      ...rest,
+      ...(!prefs.cliProxyApi?.baseUrl &&
+      !prefs.cliProxyApi?.adminToken &&
+      cliProxy
+        ? {
+            cliProxyApi: {
+              baseUrl: cliProxy.baseUrl,
+              adminToken: cliProxy.managementKey,
+            },
+          }
+        : {}),
+      preferencesVersion: 28,
+    }
+  },
+  // Version 0 -> 1: Migrate sorting priority configuration
+  1: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v0 to v1 (sorting config migration)",
+    )
+
+    // Migrate sorting priority config
+    const migratedSortingConfig = migrateSortingConfig(
+      prefs.sortingPriorityConfig,
+    )
+
+    return {
+      ...prefs,
+      sortingPriorityConfig: migratedSortingConfig,
+      preferencesVersion: 1,
+    }
+  },
+
+  // Version 1 -> 2: Add PINNED sorting criterion
+  2: (prefs: UserPreferences): UserPreferences => {
+    logger.debug("Migrating preferences from v1 to v2 (add PINNED criterion)")
+
+    // Migrate sorting priority config to add PINNED criterion
+    const migratedSortingConfig = migrateSortingConfig(
+      prefs.sortingPriorityConfig,
+    )
+
+    return {
+      ...prefs,
+      sortingPriorityConfig: migratedSortingConfig,
+      preferencesVersion: 2,
+    }
+  },
+
+  // Version 2 -> 3: Migrate flat WebDAV fields to nested webdav object
+  3: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v2 to v3 (WebDAV settings migration)",
+    )
+
+    const migratedPrefs = migrateWebDavConfig(prefs)
+
+    return {
+      ...migratedPrefs,
+      preferencesVersion: 3,
+    }
+  },
+
+  // Version 3 -> 4: Migrate flat auto-refresh fields to nested accountAutoRefresh object
+  4: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v3 to v4 (auto-refresh config migration)",
+    )
+
+    const migratedPrefs = migrateAutoRefreshConfig(prefs)
+
+    return {
+      ...migratedPrefs,
+      preferencesVersion: 4,
+    }
+  },
+
+  // Version 4 -> 5: Migrate flat new-api fields to nested newApi object
+  5: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v4 to v5 (new-api config migration)",
+    )
+
+    const migratedPrefs = migrateNewApiConfig(prefs)
+
+    return {
+      ...migratedPrefs,
+      preferencesVersion: 5,
+    }
+  },
+  // Version 5 -> 6: Ensure sorting priority config includes latest criteria (e.g. MANUAL_ORDER)
+  6: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v5 to v6 (sorting config migration)",
+    )
+
+    const migratedSortingConfig = migrateSortingConfig(
+      prefs.sortingPriorityConfig,
+    )
+
+    return {
+      ...prefs,
+      sortingPriorityConfig: migratedSortingConfig,
+      preferencesVersion: 6,
+    }
+  },
+
+  // Version 6 -> 7: Rename model sync config field newApiModelSync -> managedSiteModelSync
+  7: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v6 to v7 (managed-site model sync rename)",
+    )
+
+    const legacyConfig = (prefs as any).newApiModelSync
+    const currentConfig = (prefs as any).managedSiteModelSync
+
+    if (currentConfig) {
+      const { newApiModelSync: _legacy, ...rest } = prefs as any
+      return {
+        ...rest,
+        preferencesVersion: 7,
+      }
+    }
+
+    if (!legacyConfig) {
+      return {
+        ...prefs,
+        preferencesVersion: 7,
+      }
+    }
+
+    const { newApiModelSync: _legacy, ...rest } = prefs as any
+    return {
+      ...rest,
+      managedSiteModelSync: legacyConfig,
+      preferencesVersion: 7,
+    }
+  },
+
+  // Version 7 -> 8: Rename dashboard tab value consumption -> cashflow
+  8: (prefs: UserPreferences): UserPreferences => {
+    logger.debug("Migrating preferences from v7 to v8 (cashflow tab rename)")
+
+    /**
+     * Historically the dashboard used `activeTab = \"consumption\"` for the first tab,
+     * but that tab now represents today's cashflow (consumption + income).
+     *
+     * We keep storage backward-compatible by mapping the legacy value to the new one.
+     */
+    const legacyActiveTab = (prefs as any).activeTab
+    if (legacyActiveTab !== DATA_TYPE_CONSUMPTION) {
+      return {
+        ...prefs,
+        preferencesVersion: 8,
+      }
+    }
+
+    return {
+      ...prefs,
+      activeTab: DATA_TYPE_CASHFLOW as any,
+      preferencesVersion: 8,
+    }
+  },
+  9: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v8 to v9 (disabled accounts sorting config)",
+    )
+
+    const migratedSortingConfig = migrateSortingConfig(
+      prefs.sortingPriorityConfig,
+    )
+
+    return {
+      ...prefs,
+      sortingPriorityConfig: migratedSortingConfig,
+      preferencesVersion: 9,
+    }
+  },
+
+  // Version 9 -> 10: Enforce minimum auto-refresh intervals
+  10: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v9 to v10 (auto-refresh interval minimums)",
+    )
+
+    const storedAutoRefresh = (prefs as any).accountAutoRefresh as
+      | Partial<AccountAutoRefresh>
+      | undefined
+
+    const normalizedAutoRefresh: AccountAutoRefresh = {
+      ...DEFAULT_ACCOUNT_AUTO_REFRESH,
+      ...storedAutoRefresh,
+    }
+
+    const intervalSeconds = Number.isFinite(normalizedAutoRefresh.interval)
+      ? normalizedAutoRefresh.interval
+      : DEFAULT_ACCOUNT_AUTO_REFRESH.interval
+
+    const minIntervalSeconds = Number.isFinite(
+      normalizedAutoRefresh.minInterval,
+    )
+      ? normalizedAutoRefresh.minInterval
+      : DEFAULT_ACCOUNT_AUTO_REFRESH.minInterval
+
+    return {
+      ...prefs,
+      accountAutoRefresh: {
+        ...normalizedAutoRefresh,
+        interval: Math.max(
+          Math.trunc(intervalSeconds),
+          ACCOUNT_AUTO_REFRESH_INTERVAL_MIN_SECONDS,
+        ),
+        minInterval: Math.max(
+          Math.trunc(minIntervalSeconds),
+          ACCOUNT_AUTO_REFRESH_MIN_INTERVAL_MIN_SECONDS,
+        ),
+      },
+      preferencesVersion: 10,
+    }
+  },
+
+  // Version 10 -> 11: Introduce today cashflow toggle (default enabled)
+  11: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v10 to v11 (today cashflow toggle)",
+    )
+
+    const stored = (prefs as any).showTodayCashflow
+    const showTodayCashflow = typeof stored === "boolean" ? stored : true
+
+    return {
+      ...prefs,
+      showTodayCashflow,
+      preferencesVersion: 11,
+    }
+  },
+
+  // Version 11 -> 12: Introduce balance-history preferences using current defaults
+  12: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v11 to v12 (balance history preferences)",
+    )
+
+    const stored = (prefs as any).balanceHistory as
+      | Partial<BalanceHistoryPreferences>
+      | undefined
+
+    const enabled =
+      typeof stored?.enabled === "boolean"
+        ? stored.enabled
+        : DEFAULT_BALANCE_HISTORY_PREFERENCES.enabled
+
+    const endOfDayCaptureEnabled =
+      typeof stored?.endOfDayCapture?.enabled === "boolean"
+        ? stored.endOfDayCapture.enabled
+        : DEFAULT_BALANCE_HISTORY_PREFERENCES.endOfDayCapture.enabled
+
+    const retentionDays = clampBalanceHistoryRetentionDays(
+      stored?.retentionDays,
+    )
+
+    return {
+      ...prefs,
+      balanceHistory: {
+        enabled,
+        endOfDayCapture: { enabled: endOfDayCaptureEnabled },
+        estimatedTodayIncome: {
+          enabled:
+            typeof stored?.estimatedTodayIncome?.enabled === "boolean"
+              ? stored.estimatedTodayIncome.enabled
+              : DEFAULT_BALANCE_HISTORY_PREFERENCES.estimatedTodayIncome
+                  .enabled,
+        },
+        retentionDays,
+      },
+      preferencesVersion: 12,
+    }
+  },
+
+  // Version 12 -> 13: Initialize octopus config if missing
+  13: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v12 to v13 (octopus config initialization)",
+    )
+
+    const storedOctopus = (prefs as any).octopus
+    const octopus = storedOctopus ? storedOctopus : DEFAULT_OCTOPUS_CONFIG
+
+    return {
+      ...prefs,
+      octopus,
+      preferencesVersion: 13,
+    }
+  },
+
+  // Version 13 -> 14: Re-enable changelog-on-update UI for all users
+  14: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v13 to v14 (re-enable changelog on update)",
+    )
+
+    return {
+      ...prefs,
+      openChangelogOnUpdate: true,
+      preferencesVersion: 14,
+    }
+  },
+
+  // Version 14 -> 15: Initialize WebDAV selective sync data selection (all checked by default)
+  15: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v14 to v15 (webdav syncData defaults)",
+    )
+
+    const normalizedWebdav = {
+      ...DEFAULT_WEBDAV_SETTINGS,
+      ...(prefs.webdav ?? {}),
+    }
+
+    const syncData = resolveWebdavSyncDataSelection(normalizedWebdav.syncData)
+
+    return {
+      ...prefs,
+      webdav: {
+        ...normalizedWebdav,
+        syncData,
+      },
+      preferencesVersion: 15,
+    }
+  },
+
+  // Version 15 -> 16: Track shared-preference recency separately from local-only writes
+  16: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v15 to v16 (shared preference timestamp)",
+    )
+
+    return {
+      ...normalizeSharedPreferencesMetadata(prefs),
+      preferencesVersion: 16,
+    }
+  },
+
+  // Version 16 -> 17: Canonicalize stored locale naming to supported app locales
+  17: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v16 to v17 (canonicalize locale naming)",
+    )
+
+    return {
+      ...prefs,
+      language: normalizeAppLanguage(prefs.language) ?? prefs.language,
+      preferencesVersion: 17,
+    }
+  },
+
+  // Version 17 -> 18: Reorder sort priorities so USER_SORT_FIELD precedes MANUAL_ORDER
+  18: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v17 to v18 (sorting priority reorder)",
+    )
+
+    const migratedSortingConfig = migrateSortingConfig(
+      prefs.sortingPriorityConfig,
+    )
+
+    return {
+      ...prefs,
+      sortingPriorityConfig: migratedSortingConfig,
+      preferencesVersion: 18,
+    }
+  },
+
+  // Version 18 -> 19: Introduce scheduled task notification preferences
+  19: (prefs: UserPreferences): UserPreferences => {
+    logger.debug("Migrating preferences from v18 to v19 (task notifications)")
+
+    const stored = (prefs as any).taskNotifications
+
+    return {
+      ...prefs,
+      taskNotifications:
+        stored && typeof stored === "object"
+          ? normalizeTaskNotificationPreferences(stored)
+          : DEFAULT_TASK_NOTIFICATION_PREFERENCES,
+      preferencesVersion: 19,
+    }
+  },
+
+  // Version 19 -> 20: re-run the idempotent notification preference
+  // normalization so users already on v19 get the new browser, Telegram, and
+  // webhook channel defaults backfilled without losing existing task settings.
+  20: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v19 to v20 (task notification channels)",
+    )
+
+    const stored = (prefs as any).taskNotifications
+
+    return {
+      ...prefs,
+      taskNotifications:
+        stored && typeof stored === "object"
+          ? normalizeTaskNotificationPreferences(stored)
+          : DEFAULT_TASK_NOTIFICATION_PREFERENCES,
+      preferencesVersion: 20,
+    }
+  },
+
+  // Version 20 -> 21: re-run task notification normalization so users already
+  // on v20 get the WeCom channel default backfilled without losing existing
+  // third-party channel settings.
+  21: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v20 to v21 (WeCom notification channel)",
+    )
+
+    const stored = (prefs as any).taskNotifications
+
+    return {
+      ...prefs,
+      taskNotifications:
+        stored && typeof stored === "object"
+          ? normalizeTaskNotificationPreferences(stored)
+          : DEFAULT_TASK_NOTIFICATION_PREFERENCES,
+      preferencesVersion: 21,
+    }
+  },
+
+  // Version 21 -> 22: re-run task notification normalization so users already
+  // on v21 get the DingTalk channel default backfilled without losing existing
+  // third-party channel settings.
+  22: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v21 to v22 (DingTalk notification channel)",
+    )
+
+    const stored = (prefs as any).taskNotifications
+
+    return {
+      ...prefs,
+      taskNotifications:
+        stored && typeof stored === "object"
+          ? normalizeTaskNotificationPreferences(stored)
+          : DEFAULT_TASK_NOTIFICATION_PREFERENCES,
+      preferencesVersion: 22,
+    }
+  },
+
+  // Version 22 -> 23: re-run task notification normalization so users already
+  // on v22 get the ntfy channel default backfilled without losing existing
+  // third-party channel settings.
+  23: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v22 to v23 (ntfy notification channel)",
+    )
+
+    const stored = (prefs as any).taskNotifications
+
+    return {
+      ...prefs,
+      taskNotifications:
+        stored && typeof stored === "object"
+          ? normalizeTaskNotificationPreferences(stored)
+          : DEFAULT_TASK_NOTIFICATION_PREFERENCES,
+      preferencesVersion: 23,
+    }
+  },
+
+  // Version 23 -> 24: Disable automatic site-announcement polling by default
+  // and for existing users. Manual checks remain available from the page.
+  24: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v23 to v24 (disable site announcement polling)",
+    )
+
+    return {
+      ...prefs,
+      siteAnnouncementNotifications: {
+        ...normalizeSiteAnnouncementPreferences(
+          prefs.siteAnnouncementNotifications,
+        ),
+        enabled: false,
+      },
+      preferencesVersion: 24,
+    }
+  },
+
+  // Version 24 -> 25: Introduce estimated today income balance-history preference
+  25: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v24 to v25 (estimated today income preference)",
+    )
+
+    const stored = (prefs as any).balanceHistory as
+      | Partial<BalanceHistoryPreferences>
+      | undefined
+
+    return {
+      ...prefs,
+      balanceHistory: {
+        enabled:
+          typeof stored?.enabled === "boolean"
+            ? stored.enabled
+            : DEFAULT_BALANCE_HISTORY_PREFERENCES.enabled,
+        endOfDayCapture: {
+          enabled:
+            typeof stored?.endOfDayCapture?.enabled === "boolean"
+              ? stored.endOfDayCapture.enabled
+              : DEFAULT_BALANCE_HISTORY_PREFERENCES.endOfDayCapture.enabled,
+        },
+        estimatedTodayIncome: {
+          enabled:
+            typeof stored?.estimatedTodayIncome?.enabled === "boolean"
+              ? stored.estimatedTodayIncome.enabled
+              : DEFAULT_BALANCE_HISTORY_PREFERENCES.estimatedTodayIncome
+                  .enabled,
+        },
+        retentionDays: clampBalanceHistoryRetentionDays(stored?.retentionDays),
+      },
+      preferencesVersion: 25,
+    }
+  },
+
+  // Version 25 -> 26: Add enhanced Web AI API Check auto-detect preference.
+  26: (prefs: UserPreferences): UserPreferences => {
+    logger.debug(
+      "Migrating preferences from v25 to v26 (enhanced Web AI API Check auto-detect)",
+    )
+
+    const storedWebAiApiCheck = (prefs as any).webAiApiCheck
+    const storedAutoDetect = storedWebAiApiCheck?.autoDetect
+
+    return {
+      ...prefs,
+      webAiApiCheck: {
+        ...DEFAULT_WEB_AI_API_CHECK_PREFERENCES,
+        ...(storedWebAiApiCheck ?? {}),
+        autoDetect: {
+          ...DEFAULT_WEB_AI_API_CHECK_PREFERENCES.autoDetect,
+          ...(storedAutoDetect ?? {}),
+          enhanced: {
+            ...DEFAULT_WEB_AI_API_CHECK_PREFERENCES.autoDetect.enhanced,
+            ...(storedAutoDetect?.enhanced ?? {}),
+          },
+        },
+        keyCleanup: {
+          ...DEFAULT_WEB_AI_API_CHECK_PREFERENCES.keyCleanup,
+          ...(storedWebAiApiCheck?.keyCleanup ?? {}),
+        },
+      },
+      preferencesVersion: 26,
+    }
+  },
+
+  // Version 26 -> 27: replace legacy surface switches with per-feature policy.
+  [AUTOMATIC_FEATURE_BYPASS_PREFERENCES_VERSION]: (
+    prefs: UserPreferences,
+  ): UserPreferences => ({
+    ...prefs,
+    tempWindowFallback: normalizeTempWindowFallbackPreferences(
+      (prefs as any).tempWindowFallback,
+    ),
+    preferencesVersion: AUTOMATIC_FEATURE_BYPASS_PREFERENCES_VERSION,
+  }),
+}
+
+/**
+ * Check if preferences need migration
+ */
+export function needsPreferencesMigration(
+  prefs: UserPreferences | undefined,
+): boolean {
+  if (!prefs) return false
+  const currentVersion = prefs.preferencesVersion ?? 0
+  return currentVersion < CURRENT_PREFERENCES_VERSION
+}
+
+/**
+ * Get the version of preferences
+ */
+export function getPreferencesVersion(
+  prefs: UserPreferences | undefined,
+): number {
+  return prefs?.preferencesVersion ?? 0
+}
+
+/**
+ * Migrate preferences to the latest version
+ * Applies all necessary migrations sequentially
+ */
+export function migratePreferences(
+  migratedPrefs: UserPreferences,
+): UserPreferences {
+  let currentVersion = getPreferencesVersion(migratedPrefs)
+
+  // Apply migrations sequentially until we reach current version
+  while (needsPreferencesMigration(migratedPrefs)) {
+    const nextVersion = currentVersion + 1
+    const migrationFn = migrations[nextVersion]
+
+    if (!migrationFn) {
+      logger.error(`No migration defined for version ${nextVersion}`)
+      break
+    }
+
+    logger.debug(
+      `Migrating preferences from v${currentVersion} to v${nextVersion}`,
+    )
+    migratedPrefs = migrationFn(migratedPrefs)
+    currentVersion = nextVersion
+  }
+
+  return normalizeSharedPreferencesMetadata(migratedPrefs)
+}

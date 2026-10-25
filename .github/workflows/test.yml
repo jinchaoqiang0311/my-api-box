@@ -1,0 +1,216 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "src/**"
+      - "public/**"
+      - "plugins/**"
+      - "tests/**"
+      - "!tests/docs_assistant/**"
+      - ".github/workflows/release-pr-check.yml"
+      - "commitlint.config.mjs"
+      - ".husky/commit-msg"
+      - ".github/workflows/commitlint.yml"
+      - ".github/workflows/commitlint-title.yml"
+      - ".github/workflows/translate-docs.yml"
+      - "scripts/release-pr-check.mjs"
+      - "tests/scripts/release-pr-check.test.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "i18next.config.ts"
+      - "scripts/run-i18n-check-if-staged.mjs"
+      - "scripts/run-push-check-if-needed.mjs"
+      - "scripts/utils/run-pnpm.mjs"
+      - "tsconfig.json"
+      - "vitest.config.ts"
+      - "wxt.config.ts"
+      - ".github/workflows/test.yml"
+      - ".github/actions/setup/**"
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "plugins/**"
+      - "tests/**"
+      - "!tests/docs_assistant/**"
+      - ".github/workflows/release-pr-check.yml"
+      - "commitlint.config.mjs"
+      - ".husky/commit-msg"
+      - ".github/workflows/commitlint.yml"
+      - ".github/workflows/commitlint-title.yml"
+      - ".github/workflows/translate-docs.yml"
+      - "scripts/release-pr-check.mjs"
+      - "tests/scripts/release-pr-check.test.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "i18next.config.ts"
+      - "scripts/run-i18n-check-if-staged.mjs"
+      - "scripts/run-push-check-if-needed.mjs"
+      - "scripts/utils/run-pnpm.mjs"
+      - "tsconfig.json"
+      - "vitest.config.ts"
+      - "wxt.config.ts"
+      - ".github/workflows/test.yml"
+      - ".github/actions/setup/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-changes:
+    # Ordinary changes need no diff exemption, so avoid a serial runner allocation.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.head.ref, 'release-please--branches--')
+    uses: ./.github/workflows/release-pr-check.yml
+
+  unit-tests:
+    needs: release-changes
+    if: ${{ !cancelled() && needs.release-changes.result != 'failure' && needs.release-changes.outputs.release-only != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      UNIT_TEST_SHARD_TOTAL: 6
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup
+
+      - name: Test release change detection
+        # Keep guard regressions covered on ordinary changes without four
+        # preflight runners; only one shard needs these dependency-free tests.
+        if: matrix.shard == 1
+        run: node --test tests/scripts/release-pr-check.test.mjs
+
+      - name: Restore unit test durations
+        uses: actions/cache/restore@v5
+        with:
+          # Timings published by the previous run's merge job. A miss (first run, or an
+          # evicted cache) only means this shard falls back to file-count sharding.
+          path: .vitest-durations
+          key: unit-test-durations-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            unit-test-durations-
+
+      - name: Run test shard with coverage
+        env:
+          UNIT_TEST_SHARD_DURATIONS: .vitest-durations/shard-durations.json
+        run: >
+          pnpm exec vitest --run --coverage
+          --coverage.thresholds.statements=0
+          --coverage.thresholds.branches=0
+          --coverage.thresholds.functions=0
+          --coverage.thresholds.lines=0
+          --reporter=default
+          --reporter=blob
+          --shard=${{ matrix.shard }}/${{ env.UNIT_TEST_SHARD_TOTAL }}
+
+      - name: Upload Vitest blob report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: vitest-blob-report-${{ matrix.shard }}
+          path: .vitest-reports/*.json
+          include-hidden-files: true
+          retention-days: 1
+          # The merge job downloads this by name. A rerun must replace the
+          # previous attempt's blob instead of adding a second artifact.
+          overwrite: true
+
+  unit-tests-merge:
+    runs-on: ubuntu-latest
+    needs: [release-changes, unit-tests]
+    if: ${{ !cancelled() && needs.release-changes.result != 'failure' && needs.release-changes.outputs.release-only != 'true' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup
+
+      - name: Download Vitest blob reports
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          path: .vitest-reports
+          pattern: vitest-blob-report-*
+          merge-multiple: true
+
+      - name: Merge test and coverage reports
+        run: >
+          pnpm exec vitest --merge-reports=.vitest-reports --coverage
+          --reporter=default
+          --reporter=junit
+          --outputFile.junit=test-report.junit.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+
+      - name: Generate unit test durations
+        # Per-file timings for the next run's shard sequencer, derived from the blob
+        # reports every shard already uploads. PRs only consume the base cache;
+        # avoid decoding all blob reports for timings that would never be saved.
+        if: github.event_name != 'pull_request'
+        run: node scripts/write-unit-test-durations.mjs
+
+      - name: Save unit test durations
+        # Only runs that may publish to the base repository's cache scope write timings;
+        # pull requests restore main's copy instead of republishing their own.
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/cache/save@v5
+        with:
+          path: .vitest-durations
+          key: unit-test-durations-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          files: test-report.junit.xml
+
+      - name: Upload test report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: test-report
+          path: test-report.junit.xml
+          retention-days: 7
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          echo "Coverage report generated. See artifacts for detailed results."

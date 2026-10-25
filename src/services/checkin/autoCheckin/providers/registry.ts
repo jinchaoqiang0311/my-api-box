@@ -1,0 +1,705 @@
+import { AUTO_CHECKIN_METHOD_IDS } from "~/constants/checkIn"
+import { AI_ROUTER_ORIGINS } from "~/constants/deploymentApiOrigins"
+import { SITE_TYPES, type AccountSiteType } from "~/constants/siteType"
+import { AGENT_ROUTER_ORIGINS } from "~/services/accountLogin/providers/agentrouter/config"
+import { EMRANK_ENDPOINTS } from "~/services/apiService/emrank/constants"
+import { createAiRouterCheckInStatusEndpoint } from "~/services/apiService/sub2api/checkin/aiRouterCheckInProtocol"
+import {
+  createDaiguaCheckInStatusEndpoint,
+  resolveDaiguaCheckInTimezone,
+} from "~/services/apiService/sub2api/checkin/daiguaCheckInProtocol"
+import {
+  createFreeApiDailyCheckInStatusEndpoint,
+  resolveFreeApiCheckInTimezone,
+} from "~/services/apiService/sub2api/checkin/freeApiCheckInProtocol"
+import {
+  createHiyoCheckInStatusEndpoint,
+  resolveHiyoCheckInTimezone,
+} from "~/services/apiService/sub2api/checkin/hiyoCheckInProtocol"
+import {
+  createNexaVlinksCheckInStatusEndpoint,
+  resolveNexaVlinksCheckInTimezone,
+} from "~/services/apiService/sub2api/checkin/nexavlinksCheckInProtocol"
+import {
+  createToolcodeCheckInStatusEndpoint,
+  resolveToolcodeCheckInTimezone,
+} from "~/services/apiService/sub2api/checkin/toolcodeCheckInProtocol"
+import {
+  createUserCheckInStatusEndpoint,
+  resolveUserCheckInTimezone,
+} from "~/services/apiService/sub2api/checkin/userCheckInProtocol"
+import type { CheckInMethodId, PersistedCheckInMethodId } from "~/types/checkIn"
+
+import type { AutoCheckinProvider } from "./contracts"
+
+/** Frozen migration boundary; future method IDs must not be added here. */
+const PRE_REGISTRY_AUTO_CHECKIN_METHOD_IDS = [
+  AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+  AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+  AUTO_CHECKIN_METHOD_IDS.WongGongyiDailyCheckIn,
+  AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn,
+  AUTO_CHECKIN_METHOD_IDS.VoApiV2DailyCheckIn,
+] as const satisfies readonly CheckInMethodId[]
+
+const CHECK_IN_METHOD_ID_SET = new Set<string>(
+  Object.values(AUTO_CHECKIN_METHOD_IDS),
+)
+
+export const AUTO_CHECKIN_METHOD_SOURCE_KINDS = {
+  Official: "official",
+  ThirdParty: "third-party",
+} as const
+
+type AutoCheckinMethodSource =
+  | {
+      readonly kind: typeof AUTO_CHECKIN_METHOD_SOURCE_KINDS.Official
+    }
+  | {
+      readonly kind: typeof AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty
+      readonly sourceName: string
+    }
+
+const OFFICIAL_CHECK_IN_METHOD_SOURCE = {
+  kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.Official,
+} as const satisfies AutoCheckinMethodSource
+
+/** Returns whether a persisted value names a registered check-in method. */
+export function isCheckInMethodId(value: unknown): value is CheckInMethodId {
+  return typeof value === "string" && CHECK_IN_METHOD_ID_SET.has(value)
+}
+
+/** Verified, read-only protocol clues; never execution endpoints. */
+export interface CheckInFeedbackStatusRoute {
+  readonly path: string
+  readonly public?: boolean
+  readonly rawToken?: boolean
+}
+
+type FeedbackStatusRoutes = readonly [
+  CheckInFeedbackStatusRoute,
+  ...CheckInFeedbackStatusRoute[],
+]
+
+interface AutoCheckinMethodDefinitionBase {
+  readonly id: CheckInMethodId
+  readonly siteTypes: readonly AccountSiteType[]
+  readonly origins?: readonly string[]
+  readonly excludedOrigins?: readonly string[]
+  readonly source: AutoCheckinMethodSource
+}
+
+/** Hiyo can award again; DaiGua/Sidrune/FreeAPI duplicate guarantees are unverified. Never queue replays. */
+export const NON_REPEAT_SAFE_CHECKIN_METHOD_IDS: ReadonlySet<CheckInMethodId> =
+  new Set([
+    AUTO_CHECKIN_METHOD_IDS.HiyoDailyCheckIn,
+    AUTO_CHECKIN_METHOD_IDS.DaiguaDailyCheckIn,
+    AUTO_CHECKIN_METHOD_IDS.SidruneDailyCheckIn,
+    AUTO_CHECKIN_METHOD_IDS.FreeApiDailyCheckIn,
+  ])
+
+/**
+ * Candidate support and pre-registry compatibility are separate decisions.
+ * New methods participate in discovery without inheriting migration behavior.
+ */
+export type AutoCheckinMethodDefinition = AutoCheckinMethodDefinitionBase &
+  (
+    | {
+        /** True only when the executable provider implements getStatus. */
+        readonly supportsStatusReadback: true
+        readonly feedbackStatusRoutes:
+          | FeedbackStatusRoutes
+          | ((now: Date) => FeedbackStatusRoutes)
+      }
+    | {
+        readonly supportsStatusReadback?: false
+        readonly feedbackStatusRoutes: readonly CheckInFeedbackStatusRoute[]
+      }
+  ) &
+  (
+    | {
+        readonly legacy: true
+        readonly newAccountCompatibility: boolean
+      }
+    | {
+        readonly legacy: false
+        readonly newAccountCompatibility: false
+      }
+  )
+
+interface AutoCheckinMethodMetadata {
+  readonly candidateSiteTypes: Partial<
+    Record<CheckInMethodId, readonly AccountSiteType[]>
+  >
+  readonly legacySiteTypes: Partial<
+    Record<CheckInMethodId, readonly AccountSiteType[]>
+  >
+  readonly newAccountCompatibilitySiteTypes: Partial<
+    Record<CheckInMethodId, readonly AccountSiteType[]>
+  >
+}
+
+/** Builds pure method projections without importing executable providers. */
+export function createAutoCheckinMethodMetadata(
+  definitions: readonly AutoCheckinMethodDefinition[],
+  options: {
+    readonly preRegistryMethodIds?: readonly CheckInMethodId[]
+  } = {},
+): AutoCheckinMethodMetadata {
+  const candidateSiteTypes: AutoCheckinMethodMetadata["candidateSiteTypes"] = {}
+  const legacySiteTypes: AutoCheckinMethodMetadata["legacySiteTypes"] = {}
+  const newAccountCompatibilitySiteTypes: AutoCheckinMethodMetadata["newAccountCompatibilitySiteTypes"] =
+    {}
+  const methodIds = new Set<CheckInMethodId>()
+  const legacyCounts = new Map<AccountSiteType, number>()
+  const preRegistryMethodIds = options.preRegistryMethodIds
+    ? new Set(options.preRegistryMethodIds)
+    : null
+
+  for (const definition of definitions) {
+    const methodId = definition.id
+    const legacy = definition.legacy
+    const newAccountCompatibility = definition.newAccountCompatibility
+    if (!isCheckInMethodId(definition.id)) {
+      throw new Error(
+        `Auto check-in method ID is not declared in AUTO_CHECKIN_METHOD_IDS: ${definition.id}`,
+      )
+    }
+    if (methodIds.has(definition.id)) {
+      throw new Error(`Duplicate auto check-in method ID: ${definition.id}`)
+    }
+    if (definition.siteTypes.length === 0) {
+      throw new Error(
+        `Auto check-in method has no candidate site types: ${definition.id}`,
+      )
+    }
+    if (newAccountCompatibility && !legacy) {
+      throw new Error(
+        `New-account compatibility requires legacy method metadata: ${methodId}`,
+      )
+    }
+    if (
+      legacy &&
+      preRegistryMethodIds &&
+      !preRegistryMethodIds.has(definition.id)
+    ) {
+      throw new Error(
+        `Legacy method metadata is reserved for pre-registry methods: ${definition.id}`,
+      )
+    }
+
+    methodIds.add(definition.id)
+    candidateSiteTypes[definition.id] = definition.siteTypes
+    if (!legacy) continue
+
+    legacySiteTypes[definition.id] = definition.siteTypes
+    for (const siteType of definition.siteTypes) {
+      legacyCounts.set(siteType, (legacyCounts.get(siteType) ?? 0) + 1)
+    }
+    if (newAccountCompatibility) {
+      newAccountCompatibilitySiteTypes[definition.id] = definition.siteTypes
+    }
+  }
+
+  for (const methodId of preRegistryMethodIds ?? []) {
+    if (!legacySiteTypes[methodId]) {
+      throw new Error(
+        `Pre-registry auto check-in method is missing legacy metadata: ${methodId}`,
+      )
+    }
+  }
+
+  for (const [siteType, count] of legacyCounts) {
+    if (count !== 1) {
+      throw new Error(
+        `Expected exactly one legacy auto check-in method for site type: ${siteType}; found ${count}`,
+      )
+    }
+  }
+
+  return {
+    candidateSiteTypes,
+    legacySiteTypes,
+    newAccountCompatibilitySiteTypes,
+  }
+}
+
+/** New API and Veloera share these verified GET status contracts. */
+const newApiFeedbackStatusRoutes = (now: Date): FeedbackStatusRoutes => {
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  return [
+    { path: "/api/status", public: true },
+    { path: `/api/user/checkin?month=${month}` },
+    { path: "/api/user/check_in_status" },
+  ]
+}
+
+/** All method definitions, including post-registry discovery candidates. */
+export const AUTO_CHECKIN_METHOD_DEFINITIONS = {
+  [AUTO_CHECKIN_METHOD_IDS.XiaoenDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.XiaoenDailyCheckIn,
+    siteTypes: [SITE_TYPES.XIAOEN],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/auth/me" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.DayaDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.DayaDailyCheckIn,
+    siteTypes: [SITE_TYPES.DAYA],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/v1/rewards/overview" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.AgentRouterLoginCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.AgentRouterLoginCheckIn,
+    siteTypes: [SITE_TYPES.NEW_API, SITE_TYPES.ONE_API, SITE_TYPES.UNKNOWN],
+    origins: AGENT_ROUTER_ORIGINS,
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: false,
+    feedbackStatusRoutes: [{ path: "/api/status", public: true }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+    siteTypes: [SITE_TYPES.ANYROUTER],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: false,
+    feedbackStatusRoutes: [],
+    legacy: true,
+    newAccountCompatibility: true,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+    siteTypes: [SITE_TYPES.VELOERA],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: newApiFeedbackStatusRoutes,
+    legacy: true,
+    newAccountCompatibility: true,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.WongGongyiDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.WongGongyiDailyCheckIn,
+    siteTypes: [SITE_TYPES.WONG_GONGYI],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/user/checkin" }],
+    legacy: true,
+    newAccountCompatibility: true,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn,
+    siteTypes: [SITE_TYPES.NEW_API, SITE_TYPES.MODELFLARE],
+    // Agent Router uses login check-in instead of this deployment's protocol.
+    excludedOrigins: AGENT_ROUTER_ORIGINS,
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: newApiFeedbackStatusRoutes,
+    legacy: true,
+    newAccountCompatibility: true,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.VoApiV2DailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.VoApiV2DailyCheckIn,
+    siteTypes: [SITE_TYPES.VO_API_V2],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/check_in/stats", rawToken: true }],
+    legacy: true,
+    newAccountCompatibility: true,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.Sub2ApiProDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.Sub2ApiProDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "Sub2API Pro",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/v1/redeem/checkin/status" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.GeniusProgrammerDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.GeniusProgrammerDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "天才程序员中转站",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      { path: createUserCheckInStatusEndpoint(resolveUserCheckInTimezone()) },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.ToolcodeDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.ToolcodeDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "ToolCode",
+    },
+    supportsStatusReadback: true,
+    // Logged-in GET verified at https://toolcode.top/engagement, 2026-10-04.
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      {
+        path: createToolcodeCheckInStatusEndpoint(
+          resolveToolcodeCheckInTimezone(),
+        ),
+      },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.DenxioDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.DenxioDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "登仙公益站",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/v1/tbe-sponsor-checkin/status" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.HiyoDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.HiyoDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "Hiyo Free",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      { path: createHiyoCheckInStatusEndpoint(resolveHiyoCheckInTimezone()) },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.XiaobaiCodeDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.XiaobaiCodeDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "小白Code",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/checkin/api/status" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.AiRouterDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.AiRouterDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    // The protocol is served by one enumerated deployment on a different origin
+    // than the dashboard, so it is gated by origin instead of probed on every
+    // other Sub2API site.
+    origins: AI_ROUTER_ORIGINS,
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "AI-ROUTER",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      { path: createAiRouterCheckInStatusEndpoint() },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.ClawhudDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.ClawhudDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "詞元公益站",
+    },
+    supportsStatusReadback: true,
+    // Shares the status path with Genius Programmer but a distinct response
+    // DTO; verified at https://api.clawhud.com, 2026-10-11.
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      { path: createUserCheckInStatusEndpoint(resolveUserCheckInTimezone()) },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.DaiguaDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.DaiguaDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "DaiGua",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      {
+        path: createDaiguaCheckInStatusEndpoint(resolveDaiguaCheckInTimezone()),
+      },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.SidruneDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.SidruneDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "Sidrune",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/v1/welfare/profile" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.FreeApiDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.FreeApiDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    // The dashboard reads and writes `/api/v1/user/checkin` itself, so the
+    // method is probed on every Sub2API candidate like its siblings; no origin
+    // gate is needed for a protocol served from the account's own origin.
+    // Verified at https://freeapi.site/checkin, 2026-10-16.
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "露娜",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      {
+        path: createFreeApiDailyCheckInStatusEndpoint(
+          resolveFreeApiCheckInTimezone(),
+        ),
+      },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.NexaVlinksDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.NexaVlinksDailyCheckIn,
+    siteTypes: [SITE_TYPES.SUB2API],
+    // The dashboard reads and writes `/api/v1/check-in` itself, so the method
+    // is probed on every Sub2API candidate like its siblings; no origin gate is
+    // needed for a protocol served from the account's own origin.
+    // Verified at https://asia.nexavlinks.com/check-in, 2026-10-17.
+    source: {
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "NexaVlinks",
+    },
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: (): FeedbackStatusRoutes => [
+      {
+        path: createNexaVlinksCheckInStatusEndpoint(
+          resolveNexaVlinksCheckInTimezone(),
+        ),
+      },
+    ],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.EmrankDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.EmrankDailyCheckIn,
+    siteTypes: [SITE_TYPES.EMRANK],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    // GET /api/account/check-ins is the console's own status read, verified
+    // 2026-10-16 on https://emrank.tech.
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: EMRANK_ENDPOINTS.CheckIn }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+  [AUTO_CHECKIN_METHOD_IDS.RelayForDailyCheckIn]: {
+    id: AUTO_CHECKIN_METHOD_IDS.RelayForDailyCheckIn,
+    siteTypes: [SITE_TYPES.RELAYFOR],
+    source: OFFICIAL_CHECK_IN_METHOD_SOURCE,
+    supportsStatusReadback: true,
+    feedbackStatusRoutes: [{ path: "/api/user/checkin-campaigns" }],
+    legacy: false,
+    newAccountCompatibility: false,
+  },
+} as const satisfies Record<CheckInMethodId, AutoCheckinMethodDefinition>
+
+/** Returns whether the selected method can verify today without posting. */
+export function supportsCheckInStatusReadback(
+  methodId: string | undefined,
+): boolean {
+  if (!isCheckInMethodId(methodId)) return false
+  return (
+    AUTO_CHECKIN_METHOD_DEFINITIONS[methodId].supportsStatusReadback === true
+  )
+}
+
+/** Returns the product source used to present a registered method. */
+export function getAutoCheckinMethodSource(
+  methodId: CheckInMethodId,
+): AutoCheckinMethodSource {
+  return AUTO_CHECKIN_METHOD_DEFINITIONS[methodId].source
+}
+
+const AUTO_CHECKIN_METHOD_METADATA = createAutoCheckinMethodMetadata(
+  Object.values(AUTO_CHECKIN_METHOD_DEFINITIONS),
+  { preRegistryMethodIds: PRE_REGISTRY_AUTO_CHECKIN_METHOD_IDS },
+)
+
+/** Pure candidate metadata; safe for projections and migrations to import. */
+const CHECK_IN_METHOD_SITE_TYPES =
+  AUTO_CHECKIN_METHOD_METADATA.candidateSiteTypes
+
+/** Methods whose V6 accounts may be migrated without running discovery. */
+export const LEGACY_AUTO_CHECKIN_METHOD_SITE_TYPES =
+  AUTO_CHECKIN_METHOD_METADATA.legacySiteTypes
+
+/** Methods allowed to bridge an existing support result for a new account. */
+const NEW_ACCOUNT_COMPATIBILITY_METHOD_SITE_TYPES =
+  AUTO_CHECKIN_METHOD_METADATA.newAccountCompatibilitySiteTypes
+
+const getMethodIdsForSiteType = (
+  methodSiteTypes: Partial<Record<CheckInMethodId, readonly AccountSiteType[]>>,
+  siteType: AccountSiteType,
+): CheckInMethodId[] =>
+  (
+    Object.entries(methodSiteTypes) as Array<
+      [CheckInMethodId, readonly AccountSiteType[]]
+    >
+  )
+    .filter(([, siteTypes]) => siteTypes.includes(siteType))
+    .map(([methodId]) => methodId)
+
+/** Resolves candidate method IDs without importing executable provider modules. */
+export function getAutoCheckinCandidateMethodIds(
+  siteType: AccountSiteType,
+  siteUrl?: string,
+): CheckInMethodId[] {
+  return getMethodIdsForSiteType(CHECK_IN_METHOD_SITE_TYPES, siteType).filter(
+    (id) => {
+      const definition: AutoCheckinMethodDefinition =
+        AUTO_CHECKIN_METHOD_DEFINITIONS[id]
+      return matchesMethodOrigin(definition, siteUrl)
+    },
+  )
+}
+
+/** Deployment-specific protocols require a known matching origin. */
+function matchesMethodOrigin(
+  {
+    origins,
+    excludedOrigins,
+  }: Pick<AutoCheckinMethodDefinitionBase, "origins" | "excludedOrigins">,
+  siteUrl?: string,
+): boolean {
+  if (!siteUrl) return !origins
+  try {
+    const origin = new URL(siteUrl).origin
+    return (
+      (!origins || origins.includes(origin)) &&
+      !excludedOrigins?.includes(origin)
+    )
+  } catch {
+    return !origins
+  }
+}
+
+/** Resolves the pre-registry method IDs used by the V6 migration. */
+export function getLegacyAutoCheckinMethodIds(
+  siteType: AccountSiteType,
+): CheckInMethodId[] {
+  return getMethodIdsForSiteType(
+    LEGACY_AUTO_CHECKIN_METHOD_SITE_TYPES,
+    siteType,
+  )
+}
+
+/** Resolves methods eligible for the temporary new-account support bridge. */
+export function getNewAccountCompatibilityMethodIds(
+  siteType: AccountSiteType,
+): CheckInMethodId[] {
+  return getMethodIdsForSiteType(
+    NEW_ACCOUNT_COMPATIBILITY_METHOD_SITE_TYPES,
+    siteType,
+  )
+}
+
+const MAX_PERSISTED_CHECK_IN_METHOD_ID_LENGTH = 128
+const PERSISTED_CHECK_IN_METHOD_ID_PATTERN =
+  /^[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * Decode a storage-safe namespaced method ID without requiring it to be
+ * registered by the current build.
+ */
+export function decodePersistedCheckInMethodId(
+  value: unknown,
+): PersistedCheckInMethodId | null {
+  if (
+    typeof value !== "string" ||
+    value.length > MAX_PERSISTED_CHECK_IN_METHOD_ID_LENGTH ||
+    !PERSISTED_CHECK_IN_METHOD_ID_PATTERN.test(value)
+  ) {
+    return null
+  }
+
+  return value as PersistedCheckInMethodId
+}
+
+export interface AutoCheckinMethodRegistration {
+  readonly id: CheckInMethodId
+  /** Static candidate filter only; never proof that a deployment supports the method. */
+  readonly siteTypes: readonly AccountSiteType[]
+  readonly origins?: readonly string[]
+  readonly excludedOrigins?: readonly string[]
+  readonly provider: AutoCheckinProvider
+  /** Existing-provider bridge used until a strict read-only probe is ready. */
+  readonly compatibilityRegistration?: boolean
+}
+
+export interface AutoCheckinMethodRegistry {
+  readonly registrations: readonly AutoCheckinMethodRegistration[]
+  getCandidates(
+    siteType: AccountSiteType,
+    siteUrl?: string,
+  ): readonly AutoCheckinMethodRegistration[]
+  /** Resolve executable code only when the ID is registered by this build. */
+  resolveById(
+    id: PersistedCheckInMethodId,
+  ): AutoCheckinMethodRegistration | null
+}
+
+/**
+ * Build and validate an ordered auto check-in method registry.
+ */
+export function createAutoCheckinMethodRegistry(
+  registrations: readonly AutoCheckinMethodRegistration[],
+): AutoCheckinMethodRegistry {
+  const methodIds = new Set<CheckInMethodId>()
+  for (const registration of registrations) {
+    const registrationId = registration.id
+    if (registration.siteTypes.length === 0) {
+      throw new Error(
+        `Auto check-in method has no candidate site types: ${registrationId}`,
+      )
+    }
+    if (!isCheckInMethodId(registrationId)) {
+      throw new Error(
+        `Auto check-in method ID is not declared in AUTO_CHECKIN_METHOD_IDS: ${registrationId}`,
+      )
+    }
+    if (methodIds.has(registrationId)) {
+      throw new Error(`Duplicate auto check-in method ID: ${registrationId}`)
+    }
+    methodIds.add(registrationId)
+  }
+
+  return {
+    registrations,
+    getCandidates: (siteType, siteUrl) =>
+      registrations.filter(
+        (registration) =>
+          registration.siteTypes.includes(siteType) &&
+          matchesMethodOrigin(registration, siteUrl),
+      ),
+    resolveById: (id) =>
+      registrations.find((registration) => registration.id === id) ?? null,
+  }
+}

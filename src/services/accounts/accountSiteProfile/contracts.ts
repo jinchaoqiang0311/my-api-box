@@ -1,0 +1,134 @@
+import type { AccountSiteType } from "~/constants/siteType"
+import type { AuthTypeEnum } from "~/types"
+import type { AccountTodayStatsAvailability } from "~/types/accountTodayStats"
+
+export const ACCOUNT_SITE_SUPPLEMENTAL_AUTH_KINDS = {
+  None: "none",
+  Sub2ApiRefreshToken: "sub2api_refresh_token",
+  KimiRefreshToken: "kimi_refresh_token",
+} as const
+
+export type AccountSiteSupplementalAuthKind =
+  (typeof ACCOUNT_SITE_SUPPLEMENTAL_AUTH_KINDS)[keyof typeof ACCOUNT_SITE_SUPPLEMENTAL_AUTH_KINDS]
+
+export const ACCOUNT_SITE_CREATED_TOKEN_SECRET_HANDLING = {
+  ResponseKey: "response_key",
+  OneTimeSecretDialog: "one_time_secret_dialog",
+} as const
+
+export type AccountSiteCreatedTokenSecretHandling =
+  (typeof ACCOUNT_SITE_CREATED_TOKEN_SECRET_HANDLING)[keyof typeof ACCOUNT_SITE_CREATED_TOKEN_SECRET_HANDLING]
+
+export const ACCOUNT_SITE_TOKEN_FORM_NETWORK_LIMIT_POLICIES = {
+  IpList: "ip_list",
+  SubnetLimit: "subnet_limit",
+} as const
+
+export type AccountSiteTokenFormNetworkLimitPolicy =
+  (typeof ACCOUNT_SITE_TOKEN_FORM_NETWORK_LIMIT_POLICIES)[keyof typeof ACCOUNT_SITE_TOKEN_FORM_NETWORK_LIMIT_POLICIES]
+
+export const ACCOUNT_SITE_MODEL_LIST_STATUS_SCOPES = {
+  Account: "account",
+  Token: "token",
+} as const
+
+export type AccountSiteModelListStatusScope =
+  (typeof ACCOUNT_SITE_MODEL_LIST_STATUS_SCOPES)[keyof typeof ACCOUNT_SITE_MODEL_LIST_STATUS_SCOPES]
+
+export const ACCOUNT_SITE_MODEL_LIST_DISPLAY_CAPABILITY_SOURCES = {
+  Response: "response",
+  Profile: "profile",
+} as const
+
+export type AccountSiteModelListDisplayCapabilitySource =
+  (typeof ACCOUNT_SITE_MODEL_LIST_DISPLAY_CAPABILITY_SOURCES)[keyof typeof ACCOUNT_SITE_MODEL_LIST_DISPLAY_CAPABILITY_SOURCES]
+
+export const ACCOUNT_SITE_MODEL_LIST_GROUP_SEMANTICS = {
+  ACCOUNT_OR_RUNTIME_KEY: "account-or-runtime-key",
+  NOT_APPLICABLE: "not-applicable",
+} as const
+
+export type AccountSiteModelListGroupSemantics =
+  (typeof ACCOUNT_SITE_MODEL_LIST_GROUP_SEMANTICS)[keyof typeof ACCOUNT_SITE_MODEL_LIST_GROUP_SEMANTICS]
+
+export type AccountSiteInferenceProtocols = {
+  openAiCompatible?: string
+  anthropic?: string
+}
+
+export type AccountSiteUrlProfile = {
+  recognizedHostnames: readonly string[]
+  /** Apply canonical URL rules without an explicit site-type hint. */
+  inferFromHostname?: boolean
+  loginOrigin?: string
+  storageOrigin?: string
+  /** Canonical browser/API origin used by automatic account detection. */
+  autoDetectOrigin?: string
+  /** Client-facing API base URL; it may include a required path prefix. */
+  managedChannelOrigin?: string
+  duplicateOrigin?: string
+  /** Declared protocol mount URLs for supported inference engines. */
+  inferenceApiBaseUrls?: AccountSiteInferenceProtocols
+}
+
+export type AccountSiteIdentityProfile = {
+  usernameRequired: boolean
+  userIdRequired: boolean
+  storedUserIdentityFields: readonly string[]
+}
+
+export type AccountSiteAuthProfile = {
+  /** The provider verifies the browser cookie session rather than saved credentials. */
+  usesBrowserCookieSession?: boolean
+  allowedAuthTypes: readonly AuthTypeEnum[]
+  defaultAuthType: AuthTypeEnum
+  defaultAuthHostnames: readonly string[]
+}
+
+export type AccountSiteAuthSessionProfile = {
+  kind: AccountSiteSupplementalAuthKind
+}
+
+export type AccountSiteCreatedTokenProfile = {
+  secretHandling: AccountSiteCreatedTokenSecretHandling
+}
+
+export type AccountSiteTokenFormProfile = {
+  networkLimitPolicy: AccountSiteTokenFormNetworkLimitPolicy
+}
+
+export type AccountSiteModelListProfile = {
+  statusScope: AccountSiteModelListStatusScope
+  displayCapabilitiesSource: AccountSiteModelListDisplayCapabilitySource
+  groupSemantics: AccountSiteModelListGroupSemantics
+}
+
+export type AccountSiteMetricProfile = {
+  deferredTodayStatsAvailability: AccountTodayStatsAvailability
+  legacyTodayStatsAvailability: AccountTodayStatsAvailability
+}
+
+export type AccountSiteProductProfile = {
+  siteType: AccountSiteType
+  auth: AccountSiteAuthProfile
+  authSession: AccountSiteAuthSessionProfile
+  createdToken: AccountSiteCreatedTokenProfile
+  identity: AccountSiteIdentityProfile
+  modelList: AccountSiteModelListProfile
+  metrics: AccountSiteMetricProfile
+  tokenForm: AccountSiteTokenFormProfile
+  urls: AccountSiteUrlProfile
+}
+
+type AccountSiteProductProfileOverrideSource = Omit<
+  AccountSiteProductProfile,
+  "siteType"
+>
+
+export type AccountSiteProductProfileOverride = {
+  [Key in keyof AccountSiteProductProfileOverrideSource]?: AccountSiteProductProfileOverrideSource[Key] extends readonly (infer Item)[]
+    ? readonly Item[]
+    : AccountSiteProductProfileOverrideSource[Key] extends object
+      ? Partial<AccountSiteProductProfileOverrideSource[Key]>
+      : AccountSiteProductProfileOverrideSource[Key]
+}

@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest"
+
+import {
+  normalizeAppLanguage,
+  resolveInitialAppLanguage,
+} from "~/utils/i18n/language"
+
+describe("i18n language helpers", () => {
+  it("normalizes browser language variants to supported app locales", () => {
+    expect(normalizeAppLanguage("en-US")).toBe("en")
+    expect(normalizeAppLanguage("en")).toBe("en")
+    expect(normalizeAppLanguage("de")).toBe("de")
+    expect(normalizeAppLanguage("de-DE")).toBe("de")
+    expect(normalizeAppLanguage("de_AT")).toBe("de")
+    expect(normalizeAppLanguage("de-CH")).toBe("de")
+    expect(normalizeAppLanguage("ja")).toBe("ja")
+    expect(normalizeAppLanguage("ja-JP")).toBe("ja")
+    expect(normalizeAppLanguage("ja_JP")).toBe("ja")
+    expect(normalizeAppLanguage("vi")).toBe("vi")
+    expect(normalizeAppLanguage("vi-VN")).toBe("vi")
+    expect(normalizeAppLanguage("vi_VN")).toBe("vi")
+    expect(normalizeAppLanguage("es")).toBe("es-419")
+    expect(normalizeAppLanguage("es-419")).toBe("es-419")
+    expect(normalizeAppLanguage("es_MX")).toBe("es-419")
+    expect(normalizeAppLanguage("es-AR")).toBe("es-419")
+    expect(normalizeAppLanguage("pt")).toBe("pt-BR")
+    expect(normalizeAppLanguage("pt-BR")).toBe("pt-BR")
+    expect(normalizeAppLanguage("pt_BR")).toBe("pt-BR")
+    expect(normalizeAppLanguage("pt-PT")).toBe("pt-BR")
+    expect(normalizeAppLanguage("zh-CN")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh_CN")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh-SG")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh-MY")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh-Hans-SG")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh-Hans-TW")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh-Hans-HK")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh")).toBe("zh-CN")
+    expect(normalizeAppLanguage("zh-TW")).toBe("zh-TW")
+    expect(normalizeAppLanguage("zh-HK")).toBe("zh-TW")
+    expect(normalizeAppLanguage("zh-MO")).toBe("zh-TW")
+    expect(normalizeAppLanguage("zh-Hant-TW")).toBe("zh-TW")
+    expect(normalizeAppLanguage("zh-Hant-HK")).toBe("zh-TW")
+  })
+
+  it("returns undefined for unsupported languages", () => {
+    expect(normalizeAppLanguage("fr-FR")).toBeUndefined()
+    expect(normalizeAppLanguage("english")).toBeUndefined()
+    expect(normalizeAppLanguage("zhongwen")).toBeUndefined()
+    expect(normalizeAppLanguage("")).toBeUndefined()
+    expect(normalizeAppLanguage(undefined)).toBeUndefined()
+  })
+
+  it("prefers explicit user language over detected browser language", () => {
+    expect(
+      resolveInitialAppLanguage({
+        userPreferenceLanguage: "zh_CN",
+        detectedLanguage: "en-US",
+      }),
+    ).toBe("zh-CN")
+  })
+
+  it("prefers explicit traditional chinese user language over detected simplified chinese", () => {
+    expect(
+      resolveInitialAppLanguage({
+        userPreferenceLanguage: "zh-Hant-HK",
+        detectedLanguage: "zh-CN",
+      }),
+    ).toBe("zh-TW")
+  })
+
+  it("keeps detected english when no explicit preference exists", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "en-US",
+      }),
+    ).toBe("en")
+  })
+
+  it("keeps detected japanese when no explicit preference exists", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "ja-JP",
+      }),
+    ).toBe("ja")
+  })
+
+  it("keeps detected German when no explicit preference exists", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "de-DE",
+      }),
+    ).toBe("de")
+  })
+
+  it("keeps detected vietnamese when no explicit preference exists", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "vi-VN",
+      }),
+    ).toBe("vi")
+  })
+
+  it("keeps detected latin american spanish when no explicit preference exists", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "es-MX",
+      }),
+    ).toBe("es-419")
+  })
+
+  it("keeps detected Portuguese variants as Brazilian Portuguese", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "pt-PT",
+      }),
+    ).toBe("pt-BR")
+  })
+
+  it("falls back to English when detection is unsupported", () => {
+    expect(
+      resolveInitialAppLanguage({
+        detectedLanguage: "fr-FR",
+      }),
+    ).toBe("en")
+  })
+
+  it("falls back to English when no language signal exists", () => {
+    expect(resolveInitialAppLanguage({})).toBe("en")
+  })
+})

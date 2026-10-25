@@ -1,0 +1,713 @@
+{
+  "alerts": {
+    "authenticationFailed": {
+      "description": "The saved {{site}} credentials were rejected. Open settings, update them, then refresh the channel list.",
+      "title": "Sign in to {{site}} again"
+    },
+    "editorLoadError": {
+      "description": "The channel form could not be loaded. Refresh the channel list and try again.",
+      "title": "Unable to open channel editor"
+    },
+    "editorSaveError": {
+      "description": "Your changes were not saved. Try again.",
+      "title": "Unable to save channel"
+    },
+    "loadError": {
+      "title": "Unable to load channels"
+    },
+    "partialMutation": {
+      "description": "Some fields may have been saved, but the status could not be confirmed. Refresh the channel list and review the channel before retrying.",
+      "title": "Channel update needs review"
+    },
+    "permissionDenied": {
+      "description": "This {{site}} account cannot manage channels. Use an administrator account or update its permissions, then refresh.",
+      "title": "{{site}} access denied"
+    },
+    "resourceChanged": {
+      "description": "This channel changed while you were editing. Your changes were not saved. Close the editor, refresh the channel list, and edit again."
+    },
+    "savedRefreshError": {
+      "description": "The channel was saved, but the latest list could not be loaded. Refresh the channel list before making more changes.",
+      "title": "Channel saved, refresh needed"
+    },
+    "unavailable": {
+      "description": "{{site}} could not be reached. Check the server and network, then refresh the channel list.",
+      "title": "{{site}} is unavailable"
+    }
+  },
+  "cliProxyApi": {
+    "credentialWeightHelp": "Leave blank for weight 1. Non-positive values exclude this key from weighted routing; maximum 1,000,000.",
+    "excludedModels": "Excluded models (one per line)",
+    "headers": "Request headers",
+    "headersHelp": "One header per line, in Name: value format.",
+    "prefix": "Model prefix",
+    "proxyUrl": "Proxy URL"
+  },
+  "dialog": {
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleteDescription": "This action cannot be undone. The selected channels will be removed permanently.",
+    "deleteRefreshAction": "Refresh channels",
+    "deleteRefreshRequired": "Refresh the channel list to confirm its latest state before deleting again.",
+    "deleteResultStatus": {
+      "failed": "Failed",
+      "success": "Deleted",
+      "uncertain": "Uncertain"
+    },
+    "deleteResultsTitle": "Delete results",
+    "deleteTitle": "Delete channel?",
+    "deleteTitlePlural": "Delete channels?"
+  },
+  "editor": {
+    "advanced": {
+      "autoBan": {
+        "help": "Allow New API to disable this channel when its configured failure conditions are met.",
+        "label": "Automatically disable channel"
+      },
+      "autoSync": {
+        "help": "Requires update checks. New API automatically updates this channel's model list when changes are detected.",
+        "label": "Automatically sync upstream models"
+      },
+      "check": {
+        "help": "New API checks periodically on the server. This is separate from the extension's model sync.",
+        "label": "Check upstream model updates"
+      },
+      "detectedModels": "Models available to add",
+      "groups": {
+        "detection": "Upstream model detection",
+        "management": "Channel management",
+        "network": "Network settings"
+      },
+      "ignored": {
+        "help": "Enter exact model names to exclude from upstream detection and sync.",
+        "label": "Ignored upstream models"
+      },
+      "invalidExisting": "The saved configuration cannot be safely parsed. Fix it in the site's admin console before editing this field.",
+      "lastCheck": "Last checked",
+      "mapping": {
+        "add": "Add mapping",
+        "help": "Map a requested model name to the model sent upstream. Use a unique request model on each row.",
+        "invalid": "Complete both names on every row and remove duplicate request models.",
+        "label": "Model name mappings",
+        "remove": "Remove mapping {{index}}",
+        "source": "Request model {{index}}",
+        "sourcePlaceholder": "Request model",
+        "target": "Upstream model {{index}}",
+        "targetPlaceholder": "Upstream model"
+      },
+      "neverChecked": "Not checked yet",
+      "noModels": "None",
+      "proxy": {
+        "help": "Proxy used by the New API server for this channel. Supports HTTP, HTTPS, SOCKS5 and SOCKS5H. Leave empty to clear the channel proxy.",
+        "invalid": "Enter a valid HTTP, HTTPS, SOCKS5 or SOCKS5H proxy URL.",
+        "label": "Proxy address"
+      },
+      "remark": {
+        "help": "Record the channel's purpose or usage notes (up to 255 characters).",
+        "label": "Notes"
+      },
+      "removedModels": "Models detected as removed",
+      "tag": "Channel tag",
+      "testModel": {
+        "help": "Select a model or enter its name. Leave empty to use New API's default test model.",
+        "label": "Test model"
+      },
+      "unsupportedDetection": "Upstream detection is unavailable for this channel type in this editor. Advanced Custom channels require model-list route configuration in the site's admin console."
+    },
+    "doneHub": {
+      "allowExtraBody": {
+        "help": "Forward extra fields in client requests, such as extra_body parameters, to the upstream.",
+        "label": "Forward extra body fields"
+      },
+      "compatibleResponse": {
+        "help": "When enabled, DoneHub converts Responses requests to Chat Completions. When disabled, it prefers native Responses but may still fall back if unsupported.",
+        "label": "Responses API compatibility"
+      },
+      "customParameter": {
+        "help": "Enter a JSON object. By default, only missing fields are added. overwrite: true replaces fields; per_model: true configures by model; pre_add: true applies at request entry. Leave blank to clear.",
+        "invalid": "Enter a valid JSON object.",
+        "label": "Extra request parameters",
+        "placeholder": "{\n  \"overwrite\": true,\n  \"temperature\": 0.7\n}"
+      },
+      "disabledStream": {
+        "help": "Streaming requests for these models skip this channel; they are not converted to non-streaming. Select models or enter names. Clear the list to restore normal routing.",
+        "label": "Models excluded from streaming"
+      },
+      "modelHeaders": {
+        "help": "Add fixed upstream headers with text values. Authentication headers are handled by the channel. Leave blank or remove all rows to clear.",
+        "invalid": "Enter a JSON object with unique, non-empty keys and text values.",
+        "label": "Custom request headers",
+        "placeholder": "{\"X-Project\": \"example\"}"
+      },
+      "modelMapping": {
+        "addModels": "Add mapped names to model list",
+        "help": "Keys are requested model names; values are upstream names. Add the keys to the channel model list. Prefix a value with + to bill using the requested model.",
+        "invalid": "Enter a JSON object with unique, non-empty keys and text values.",
+        "label": "Model mapping",
+        "placeholder": "{\"alias\": \"upstream-model\"}"
+      },
+      "proxy": {
+        "help": "Used by the DoneHub server to reach the upstream. Supports HTTP and SOCKS5; %s generates a session identifier from the channel key. Leave blank to remove the channel proxy.",
+        "invalid": "Enter a valid HTTP or SOCKS5 proxy URL.",
+        "label": "Proxy URL",
+        "placeholder": "socks5://127.0.0.1:1080"
+      },
+      "responsesPath": {
+        "help": "For native Responses requests on Custom channels only. Leave blank for /v1/responses or enter disable to block this request. Not used in compatibility mode.",
+        "label": "Responses request path",
+        "placeholder": "/v1/responses"
+      },
+      "testModel": {
+        "help": "Choose a chat model from this channel or enter a name. DoneHub cannot test channel speed when blank. Maximum 50 characters.",
+        "invalid": "Model names must be at most 50 characters.",
+        "label": "Test model",
+        "placeholder": "gpt-4o-mini"
+      }
+    },
+    "fields": {
+      "autoSyncModelPattern": {
+        "help": "Only sync matching models. Prefix with (?i) to ignore case; leave empty to sync all models.",
+        "invalid": "Enter a valid model filter pattern.",
+        "label": "Model filter pattern",
+        "placeholder": "For example, (?i)^model-example"
+      },
+      "autoSyncSupportedModels": {
+        "help": "AxonHub updates enabled channels from the provider API at the frequency configured in AxonHub system settings.",
+        "label": "Automatically sync supported models"
+      },
+      "channelStatusReason": {
+        "label": "Disabled reason"
+      },
+      "concurrency": {
+        "help": "Maximum simultaneous requests allowed for this account.",
+        "label": "Concurrency"
+      },
+      "defaultTestModel": {
+        "help": "Used to test this channel connection. Choose one of the supported models.",
+        "label": "Default test model",
+        "placeholder": "Select a configured model"
+      },
+      "extraModelPrefix": {
+        "help": "Configure extra model prefixes to allow access to this channel using prefixed model names. For example, with the prefix 'deepseek', both 'deepseek/deepseek-chat' and 'deepseek-chat' can access this channel.",
+        "label": "Extra model prefix",
+        "placeholder": "e.g., deepseek"
+      },
+      "gptLoadBaseUrl": {
+        "help": "The upstream address this channel forwards requests to. Leave it empty on a known provider to let the gateway use the provider's own endpoint."
+      },
+      "gptLoadKey": {
+        "help": "A key this group can use. The gateway keeps a per-group credential pool: add rows here to import a key and remove rows to drop it."
+      },
+      "gptLoadPriceMultiplier": {
+        "help": "Scales the channel's reported cost for balance and rate accounting (for example 1.5).",
+        "label": "Price multiplier"
+      },
+      "gptLoadProvider": {
+        "help": "The gpt-load driver id for this channel (for example openai, anthropic, gemini). Use the load button to read the drivers your gateway actually ships."
+      },
+      "gptLoadWeight": {
+        "help": "A manual load-balancing weight. Higher values draw proportionally more traffic; leave empty to use the gateway default.",
+        "label": "Weight"
+      },
+      "magpieAnthropic": {
+        "help": "Use the Anthropic API root (ANTHROPIC_BASE_URL); do not append /v1/messages.",
+        "label": "Anthropic URL"
+      },
+      "magpieBalancePath": {
+        "help": "Amount in the response, e.g. data.balance or data.total / 500000. Leave empty for Magpie’s default. Read-only for preset providers.",
+        "label": "Balance expression"
+      },
+      "magpieBalanceURL": {
+        "help": "Optional balance endpoint used by Magpie. Supports {key} in the URL. Existing balance tokens stay unchanged. Read-only for preset providers.",
+        "label": "Balance URL"
+      },
+      "magpieCatalog": {
+        "help": "Comma-separated models.dev provider IDs for model names and reasoning levels; first match wins. Read-only for preset providers.",
+        "label": "Model catalog"
+      },
+      "magpieChat": {
+        "help": "Include /v1 in the Chat Completions base URL; do not append /chat/completions.",
+        "label": "Chat Completions URL",
+        "required": "Enter the address for the selected API type."
+      },
+      "magpieGemini": {
+        "help": "Include /v1beta in the Gemini base URL; do not append a model or generateContent path.",
+        "label": "Gemini URL"
+      },
+      "magpieHeaders": {
+        "help": "Add header names and values as rows, or switch to JSON. These headers are sent to the upstream provider.",
+        "label": "Custom headers"
+      },
+      "magpieMaxConcurrency": {
+        "help": "0–1000 simultaneous requests for each key/account. Empty uses Magpie’s default; 0 means unlimited.",
+        "label": "Concurrent requests per key"
+      },
+      "magpieMaxRPM": {
+        "help": "0–10000 requests per minute for each key/account. Empty or 0 means unlimited.",
+        "label": "Requests per minute per key"
+      },
+      "magpieModels": {
+        "help": "Select discovered models or type a model ID and press Enter. Fetch models after filling in the connection details. Leave the selection empty to use MAGPIE’s automatic model catalog."
+      },
+      "magpieModelsURL": {
+        "help": "Optional full model-list URL, queried with the current key and headers. Leave empty to use the protocol endpoints. Read-only for preset providers.",
+        "label": "Models URL"
+      },
+      "magpiePriceRate": {
+        "help": "Multiplier against the listed price, e.g. 0.8. Range 0–1000, up to 3 decimal places. Empty or 0 uses the listed price.",
+        "label": "Price multiplier"
+      },
+      "magpieProxy": {
+        "help": "Leave empty to use the global proxy; use direct to bypass it.",
+        "label": "Proxy"
+      },
+      "magpieResponses": {
+        "help": "The Responses base URL usually ends in /v1; do not append /responses.",
+        "label": "Responses URL"
+      },
+      "manualModels": {
+        "label": "Manual models"
+      },
+      "notes": {
+        "help": "Optional notes about this upstream account.",
+        "label": "Notes",
+        "placeholder": "Add notes about this account..."
+      },
+      "omnirouteBaseUrl": {
+        "help": "Leave this empty to keep the selected provider's default endpoint; the gateway then sends this channel's requests to the address you enter. A stored address cannot be cleared, so enter a new one instead of removing it."
+      },
+      "omnirouteDefaultModel": {
+        "help": "Used when a request names no model. A channel stores no model list: models come from the gateway's provider catalogue and aliases.",
+        "label": "Default model"
+      },
+      "omnirouteLastError": {
+        "label": "Last error"
+      },
+      "omniroutePrefix": {
+        "help": "Filling this creates a provider node on the gateway and addresses the channel as prefix/model; leaving it empty uses the built-in provider directly. A prefix requires a base URL.",
+        "label": "Custom model prefix"
+      },
+      "omniroutePriority": {
+        "help": "The gateway tries a provider's connections in ascending order, so a smaller number is used first. A newly created connection is ranked last by the gateway.",
+        "label": "Priority"
+      },
+      "omnirouteProvider": {
+        "help": "The gateway's built-in provider id. A custom relay can keep openai and override the address. Use the load button to read the providers this gateway actually serves."
+      },
+      "omnirouteTestStatus": {
+        "label": "Connection test"
+      },
+      "orderingWeight": {
+        "help": "Higher values are preferred when AxonHub selects a channel; equal values have equal ordering priority.",
+        "label": "Ordering weight"
+      },
+      "priority": {
+        "help": "Accounts with lower values are scheduled first.",
+        "label": "Priority"
+      },
+      "remark": {
+        "help": "Add notes or remarks about this channel for reference.",
+        "label": "Remark",
+        "placeholder": "Enter a note or remark for this channel..."
+      },
+      "sub2apiModels": {
+        "help": "Optional. Leave empty to allow every model supported by the upstream; add models only when a restriction is needed.",
+        "label": "Model whitelist"
+      },
+      "sub2apiPlatform": {
+        "help": "Choose the upstream protocol. It cannot be changed after the account is created.",
+        "label": "Platform"
+      },
+      "supportedModels": {
+        "help": "Type or paste model names. Models added here are kept during automatic model sync."
+      },
+      "tags": {
+        "help": "Add tags to categorize and filter channels. Press Enter to add a tag. You can also paste comma- or line-separated tags.",
+        "label": "Tags",
+        "placeholder": "Add tags..."
+      }
+    },
+    "json": {
+      "addRow": "Add row",
+      "editJson": "Edit JSON",
+      "editRows": "Edit rows",
+      "format": "Format JSON",
+      "key": "Key",
+      "keyAt": "{{field}}: row {{index}} key",
+      "removeAt": "{{field}}: remove row {{index}}",
+      "value": "Value",
+      "valueAt": "{{field}}: row {{index}} value"
+    },
+    "multiKeyMode": {
+      "label": "Key selection",
+      "polling": "Round robin",
+      "random": "Random"
+    },
+    "options": {
+      "channelType": {
+        "anthropic": "Anthropic",
+        "anthropicAws": "Anthropic on AWS",
+        "anthropicGcp": "Anthropic on Google Cloud",
+        "claudeCode": "Claude Code",
+        "deepseek": "DeepSeek",
+        "deepseekAnthropic": "DeepSeek Anthropic",
+        "gemini": "Gemini",
+        "geminiOpenai": "Gemini OpenAI",
+        "geminiVertex": "Gemini Vertex",
+        "githubCopilot": "GitHub Copilot",
+        "nanogpt": "NanoGPT",
+        "ollama": "Ollama",
+        "openai": "OpenAI",
+        "openaiResponses": "OpenAI Responses",
+        "openrouter": "OpenRouter",
+        "siliconflow": "SiliconFlow",
+        "unsupported": "Unsupported channel type",
+        "volcengine": "Volcengine",
+        "xai": "xAI"
+      },
+      "omnirouteTestStatus": {
+        "failed": "Failed",
+        "ok": "OK",
+        "pending": "Not tested",
+        "unsupported": "Not testable"
+      },
+      "status": {
+        "archived": "Archived",
+        "disabled": "Disabled",
+        "enabled": "Enabled",
+        "unknown": "Unknown"
+      },
+      "unknown": "Unknown option"
+    },
+    "secret": {
+      "actions": {
+        "cancelLoad": "Cancel loading",
+        "clear": "Remove saved API key",
+        "restore": "Keep saved API key",
+        "retry": "Retry",
+        "view": "View saved API key"
+      },
+      "createHint": "Enter the upstream API key for the new channel.",
+      "keepExistingHint": "Leave this field blank to keep the saved API key unchanged.",
+      "loadableHint": "The saved API key is not shown here. Leave blank to keep it unchanged.",
+      "loadError": "The saved API key could not be loaded.",
+      "loading": "Loading the saved API key...",
+      "partialReplacementHint": "Replacing some keys moves them to the end by default. To keep their original order, reveal a saved key first (verification required).",
+      "placeholder": "Enter an upstream API key",
+      "replacementBlocked": {
+        "multipleCredentials": "This channel has multiple API keys. Manage its keys in AxonHub."
+      },
+      "replacementDisabled": "This API key cannot be replaced here.",
+      "replacePlaceholder": "Enter a new API key to replace the saved one",
+      "state": {
+        "available": "A saved API key is available.",
+        "masked": "A masked API key is saved.",
+        "permissionHidden": "The saved API key is hidden by permissions.",
+        "unavailable": "The saved API key cannot be shown here."
+      }
+    },
+    "sections": {
+      "advanced": "Advanced",
+      "basic": "Basic",
+      "basicConnection": "Basic & connection",
+      "compatibility": "API compatibility",
+      "connection": "Connection",
+      "metadata": "Metadata",
+      "models": "Models",
+      "requests": "Network & requests",
+      "routing": "Routing",
+      "sync": "Model sync"
+    },
+    "validation": {
+      "inconsistentValue": "This value conflicts with another field.",
+      "invalidValue": "Enter a valid value.",
+      "outOfRange": "Enter a value in the allowed range.",
+      "required": "This field is required.",
+      "unsupportedOption": "This option is not supported."
+    }
+  },
+  "filter": {
+    "statusLabel": "Filter by status"
+  },
+  "filters": {
+    "actionOptions": {
+      "exclude": "Exclude matching models",
+      "include": "Include matching models"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "moveDown": "Move filter down",
+      "moveUp": "Move filter up",
+      "save": "Save filters"
+    },
+    "addPatternRule": "Add pattern rule",
+    "addProbeRule": "Add probe rule",
+    "empty": {
+      "description": "Add include/exclude rules with optional regex to control synced models.",
+      "title": "No filters yet"
+    },
+    "hints": {
+      "probesAllPass": "A model matches this rule only when every selected probe passes. Probes use the channel base URL and resolved channel key.",
+      "regex": "Regex rules support advanced matching using JavaScript syntax.",
+      "substring": "Plain rules match case-sensitive substrings inside model names.",
+      "unsupportedChannelType": "Probe rules are unavailable for this channel type because it cannot be mapped to a supported verification API."
+    },
+    "jsonEditor": {
+      "hint": "The JSON must be an array of pattern or probe rule objects. Pattern rules use kind: 'pattern', name, and pattern. Probe rules use kind: 'probe', name, and probeIds. Credential fields such as apiKey, key, and baseUrl are ignored.",
+      "label": "Advanced JSON editor",
+      "placeholder": "Paste or edit an array of filter rule objects here to quickly reuse the same configuration across channels."
+    },
+    "labels": {
+      "action": "Action",
+      "delete": "Delete filter",
+      "description": "Description",
+      "enabled": "Enabled",
+      "name": "Filter name",
+      "pattern": "Match pattern",
+      "probes": "Verification probes",
+      "regex": "Regex mode",
+      "ruleType": "Rule type"
+    },
+    "loading": "Loading channel filters...",
+    "messages": {
+      "jsonArrayRequired": "JSON must be an array of filter rules.",
+      "jsonInvalid": "Invalid filter JSON: {{error}}",
+      "jsonItemNotObject": "Filter at index {{index}} must be an object.",
+      "loadFailed": "Failed to load filters: {{error}}",
+      "saved": "Filters saved",
+      "saveFailed": "Failed to save filters: {{error}}",
+      "validationName": "Please provide a name for each filter.",
+      "validationPattern": "Filter pattern cannot be empty.",
+      "validationProbeIds": "Select at least one verification probe for each probe rule.",
+      "validationRegex": "Invalid regex pattern: {{error}}"
+    },
+    "modelSyncExclusionHelp": "After saving, auto-sync and Run All will skip this channel. Run Selected and the row's Sync button can still sync it once. Cancel discards changes in this dialog.",
+    "placeholders": {
+      "description": "Optional notes about this rule",
+      "name": "e.g. Allow GPT-4",
+      "pattern": "Exact string or regex pattern",
+      "probes": "Select probes",
+      "probeSearch": "Search probes"
+    },
+    "probes": {
+      "empty": "No probes found",
+      "options": {
+        "structured-output": "Structured output",
+        "text-generation": "Text generation",
+        "tool-calling": "Tool calling",
+        "web-search": "Web search"
+      }
+    },
+    "ruleTypeOptions": {
+      "pattern": "Pattern",
+      "probe": "Probe"
+    },
+    "subtitle": "Customize filtering rules for {{channel}}",
+    "title": "Channel filters",
+    "viewMode": {
+      "json": "JSON edit",
+      "label": "Edit mode",
+      "visual": "Visual edit"
+    }
+  },
+  "gatewayGuidance": {
+    "empty": {
+      "description": "This self-hosted AI gateway has no channels yet. Import account keys or API keys first, then this gateway can provide one unified AI API to external clients.",
+      "importFromAccountKey": "Import channel from account Key",
+      "importFromApiKeyLibrary": "Import channel from API Credential Library",
+      "title": "No self-hosted AI gateway channels yet"
+    },
+    "headerDescription": "Manage channels in your self-hosted AI gateway to bring API sources into one endpoint.",
+    "openChannelConsole": "Open gateway channel management",
+    "unconfiguredValueDescription": "After configuration, you can import scattered account keys and API keys as gateway channels, then view and manage them directly in My API Box."
+  },
+  "magpieKeys": {
+    "anyProtocol": "Any protocol",
+    "enabled": "Enabled",
+    "help": "Add a key or paste several keys separated by lines, commas or spaces. Only the primary saved key can be revealed. Replace an extra key by adding the new one and removing the old one. Changes apply when you save.",
+    "invalid": "Check new keys, protocols and weights (0–1000). Keep at least one enabled key.",
+    "name": "Key name",
+    "order": "In order (failover)",
+    "pace": "Remaining allowance per hour",
+    "primary": "Primary",
+    "primaryKey": "Primary API Key",
+    "protocol": "Protocol",
+    "rotate": "Round robin",
+    "routing": "Key routing",
+    "smart": "Smart (automatic failover)",
+    "title": "Key pool",
+    "usage": "Least used first",
+    "weighted": "Weighted",
+    "weightHelp": "0 or 1 uses the default weight; 2–1000 changes its share under weighted routing."
+  },
+  "magpieProtocols": {
+    "checkOther": "An address for another configured type is invalid. Switch to that type to check it.",
+    "configured": "Configured",
+    "help": "Choose a type to edit its address. To use several protocols, configure each in turn; each type keeps its own address.",
+    "type": "API type",
+    "unmanaged": "Managed in Magpie"
+  },
+  "migration": {
+    "actions": {
+      "cancel": "Cancel",
+      "close": "Close",
+      "refreshChannels": "Refresh channel list",
+      "refreshPreview": "Refresh preview",
+      "running": "Migrating...",
+      "start": "Start migration"
+    },
+    "betaBadge": "Beta",
+    "blockedReasons": {
+      "sourceKeyExportRestricted": "Exporting keys from the source site requires web verification that the configured Admin API Key cannot complete. Retrieve the key from the source dashboard and migrate this channel manually.",
+      "sourceKeyMissing": "The source channel key is unavailable, so this channel cannot be migrated yet.",
+      "sourceKeyResolutionFailed": "The source channel key could not be loaded. If you just completed verification, refresh the preview and try again.",
+      "sourceKeysChanged": "The source key count or enabled states changed. Refresh the preview before migrating again.",
+      "sourceMultiKeyUnsupported": "This source cannot export its complete multi-key list yet. Check the source site and migrate manually to avoid missing keys.",
+      "sourceTypeUnsupported": "This source channel type is not supported for migration. Choose a supported channel or migrate it manually.",
+      "targetDraftPreparationFailed": "The target channel draft could not be prepared. Review the channel details, refresh the preview, and try again."
+    },
+    "confirm": {
+      "confirm": "Confirm migration",
+      "description": "New target channels will be created for ready migration items ({{ready}} of {{total}}). Multi-key channels may have been split into several items.",
+      "title": "Start channel migration?",
+      "warningTitle": "This flow only creates new channels. It does not sync, deduplicate, or roll back."
+    },
+    "description": "Copy {{selectedCount}} channels from the current managed site into another configured managed site.",
+    "generalWarnings": {
+      "compactSummary": "Create-only. Hover for details.",
+      "createOnly": "This migration only creates new channels on the target site and does not modify the source channels.",
+      "noDedupeOrSync": "This migration does not check for duplicates, overwrite existing target channels, or sync existing target channels.",
+      "noRollback": "Automatic rollback is not available in this flow. Use the result list to review any manual follow-up.",
+      "targetRoutingDefaults": "Priority, weight, and concurrency settings are not migrated. The target uses its native defaults; adjust them in the target editor after migration.",
+      "title": "Migration limitations"
+    },
+    "itemWarnings": {
+      "dropsAdvancedSettings": "Advanced provider-specific channel settings cannot be copied directly and will be dropped.",
+      "dropsModelMapping": "Model redirect mappings will not be copied.",
+      "dropsMultiKeyState": "Key enabled states are preserved; rotation policies, disable reasons and runtime history are not copied.",
+      "dropsStatusCodeMapping": "Status-code mapping settings will not be copied.",
+      "splitsKeys": "The target cannot preserve these keys and their states in one channel. A separate channel will be created for each key; traffic distribution may change.",
+      "sub2apiDefaultGroup": "Source groups are not copied. The target uses the platform's default group if it exists. Check group assignments after migration.",
+      "targetForcesDefaultGroup": "The target site will replace the source groups with its default group.",
+      "targetNormalizesBaseUrl": "The target site will normalize the base URL before creation.",
+      "targetRemapsChannelType": "The target site will remap the channel type to the closest supported type.",
+      "targetSimplifiesStatus": "The target site will simplify the source status to enabled or disabled."
+    },
+    "keyCount": "Key count",
+    "preview": {
+      "badges": {
+        "limitsLabel": "limits",
+        "warningsLabel": "warnings"
+      },
+      "compare": {
+        "fieldLabel": "Field"
+      },
+      "loadFailed": "Failed to load migration preview: {{error}}",
+      "loading": "Building migration preview...",
+      "status": {
+        "blocked": "Blocked",
+        "ready": "Ready"
+      },
+      "summary": "Preview: {{ready}} ready, {{blocked}} blocked, {{total}} migration items."
+    },
+    "results": {
+      "refreshRequired": "Some creation results are uncertain. Refresh the channel list before closing.",
+      "status": {
+        "failed": "Failed",
+        "skipped": "Skipped",
+        "success": "Created",
+        "uncertain": "Uncertain"
+      },
+      "summary": "Results: {{created}}, {{failed}}, {{skipped}}, {{uncertain}}, {{total}}.",
+      "summaryMetrics": {
+        "created_one": "{{count}} created",
+        "created_other": "{{count}} created",
+        "failed_one": "{{count}} failed",
+        "failed_other": "{{count}} failed",
+        "skipped_one": "{{count}} skipped",
+        "skipped_other": "{{count}} skipped",
+        "total_one": "{{count}} total",
+        "total_other": "{{count}} total",
+        "uncertain_one": "{{count}} uncertain",
+        "uncertain_other": "{{count}} uncertain"
+      },
+      "title": "Migration results"
+    },
+    "sub2apiDefaultGroup": "Platform default group (if available)",
+    "target": {
+      "destinationLabel": "Destination site",
+      "label": "Migration target",
+      "placeholder": "Select a managed-site target",
+      "sourceLabel": "Source site",
+      "unselected": "Not selected"
+    },
+    "title": "Migrate channels"
+  },
+  "statusLabels": {
+    "autoDisabled": "Auto Disabled",
+    "enabled": "Enabled",
+    "manualPause": "Manual Pause",
+    "unknown": "Unknown"
+  },
+  "table": {
+    "columns": {
+      "actions": "Actions",
+      "group": "Available Groups",
+      "id": "ID",
+      "models": "Models",
+      "name": "Channel",
+      "priority": "Priority",
+      "status": "Status",
+      "type": "Type",
+      "weight": "Weight"
+    },
+    "emptyFiltered": "No matching channels found. Try adjusting your search or filters.",
+    "emptyNoChannels": "No channels yet. Add a channel or refresh the list.",
+    "loading": "Loading channels...",
+    "noEntries": "No entries",
+    "paginationNext": "Next page",
+    "paginationPrev": "Previous page",
+    "paginationSummary": "{{start}} - {{end}} of {{total}} channels",
+    "rowActions": {
+      "delete": "Delete",
+      "edit": "Edit",
+      "filters": "Edit channel filtering rules",
+      "migrate": "Migrate to another site",
+      "openSync": "Open model sync interface",
+      "sync": "Sync model list immediately",
+      "syncing": "Syncing...",
+      "view": "View channel"
+    },
+    "rowsPerPage": "Rows per page",
+    "selectAll": "Select all rows",
+    "selectRow": "Select Row"
+  },
+  "title": "Channels management",
+  "toasts": {
+    "channelSaved": "Channel saved",
+    "channelsDeleted_one": "Deleted {{count}} channel",
+    "channelsDeleted_other": "Deleted {{count}} channels",
+    "channelUpdated": "Channel updated",
+    "syncCompleted": "Model sync completed ({{success}}/{{total}})",
+    "syncCompletedRefreshFailed": "Models were synced ({{success}}/{{total}}), but the channel list could not be refreshed. Refresh and try again.",
+    "syncFailed": "Model sync failed: {{error}}",
+    "syncFailedFallback": "The channels could not be synchronized",
+    "syncIncomplete": "Model sync did not fully complete ({{success}}/{{total}} succeeded). Open model sync to review results and retry failed channels."
+  },
+  "toolbar": {
+    "addChannel": "Add channel",
+    "cancelRefresh": "Stop refresh",
+    "clearSearch": "Clear search",
+    "columns": "Columns",
+    "deleteSelected": "Delete selected",
+    "enterMigrationMode": "Channel migration",
+    "exitMigrationMode": "Exit migration mode",
+    "migrateFiltered": "Migrate all filtered channels",
+    "migrateSelected": "Migrate selected",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search by name, URL or group",
+    "status": "Status",
+    "syncSelected": "Sync selected channel models",
+    "toggleColumns": "Toggle columns"
+  }
+}

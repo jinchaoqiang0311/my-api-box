@@ -1,0 +1,396 @@
+{
+  "actions": {
+    "open": "Mở"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "Tài khoản đã tắt sẽ không tham gia làm mới, điểm danh và các tự động hóa khác. Hãy bật lại những tài khoản bạn còn dùng.",
+      "title_other": "Tất cả {{count}} tài khoản đều đã tắt"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} cần kiểm tra cài đặt trình duyệt"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} có vấn đề trạng thái"
+    },
+    "actions": {
+      "addAccount": "Thêm tài khoản",
+      "addProfile": "Thêm thông tin xác thực API",
+      "editAccount": "Chỉnh sửa tài khoản",
+      "fixAccount": "Sửa tài khoản",
+      "handleCheckIn": "Xử lý điểm danh",
+      "manageAccounts": "Quản lý tài khoản",
+      "openSettings": "Mở cài đặt",
+      "refreshAccounts": "Làm mới tài khoản",
+      "signInAgain": "Đăng nhập lại",
+      "viewAccount": "Xem tài khoản",
+      "viewAnnouncements": "Xem thông báo",
+      "viewCheckIn": "Xem điểm danh",
+      "viewCheckInResults": "Xem kết quả"
+    },
+    "addAccount": {
+      "description": "Hãy thêm tài khoản trước khi tổng hợp số dư, sử dụng và tác vụ tự động.",
+      "title": "Chưa có tài khoản"
+    },
+    "addProfile": {
+      "description": "Thư viện lưu API Key, coding plan Key và các loại key khác, đồng thời theo dõi số dư và mức sử dụng ở một nơi — kể cả hạn mức 5 giờ / 7 ngày / tháng của coding plan còn lại bao nhiêu.",
+      "title": "Chưa có thông tin xác thực API"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_other": "{{count}} tài khoản đã bật điểm danh tự động nhưng sẽ không chạy khi công tắc toàn cục đang tắt. Hãy bật lại trong cài đặt điểm danh.",
+      "title": "Điểm danh tự động đang tắt toàn cục"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "Lần chạy gần nhất có lỗi hoặc kết quả chưa được xác nhận. Hãy mở trang điểm danh tự động để xem nguyên nhân và thử lại.",
+      "title_other": "{{count}} tài khoản cần xử lý điểm danh"
+    },
+    "categories": {
+      "accounts": "Tài khoản",
+      "automation": "Tự động hóa",
+      "credentials": "Thông tin xác thực",
+      "data": "Dữ liệu"
+    },
+    "categoryFilterLabel": "Danh mục",
+    "checkInAccountDataMissing": {
+      "description": "Thông tin đăng nhập hoặc dữ liệu tài khoản chưa đầy đủ. Hãy nhận diện lại tài khoản trong Quản lý tài khoản rồi thử lại.",
+      "title_other": "{{count}} tài khoản thiếu dữ liệu đăng nhập đã lưu"
+    },
+    "checkInMethodUnresolved": {
+      "description": "Điểm danh tự động đã bật nhưng chưa có phương thức khả dụng. Trong Tài khoản, hãy phát hiện lại hoặc chọn phương thức trước lần chạy tiếp theo.",
+      "title": "{{name}} cần xác nhận phương thức điểm danh"
+    },
+    "checkInPermissionDenied": {
+      "description": "Trang đã từ chối yêu cầu điểm danh. Hãy đăng nhập lại hoặc kiểm tra quyền của tài khoản trước khi thử lại.",
+      "title_other": "{{count}} tài khoản bị từ chối khi điểm danh"
+    },
+    "checkInReloginRequired": {
+      "description": "Lần chạy gần nhất đã bỏ qua các tài khoản này vì phiên đăng nhập đã hết hạn. Hãy đăng nhập lại trên trang rồi chạy điểm danh lại.",
+      "title_other": "{{count}} tài khoản cần đăng nhập lại"
+    },
+    "filterAll": "Tất cả",
+    "severityFilterLabel": "Mức độ",
+    "siteTypeMismatch": {
+      "description": "Trang này tương ứng với {{suggestedType}}, nhưng tài khoản đang đặt là {{storedType}}. Hãy chỉnh sửa tài khoản và đặt Loại trang web thành {{suggestedType}}.",
+      "title": "{{name}} có thể đang sai loại trang web"
+    },
+    "siteTypeUnknown": {
+      "description": "Điểm danh tự động không thể xác định giao thức của trang này. Hãy chỉnh sửa tài khoản và chọn đúng loại trang, hoặc chạy lại tự động phát hiện.",
+      "title": "{{name}} có loại trang web không xác định"
+    },
+    "sortHint": "Sắp xếp theo mức ảnh hưởng",
+    "summary_other": "{{count}} việc cần xử lý",
+    "unreadSiteAnnouncements": {
+      "description": "Mở thông báo trang để đánh dấu đã đọc và tránh bỏ lỡ thông tin bảo trì hoặc rủi ro.",
+      "title_other": "{{count}} thông báo trang chưa đọc"
+    },
+    "usageRefreshPending": {
+      "description": "Làm mới tài khoản để hoàn tất thống kê yêu cầu, token và chi phí hôm nay.",
+      "title_other": "{{count}} tài khoản cần làm mới thống kê hôm nay"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "Xem điểm danh",
+      "retryFailed": "Thử lại lỗi"
+    },
+    "empty": {
+      "disabled": {
+        "description": "Bạn đã tắt tự động điểm danh. Khi muốn tiện ích tự nhận phần thưởng điểm danh, bạn có thể bật lại trong phần cài đặt."
+      },
+      "notRun": {
+        "description": "Chưa có bản ghi điểm danh. Sau khi bật phát hiện điểm danh cho tài khoản, hệ thống sẽ chạy ở lịch kế tiếp, hoặc bạn có thể mở trang tự động điểm danh để xử lý thủ công."
+      }
+    },
+    "lastRun": "Lần chạy trước",
+    "metrics": {
+      "failed": "Lỗi",
+      "skipped": "Bỏ qua",
+      "success": "Thành công"
+    },
+    "nextRetry": "Lần thử lại kế tiếp",
+    "nextRun": "Lần chạy kế tiếp",
+    "notRunYet": "Chưa chạy",
+    "notScheduled": "Chưa lên lịch",
+    "status": {
+      "disabled": "Đã tắt",
+      "failed": "Thất bại",
+      "not_run": "Chờ lần chạy đầu",
+      "partial": "Thành công một phần",
+      "ready": "Sẵn sàng",
+      "skipped": "Chưa thực hiện",
+      "success": "Thành công"
+    },
+    "summary": "Tóm tắt chạy tự động điểm danh"
+  },
+  "automation": {
+    "automaticEnabled": "Đã bật thực thi tự động",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "Khi muốn tự động nhận phần thưởng điểm danh, hãy bật tự động điểm danh. Lịch kế tiếp và kết quả sẽ xuất hiện tại đây."
+      },
+      "managedSiteModelSync": {
+        "disabled": "Khi muốn tự động cập nhật model của AI gateway tự triển khai, hãy bật đồng bộ model. Khoảng đồng bộ và phạm vi sẽ xuất hiện tại đây."
+      },
+      "siteAnnouncements": {
+        "disabled": "Khi muốn theo dõi thông báo trang kịp thời, hãy bật lấy thông báo. Lần kiểm tra gần nhất và số thông báo sẽ xuất hiện tại đây."
+      },
+      "webdavAutoSync": {
+        "disabled": "Khi muốn sao lưu dữ liệu giữa thiết bị, hãy cấu hình tự động đồng bộ WebDAV. Chiến lược và phạm vi đồng bộ sẽ xuất hiện tại đây."
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "Tự động điểm danh"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "Model giới hạn",
+        "concurrency": "Số luồng",
+        "interval": "Khoảng đồng bộ (giờ)",
+        "label": "Đồng bộ model AI gateway tự triển khai",
+        "open": "Mở đồng bộ"
+      },
+      "siteAnnouncements": {
+        "interval": "Khoảng kiểm tra (phút)",
+        "label": "Lấy thông báo trang",
+        "lastChecked": "Lần kiểm tra gần nhất",
+        "openPage": "Xem thông báo",
+        "openSettings": "Cài đặt kiểm tra",
+        "records": "Tổng thông báo",
+        "unread": "Thông báo chưa đọc"
+      },
+      "webdavAutoSync": {
+        "domains": "Phạm vi đồng bộ",
+        "interval": "Khoảng đồng bộ (phút)",
+        "label": "Đồng bộ sao lưu WebDAV",
+        "open": "Mở sao lưu",
+        "strategy": "Chiến lược đồng bộ"
+      }
+    },
+    "metrics": {
+      "failed": "Thất bại",
+      "skipped": "Bỏ qua",
+      "success": "Thành công",
+      "unsupported": "Không hỗ trợ"
+    },
+    "neverChecked": "Chưa kiểm tra",
+    "openItem": "Mở {{name}}",
+    "status": {
+      "disabled": "Đã tắt",
+      "failed": "Chạy thất bại",
+      "limited": "Hỗ trợ một phần",
+      "notRun": "Chờ lần chạy đầu tiên",
+      "partial": "Thất bại một phần",
+      "ready": "Sẵn sàng",
+      "running": "Đang chạy",
+      "skipped": "Chưa thực hiện",
+      "success": "Chạy thành công",
+      "unknown": "Không rõ trạng thái",
+      "unsupported": "Chưa hỗ trợ"
+    },
+    "statusUnavailable": "Không thể đọc trạng thái thực thi. Mở chi tiết hoặc tải lại để thử lại."
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "Tài khoản, số dư và trạng thái sức khỏe là nền tảng cho các tính năng khác.",
+      "label": "Nền tảng tài khoản",
+      "state": {
+        "disabled": "Hiện chưa đọc được trạng thái tài khoản. Hãy kiểm tra cấu hình tài khoản đã hoàn tất hay chưa.",
+        "needs_setup": "Thêm ít nhất một tài khoản để trang tổng quan có thể tóm tắt số dư, sử dụng và trạng thái tác vụ tự động cho bạn.",
+        "not_applicable": "Bạn có thể tiếp tục mà không cần thêm tài khoản trong môi trường này."
+      }
+    },
+    "automation": {
+      "description": "Tự động điểm danh và lấy thông báo đã sẵn sàng hay chưa.",
+      "label": "Tự động hóa",
+      "state": {
+        "disabled": "Hiện chưa có tác vụ nào tự chạy. Khi cần, bạn có thể bật tự động điểm danh hoặc lấy thông báo.",
+        "needs_setup": "Tác vụ tự động còn cần tài khoản có thể chạy hoặc cấu hình phát hiện. Hoàn tất thiết lập liên quan trước khi bật.",
+        "not_applicable": "Môi trường này hiện chưa có tác vụ tự động khả dụng."
+      }
+    },
+    "backupSync": {
+      "description": "Cấu hình sao lưu dữ liệu cục bộ và đồng bộ giữa thiết bị.",
+      "label": "Đồng bộ sao lưu",
+      "state": {
+        "disabled": "Dữ liệu hiện chỉ lưu trên thiết bị này. Khi cần sao lưu giữa thiết bị, bạn có thể bật đồng bộ WebDAV.",
+        "needs_setup": "Kết nối WebDAV trước để sao lưu dữ liệu cục bộ lên nơi lưu trữ từ xa.",
+        "not_applicable": "Môi trường này hiện chưa dùng được đồng bộ sao lưu."
+      }
+    },
+    "credentialAssets": {
+      "description": "Lưu trữ các Key, cùng việc theo dõi số dư, hạn mức và mức sử dụng.",
+      "label": "Tài sản xác thực",
+      "state": {
+        "disabled": "Hiện chưa có thông tin xác thực có thể dùng lại. Hãy kiểm tra thiết lập tài khoản hoặc thông tin xác thực API.",
+        "needs_setup": "Lưu một thông tin xác thực API (Base URL + API Key) để theo dõi số dư, hạn mức và mức sử dụng ở một nơi.",
+        "not_applicable": "Môi trường này không cần quản lý thông tin xác thực API riêng."
+      }
+    },
+    "dataHistory": {
+      "description": "Lịch sử sử dụng và số dư có dữ liệu để xem hay chưa.",
+      "label": "Lịch sử dữ liệu",
+      "state": {
+        "disabled": "Hiện chưa lưu lịch sử. Khi bật, các thay đổi sử dụng và số dư sau này sẽ được ghi lại.",
+        "needs_setup": "Lịch sử đã bật nhưng vẫn cần tài khoản hoặc dữ liệu đầu tiên; sau khi có dữ liệu, mục này sẽ tự cập nhật.",
+        "not_applicable": "Môi trường này hiện chưa có lịch sử dữ liệu để xem."
+      }
+    },
+    "managedSite": {
+      "description": "Quản lý kênh và đồng bộ model cho AI gateway tự triển khai.",
+      "label": "AI gateway tự triển khai",
+      "state": {
+        "disabled": "Chưa cấu hình AI gateway tự triển khai. Khi cần, hãy hoàn tất cấu hình gateway trước.",
+        "needs_setup": "Cấu hình AI gateway tự triển khai trước, rồi bạn có thể quản lý kênh hoặc đồng bộ model tại đây.",
+        "not_applicable": "Loại trang này hiện chưa hỗ trợ quản lý AI gateway tự triển khai."
+      }
+    },
+    "subItems": {
+      "accounts": "Quản lý tài khoản",
+      "apiKeys": "API key",
+      "apiProfiles": "Thông tin xác thực API",
+      "autoCheckin": "Tự động điểm danh",
+      "balanceHistory": "Lịch sử số dư",
+      "managedSiteChannels": "Quản lý kênh",
+      "managedSiteModelSync": "Đồng bộ model",
+      "siteAnnouncements": "Thông báo trang",
+      "usageAnalytics": "Phân tích sử dụng",
+      "webdavAutoSync": "Tự động đồng bộ WebDAV",
+      "webdavManual": "Sao lưu WebDAV thủ công"
+    }
+  },
+  "coverageStatus": {
+    "configured": "Đã cấu hình",
+    "disabled": "Chưa bật",
+    "needs_setup": "Cần thiết lập",
+    "not_applicable": "Không áp dụng"
+  },
+  "description": "Xem tổng quan tài khoản, khóa và mức sử dụng; theo dõi tác vụ tự động và việc cần xử lý.",
+  "sections": {
+    "automationOverview": "Tác vụ tự động",
+    "configurationOverview": "Tổng quan cấu hình",
+    "needsAttention": "Cần xử lý",
+    "recentUsage": "Sử dụng gần đây",
+    "unifiedApiGuidance": "Thiết lập API hợp nhất"
+  },
+  "severity": {
+    "error": "Lỗi",
+    "info": "Thông tin",
+    "warning": "Cảnh báo"
+  },
+  "states": {
+    "allClear": "Hiện không có mục nào cần xử lý.",
+    "allClearDescription": "Sự cố tài khoản, thiếu phương thức điểm danh và thống kê cần làm mới sẽ tự động xuất hiện tại đây.",
+    "loadDetailUnavailable": "Một số thông tin tổng quan tạm thời không khả dụng. Hãy thử tải lại.",
+    "loadedWithError": "Một số thông tin tải thất bại. Đang hiển thị dữ liệu có sẵn.",
+    "loading": "Đang tải tổng quan..."
+  },
+  "status": {
+    "accounts": {
+      "label": "Tài khoản"
+    },
+    "attention": {
+      "label": "Cần xử lý"
+    },
+    "profiles": {
+      "label": "Thông tin xác thực"
+    },
+    "todayUsage": {
+      "label": "Hôm nay"
+    }
+  },
+  "title": "Tổng quan",
+  "todayMetricAvailability": {
+    "coverage": "Đầy đủ {{complete}} · một phần {{partial}} · đủ điều kiện {{eligible}}",
+    "coverageWithRefresh": "Đầy đủ {{complete}} · Một phần {{partial}} · Cần làm mới {{refresh}} · Đủ điều kiện {{eligible}}",
+    "includesPendingRefresh": "Có mục chờ làm mới",
+    "partial": "Thống kê ngày một phần",
+    "pendingRefresh": "Chờ làm mới",
+    "pendingRefreshHelp": "Số liệu thống kê hôm nay chưa được xác nhận. Hãy làm mới tài khoản liên quan trong danh sách tài khoản.",
+    "unavailable": "Không khả dụng"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "Thêm tài khoản",
+      "addApiCredential": "Thêm thông tin API",
+      "addGatewayChannel": "Thêm kênh gateway đầu tiên",
+      "configureManagedSite": "Cấu hình AI gateway tự triển khai",
+      "manageChannels": "Quản lý kênh",
+      "openApiCredentialProfiles": "Mở thư viện xác thực",
+      "openModelSync": "Mở đồng bộ model"
+    },
+    "boundaryNote": "My API Box quản lý và nhập cấu hình; ứng dụng không proxy yêu cầu model. Client bên ngoài sẽ gọi AI gateway tự triển khai của bạn.",
+    "description": {
+      "has_gateway_channels": "Hướng dẫn thiết lập cổng đã hoàn tất. Mở quản lý kênh để kiểm tra trạng thái hiện tại.",
+      "needs_importable_source": "Bạn đã có tài khoản, nhưng loại tài khoản hiện tại không thể cung cấp key có thể nhập. Hãy lưu API key trước, hoặc thêm loại tài khoản hỗ trợ lấy key, rồi nhập vào AI gateway tự triển khai.",
+      "needs_managed_site": "Bạn đã có key tài khoản hoặc API key. Sau khi cấu hình AI gateway tự triển khai, bạn có thể nhập chúng làm kênh gateway để nhiều key dùng chung một AI API.",
+      "needs_sources": "Thêm tài khoản hoặc lưu khóa API rồi nhập vào cổng AI tự lưu trữ để cung cấp một API AI thống nhất.",
+      "ready_accounts": "Đã hoàn tất cấu hình cơ bản cho AI gateway tự triển khai. Tiếp tục nhập key tài khoản hoặc API key; quy trình nhập sẽ xác minh kết nối và tạo kênh gateway.",
+      "ready_profiles": "Đã hoàn tất cấu hình cơ bản cho AI gateway tự triển khai. Mở thư viện xác thực để xác minh và nhập API key đã lưu làm kênh gateway."
+    },
+    "headline": "Gộp nhiều key tài khoản hoặc API key thành một AI API thống nhất",
+    "modelSyncOptional": "Đồng bộ model có thể tự động cập nhật danh sách model của gateway và giảm thao tác bảo trì thủ công; có thể bật khi cần sau khi đã tạo kênh.",
+    "optionalLabel": "Bảo trì tùy chọn",
+    "overview": {
+      "collapse": "Thu gọn",
+      "completedDescription": "Đã hoàn tất hướng dẫn thiết lập. Bạn có thể xem lại các bước hoặc quản lý kênh gateway bất cứ lúc nào.",
+      "description": "Nhập khóa tài khoản hoặc thông tin xác thực API vào gateway của bạn để dùng chung một địa chỉ API.",
+      "progress": "Tiến độ {{completed}}/{{total}}",
+      "reopen": "Hướng dẫn thiết lập",
+      "resume": "Tiếp tục thiết lập",
+      "start": "Xem các bước",
+      "title": "API hợp nhất"
+    },
+    "sources": {
+      "account": "Nguồn tài khoản",
+      "accountUnavailable": "Tài khoản chưa thể nhập",
+      "both": "Tài khoản + xác thực",
+      "none": "Chưa có nguồn",
+      "profile": "Nguồn xác thực"
+    },
+    "stepper": {
+      "label": "Tiến trình thiết lập API thống nhất",
+      "states": {
+        "completed": "Đã hoàn tất",
+        "current": "Bước hiện tại",
+        "upcoming": "Sau"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "Nhập ít nhất một key tài khoản hoặc thông tin xác thực API đã lưu.",
+          "title": "Tạo kênh gateway"
+        },
+        "gatewaySettings": {
+          "description": "Nhập thông tin kết nối quản trị của AI gateway tự triển khai.",
+          "title": "Lưu cấu hình gateway"
+        },
+        "source": {
+          "description": "Thêm tài khoản có thể cung cấp key hoặc lưu thông tin xác thực API.",
+          "title": "Chuẩn bị nguồn"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "Không thể tải tài khoản, thông tin xác thực hoặc cấu hình cổng. Hệ thống sẽ không kết luận rằng bạn chưa có nguồn.",
+      "retry": "Kiểm tra lại thiết lập",
+      "title": "Không thể xác nhận tiến độ thiết lập"
+    }
+  },
+  "usage": {
+    "activityMix": "Xu hướng gần đây",
+    "empty": {
+      "description": "Sau khi bạn gửi một yêu cầu hoặc đồng bộ lịch sử sử dụng, thẻ này sẽ tự tóm tắt yêu cầu, Token, chi phí hôm nay và xu hướng 7 ngày gần nhất.",
+      "title": "Chưa có bản ghi sử dụng"
+    },
+    "noRecentActivity": "Chưa ghi nhận sử dụng gần đây.",
+    "requestShare": "Tỷ trọng yêu cầu",
+    "sevenDayRequests": "Yêu cầu 7 ngày",
+    "sevenDayTokens": "Token 7 ngày",
+    "todayCost": "Chi phí hôm nay",
+    "todayRequests": "Yêu cầu hôm nay",
+    "todayShare": "Tỷ trọng hôm nay trong 7 ngày gần nhất",
+    "todayTokens": "Token hôm nay",
+    "tokenShare": "Tỷ trọng token"
+  }
+}

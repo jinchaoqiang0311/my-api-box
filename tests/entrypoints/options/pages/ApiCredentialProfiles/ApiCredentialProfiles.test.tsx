@@ -1,0 +1,1738 @@
+import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { type useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import ApiCredentialProfiles from "~/entrypoints/options/pages/ApiCredentialProfiles"
+import {
+  API_CREDENTIAL_PROFILES_TEST_IDS,
+  getApiCredentialProfileRowTestId,
+} from "~/features/ApiCredentialProfiles/testIds"
+import {
+  KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS,
+  KEY_MANAGEMENT_ROUTE_PARAMS,
+} from "~/features/KeyManagement/constants"
+import { ACCOUNT_RUNTIME_KEY_SOURCES } from "~/services/accounts/keys/accountRuntimeKeys"
+import {
+  createEmptyFeatureGuidanceState,
+  type FeatureGuidanceState,
+} from "~/services/featureGuidance/featureGuidanceState"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { type UserPreferences } from "~/services/preferences/preferencesSchema"
+import { API_TYPES } from "~/services/verification/aiApiVerification"
+import {
+  createProfileVerificationHistoryTarget,
+  createVerificationHistorySummary,
+  verificationResultHistoryStorage,
+} from "~/services/verification/verificationResultHistory"
+import {
+  normalizeGoogleFamilyBaseUrl,
+  normalizeOpenAiFamilyBaseUrl,
+} from "~/services/verification/webAiApiCheck/credentialExtraction/baseUrlCandidates"
+import type { Tag } from "~/types"
+import type { ApiCredentialProfile } from "~/types/apiCredentialProfiles"
+import {
+  API_CREDENTIAL_PROFILE_LINK_SOURCES,
+  API_CREDENTIAL_PROFILE_LINK_STATES,
+  type ApiCredentialProfileLink,
+} from "~/types/apiCredentialProfiles"
+import { requireHistoryTarget } from "~~/tests/test-utils/history"
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "~~/tests/test-utils/render"
+
+// The profile store below is an in-memory fixture; retention reads the same owners.
+vi.mock(
+  "~/services/apiCredentialProfiles/storage/configReader",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("~/services/apiCredentialProfiles/storage/configReader")
+      >()
+    return {
+      ...actual,
+      listApiCredentialProfileIdsOrThrow: vi.fn(async () =>
+        store.map(({ id }) => id),
+      ),
+    }
+  },
+)
+
+let store: ApiCredentialProfile[] = []
+let profileLinks: ApiCredentialProfileLink[] = []
+const mockOpenModelsPage = vi.fn()
+const mockOpenSettingsTab = vi.fn()
+const mockOpenWithCredentials = vi.fn()
+const pushWithinOptionsPageMock = vi.fn()
+const replaceWithinOptionsPageMock = vi.fn()
+const mockOpenKeysPage = vi.fn()
+const mockUseUserPreferencesContext = vi.fn()
+const mockDismissGatewayGuidanceSurface = vi.fn()
+let mockFeatureGuidanceState: FeatureGuidanceState =
+  createEmptyFeatureGuidanceState()
+const CC_SWITCH_EXPORT_DIALOG_NAME = "CCSwitch export"
+const CC_SWITCH_EXPORT_DIALOG_CLOSE_NAME = "Close CCSwitch export"
+const KILO_CODE_EXPORT_DIALOG_NAME = "Kilo Code export"
+const mockFetchOpenAICompatibleModelIds = vi.fn(
+  async (
+    _params: Parameters<
+      typeof import("~/services/aiApi/openaiCompatible").fetchOpenAICompatibleModelIds
+    >[0],
+  ): Promise<string[]> => [],
+)
+
+const mockListProfiles = vi.fn(async () => store)
+const mockListProfileLinks = vi.fn(async () => profileLinks)
+const mockFetchApiCredentialModelIds = vi.fn(
+  async (
+    _params: Parameters<
+      typeof import("~/services/apiCredentialProfiles/modelCatalog").fetchApiCredentialModelIds
+    >[0],
+  ): Promise<string[]> => [],
+)
+const mockListTags = vi.fn(async (): Promise<Tag[]> => [])
+const mockCreateTag = vi.fn(async (name: string) => ({
+  id: `t-${name}`,
+  name,
+  createdAt: 0,
+  updatedAt: 0,
+}))
+const mockRenameTag = vi.fn(async (tagId: string, name: string) => ({
+  id: tagId,
+  name,
+  createdAt: 0,
+  updatedAt: 0,
+}))
+const mockDeleteTag = vi.fn(async (tagId: string) => {
+  void tagId
+  return { updatedAccounts: 0 }
+})
+const mockCreateProfile = vi.fn(
+  async (input: {
+    name: string
+    apiType: string
+    baseUrl: string
+    apiKey: string
+    tagIds?: string[]
+    notes?: string
+  }) => {
+    const normalizedBaseUrl =
+      input.apiType === API_TYPES.GOOGLE
+        ? normalizeGoogleFamilyBaseUrl(input.baseUrl) ?? input.baseUrl
+        : normalizeOpenAiFamilyBaseUrl(input.baseUrl) ?? input.baseUrl
+
+    const now = Date.now()
+    const profile: ApiCredentialProfile = {
+      id: `p-${store.length + 1}`,
+      name: input.name,
+      apiType: input.apiType as any,
+      baseUrl: normalizedBaseUrl,
+      apiKey: input.apiKey,
+      tagIds: input.tagIds ?? [],
+      notes: input.notes ?? "",
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    store = [...store, profile]
+    return profile
+  },
+)
+
+const mockUpdateProfile = vi.fn(
+  async (id: string, updates: Partial<ApiCredentialProfile>) => {
+    const next = store.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    store = next
+    const updated = next.find((p) => p.id === id)
+    if (!updated) throw new Error("not found")
+    return updated
+  },
+)
+
+const mockDeleteProfile = vi.fn(async (id: string) => {
+  const before = store.length
+  store = store.filter((p) => p.id !== id)
+  return store.length !== before
+})
+
+const {
+  mockRelinkProfileLink,
+  mockToastError,
+  mockToastPromise,
+  mockToastSuccess,
+  mockUnlinkProfileLink,
+} = vi.hoisted(() => ({
+  mockRelinkProfileLink: vi.fn(),
+  mockToastError: vi.fn(),
+  mockToastPromise: vi.fn((promise: Promise<unknown>) => promise),
+  mockToastSuccess: vi.fn(),
+  mockUnlinkProfileLink: vi.fn(),
+}))
+
+type UserPreferencesContextValue = ReturnType<typeof useUserPreferencesContext>
+type ApiCredentialProfilesContextValue = Pick<
+  UserPreferencesContextValue,
+  | "preferences"
+  | "managedSiteType"
+  | "currencyType"
+  | "claudeCodeRouterBaseUrl"
+  | "claudeCodeRouterApiKey"
+  | "cliProxyApiBaseUrl"
+  | "cliProxyApiManagementKey"
+>
+
+const createManagedSitePreferences = (
+  newApiOverrides: Partial<UserPreferences["newApi"]> = {},
+): UserPreferences => ({
+  ...DEFAULT_PREFERENCES,
+  managedSiteType: SITE_TYPES.NEW_API,
+  newApi: {
+    ...DEFAULT_PREFERENCES.newApi,
+    baseUrl: "https://managed.example",
+    adminToken: "managed-token",
+    userId: "1",
+    ...newApiOverrides,
+  },
+})
+
+const createApiCredentialProfilesContextValue = (
+  preferences: UserPreferences = createManagedSitePreferences(),
+) =>
+  ({
+    preferences,
+    managedSiteType: preferences.managedSiteType,
+    currencyType: preferences.currencyType,
+    claudeCodeRouterBaseUrl: preferences.claudeCodeRouter?.baseUrl ?? "",
+    claudeCodeRouterApiKey: preferences.claudeCodeRouter?.apiKey ?? "",
+    cliProxyApiBaseUrl: preferences.cliProxyApi?.baseUrl ?? "",
+    cliProxyApiManagementKey: preferences.cliProxyApi?.adminToken ?? "",
+  }) satisfies ApiCredentialProfilesContextValue
+
+const seedActiveAssociation = () => {
+  store = [
+    {
+      id: "p-1",
+      name: "Linked profile",
+      apiType: API_TYPES.OPENAI_COMPATIBLE,
+      baseUrl: "https://linked.example.invalid",
+      apiKey: "sk-linked",
+      tagIds: [],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    },
+  ]
+  profileLinks = [
+    {
+      id: "association-remove",
+      profileId: "p-1",
+      locator: {
+        source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+        accountId: "account-example",
+        siteType: SITE_TYPES.NEW_API,
+        tokenId: 3,
+      },
+      state: API_CREDENTIAL_PROFILE_LINK_STATES.Active,
+      linkedBy: API_CREDENTIAL_PROFILE_LINK_SOURCES.User,
+      createdAt: 1,
+      updatedAt: 1,
+    },
+  ]
+}
+
+const seedExportableProfile = () => {
+  store = [
+    {
+      id: "p-1",
+      name: "Exportable",
+      apiType: API_TYPES.OPENAI_COMPATIBLE,
+      baseUrl: "https://example.com",
+      apiKey: "sk-test",
+      tagIds: [],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    },
+  ]
+}
+
+vi.mock("~/services/apiCredentialProfiles/storage/profiles", () => ({
+  subscribeToApiCredentialProfilesChanges: () => () => {},
+  apiCredentialProfilesStorage: {
+    listProfiles: () => mockListProfiles(),
+    listLinks: () => mockListProfileLinks(),
+    createProfile: (input: any) => mockCreateProfile(input),
+    updateProfile: (id: string, updates: Partial<ApiCredentialProfile>) =>
+      mockUpdateProfile(id, updates),
+    deleteProfile: (id: string) => mockDeleteProfile(id),
+  },
+}))
+
+vi.mock("~/services/apiCredentialProfiles/links", () => ({
+  apiCredentialProfileLinks: {
+    list: () => mockListProfileLinks(),
+    relink: mockRelinkProfileLink,
+    unlink: mockUnlinkProfileLink,
+  },
+}))
+
+vi.mock("~/lib/notify", () => ({
+  default: {
+    error: mockToastError,
+    promise: mockToastPromise,
+    success: mockToastSuccess,
+  },
+}))
+
+vi.mock("~/features/ManagedSiteChannels/editor/ChannelDialog", () => ({
+  ChannelDialogProvider: ({ children }: { children: ReactNode }) => children,
+  useChannelDialog: () => ({ openWithCredentials: mockOpenWithCredentials }),
+}))
+
+vi.mock("~/features/CredentialExport/CCSwitchExportDialog", () => ({
+  CCSwitchExportDialog: ({ onClose }: { onClose: () => void }) => (
+    <div role="dialog" aria-label={CC_SWITCH_EXPORT_DIALOG_NAME}>
+      <button type="button" onClick={onClose}>
+        {CC_SWITCH_EXPORT_DIALOG_CLOSE_NAME}
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock(
+  "~/features/ApiCredentialProfiles/export/KiloCodeProfileExportDialog",
+  () => ({
+    KiloCodeProfileExportDialog: () => (
+      <div role="dialog" aria-label={KILO_CODE_EXPORT_DIALOG_NAME} />
+    ),
+  }),
+)
+
+vi.mock("~/features/AccountManagement/data/useAccountData", () => ({
+  useAccountData: () => ({
+    displayData: [
+      { id: "account-example", name: "Example account" },
+      { id: "account-second", name: "Second account" },
+    ],
+  }),
+}))
+
+vi.mock("~/services/apiCredentialProfiles/modelCatalog", async () => {
+  const actual = await vi.importActual<
+    typeof import("~/services/apiCredentialProfiles/modelCatalog")
+  >("~/services/apiCredentialProfiles/modelCatalog")
+
+  return {
+    ...actual,
+    fetchApiCredentialModelIds: (
+      params: Parameters<
+        typeof import("~/services/apiCredentialProfiles/modelCatalog").fetchApiCredentialModelIds
+      >[0],
+    ) => mockFetchApiCredentialModelIds(params),
+  }
+})
+
+vi.mock("~/services/tags/tagStorage", () => ({
+  tagStorage: {
+    listTags: () => mockListTags(),
+    createTag: (name: string) => mockCreateTag(name),
+    renameTag: (tagId: string, name: string) => mockRenameTag(tagId, name),
+    deleteTag: (tagId: string) => mockDeleteTag(tagId),
+  },
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/contexts/UserPreferencesContext")>()
+
+  return {
+    ...actual,
+    useUserPreferencesContext: () => mockUseUserPreferencesContext(),
+  }
+})
+
+vi.mock("~/contexts/FeatureGuidanceContext", () => ({
+  FeatureGuidanceProvider: ({ children }: { children: ReactNode }) => children,
+  useFeatureGuidanceContext: () => ({
+    state: mockFeatureGuidanceState,
+    dismissGatewayGuidanceSurface: mockDismissGatewayGuidanceSurface,
+  }),
+}))
+
+vi.mock("~/utils/navigation", () => ({
+  openModelsPage: (...args: unknown[]) => mockOpenModelsPage(...args),
+  openSettingsTab: (...args: unknown[]) => mockOpenSettingsTab(...args),
+  openKeysPage: (...args: unknown[]) => mockOpenKeysPage(...args),
+}))
+vi.mock("~/utils/navigation/optionsPage", () => ({
+  pushWithinOptionsPage: (...args: unknown[]) =>
+    pushWithinOptionsPageMock(...args),
+  replaceWithinOptionsPage: (...args: unknown[]) =>
+    replaceWithinOptionsPageMock(...args),
+}))
+
+vi.mock("~/services/aiApi/openaiCompatible", () => ({
+  fetchOpenAICompatibleModelIds: (
+    params: Parameters<
+      typeof import("~/services/aiApi/openaiCompatible").fetchOpenAICompatibleModelIds
+    >[0],
+  ) => mockFetchOpenAICompatibleModelIds(params),
+}))
+
+describe("ApiCredentialProfiles page", () => {
+  beforeEach(async () => {
+    globalThis.sessionStorage?.clear()
+    store = []
+    profileLinks = []
+    mockListProfiles.mockClear()
+    mockListProfileLinks.mockReset()
+    mockListProfileLinks.mockImplementation(async () => profileLinks)
+    mockFetchOpenAICompatibleModelIds.mockReset()
+    mockFetchOpenAICompatibleModelIds.mockResolvedValue([])
+    mockFetchApiCredentialModelIds.mockReset()
+    mockFetchApiCredentialModelIds.mockResolvedValue([])
+    mockCreateProfile.mockClear()
+    mockUpdateProfile.mockClear()
+    mockDeleteProfile.mockClear()
+    mockListTags.mockClear()
+    mockCreateTag.mockClear()
+    mockRenameTag.mockClear()
+    mockDeleteTag.mockClear()
+    mockOpenModelsPage.mockReset()
+    mockOpenSettingsTab.mockReset()
+    mockOpenWithCredentials.mockReset()
+    pushWithinOptionsPageMock.mockReset()
+    replaceWithinOptionsPageMock.mockReset()
+    mockOpenKeysPage.mockReset()
+    mockDismissGatewayGuidanceSurface.mockReset()
+    mockFeatureGuidanceState = createEmptyFeatureGuidanceState()
+    mockRelinkProfileLink.mockReset()
+    mockRelinkProfileLink.mockResolvedValue(undefined)
+    mockUnlinkProfileLink.mockReset()
+    mockUnlinkProfileLink.mockResolvedValue(true)
+    mockToastError.mockReset()
+    mockToastPromise.mockClear()
+    mockToastSuccess.mockReset()
+    mockUseUserPreferencesContext.mockReturnValue(
+      createApiCredentialProfilesContextValue(),
+    )
+    await verificationResultHistoryStorage.clearAllData()
+  })
+
+  it("keeps gateway guidance hidden before the user starts setup", async () => {
+    render(<ApiCredentialProfiles />)
+    expect(
+      await screen.findByText("apiCredentialProfiles:empty.title"),
+    ).toBeVisible()
+    expect(
+      screen.queryByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("guides users to save an API credential before gateway import", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    const user = userEvent.setup()
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        "apiCredentialProfiles:unifiedApiGuidance.description.needs_sources",
+      ),
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.actions.addApiCredential",
+      }),
+    )
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:dialog.addTitle"),
+    ).toBeInTheDocument()
+  })
+
+  it("guides saved API credentials to managed-site setup when the gateway is incomplete", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Saved Key",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.invalid",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    mockUseUserPreferencesContext.mockReturnValue(
+      createApiCredentialProfilesContextValue(
+        createManagedSitePreferences({ adminToken: "", userId: "" }),
+      ),
+    )
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText(
+        "apiCredentialProfiles:unifiedApiGuidance.description.needs_managed_site",
+      ),
+    ).toBeVisible()
+    expect(await screen.findByText("Saved Key")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.actions.configureManagedSite",
+      }),
+    )
+
+    expect(mockOpenSettingsTab).toHaveBeenCalledWith("managedSite", {
+      preserveHistory: true,
+    })
+  })
+
+  it("keeps ready API credential gateway guidance on the credential workflow", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Ready Key",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.invalid",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText(
+        "apiCredentialProfiles:unifiedApiGuidance.description.ready_to_import",
+      ),
+    ).toBeVisible()
+    expect(await screen.findByText("Ready Key")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "account:unifiedApiGuidance.actions.addAccount",
+      }),
+    ).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.actions.addFirstChannel",
+      }),
+    )
+
+    expect(pushWithinOptionsPageMock).not.toHaveBeenCalled()
+    expect(mockOpenWithCredentials).not.toHaveBeenCalled()
+    const importButton = await screen.findByRole("button", {
+      name: "keyManagement:actions.importToManagedSite",
+    })
+    expect(importButton).toBeVisible()
+    expect(importButton).toHaveAttribute("data-guidance-highlight", "true")
+  })
+
+  it("reveals the managed-site import entry from a guided deep link", async () => {
+    store = [
+      {
+        id: "p-1",
+        name: "Deep-linked Key",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.invalid",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(
+      <ApiCredentialProfiles
+        routeParams={{
+          [KEY_MANAGEMENT_ROUTE_PARAMS.GuidedImport]:
+            KEY_MANAGEMENT_GUIDED_IMPORT_TARGETS.ManagedSite,
+        }}
+      />,
+    )
+
+    const importButton = await screen.findByRole("button", {
+      name: "keyManagement:actions.importToManagedSite",
+    })
+    expect(importButton).toBeVisible()
+    expect(importButton).toHaveAttribute("data-guidance-highlight", "true")
+    expect(mockOpenWithCredentials).not.toHaveBeenCalled()
+  })
+
+  it("waits for profiles, selects the target endpoint, and focuses the exact row", async () => {
+    const scrollIntoViewSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(() => {})
+    const focusSpy = vi.spyOn(HTMLElement.prototype, "focus")
+    store = [
+      {
+        id: "p-1",
+        name: "First Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://first.example.invalid",
+        apiKey: "sk-first",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      {
+        id: "p-2",
+        name: "Target Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://target.example.invalid",
+        apiKey: "sk-target",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles routeParams={{ profileId: "p-2" }} />)
+
+    const targetRow = await screen.findByTestId(
+      getApiCredentialProfileRowTestId("p-2"),
+    )
+    await waitFor(() => expect(targetRow).toHaveFocus())
+    expect(screen.queryByText("First Profile")).not.toBeInTheDocument()
+    expect(scrollIntoViewSpy).toHaveBeenCalledWith({
+      behavior: "auto",
+      block: "center",
+      inline: "nearest",
+    })
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+  })
+
+  it("reports a missing profile target without focusing the first profile", async () => {
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Available Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://available.example.invalid",
+        apiKey: "sk-available",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(
+      <ApiCredentialProfiles routeParams={{ profileId: "missing-profile" }} />,
+    )
+
+    expect(
+      await screen.findByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.targetMissingMessage,
+      ),
+    ).toBeVisible()
+    const availableRow = screen.getByTestId(
+      getApiCredentialProfileRowTestId("p-1"),
+    )
+    expect(availableRow).not.toHaveFocus()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:target.clear",
+      }),
+    )
+    expect(replaceWithinOptionsPageMock).toHaveBeenCalledWith(
+      "#apiCredentialProfiles",
+    )
+  })
+
+  it("shows local account context and maps a stored link to exact key navigation", async () => {
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Linked Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://linked.example.invalid",
+        apiKey: "sk-linked",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    profileLinks = [
+      {
+        id: "association-1",
+        profileId: "p-1",
+        locator: {
+          source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+          accountId: "account-example",
+          siteType: SITE_TYPES.NEW_API,
+          tokenId: 1,
+        },
+        state: API_CREDENTIAL_PROFILE_LINK_STATES.Active,
+        linkedBy: API_CREDENTIAL_PROFILE_LINK_SOURCES.User,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      {
+        id: "association-2",
+        profileId: "p-1",
+        locator: {
+          source: ACCOUNT_RUNTIME_KEY_SOURCES.ServiceCredential,
+          accountId: "account-second",
+          siteType: SITE_TYPES.NEW_API,
+          service: "codex",
+        },
+        state: API_CREDENTIAL_PROFILE_LINK_STATES.Active,
+        linkedBy: API_CREDENTIAL_PROFILE_LINK_SOURCES.User,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: /apiCredentialProfiles:association.linked/,
+      }),
+    )
+    const exampleAccountGroup = screen.getByRole("group", {
+      name: "Example account · apiCredentialProfiles:association.accountToken",
+    })
+    expect(
+      screen.getByText(
+        "Second account · apiCredentialProfiles:association.serviceCredential",
+      ),
+    ).toBeVisible()
+    await user.click(
+      within(exampleAccountGroup).getByRole("menuitem", {
+        name: "apiCredentialProfiles:association.viewKey",
+      }),
+    )
+    expect(mockOpenKeysPage).toHaveBeenCalledWith({
+      associationId: "association-1",
+    })
+  })
+
+  it("confirms a stored association and refreshes its status", async () => {
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Association to confirm",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://confirm.example.invalid",
+        apiKey: "sk-confirm",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    const link = {
+      id: "association-confirm",
+      profileId: "p-1",
+      locator: {
+        source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+        accountId: "account-example",
+        siteType: SITE_TYPES.NEW_API,
+        tokenId: 1,
+      },
+      state: API_CREDENTIAL_PROFILE_LINK_STATES.NeedsConfirmation,
+      linkedBy: API_CREDENTIAL_PROFILE_LINK_SOURCES.ResolvedRuntimeKey,
+      createdAt: 1,
+      updatedAt: 1,
+    } satisfies ApiCredentialProfileLink
+    profileLinks = [link]
+
+    render(<ApiCredentialProfiles />)
+    await user.click(
+      await screen.findByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.associationButton,
+      ),
+    )
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "apiCredentialProfiles:association.confirmLink",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(mockRelinkProfileLink).toHaveBeenCalledWith({
+        id: link.id,
+        profileId: link.profileId,
+        locator: link.locator,
+        linkedBy: API_CREDENTIAL_PROFILE_LINK_SOURCES.User,
+      })
+      expect(mockToastSuccess).toHaveBeenCalledWith(
+        "apiCredentialProfiles:association.confirmed",
+      )
+    })
+    expect(mockListProfileLinks).toHaveBeenCalledTimes(2)
+  })
+
+  it("reports association confirmation failures without refreshing", async () => {
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Association failure",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://failure.example.invalid",
+        apiKey: "sk-failure",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    profileLinks = [
+      {
+        id: "association-failure",
+        profileId: "p-1",
+        locator: {
+          source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+          accountId: "account-example",
+          siteType: SITE_TYPES.NEW_API,
+          tokenId: 2,
+        },
+        state: API_CREDENTIAL_PROFILE_LINK_STATES.NeedsConfirmation,
+        linkedBy: API_CREDENTIAL_PROFILE_LINK_SOURCES.ResolvedRuntimeKey,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    mockRelinkProfileLink.mockRejectedValueOnce(
+      new Error("storage unavailable"),
+    )
+
+    render(<ApiCredentialProfiles />)
+    await user.click(
+      await screen.findByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.associationButton,
+      ),
+    )
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "apiCredentialProfiles:association.confirmLink",
+      }),
+    )
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "apiCredentialProfiles:association.updateFailed",
+      ),
+    )
+    expect(mockListProfileLinks).toHaveBeenCalledOnce()
+  })
+
+  it("does not refresh when an association removal was not persisted", async () => {
+    const user = userEvent.setup()
+    seedActiveAssociation()
+    const unlinkResult = Promise.resolve(false)
+    mockUnlinkProfileLink.mockReturnValueOnce(unlinkResult)
+
+    render(<ApiCredentialProfiles />)
+    await user.click(
+      await screen.findByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.associationButton,
+      ),
+    )
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "apiCredentialProfiles:association.removeLink",
+      }),
+    )
+    await act(async () => {
+      await unlinkResult
+    })
+    await waitFor(() => expect(mockUnlinkProfileLink).toHaveBeenCalledOnce())
+    expect(mockListProfileLinks).toHaveBeenCalledOnce()
+    expect(mockToastSuccess).not.toHaveBeenCalled()
+  })
+
+  it("refreshes after a persisted association removal", async () => {
+    const user = userEvent.setup()
+    seedActiveAssociation()
+    mockUnlinkProfileLink.mockResolvedValueOnce(true)
+
+    render(<ApiCredentialProfiles />)
+    await user.click(
+      await screen.findByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.associationButton,
+      ),
+    )
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "apiCredentialProfiles:association.removeLink",
+      }),
+    )
+    await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledOnce())
+    expect(mockListProfileLinks).toHaveBeenCalledTimes(2)
+  })
+
+  it("reports association removal failures without refreshing", async () => {
+    const user = userEvent.setup()
+    seedActiveAssociation()
+    mockUnlinkProfileLink.mockRejectedValueOnce(
+      new Error("storage unavailable"),
+    )
+
+    render(<ApiCredentialProfiles />)
+    await user.click(
+      await screen.findByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.associationButton,
+      ),
+    )
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "apiCredentialProfiles:association.removeLink",
+      }),
+    )
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "apiCredentialProfiles:association.updateFailed",
+      ),
+    )
+    expect(mockListProfileLinks).toHaveBeenCalledOnce()
+  })
+
+  it("keeps association status unknown while links are loading", async () => {
+    store = [
+      {
+        id: "p-1",
+        name: "Loading Association",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://loading.example.invalid",
+        apiKey: "sk-loading",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    mockListProfileLinks.mockReturnValueOnce(
+      new Promise<ApiCredentialProfileLink[]>(() => {}),
+    )
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("Loading Association")).toBeVisible()
+    expect(
+      screen.queryByText("apiCredentialProfiles:association.sectionTitle"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("discloses association load failure and retries without showing unlinked", async () => {
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Unavailable Association",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://unavailable.example.invalid",
+        apiKey: "sk-unavailable",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    mockListProfileLinks
+      .mockRejectedValueOnce(new Error("storage unavailable"))
+      .mockResolvedValueOnce([])
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:association.loadFailed"),
+    ).toBeVisible()
+    expect(
+      screen.queryByText("apiCredentialProfiles:association.sectionTitle"),
+    ).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.retry" }),
+    )
+
+    await waitFor(() => {
+      expect(mockListProfileLinks).toHaveBeenCalledTimes(2)
+      expect(
+        screen.queryByText("apiCredentialProfiles:association.loadFailed"),
+      ).not.toBeInTheDocument()
+    })
+    expect(
+      screen.queryByText("apiCredentialProfiles:association.sectionTitle"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("keeps managed-site setup recovery out of guidance for complete configuration", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    store = [
+      {
+        id: "p-1",
+        name: "Complete Key",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.invalid",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText(
+        "apiCredentialProfiles:unifiedApiGuidance.description.ready_to_import",
+      ),
+    ).toBeVisible()
+    expect(
+      screen.queryByText(
+        "apiCredentialProfiles:unifiedApiGuidance.description.needs_managed_site",
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.actions.configureManagedSite",
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText("apiCredentialProfiles:unifiedApiGuidance.importHint"),
+    ).toBeVisible()
+  })
+
+  it("hides API credential gateway guidance after gateway onboarding has completed once", async () => {
+    mockFeatureGuidanceState = {
+      ...createEmptyFeatureGuidanceState(),
+      gatewayGuidance: {
+        dismissedAtBySurface: {},
+        onboardingStartedAt: 1,
+        onboardingCompletedAt: 2,
+      },
+    }
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:empty.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("temporarily hides API credential gateway guidance without writing preferences", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    const user = userEvent.setup()
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.dismissForSession",
+      }),
+    )
+
+    expect(
+      screen.queryByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).not.toBeInTheDocument()
+    expect(mockDismissGatewayGuidanceSurface).not.toHaveBeenCalled()
+  })
+
+  it("permanently dismisses API credential gateway guidance for the API credential surface", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    const user = userEvent.setup()
+    mockDismissGatewayGuidanceSurface.mockResolvedValueOnce(undefined)
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.permanentlyDismiss",
+      }),
+    )
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.dismissDialog.title",
+      }),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.dismissDialog.confirm",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(mockDismissGatewayGuidanceSurface).toHaveBeenCalledWith(
+        "apiCredentialProfiles",
+      )
+    })
+  })
+
+  it("shows a safe local error when permanent dismissal rejects", async () => {
+    mockFeatureGuidanceState.gatewayGuidance.onboardingStartedAt = 1
+    const user = userEvent.setup()
+    mockDismissGatewayGuidanceSurface.mockRejectedValueOnce(
+      new Error("sensitive backend detail"),
+    )
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:unifiedApiGuidance.title"),
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.permanentlyDismiss",
+      }),
+    )
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:unifiedApiGuidance.dismissDialog.confirm",
+      }),
+    )
+
+    expect(
+      await screen.findByRole("alert", {
+        name: "messages:toast.error.saveFailed",
+      }),
+    ).toBeVisible()
+    expect(
+      screen.queryByText("sensitive backend detail"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("creates a profile via the add dialog and renders it", async () => {
+    const user = userEvent.setup()
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:empty.title"),
+    ).toBeInTheDocument()
+
+    const addButtons = screen.getAllByRole("button", {
+      name: "apiCredentialProfiles:actions.add",
+    })
+    await user.click(addButtons[0]!)
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:dialog.addTitle"),
+    ).toBeInTheDocument()
+
+    const nameInput = screen.getByPlaceholderText(
+      "apiCredentialProfiles:dialog.placeholders.name",
+    )
+    const baseUrlInput = screen.getByPlaceholderText(
+      "apiCredentialProfiles:dialog.placeholders.baseUrl",
+    )
+    const apiKeyInput = screen.getByPlaceholderText(
+      "apiCredentialProfiles:dialog.placeholders.apiKey",
+    )
+
+    await user.click(nameInput)
+    await user.paste("My Profile")
+    await user.click(baseUrlInput)
+    await user.paste("https://example.com/v1/models")
+    await user.click(apiKeyInput)
+    await user.paste("sk-test")
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.save" }),
+    )
+
+    await waitFor(() => {
+      expect(mockCreateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    expect(await screen.findByText("My Profile")).toBeInTheDocument()
+    expect(await screen.findByText("https://example.com")).toBeInTheDocument()
+  })
+
+  it("opens a prefilled add dialog from sponsor route params", async () => {
+    render(
+      <ApiCredentialProfiles
+        routeParams={{
+          action: "add",
+          name: "Manual Provider",
+          baseUrl: "https://manual.example.com",
+          apiKeyCreateUrl: "https://manual.example.com/keys?aff=all-api-hub",
+          apiKeyCreateHint: "Use promo code APIHUB after registration.",
+        }}
+      />,
+    )
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:dialog.addTitle"),
+    ).toBeInTheDocument()
+    expect(screen.getByDisplayValue("Manual Provider")).toBeInTheDocument()
+    expect(
+      screen.getByDisplayValue("https://manual.example.com"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", {
+        name: "apiCredentialProfiles:dialog.actions.openApiKeyCreateUrl",
+      }),
+    ).toHaveAttribute("href", "https://manual.example.com/keys?aff=all-api-hub")
+    expect(
+      screen.getByText("Use promo code APIHUB after registration."),
+    ).toBeInTheDocument()
+  })
+
+  it("edits an existing profile", async () => {
+    const user = userEvent.setup()
+
+    store = [
+      {
+        id: "p-1",
+        name: "Original",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.com",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("Original")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.edit" }),
+    )
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:dialog.editTitle"),
+    ).toBeInTheDocument()
+
+    const nameInput = screen.getByPlaceholderText(
+      "apiCredentialProfiles:dialog.placeholders.name",
+    )
+    await user.clear(nameInput)
+    await user.click(nameInput)
+    await user.paste("Updated")
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.save" }),
+    )
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).toHaveBeenCalledTimes(1)
+    })
+
+    expect(await screen.findByText("Updated")).toBeInTheDocument()
+  })
+
+  it("deletes a profile via confirmation dialog", async () => {
+    const user = userEvent.setup()
+
+    store = [
+      {
+        id: "p-1",
+        name: "To Delete",
+        apiType: API_TYPES.OPENAI,
+        baseUrl: "https://example.com",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("To Delete")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.delete" }),
+    )
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:delete.title"),
+    ).toBeInTheDocument()
+
+    const dialog = await screen.findByRole("dialog")
+    await user.click(
+      within(dialog).getByRole("button", { name: "common:actions.delete" }),
+    )
+
+    await waitFor(() => {
+      expect(mockDeleteProfile).toHaveBeenCalledTimes(1)
+    })
+
+    expect(
+      await screen.findByText("apiCredentialProfiles:empty.title"),
+    ).toBeInTheDocument()
+  })
+
+  it.each(["rejected", "not-deleted"])(
+    "preserves a profile and reports a failed deletion (%s)",
+    async (failure) => {
+      const user = userEvent.setup()
+      store = [
+        {
+          id: "p-1",
+          name: "Keep profile",
+          apiType: API_TYPES.OPENAI,
+          baseUrl: "https://example.com",
+          apiKey: "sk-test",
+          tagIds: [],
+          notes: "",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ]
+      if (failure === "rejected")
+        mockDeleteProfile.mockRejectedValueOnce(new Error("storage rejected"))
+      else mockDeleteProfile.mockResolvedValueOnce(false)
+      render(<ApiCredentialProfiles />)
+      await screen.findByText("Keep profile")
+      await user.click(
+        screen.getByRole("button", { name: "common:actions.delete" }),
+      )
+      const dialog = await screen.findByRole("dialog")
+      await user.click(
+        within(dialog).getByRole("button", { name: "common:actions.delete" }),
+      )
+      await waitFor(() =>
+        expect(mockToastError).toHaveBeenCalledWith(
+          "apiCredentialProfiles:messages.deleteFailed",
+        ),
+      )
+      expect(store.map(({ id }) => id)).toEqual(["p-1"])
+      if (failure === "rejected")
+        expect(
+          within(dialog).getByRole("button", { name: "common:actions.delete" }),
+        ).toBeEnabled()
+    },
+  )
+
+  it("cancels profile deletion without a storage write", async () => {
+    const user = userEvent.setup()
+    store = [
+      {
+        id: "p-1",
+        name: "Keep profile",
+        apiType: API_TYPES.OPENAI,
+        baseUrl: "https://example.com",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+    render(<ApiCredentialProfiles />)
+    await screen.findByText("Keep profile")
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.delete" }),
+    )
+    const dialog = await screen.findByRole("dialog")
+    await user.click(
+      within(dialog).getByRole("button", { name: "common:actions.cancel" }),
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    )
+    expect(mockDeleteProfile).not.toHaveBeenCalled()
+    expect(store.map(({ id }) => id)).toEqual(["p-1"])
+  })
+
+  it("filters profiles by search and apiType", async () => {
+    const user = userEvent.setup()
+
+    mockListTags.mockResolvedValue([
+      { id: "t-prod", name: "prod", createdAt: 1, updatedAt: 1 },
+      { id: "t-dev", name: "dev", createdAt: 1, updatedAt: 1 },
+    ])
+
+    store = [
+      {
+        id: "p-1",
+        name: "OpenAI",
+        apiType: API_TYPES.OPENAI,
+        baseUrl: "https://openai.example.com",
+        apiKey: "sk-openai",
+        tagIds: ["t-prod"],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      {
+        id: "p-2",
+        name: "Google",
+        apiType: API_TYPES.GOOGLE,
+        baseUrl: "https://google.example.com",
+        apiKey: "AIza-test",
+        tagIds: ["t-dev"],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByRole("heading", { name: "OpenAI" }),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByRole("combobox", {
+        name: "apiCredentialProfiles:grouping.baseUrlSelector",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "Google" }),
+    ).not.toBeInTheDocument()
+
+    const searchInput = screen.getByPlaceholderText(
+      "apiCredentialProfiles:controls.searchPlaceholder",
+    )
+    await user.click(searchInput)
+    await user.paste("goog")
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "OpenAI" }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { name: "Google" }),
+      ).toBeInTheDocument()
+    })
+
+    await user.clear(searchInput)
+
+    const filter = screen.getByRole("combobox", {
+      name: "apiCredentialProfiles:controls.apiTypePlaceholder",
+    })
+    await user.click(filter)
+    await user.click(
+      await screen.findByRole("option", {
+        name: "aiApiVerification:verifyDialog.apiTypes.google",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "OpenAI" }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { name: "Google" }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it("opens CCSwitch export from the per-profile export menu", async () => {
+    const user = userEvent.setup()
+    seedExportableProfile()
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("Exportable")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.export" }),
+    )
+
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "keyManagement:actions.exportToCCSwitch",
+      }),
+    )
+
+    const exportDialog = await screen.findByRole("dialog", {
+      name: CC_SWITCH_EXPORT_DIALOG_NAME,
+    })
+    expect(exportDialog).toBeVisible()
+
+    await user.click(
+      within(exportDialog).getByRole("button", {
+        name: CC_SWITCH_EXPORT_DIALOG_CLOSE_NAME,
+      }),
+    )
+    expect(
+      screen.queryByRole("dialog", {
+        name: CC_SWITCH_EXPORT_DIALOG_NAME,
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("opens Kilo Code export from the per-profile export menu", async () => {
+    const user = userEvent.setup()
+    seedExportableProfile()
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("Exportable")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.export" }),
+    )
+
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: "keyManagement:actions.exportToKiloCode",
+      }),
+    )
+
+    expect(
+      await screen.findByRole("dialog", {
+        name: KILO_CODE_EXPORT_DIALOG_NAME,
+      }),
+    ).toBeVisible()
+  })
+
+  it("opens shared CLI verification for a stored profile", async () => {
+    const user = userEvent.setup()
+    mockFetchApiCredentialModelIds.mockResolvedValueOnce(["gpt-4o-mini"])
+
+    store = [
+      {
+        id: "p-1",
+        name: "CLI Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.com",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("CLI Profile")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:actions.verifyApi",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:actions.verifyCliSupport",
+      }),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:actions.verifyCliSupport",
+      }),
+    )
+
+    expect(
+      await screen.findByText("cliSupportVerification:verifyDialog.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("combobox", {
+        name: "cliSupportVerification:verifyDialog.meta.model",
+      }),
+    ).toBeInTheDocument()
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "cliSupportVerification:verifyDialog.meta.model",
+      }),
+    )
+    expect(
+      await screen.findByRole("option", { name: "gpt-4o-mini" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("cliSupportVerification:verifyDialog.meta.runtimeKey"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("opens Model Management for a stored profile without exposing credentials", async () => {
+    const user = userEvent.setup()
+
+    store = [
+      {
+        id: "p-1",
+        name: "Model Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.com",
+        apiKey: "sk-secret",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(await screen.findByText("Model Profile")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "apiCredentialProfiles:actions.openModelManagement",
+      }),
+    )
+
+    expect(mockOpenModelsPage).toHaveBeenCalledWith({ profileId: "p-1" })
+    expect(mockOpenModelsPage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: "sk-secret" }),
+    )
+  })
+
+  it("filters profiles by tags", async () => {
+    const user = userEvent.setup()
+
+    mockListTags.mockResolvedValue([
+      { id: "t-prod", name: "prod", createdAt: 1, updatedAt: 1 },
+      { id: "t-dev", name: "dev", createdAt: 1, updatedAt: 1 },
+    ])
+
+    store = [
+      {
+        id: "p-1",
+        name: "OpenAI",
+        apiType: API_TYPES.OPENAI,
+        baseUrl: "https://openai.example.com",
+        apiKey: "sk-openai",
+        tagIds: ["t-prod"],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      {
+        id: "p-2",
+        name: "Google",
+        apiType: API_TYPES.GOOGLE,
+        baseUrl: "https://google.example.com",
+        apiKey: "AIza-test",
+        tagIds: ["t-dev"],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    render(<ApiCredentialProfiles />)
+
+    expect(
+      await screen.findByRole("heading", { name: "OpenAI" }),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByRole("combobox", {
+        name: "apiCredentialProfiles:grouping.baseUrlSelector",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "Google" }),
+    ).not.toBeInTheDocument()
+
+    await user.click(await screen.findByRole("button", { name: /prod/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "OpenAI" }),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole("heading", { name: "Google" }),
+      ).not.toBeInTheDocument()
+    })
+  })
+  it("shows persisted verification status in the profile list", async () => {
+    store = [
+      {
+        id: "p-1",
+        name: "History Profile",
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: "https://example.com",
+        apiKey: "sk-test",
+        tagIds: [],
+        notes: "",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]
+
+    const target = requireHistoryTarget(
+      createProfileVerificationHistoryTarget("p-1"),
+    )
+
+    const summary = createVerificationHistorySummary({
+      target,
+      apiType: API_TYPES.OPENAI_COMPATIBLE,
+      results: [
+        {
+          id: "models",
+          status: "pass",
+          latencyMs: 6,
+          summary: "Stored list history",
+        },
+      ],
+    })
+
+    if (!summary) {
+      throw new Error("Expected history summary")
+    }
+
+    await verificationResultHistoryStorage.upsertLatestSummary(summary)
+
+    render(<ApiCredentialProfiles />)
+
+    const profileName = await screen.findByText("History Profile")
+    const profileCard = profileName.closest<HTMLElement>(
+      "div.rounded-lg.border",
+    )
+
+    expect(profileName).toBeInTheDocument()
+    expect(profileCard).not.toBeNull()
+    expect(
+      within(profileCard!).getAllByText(
+        "aiApiVerification:verifyDialog.history.lastVerified",
+      ).length,
+    ).toBeGreaterThan(0)
+    await waitFor(() => {
+      expect(
+        Array.from(profileCard!.querySelectorAll('[data-slot="badge"]')).some(
+          (badge) =>
+            badge.textContent?.includes(
+              "aiApiVerification:verifyDialog.status.pass",
+            ) ?? false,
+        ),
+      ).toBe(true)
+    })
+  })
+})

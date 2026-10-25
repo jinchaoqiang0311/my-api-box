@@ -1,0 +1,118 @@
+{
+  "confirmToast": {
+    "body": "Do you want to open the AI API test Panel to check and test the AI API's availability?",
+    "enhancedInfo": "Triggered by enhanced auto-detect. If this looks wrong, report it or turn off enhanced auto-detect in settings.",
+    "feedback": "Report issue",
+    "open": "Open",
+    "settings": "Open settings",
+    "title": "AI API URL and API Key Detected"
+  },
+  "messages": {
+    "success": {
+      "settingsSaved": "AI API Check settings have been saved."
+    }
+  },
+  "modal": {
+    "actions": {
+      "fetchingModels": "Fetching…",
+      "fetchModels": "Fetch models",
+      "hideKey": "Hide key",
+      "openApiProfiles": "Open API credential library",
+      "retry": "Retry",
+      "running": "Testing…",
+      "runOne": "Test",
+      "saveToProfiles": "Save to API credential library",
+      "saving": "Saving…",
+      "showKey": "Show key",
+      "stopping": "Stopping…",
+      "stopTest": "Stop test",
+      "test": "Test"
+    },
+    "candidates": {
+      "apiKey": "Candidate key {{index}}"
+    },
+    "errors": {
+      "fetchModelsFailed": "Failed to fetch models.",
+      "missingBaseUrlOrKey": "Please provide base URL and API key first.",
+      "runProbeFailed": "Probe failed.",
+      "saveToProfilesFailed": "Failed to save to API credential library."
+    },
+    "fields": {
+      "apiKey": "API key",
+      "apiType": "API type",
+      "baseUrl": "Base URL",
+      "expiresAt": "Expiration date",
+      "modelId": "Model ID",
+      "notes": "Notes",
+      "sourceUrl": "Source page",
+      "tags": "Tags"
+    },
+    "hints": {
+      "expiresAt": "Optional. Record when this key is expected to expire.",
+      "saveWithoutTest": "Tip: you can save once base URL + API key are provided (no need to test or fetch models first). Testing is optional and only helps verify availability.",
+      "sourceUrl": "Optional. Record the page where you found these credentials so you can revisit it later for updates.",
+      "tags": "Optional. Shared with the global account and bookmark tags."
+    },
+    "history": {
+      "empty": "No Base URL history yet",
+      "label": "Recent Base URLs",
+      "remove": "Remove from Base URL history",
+      "trigger": "Choose from Base URL history"
+    },
+    "messages": {
+      "savedToProfiles": "Saved {{name}} to API credential library.",
+      "stoppingTest": "Stopping the test. The current request will be interrupted as soon as possible.",
+      "testStopped": "Test stopped. Completed results were kept, and items that had not started will not continue."
+    },
+    "optionalProfileFields": {
+      "hasInput": "Optional save details added",
+      "hint": "Tags, notes, and expiration date do not affect test results.",
+      "title": "Save options (optional)"
+    },
+    "placeholders": {
+      "notes": "Optional notes",
+      "sourceUrl": "https://example.com/post",
+      "tags": "Select tags"
+    },
+    "privacyHint": "API Keys will be considered sensitive information: hidden by default, and nothing is stored unless you choose to save to API credential library.",
+    "probes": {
+      "notRunYet": "Not run yet"
+    },
+    "sourceText": {
+      "label": "Text to extract from",
+      "placeholder": "Paste a base URL and API key here, or use the context menu to prefill from selection."
+    },
+    "title": "AI API Functionality Availability Test"
+  },
+  "settings": {
+    "autoDetect": {
+      "enable": "Enable auto-detect",
+      "enableDesc": "When enabled, the extension may detect credentials from copy actions and will ask for confirmation before opening the modal.",
+      "enhanced": {
+        "enable": "Enable enhanced auto-detect",
+        "enableDesc": "Recognize bare domains, non-standard key formats, and keys mixed with invalid characters in copied content. Enhanced matches show a prompt in the modal and can be quickly turned off."
+      },
+      "whitelist": {
+        "invalidMore": "…and more",
+        "invalidTitle": "Invalid patterns",
+        "patterns": "URL whitelist patterns",
+        "patternsDesc": "One JavaScript RegExp pattern per line. Case-insensitive match is applied. Invalid patterns are ignored (treated as non-matching).",
+        "patternsPlaceholder": "^https://example\\.com/console"
+      }
+    },
+    "contextMenu": {
+      "enable": "Show in browser right-click menu",
+      "enableDesc": "Adds an “AI API Check” item to the browser context menu."
+    },
+    "description": "Manual context-menu trigger is always available. Auto-detect is opt-in and only runs on whitelisted pages. Extracted API keys are not saved by default.",
+    "keyCleanup": {
+      "invalidMore": "…and more",
+      "invalidTitle": "Invalid cleanup patterns",
+      "patterns": "API key cleanup patterns",
+      "patternsDesc": "Use this when copied keys include extra labels, brackets, or separators. Add one regular expression per line; invalid rules are shown before saving.",
+      "patternsPlaceholder": "\\[\\[remove-this\\]\\]\n【remove-this】\n<remove-this>\n(?:separator|noise)\n[\\s\\-_.]+",
+      "save": "Save cleanup patterns"
+    },
+    "title": "Web AI API Functionality Availability Test"
+  }
+}

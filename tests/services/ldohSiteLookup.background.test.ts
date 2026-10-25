@@ -1,0 +1,301 @@
+import { http, HttpResponse } from "msw"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { RuntimeActionIds } from "~/constants/runtimeActions"
+import {
+  LDOH_ORIGIN,
+  LDOH_SITES_ENDPOINT,
+} from "~/services/integrations/ldohSiteLookup/constants"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { server } from "~~/tests/msw/server"
+import { buildTempWindowPrefs } from "~~/tests/test-utils/factories"
+
+vi.mock("~/services/browsingContext/tempPage/taskDispatch", () => ({
+  executeAuthorizedTempContextTask: vi.fn(),
+  handleTempWindowFetch: vi.fn(),
+  handleTempWindowGetRenderedTitle: vi.fn(),
+}))
+
+vi.mock("~/services/integrations/ldohSiteLookup/cache", () => ({
+  writeLdohSiteListCache: vi.fn(),
+}))
+
+vi.mock("~/utils/browser/runtimeMessages", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/runtimeMessages")>()
+  return { ...actual, sendRuntimeMessage: vi.fn() }
+})
+
+vi.mock("~/utils/browser/protectionBypass", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/protectionBypass")>()
+  return {
+    ...actual,
+    isProtectionBypassFirefoxEnv: () => false,
+  }
+})
+
+vi.mock("~/services/preferences/userPreferences", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/preferences/userPreferences")
+    >()
+  return {
+    ...actual,
+    userPreferences: {
+      ...actual.userPreferences,
+      getPreferences: vi.fn(),
+    },
+  }
+})
+
+describe("ldohSiteLookup background refresh", () => {
+  const ldohSitesUrl = `${LDOH_ORIGIN}${LDOH_SITES_ENDPOINT}`
+
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it("does not invoke temp-window fallback for HTTP 401", async () => {
+    vi.resetModules()
+
+    const { userPreferences } = await import(
+      "~/services/preferences/userPreferences"
+    )
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      tempWindowFallback: buildTempWindowPrefs(),
+    })
+
+    const { sendRuntimeMessage } = await import(
+      "~/utils/browser/runtimeMessages"
+    )
+    vi.mocked(sendRuntimeMessage).mockImplementation(() => {
+      throw new Error("temp-window fallback invoked")
+    })
+
+    const { writeLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/cache"
+    )
+    const { repairLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/background"
+    )
+
+    server.use(
+      http.get(ldohSitesUrl, () => {
+        return new HttpResponse("", { status: 401 })
+      }),
+    )
+
+    const result = await repairLdohSiteListCache()
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.unauthenticated).toBe(true)
+    }
+    expect(vi.mocked(sendRuntimeMessage)).not.toHaveBeenCalled()
+    expect(vi.mocked(writeLdohSiteListCache)).not.toHaveBeenCalled()
+  })
+
+  it("does not invoke temp-window fallback for HTTP 429", async () => {
+    vi.resetModules()
+
+    const { userPreferences } = await import(
+      "~/services/preferences/userPreferences"
+    )
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      tempWindowFallback: buildTempWindowPrefs(),
+    })
+
+    const { sendRuntimeMessage } = await import(
+      "~/utils/browser/runtimeMessages"
+    )
+    vi.mocked(sendRuntimeMessage).mockImplementation(() => {
+      throw new Error("temp-window fallback invoked")
+    })
+
+    const { writeLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/cache"
+    )
+    const { repairLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/background"
+    )
+
+    server.use(
+      http.get(ldohSitesUrl, () => {
+        return new HttpResponse("", { status: 429 })
+      }),
+    )
+
+    const result = await repairLdohSiteListCache()
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.unauthenticated).toBeUndefined()
+    }
+    expect(vi.mocked(sendRuntimeMessage)).not.toHaveBeenCalled()
+    expect(vi.mocked(writeLdohSiteListCache)).not.toHaveBeenCalled()
+  })
+
+  it("uses the shared heuristic message for an unowned HTTP error", async () => {
+    vi.resetModules()
+
+    const { writeLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/cache"
+    )
+    const { repairLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/background"
+    )
+
+    server.use(
+      http.get(ldohSitesUrl, () =>
+        HttpResponse.json(
+          { message: "provider detail may be surfaced" },
+          { status: 418 },
+        ),
+      ),
+    )
+
+    await expect(repairLdohSiteListCache()).resolves.toMatchObject({
+      success: false,
+      error: "provider detail may be surfaced",
+    })
+    expect(vi.mocked(writeLdohSiteListCache)).not.toHaveBeenCalled()
+  })
+
+  it("invokes temp-window fallback for HTTP 403", async () => {
+    vi.resetModules()
+
+    const { userPreferences } = await import(
+      "~/services/preferences/userPreferences"
+    )
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      tempWindowFallback: buildTempWindowPrefs(),
+    })
+
+    const { sendRuntimeMessage } = await import(
+      "~/utils/browser/runtimeMessages"
+    )
+    vi.mocked(sendRuntimeMessage).mockResolvedValue({
+      success: true,
+      status: 200,
+      data: {
+        success: true,
+        message: "ok",
+        data: {
+          sites: [{ id: "site-1", apiBaseUrl: "https://api.example.com" }],
+        },
+      },
+    })
+
+    const { writeLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/cache"
+    )
+    vi.mocked(writeLdohSiteListCache).mockResolvedValue({
+      version: 1,
+      fetchedAt: 1,
+      expiresAt: 2,
+      items: [{ id: "site-1", apiBaseUrl: "https://api.example.com" }],
+    })
+
+    const { repairLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/background"
+    )
+
+    server.use(
+      http.get(ldohSitesUrl, () => {
+        return new HttpResponse("", { status: 403 })
+      }),
+    )
+
+    const result = await repairLdohSiteListCache()
+
+    expect(result.success).toBe(true)
+    if (result.success === true) {
+      expect(result.cachedCount).toBe(1)
+    }
+
+    expect(vi.mocked(sendRuntimeMessage)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: RuntimeActionIds.ProtectionBypassExecuteTask,
+        task: {
+          kind: "api_fallback_fetch",
+          params: expect.objectContaining({ fetchUrl: ldohSitesUrl }),
+        },
+      }),
+    )
+
+    expect(vi.mocked(writeLdohSiteListCache)).toHaveBeenCalledWith([
+      { id: "site-1", apiBaseUrl: "https://api.example.com" },
+    ])
+  })
+
+  it("deduplicates concurrent refresh requests and reuses the same result", async () => {
+    vi.resetModules()
+
+    const { userPreferences } = await import(
+      "~/services/preferences/userPreferences"
+    )
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      tempWindowFallback: buildTempWindowPrefs(),
+    })
+
+    const { writeLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/cache"
+    )
+
+    let resolveWrite:
+      | ((value: {
+          version: 1
+          fetchedAt: number
+          expiresAt: number
+          items: Array<{ id: string; apiBaseUrl: string }>
+        }) => void)
+      | null = null
+
+    vi.mocked(writeLdohSiteListCache).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveWrite = resolve as typeof resolveWrite
+        }),
+    )
+
+    let requestCount = 0
+    server.use(
+      http.get(ldohSitesUrl, () => {
+        requestCount += 1
+        return HttpResponse.json({
+          sites: [{ id: "site-1", apiBaseUrl: "https://api.example.com" }],
+        })
+      }),
+    )
+
+    const { repairLdohSiteListCache } = await import(
+      "~/services/integrations/ldohSiteLookup/background"
+    )
+
+    const first = repairLdohSiteListCache()
+    const second = repairLdohSiteListCache()
+
+    await vi.waitFor(() => {
+      expect(requestCount).toBe(1)
+      expect(writeLdohSiteListCache).toHaveBeenCalledTimes(1)
+    })
+
+    expect(resolveWrite).not.toBeNull()
+
+    resolveWrite!({
+      version: 1,
+      fetchedAt: 1,
+      expiresAt: 2,
+      items: [{ id: "site-1", apiBaseUrl: "https://api.example.com" }],
+    })
+
+    await expect(first).resolves.toEqual({ success: true, cachedCount: 1 })
+    await expect(second).resolves.toEqual({ success: true, cachedCount: 1 })
+  })
+})

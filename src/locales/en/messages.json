@@ -1,0 +1,281 @@
+{
+  "accountOperations": {
+    "autoProvisionAlreadyHad": "{{accountName}} already has an API key. Skipped auto-creation.",
+    "autoProvisionCreated": "Created a default API key for {{accountName}}.",
+    "autoProvisionFailed": "Account saved, but failed to auto-create an API key. You can use “{{actionLabel}}” in Key Management to retry.",
+    "autoProvisionGroupsCovered": "All available groups now have usable API keys for {{accountName}}.",
+    "autoProvisionGroupsCreated_one": "Created {{count}} group API key for {{accountName}}.",
+    "autoProvisionGroupsCreated_other": "Created {{count}} group API keys for {{accountName}}.",
+    "autoProvisionGroupsIncomplete_one": "Created {{count}} group API key for {{accountName}}, but some groups still need attention. Open Key Management → {{actionLabel}} to review.",
+    "autoProvisionGroupsIncomplete_other": "Created {{count}} group API keys for {{accountName}}, but some groups still need attention. Open Key Management → {{actionLabel}} to review.",
+    "autoProvisionGroupsUnavailable": "No available groups were returned for {{accountName}}, so no keys were created. Check Key Management → {{actionLabel}}.",
+    "autoProvisionGroupsUnsupported": "Automatic key creation for all groups is unavailable for {{accountName}}. Open Key Management to view the available key actions for this account.",
+    "autoProvisionNeedsManualAction": "{{accountName}} was saved, but its default key needs a manual choice or one-time secret handling. Use “{{actionLabel}}” in Key Management to finish.",
+    "autoProvisionUnsupported": "{{accountName}} was saved, but this site type does not support automatic default API key creation.",
+    "checkingApiKeys": "Checking API key...",
+    "tokenNotFound": "Failed to create or find an API token"
+  },
+  "aihubmix": {
+    "oneTimeKeyPromptCancelled": "Account saved. You can create an AIHubMix API key manually in Key Management later.",
+    "oneTimeKeyUnavailableAfterCreate": "Account saved, but the full AIHubMix API key could not be retrieved. AIHubMix keys are shown only once after creation; create a new key in Key Management and save the full key immediately."
+  },
+  "aiToolbox": {
+    "attemptingRedirect": "Attempting to redirect to AI Toolbox",
+    "invalidApp": "Unsupported AI Toolbox target app",
+    "invalidBaseUrl": "Invalid or missing API base URL",
+    "invalidHomepage": "Invalid or missing homepage URL",
+    "missingCredentials": "Missing required account or key information",
+    "unableToOpen": "Unable to open AI Toolbox, please ensure it is installed"
+  },
+  "autodetect": {
+    "currentTabNeedsReload": "This page may have been opened before the extension was installed or updated, so the extension cannot read data from this tab yet. Reload the current page, then try auto-detect again.",
+    "failed": "Auto-detection failed: {{error}}",
+    "forbidden": "Access denied. Please confirm whether the website firewall is blocking the request",
+    "loginThisSite": "Login to this site",
+    "networkError": "Network connection failed, please check your network connection and try again",
+    "notFound": "Could not auto-detect this site. Check that the address is correct, or log in to the target site and try again.",
+    "notLoggedIn": "You are not logged in to the current site, or the login information has expired. Cannot auto-add. Please check the help documentation or click to login first",
+    "serverError": "Server error. Please try again later",
+    "timeout": "Auto-detection timeout, please try adding manually",
+    "unexpectedData": "Auto-detection failed, site returned unexpected data. Please enter information manually or ensure you are logged in to the target site"
+  },
+  "axonhub": {
+    "configMissing": "Please configure AxonHub address, admin email, and password in basic settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "background": {
+    "cannotCreateWindowOrTab": "Unable to create window or get tab",
+    "incognitoAccessRequired": "Incognito access is required to use a private temporary window. Please enable \"Allow in incognito\" for this extension and retry.",
+    "invalidFetchRequest": "Invalid fetch request",
+    "pageLoadTimeout": "Page load timeout",
+    "tempWindowPolicyContextInvalid": "This operation cannot continue. Start it again.",
+    "windowCreationUnavailable": "This flow needs the browser to open a temporary window, but window creation is unavailable. Allow extension-created windows or retry in a browser that supports them.",
+    "windowNotFound": "Window or tab not found"
+  },
+  "ccswitch": {
+    "attemptingRedirect": "Attempting to redirect to CC Switch",
+    "invalidApp": "Unsupported CC Switch target app",
+    "invalidEndpoint": "Invalid or missing API endpoint",
+    "invalidHomepage": "Invalid or missing homepage URL",
+    "missingCredentials": "Missing required account or key information",
+    "unableToOpen": "Unable to open CC Switch, please ensure it is installed"
+  },
+  "cherryStudio": {
+    "attemptingRedirect": "Attempting to redirect to Cherry Studio",
+    "missingCredentials": "Missing required account or key information",
+    "unableToOpen": "Unable to open, please ensure Cherry Studio is installed"
+  },
+  "claudecodehub": {
+    "configMissing": "Please configure Claude Code Hub address and admin token in basic settings first",
+    "noChannelsToSync": "No providers to sync"
+  },
+  "claudeCodeRouter": {
+    "configMissing": "Please configure Claude Code Router base URL in settings first",
+    "importFailed": "Failed to import provider to Claude Code Router",
+    "importSuccess": "Successfully imported provider {{name}} to Claude Code Router",
+    "modelsMissing": "Please provide at least one model",
+    "updateSuccess": "Successfully updated Claude Code Router provider {{name}}"
+  },
+  "cliProxyApi": {
+    "managementApiForbidden": "CLIProxyAPI rejected the request. Check whether the management key has been entered incorrectly too many times or whether access is restricted on the server.",
+    "managementApiHttpError": "CLIProxyAPI Management API returned an unexpected status code (HTTP {{status}})",
+    "managementApiInvalidKey": "The CLIProxyAPI Management Key is invalid. Please verify the key in settings.",
+    "managementApiNotFound": "CLIProxyAPI Management API was not found. Make sure the base URL ends with /v0/management and that CLIProxyAPI has a management key configured.",
+    "managementApiUnreachable": "Could not reach the CLIProxyAPI Management API. Check the base URL, service status, and browser network access to that address."
+  },
+  "content": {
+    "userInfoNotFound": "User information not found, please ensure you are logged in",
+    "waitUserInfoTimeout": "Waiting for user information timeout, please ensure you are logged in"
+  },
+  "cookieTransport": {
+    "permissionRequired": "This browser cannot send a request using this account's Cookie. Check the extension permissions or update your browser, then retry.",
+    "requestUnavailable": "The request could not be prepared. Retry; if it still fails, reload the extension.",
+    "scopeUnavailable": "This request cannot use the selected Cookie scope. Import the intended account's Cookie or use its regular browser session.",
+    "sessionUnavailable": "The login session is unavailable. Sign into the same account again; if using an imported Cookie, import it again."
+  },
+  "donehub": {
+    "configMissing": "Please configure Done Hub address, admin token, and user ID in basic settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "errors": {
+    "api": {
+      "invalidResponseFormat": "Invalid response format",
+      "nonJsonContent": "returned {{contentType}} instead of JSON (HTTP {{status}})",
+      "onlyJsonSupported": "Only JSON responses are supported",
+      "requestFailed": "Request failed: {{status}}"
+    },
+    "dayaRedemptionUnconfirmed": "The redemption result needs review in the official console. Check delivery or finish applying the discount there before trying again.",
+    "operation": {
+      "accountDataFetchTimeout": "Timed out while fetching account data ({{seconds}}s)",
+      "failed": "Operation failed: {{error}}",
+      "saveFailed": "Save failed: {{error}}"
+    },
+    "relayForRedemptionUnconfirmed": "The site did not confirm the redemption result. Check the official console before trying again.",
+    "relayForVerificationRequired": "This operation requires a verification code. Open the official console to complete it, then refresh here.",
+    "unknown": "Unknown error",
+    "validation": {
+      "bookmarkNameRequired": "Bookmark name cannot be empty",
+      "bookmarkUrlRequired": "Bookmark URL cannot be empty",
+      "incompleteAccountInfo": "Please fill in all account information",
+      "loginProviderInUse": "The {{provider}} login method is already used by the AgentRouter account {{account}} with automatic check-in enabled. Choose the other method, disable automatic check-in on that account, or clear this selection.",
+      "updateAccountFailed": "Failed to update account {{error}}",
+      "urlRequired": "Site URL cannot be empty",
+      "userIdNumeric": "User ID must be a number"
+    }
+  },
+  "gptLoad": {
+    "configMissing": "Configure the gpt-load deployment address and management key in settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "grsai": {
+    "openApiTokenRejected": "This is the Token shown on the Grsai user-info page. It is meant for the platform's open APIs, and the console does not accept it. Use Auto-detect to read the signed-in console session, or paste the console session token instead.",
+    "sessionExpired": "The saved Grsai console session has expired (a console session lasts about 30 days). Sign in to the Grsai console again, then add the account with Auto-detect."
+  },
+  "kelivo": {
+    "copied": "Kelivo mobile import code copied. Paste it in Kelivo mobile's provider import.",
+    "copyFailed": "Unable to copy the Kelivo import code. Check clipboard permission and try again.",
+    "customGoogleEndpointUnsupported": "Kelivo import codes cannot preserve custom Google API addresses.",
+    "invalidBaseUrl": "The Base URL must be a valid HTTP or HTTPS address.",
+    "missingCredentials": "A provider name and complete API key are required.",
+    "unsupportedApiType": "This API protocol cannot be exported to Kelivo."
+  },
+  "magpie": {
+    "configMissing": "Configure the Magpie Web address and Web management key in settings first.",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "managedSite": {
+    "unsupportedModelSync": "{{siteName}} does not support managed-site model sync in this version"
+  },
+  "newapi": {
+    "configMissing": "Please configure New API address, admin token, and user ID in basic settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "octopus": {
+    "configMissing": "Please configure Octopus address, username, and password in basic settings first",
+    "corsError": "This may be caused by CORS configuration. Please check the CORS whitelist setting in Octopus settings.",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "omniroute": {
+    "configMissing": "Configure the OmniRoute deployment address and access token in settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "openrouter": {
+    "bootstrap": {
+      "cancelled_before_create": "OpenRouter key creation was cancelled before anything was created.",
+      "cancelledAfterCreate": "The key was created while cancellation was pending. Review it below and save or revoke it.",
+      "failed": "OpenRouter key creation could not be confirmed. Enter a key manually or review Management Keys.",
+      "invalid_origin": "OpenRouter key creation requires the canonical OpenRouter page.",
+      "logged_out": "Sign in to OpenRouter, then try auto-detect again.",
+      "mutationUnconfirmed": "OpenRouter may have created a key, but the result was not delivered. Review Management Keys before trying again.",
+      "page_changed": "Keep the OpenRouter Management Keys page open, then try auto-detect again.",
+      "timeout": "OpenRouter key creation timed out. Review Management Keys before trying again.",
+      "validationFailed": "OpenRouter created a key, but validation failed. Paste it below or revoke it from Management Keys."
+    },
+    "credentialInvalid": "This OpenRouter management key is invalid or revoked.",
+    "malformedResponse": "OpenRouter returned an unexpected response. Try again later.",
+    "managementKeyRequired": "Create a new Management Key in OpenRouter and copy it immediately. Existing Management Keys cannot be revealed again.",
+    "networkFallback": "Could not connect to OpenRouter. Check your connection and try again.",
+    "permissionDenied": "This OpenRouter management key does not have permission to read account credits."
+  },
+  "operations": {
+    "detection": {
+      "failed": "Auto-detection failed, please enter information manually or ensure you are logged in to the target site",
+      "getAccessTokenFailedDetailed": "The account was detected, but no access token could be retrieved. Confirm the account can create or view API tokens, or enter the token manually.",
+      "getInfoFailed": "Failure to get username or access token",
+      "getSiteStatusFailedDetailed": "The account was detected, but site status could not be read. Try again later; if it still fails, save the account manually first.",
+      "getUserIdFailed": "Could not get user ID",
+      "getUserIdFailedDetailed": "The signed-in account could not be confirmed. Open the target site in this browser, make sure you are signed in, and retry. If it still fails, complete the account details manually.",
+      "getUsernameFailedDetailed": "The account was detected, but the site did not return a username. Make sure you are logged in, or enter the account manually."
+    }
+  },
+  "storage": {
+    "accountDisabled": "Account {{id}} is disabled",
+    "accountNotFound": "Account {{id}} does not exist",
+    "updateFailed": "Failed to update account"
+  },
+  "sub2api": {
+    "authPersistenceFailed": "The refreshed Sub2API sign-in could not be saved to this account. Refresh or re-import the account, then try again.",
+    "configMissing": "Please configure the Sub2API Base URL and Admin API Key in basic settings first.",
+    "loginRequired": "Please log in to the Sub2API dashboard first (so the extension can read auth_token/auth_user from localStorage) and try again.",
+    "refreshTokenInvalid": "Sub2API refresh token is invalid/rotated. Re-import the session from the dashboard (recommended: incognito/private window) or paste an updated refresh_token, then try again."
+  },
+  "toast": {
+    "error": {
+      "copyFailed": "Copy failed",
+      "duplicateCleanupFailed": "Failed to delete duplicate accounts: {{error}}",
+      "externalCheckInNonePending": "There are no external check-in stations that haven't been opened today.",
+      "externalCheckInPartialFailed_one": "{{failedCount}} of {{totalCount}} external check-in failed.",
+      "externalCheckInPartialFailed_other": "{{failedCount}} of {{totalCount}} external check-ins failed.",
+      "findAccountDetailsFailed": "Could not find account details",
+      "operationFailed": "Operation failed: {{error}}",
+      "operationFailedGeneric": "Operation failed",
+      "refreshAccount": "Failed to refresh {{accountName}}",
+      "saveFailed": "Save failed",
+      "shareSnapshotAccountDisabled": "This account is disabled",
+      "shareSnapshotNoEnabledAccounts": "No enabled accounts to share"
+    },
+    "loading": {
+      "refreshingAccount": "Refreshing {{accountName}}..."
+    },
+    "success": {
+      "accountDisabled": "{{accountName}} disabled",
+      "accountEnabled": "{{accountName}} enabled",
+      "accountPinned": "{{accountName}} pinned",
+      "accountSaveSuccess": "Account saved successfully",
+      "accountsDisabled_one": "{{count}} account disabled",
+      "accountsDisabled_other": "{{count}} accounts disabled",
+      "accountsEnabled_one": "{{count}} account enabled",
+      "accountsEnabled_other": "{{count}} accounts enabled",
+      "accountUnpinned": "{{accountName}} unpinned",
+      "accountUpdateSuccess": "Account updated successfully",
+      "bookmarkAdded": "Bookmark {{name}} added successfully!",
+      "bookmarkDeleted": "Bookmark {{name}} deleted",
+      "bookmarkPinned": "{{name}} pinned",
+      "bookmarkUnpinned": "{{name}} unpinned",
+      "bookmarkUpdated": "Bookmark {{name}} updated successfully!",
+      "bookmarkUrlCopied": "{{name}} URL copied to clipboard",
+      "duplicateCleanupSuccess_one": "Deleted {{count}} account from {{groups}} duplicate set(s).",
+      "duplicateCleanupSuccess_other": "Deleted {{count}} accounts from {{groups}} duplicate set(s).",
+      "externalCheckInModeAll": "all",
+      "externalCheckInModeUnchecked": "unchecked only",
+      "externalCheckInOpened_one": "Opened external check-in for {{count}} account ({{mode}}).",
+      "externalCheckInOpened_other": "Opened external check-ins for {{count}} accounts ({{mode}}).",
+      "operationCompleted": "Operation completed",
+      "refreshAccount": "{{accountName}} refreshed successfully!",
+      "refreshSkipped": "Refresh interval not reached, skipped",
+      "shareSnapshotCaptionCopied": "Caption copied",
+      "shareSnapshotCopied": "Snapshot copied to clipboard",
+      "shareSnapshotDownloaded": "Snapshot downloaded",
+      "urlCopied": "{{accountName}} URL copied to clipboard"
+    }
+  },
+  "tokenProvisioning": {
+    "createRequiresGroup": "Key creation requires a confirmed group. Choose an available group before continuing.",
+    "createRequiresGroupSelection": "This account has multiple available groups. Choose one before creating the key.",
+    "selectGroupTitle": "Choose a key group"
+  },
+  "veloera": {
+    "configMissing": "Please configure Veloera address, admin token, and user ID in basic settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "warnings": {
+    "accountSavedWithoutDataRefresh": "Account saved, but the latest balance, quota, and today's usage could not be fetched. The current values may be placeholders. Refresh this account later from the account list.",
+    "accountUpdatedWithoutDataRefresh": "Account settings saved, but the latest balance, quota, and today's usage could not be refreshed. The current values may still be stale. Refresh this account later from the account list."
+  },
+  "webdav": {
+    "authFailed": "Authentication failed, please check username/password",
+    "configIncomplete": "Please fill in WebDAV URL, username and password completely",
+    "connectionFailed": "Connection failed, status code: {{status}}",
+    "decryptFailed": "Failed to decrypt backup, please check your password",
+    "decryptFailedNoPassword": "Backup is encrypted but no password is set",
+    "downloadFailed": "Download failed, status code: {{status}}",
+    "encryptFailedNoPassword": "Encryption is enabled but no password is set",
+    "fileNotFound": "Remote backup file does not exist",
+    "invalidBackupJson": "The cloud backup file is incomplete and cannot be used for sync. Sync was stopped to avoid merging damaged data. If this device has complete local data, use Upload to WebDAV to recreate the cloud backup. If not, upload from another device that has complete data or import a complete backup file first.",
+    "safeCommitFailed": "Could not confirm that the cloud backup was saved. Check your connection and read/write permissions, then try again.",
+    "syncDataSelectionRequired": "Select at least one data domain to sync",
+    "uploadFailed": "Upload failed, status code: {{status}}",
+    "uploadStillProcessing": "The cloud service is still processing the uploaded backup, so verification could not finish yet. Try again later.",
+    "uploadVerificationFailed": "Backup verification failed after upload. The cloud file may be incomplete. Retry sync or restore from a local backup if needed."
+  }
+}

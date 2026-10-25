@@ -1,0 +1,289 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import type { NewApiToken } from "~/services/apiService/newApiFamily/tokenTypes"
+import { buildManagedSiteChannelDraftSource } from "~/services/managedSites/configuration/channelDraftSource"
+import type { DisplaySiteData } from "~/types"
+import { buildNewApiRuntimeKey } from "~~/tests/test-utils/accountKeyFixtures"
+import { buildCompleteTodayStatsAvailability } from "~~/tests/test-utils/accountTodayStats"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+
+// ============================================================================
+// MOCKS
+// ============================================================================
+
+const mockToast = {
+  loading: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+}
+
+vi.mock("~/lib/notify", () => ({
+  default: mockToast,
+}))
+
+const mockFetchOpenAICompatibleModelIds = vi.fn()
+const mockFetchSiteUserGroups = vi.fn().mockResolvedValue(["default"])
+
+vi.mock("~/services/aiApi/openaiCompatible", () => ({
+  fetchOpenAICompatibleModelIds: mockFetchOpenAICompatibleModelIds,
+}))
+
+vi.mock(
+  "~/services/apiService/newApiFamily/default/keyManagement",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("~/services/apiService/newApiFamily/default/keyManagement")
+    >()),
+    fetchSiteUserGroups: mockFetchSiteUserGroups,
+  }),
+)
+
+const mockGetPreferences = vi.fn()
+vi.mock("~/services/preferences/userPreferences", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/preferences/userPreferences")
+    >()
+  return {
+    ...actual,
+    userPreferences: {
+      ...actual.userPreferences,
+      getPreferences: mockGetPreferences,
+    },
+  }
+})
+
+// ============================================================================
+// FIXTURES
+// ============================================================================
+
+/**
+ * Creates a minimal UserPreferences-like object wired with Veloera configuration.
+ */
+function createMockUserPreferencesWithVeloera(
+  overrides?: Record<string, unknown>,
+) {
+  return {
+    veloera: {
+      baseUrl: "https://veloera.example.com",
+      adminToken: "admin-token-123",
+      userId: "123",
+    },
+    ...overrides,
+  }
+}
+
+function createMockDisplaySiteData(
+  overrides: Partial<DisplaySiteData> = {},
+): DisplaySiteData {
+  return {
+    id: "site-1",
+    icon: "icon",
+    name: "Test Site",
+    username: "testuser",
+    balance: { USD: 0, CNY: 0 },
+    todayConsumption: { USD: 0, CNY: 0 },
+    todayIncome: { USD: 0, CNY: 0 },
+    todayTokens: { upload: 0, download: 0 },
+    todayStatsAvailability: buildCompleteTodayStatsAvailability(),
+    health: { status: "healthy" as any },
+    last_sync_time: Date.now(),
+    siteType: SITE_TYPES.VELOERA,
+    baseUrl: "https://api.example.com",
+    token: "access-token",
+    userId: "1",
+    authType: "access_token" as any,
+    checkIn: buildCheckInConfig(),
+    ...overrides,
+  }
+}
+
+function createMockApiToken(overrides: Partial<NewApiToken> = {}): NewApiToken {
+  return {
+    id: 1,
+    user_id: 1,
+    key: "sk-test-key-123",
+    status: 1,
+    name: "Test Token",
+    created_time: Date.now() - 86400000,
+    accessed_time: Date.now(),
+    expired_time: Date.now() + 31536000000,
+    remain_quota: 100,
+    unlimited_quota: false,
+    used_quota: 0,
+    ...overrides,
+  }
+}
+
+// ============================================================================
+// TESTS
+// ============================================================================
+
+describe("veloeraService", () => {
+  beforeEach(() => {
+    mockFetchOpenAICompatibleModelIds.mockReset()
+    mockGetPreferences.mockReset()
+  })
+
+  describe("hasValidVeloeraConfig", () => {
+    it("returns true with valid config", async () => {
+      const { hasValidVeloeraConfig } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+
+      expect(
+        hasValidVeloeraConfig(
+          createMockUserPreferencesWithVeloera() as unknown as Parameters<
+            typeof hasValidVeloeraConfig
+          >[0],
+        ),
+      ).toBe(true)
+    })
+
+    it("returns false when prefs is null", async () => {
+      const { hasValidVeloeraConfig } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+
+      expect(hasValidVeloeraConfig(null)).toBe(false)
+    })
+
+    it("returns false when required fields are missing", async () => {
+      const { hasValidVeloeraConfig } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+
+      const cases = [
+        { veloera: { adminToken: "token", userId: "123" } },
+        { veloera: { baseUrl: "url", userId: "123" } },
+        { veloera: { baseUrl: "url", adminToken: "token" } },
+        { veloera: { baseUrl: "", adminToken: "token", userId: "123" } },
+      ]
+
+      for (const prefs of cases) {
+        expect(
+          hasValidVeloeraConfig({
+            ...createMockUserPreferencesWithVeloera(),
+            ...prefs,
+          } as unknown as Parameters<typeof hasValidVeloeraConfig>[0]),
+        ).toBe(false)
+      }
+    })
+  })
+
+  describe("getVeloeraConfig", () => {
+    it("returns config when preferences are valid", async () => {
+      const { getVeloeraConfig } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+
+      mockGetPreferences.mockResolvedValueOnce(
+        createMockUserPreferencesWithVeloera(),
+      )
+
+      const result = await getVeloeraConfig()
+      expect(result).toEqual({
+        baseUrl: "https://veloera.example.com",
+        adminToken: "admin-token-123",
+        userId: "123",
+      })
+    })
+
+    it("returns null when preferences are invalid", async () => {
+      const { getVeloeraConfig } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+
+      mockGetPreferences.mockResolvedValueOnce(
+        createMockUserPreferencesWithVeloera({
+          veloera: { baseUrl: "", adminToken: "", userId: "" },
+        }),
+      )
+
+      const result = await getVeloeraConfig()
+      expect(result).toBeNull()
+    })
+  })
+
+  describe("prepareChannelFormData", () => {
+    it("falls back to token.models when the live model probe fails", async () => {
+      const { prepareChannelFormData } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+      const account = createMockDisplaySiteData()
+      const token = createMockApiToken({ models: "gpt-4,gpt-3.5" })
+
+      mockGetPreferences.mockResolvedValueOnce(
+        createMockUserPreferencesWithVeloera(),
+      )
+      mockFetchOpenAICompatibleModelIds.mockRejectedValueOnce(
+        new Error("Upstream failed"),
+      )
+
+      const result = await prepareChannelFormData(
+        buildManagedSiteChannelDraftSource(
+          buildNewApiRuntimeKey(account, token),
+        ),
+      )
+
+      expect(result.models).toEqual(["gpt-4", "gpt-3.5"])
+      expect(result).toMatchObject({ type: 1, enabled: true })
+      expect(result.modelPrefillFetchFailed).toBe(true)
+    })
+
+    it("falls back to token.models when the live model probe returns empty", async () => {
+      const { prepareChannelFormData } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+      const account = createMockDisplaySiteData()
+      const token = createMockApiToken({ models: "gpt-4o-mini,gpt-4o" })
+
+      mockGetPreferences.mockResolvedValueOnce(
+        createMockUserPreferencesWithVeloera(),
+      )
+      mockFetchOpenAICompatibleModelIds.mockResolvedValueOnce([])
+
+      const result = await prepareChannelFormData(
+        buildManagedSiteChannelDraftSource(
+          buildNewApiRuntimeKey(account, token),
+        ),
+      )
+
+      expect(result.models).toEqual(["gpt-4o-mini", "gpt-4o"])
+      expect(result.modelPrefillFetchFailed).toBeUndefined()
+    })
+
+    it("uses the AIHubMix API origin for managed-site channel imports", async () => {
+      const { prepareChannelFormData } = await import(
+        "~/services/managedSites/providers/veloera"
+      )
+      const account = createMockDisplaySiteData({
+        siteType: SITE_TYPES.AIHUBMIX,
+        baseUrl: "https://console.aihubmix.com",
+      })
+      const token = createMockApiToken({ models: "fallback-model" })
+
+      mockGetPreferences.mockResolvedValueOnce(
+        createMockUserPreferencesWithVeloera(),
+      )
+      mockFetchOpenAICompatibleModelIds.mockResolvedValueOnce([
+        "gpt-aihubmix-mini",
+      ])
+
+      const result = await prepareChannelFormData(
+        buildManagedSiteChannelDraftSource(
+          buildNewApiRuntimeKey(account, token),
+        ),
+      )
+
+      expect(mockFetchOpenAICompatibleModelIds).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseUrl: "https://aihubmix.com",
+          apiKey: token.key,
+        }),
+      )
+      expect(result.base_url).toBe("https://aihubmix.com")
+    })
+  })
+})

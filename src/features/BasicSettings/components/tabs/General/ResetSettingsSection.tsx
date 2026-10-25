@@ -1,0 +1,96 @@
+import { RotateCcw } from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  BodySmall,
+  Button,
+  ConfirmDialog,
+  Heading5,
+} from "~/components/ui"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { showResetToast } from "~/utils/feedback/preferenceFeedback"
+
+/**
+ * Renders the destructive reset section with confirmation dialog for settings.
+ */
+export default function ResetSettingsSection() {
+  const { t } = useTranslation("settings")
+  const { resetToDefaults } = useUserPreferencesContext()
+  const [isResetting, setIsResetting] = useState(false)
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+
+  const handleOpenConfirmDialog = () => {
+    setIsConfirmDialogOpen(true)
+  }
+
+  const handleCloseConfirmDialog = () => {
+    if (!isResetting) {
+      setIsConfirmDialogOpen(false)
+    }
+  }
+
+  const handleResetConfirm = async () => {
+    setIsResetting(true)
+    try {
+      const result = await resetToDefaults()
+      showResetToast(result.ok)
+    } finally {
+      setIsResetting(false)
+      setIsConfirmDialogOpen(false)
+    }
+  }
+
+  return (
+    <>
+      <section>
+        <Heading5 className="text-foreground mb-density-4 text-lg font-medium">
+          {t("danger.title")}
+        </Heading5>
+        <Alert
+          variant="warning"
+          className="py-density-3 sm:py-density-4 px-3 sm:px-4"
+        >
+          <div className="gap-y-density-3 flex items-start justify-between gap-x-3 sm:items-center">
+            <div className="min-w-0">
+              <AlertTitle className="text-sm">
+                {t("danger.resetAllSettings")}
+              </AlertTitle>
+              <AlertDescription className="mt-0.5">
+                <BodySmall>{t("danger.resetDesc")}</BodySmall>
+              </AlertDescription>
+            </div>
+            <Button
+              id="danger-reset-settings"
+              onClick={handleOpenConfirmDialog}
+              disabled={isResetting}
+              variant="warning"
+            >
+              {t("danger.resetSettings")}
+            </Button>
+          </div>
+        </Alert>
+      </section>
+
+      <ConfirmDialog
+        intent="warning"
+        icon={RotateCcw}
+        isOpen={isConfirmDialogOpen}
+        onClose={handleCloseConfirmDialog}
+        size="sm"
+        title={t("messages.confirmReset")}
+        description={t("messages.resetAllConfirmDesc")}
+        cancelLabel={t("common:actions.cancel")}
+        confirmLabel={t("danger.resetSettings")}
+        workingLabel={t("common:status.resetting")}
+        onConfirm={() => {
+          void handleResetConfirm()
+        }}
+        isWorking={isResetting}
+      />
+    </>
+  )
+}

@@ -1,0 +1,396 @@
+{
+  "actions": {
+    "open": "開啟"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "已停用帳號不會參與重新整理、簽到等自動化，請視需要重新啟用。",
+      "title_other": "{{count}} 個帳號均已停用"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} 需要檢查瀏覽器設定"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} 狀態異常"
+    },
+    "actions": {
+      "addAccount": "新增帳號",
+      "addProfile": "新增 API 憑據",
+      "editAccount": "編輯帳號",
+      "fixAccount": "修復帳號",
+      "handleCheckIn": "處理簽到",
+      "manageAccounts": "管理帳號",
+      "openSettings": "開啟設定",
+      "refreshAccounts": "重新整理帳號",
+      "signInAgain": "重新登入",
+      "viewAccount": "查看帳號",
+      "viewAnnouncements": "查看公告",
+      "viewCheckIn": "查看簽到",
+      "viewCheckInResults": "查看結果"
+    },
+    "addAccount": {
+      "description": "先新增帳戶，才能彙總餘額、用量和自動任務狀態。",
+      "title": "還沒有帳戶"
+    },
+    "addProfile": {
+      "description": "憑據庫存放 API Key、coding plan Key 等各類 Key，並集中監控餘額與用量：coding plan 的 5 小時 / 7 天 / 每月額度還剩多少，一眼就能看到。",
+      "title": "還沒有 API 憑據"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_other": "{{count}} 個帳號已開啟自動簽到，但全域開關關閉後不會執行。請在簽到設定中重新開啟。",
+      "title": "自動簽到已全域關閉"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "最近一次執行中有失敗或結果待確認。請前往自動簽到查看原因並重試。",
+      "title_other": "{{count}} 個帳號的自動簽到未完成"
+    },
+    "categories": {
+      "accounts": "帳號",
+      "automation": "自動化",
+      "credentials": "憑據",
+      "data": "資料"
+    },
+    "categoryFilterLabel": "類別",
+    "checkInAccountDataMissing": {
+      "description": "已儲存的憑證或帳號資料不完整，請在帳號管理中重新辨識後再簽到。",
+      "title_other": "{{count}} 個帳號缺少登入資料"
+    },
+    "checkInMethodUnresolved": {
+      "description": "自動簽到已開啟，但目前尚無可用的簽到方式。請在帳號管理中重新偵測或選擇簽到方式後再執行。",
+      "title": "{{name}} 的簽到方式待確認"
+    },
+    "checkInPermissionDenied": {
+      "description": "網站拒絕了簽到請求，請重新登入或檢查帳號權限後重試。",
+      "title_other": "{{count}} 個帳號的簽到請求遭拒"
+    },
+    "checkInReloginRequired": {
+      "description": "最近一次執行因登入狀態失效而略過這些帳號。請在網站重新登入後再簽到。",
+      "title_other": "{{count}} 個帳號需要重新登入"
+    },
+    "filterAll": "全部",
+    "severityFilterLabel": "嚴重度",
+    "siteTypeMismatch": {
+      "description": "該站點本身對應「{{suggestedType}}」，而帳號目前是「{{storedType}}」。請編輯帳號並把站點型別改為「{{suggestedType}}」。",
+      "title": "{{name}} 的站點型別可能不正確"
+    },
+    "siteTypeUnknown": {
+      "description": "自動簽到暫時無法判斷該站點的協定。請編輯帳號並選擇正確的站點類型，或重新自動偵測。",
+      "title": "{{name}} 的站點類型未知"
+    },
+    "sortHint": "依影響程度排序",
+    "summary_other": "{{count}} 項待處理",
+    "unreadSiteAnnouncements": {
+      "description": "查看站點公告後即可標記為已讀，避免漏掉站點維護或風險通知。",
+      "title_other": "{{count}} 則站點公告未讀"
+    },
+    "usageRefreshPending": {
+      "description": "重新整理帳號後即可補齊今日請求、Token 和消耗統計。",
+      "title_other": "{{count}} 個帳號的今日統計待重新整理"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "查看簽到",
+      "retryFailed": "重試失敗"
+    },
+    "empty": {
+      "disabled": {
+        "description": "你已關閉自動簽到。需要自動領取簽到獎勵時，可以在設定中重新開啟。"
+      },
+      "notRun": {
+        "description": "還沒有簽到記錄。確認帳戶已開啟簽到偵測後，系統會在下次計畫時間執行，也可以進入自動簽到頁手動處理。"
+      }
+    },
+    "lastRun": "上次執行",
+    "metrics": {
+      "failed": "失敗",
+      "skipped": "跳過",
+      "success": "成功"
+    },
+    "nextRetry": "下次重試",
+    "nextRun": "下次計畫",
+    "notRunYet": "尚未執行",
+    "notScheduled": "未計畫",
+    "status": {
+      "disabled": "已停用",
+      "failed": "全部失敗",
+      "not_run": "等待首次執行",
+      "partial": "部分成功",
+      "ready": "已就緒",
+      "skipped": "未執行",
+      "success": "執行成功"
+    },
+    "summary": "自動簽到執行概況"
+  },
+  "automation": {
+    "automaticEnabled": "自動執行已開啟",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "想自動領取簽到獎勵時，先開啟自動簽到。之後這裡會顯示下次計畫和執行結果。"
+      },
+      "managedSiteModelSync": {
+        "disabled": "需要自動同步自建 AI 閘道模型時，先開啟模型同步。之後這裡會顯示同步間隔和範圍。"
+      },
+      "siteAnnouncements": {
+        "disabled": "想即時看到站點公告時，先開啟公告抓取。之後這裡會顯示最近檢查時間和公告數量。"
+      },
+      "webdavAutoSync": {
+        "disabled": "想跨裝置備份資料時，先設定 WebDAV 自動同步。之後這裡會顯示同步策略和範圍。"
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "自動簽到"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "限定模型數",
+        "concurrency": "並發數",
+        "interval": "同步間隔（小時）",
+        "label": "自建 AI 閘道模型同步",
+        "open": "開啟同步"
+      },
+      "siteAnnouncements": {
+        "interval": "抓取間隔（分鐘）",
+        "label": "網站公告抓取",
+        "lastChecked": "最近檢查",
+        "openPage": "查看公告",
+        "openSettings": "設定抓取",
+        "records": "公告總數",
+        "unread": "未讀公告"
+      },
+      "webdavAutoSync": {
+        "domains": "同步範圍數",
+        "interval": "同步間隔（分鐘）",
+        "label": "WebDAV 備份同步",
+        "open": "開啟備份同步",
+        "strategy": "同步策略"
+      }
+    },
+    "metrics": {
+      "failed": "失敗",
+      "skipped": "略過",
+      "success": "成功",
+      "unsupported": "不支援"
+    },
+    "neverChecked": "尚未檢查",
+    "openItem": "開啟 {{name}}",
+    "status": {
+      "disabled": "已停用",
+      "failed": "執行失敗",
+      "limited": "部分不支援",
+      "notRun": "等待首次執行",
+      "partial": "部分失敗",
+      "ready": "已就緒",
+      "running": "正在執行",
+      "skipped": "未執行",
+      "success": "執行成功",
+      "unknown": "狀態未知",
+      "unsupported": "暫不支援"
+    },
+    "statusUnavailable": "暫時無法讀取執行狀態，請開啟詳情查看或重新整理後重試。"
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "帳戶、餘額與健康狀態，是其他能力的基礎。",
+      "label": "帳戶基礎",
+      "state": {
+        "disabled": "目前還不能讀取帳戶狀態，請先檢查帳戶設定是否完整。",
+        "needs_setup": "先新增至少一個帳戶，總覽才能幫你彙總餘額、用量和自動任務狀態。",
+        "not_applicable": "目前環境不需要新增帳戶也可以繼續使用。"
+      }
+    },
+    "automation": {
+      "description": "自動簽到與公告抓取是否處於可用狀態。",
+      "label": "自動化",
+      "state": {
+        "disabled": "暫時不會自動執行任務。需要時可以開啟自動簽到或公告抓取。",
+        "needs_setup": "自動任務還缺少可執行帳戶或偵測設定，先完成對應設定後再開啟。",
+        "not_applicable": "目前環境暫時沒有可用的自動任務。"
+      }
+    },
+    "backupSync": {
+      "description": "本機資料備份與跨裝置同步設定。",
+      "label": "備份同步",
+      "state": {
+        "disabled": "資料只保存在本機。需要跨裝置備份時，可以開啟 WebDAV 同步。",
+        "needs_setup": "先連接 WebDAV，才能把本機資料備份到遠端。",
+        "not_applicable": "目前環境暫時不能使用備份同步。"
+      }
+    },
+    "credentialAssets": {
+      "description": "各類 Key 的存放，以及餘額、額度和用量監控。",
+      "label": "憑據資產",
+      "state": {
+        "disabled": "目前還沒有可重複使用的憑據，請先檢查帳戶或 API 憑據設定。",
+        "needs_setup": "儲存一個 API 憑據（Base URL + API Key），就能集中監控餘額、額度和用量。",
+        "not_applicable": "目前環境不需要單獨維護 API 憑據。"
+      }
+    },
+    "dataHistory": {
+      "description": "用量與餘額歷史是否已有可查看資料。",
+      "label": "資料歷史",
+      "state": {
+        "disabled": "暫時不會保存歷史記錄。開啟後，後續用量和餘額變化會持續沉澱。",
+        "needs_setup": "歷史記錄已開啟，但還需要帳戶或首批資料；產生資料後這裡會自動更新。",
+        "not_applicable": "目前環境暫時沒有可查看的資料歷史。"
+      }
+    },
+    "managedSite": {
+      "description": "自建 AI 閘道的渠道管理與模型同步能力。",
+      "label": "自建 AI 閘道",
+      "state": {
+        "disabled": "還沒有設定自建 AI 閘道，需要時可以先完成閘道設定。",
+        "needs_setup": "先設定自建 AI 閘道，才能在這裡管理渠道或同步模型。",
+        "not_applicable": "目前站點類型暫不支援自建 AI 閘道管理。"
+      }
+    },
+    "subItems": {
+      "accounts": "帳戶管理",
+      "apiKeys": "API 金鑰",
+      "apiProfiles": "API 憑據",
+      "autoCheckin": "自動簽到",
+      "balanceHistory": "餘額歷史",
+      "managedSiteChannels": "渠道管理",
+      "managedSiteModelSync": "模型同步",
+      "siteAnnouncements": "網站公告",
+      "usageAnalytics": "用量分析",
+      "webdavAutoSync": "WebDAV 自動同步",
+      "webdavManual": "WebDAV 手動備份"
+    }
+  },
+  "coverageStatus": {
+    "configured": "已設定",
+    "disabled": "未啟用",
+    "needs_setup": "待設定",
+    "not_applicable": "不適用"
+  },
+  "description": "查看帳號、金鑰與用量概況，追蹤自動任務和待處理事項。",
+  "sections": {
+    "automationOverview": "自動化執行",
+    "configurationOverview": "配置概覽",
+    "needsAttention": "需要處理",
+    "recentUsage": "近期使用",
+    "unifiedApiGuidance": "統一 API 設定"
+  },
+  "severity": {
+    "error": "錯誤",
+    "info": "提示",
+    "warning": "警告"
+  },
+  "states": {
+    "allClear": "目前沒有需要處理的事項。",
+    "allClearDescription": "帳號異常、缺少簽到方式和待重新整理統計會自動出現在這裡。",
+    "loadDetailUnavailable": "部分總覽資訊暫時無法使用，請重試載入。",
+    "loadedWithError": "部分資訊載入失敗，已顯示可用資料。",
+    "loading": "正在載入總覽..."
+  },
+  "status": {
+    "accounts": {
+      "label": "帳戶"
+    },
+    "attention": {
+      "label": "待處理"
+    },
+    "profiles": {
+      "label": "憑據庫"
+    },
+    "todayUsage": {
+      "label": "今日用量"
+    }
+  },
+  "title": "總覽",
+  "todayMetricAvailability": {
+    "coverage": "完整 {{complete}} · 部分 {{partial}} · 符合條件 {{eligible}}",
+    "coverageWithRefresh": "完整 {{complete}} · 部分 {{partial}} · 待重新整理 {{refresh}} · 符合條件 {{eligible}}",
+    "includesPendingRefresh": "含待重新整理",
+    "partial": "部分日級統計",
+    "pendingRefresh": "待重新整理",
+    "pendingRefreshHelp": "今日統計狀態尚未確認。請前往帳號清單重新整理相關帳號。",
+    "unavailable": "不可用"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "新增帳戶",
+      "addApiCredential": "新增 API 憑據",
+      "addGatewayChannel": "新增第一個閘道渠道",
+      "configureManagedSite": "設定自建 AI 閘道",
+      "manageChannels": "管理渠道",
+      "openApiCredentialProfiles": "開啟憑據庫",
+      "openModelSync": "開啟模型同步"
+    },
+    "boundaryNote": "My API Box 負責管理和匯入設定，不代理模型請求；外部客戶端實際呼叫的是你的自建 AI 閘道。",
+    "description": {
+      "has_gateway_channels": "已完成閘道設定引導。前往渠道管理確認目前狀態。",
+      "needs_importable_source": "已有帳號，但目前帳號類型無法讀取可匯入的 Key。請先儲存 API Key，或新增支援 Key 取得的帳號，再匯入自建 AI 閘道。",
+      "needs_managed_site": "已有帳號 Key 或 API Key。完成自建 AI 閘道設定後，即可將它們匯入為閘道渠道，讓多個 Key 透過同一個 AI API 使用。",
+      "needs_sources": "先新增帳號或儲存 API Key，再匯入自建 AI 閘道，彙整成一個統一 AI API。",
+      "ready_accounts": "自建 AI 閘道基礎設定已完成。繼續匯入帳號 Key 或 API Key；匯入流程會驗證連線並建立閘道渠道。",
+      "ready_profiles": "自建 AI 閘道基礎設定已完成。前往憑據庫驗證已儲存的 API Key，並將它匯入為閘道渠道。"
+    },
+    "headline": "將多個帳號 Key 或 API Key 彙整成一個統一 AI API",
+    "modelSyncOptional": "模型同步可自動更新閘道模型列表，減少手動維護；渠道建立後可按需開啟。",
+    "optionalLabel": "可選維護",
+    "overview": {
+      "collapse": "收起",
+      "completedDescription": "設定引導已完成。你可以隨時查看步驟或管理閘道渠道。",
+      "description": "將帳號 Key 或 API 憑據匯入自建閘道，透過同一個 API 位址呼叫。",
+      "progress": "設定進度 {{completed}}/{{total}}",
+      "reopen": "設定指南",
+      "resume": "繼續設定",
+      "start": "查看步驟",
+      "title": "統一 API"
+    },
+    "sources": {
+      "account": "帳戶來源",
+      "accountUnavailable": "帳戶暫不可匯入",
+      "both": "帳戶 + 憑據",
+      "none": "還沒有來源",
+      "profile": "憑據來源"
+    },
+    "stepper": {
+      "label": "統一 API 設定進度",
+      "states": {
+        "completed": "已完成",
+        "current": "目前步驟",
+        "upcoming": "稍後"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "匯入至少一個帳號 Key 或已儲存的 API 憑據。",
+          "title": "建立閘道渠道"
+        },
+        "gatewaySettings": {
+          "description": "填寫自建 AI 閘道的管理員連線資訊。",
+          "title": "儲存閘道設定"
+        },
+        "source": {
+          "description": "新增可讀取 Key 的帳號或儲存 API 憑據。",
+          "title": "準備資料來源"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "帳號、憑據或閘道設定未能載入，目前不會因此判定為「沒有來源」。",
+      "retry": "重新檢查設定狀態",
+      "title": "暫時無法確認設定進度"
+    }
+  },
+  "usage": {
+    "activityMix": "近期趨勢",
+    "empty": {
+      "description": "發起一次請求或完成用量歷史同步後，這裡會自動彙總今日請求、Token、消耗和近 7 日趨勢。",
+      "title": "還沒有用量記錄"
+    },
+    "noRecentActivity": "暫無近期用量記錄。",
+    "requestShare": "請求占比",
+    "sevenDayRequests": "近 7 日請求",
+    "sevenDayTokens": "近 7 日 Token",
+    "todayCost": "今日消耗",
+    "todayRequests": "今日請求",
+    "todayShare": "今日在近 7 日中的占比",
+    "todayTokens": "今日 Token",
+    "tokenShare": "Token 占比"
+  }
+}

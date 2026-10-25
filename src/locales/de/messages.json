@@ -1,0 +1,281 @@
+{
+  "accountOperations": {
+    "autoProvisionAlreadyHad": "{{accountName}} hat bereits einen API-Schlüssel. Automatische Erstellung übersprungen.",
+    "autoProvisionCreated": "Für {{accountName}} wurde ein Standardschlüssel erstellt.",
+    "autoProvisionFailed": "Konto gespeichert, aber es konnte kein API-Schlüssel automatisch erstellt werden. Sie können „{{actionLabel}}“ in der Schlüsselverwaltung verwenden, um es erneut zu versuchen.",
+    "autoProvisionGroupsCovered": "Alle verfügbaren Gruppen von {{accountName}} haben jetzt nutzbare API-Schlüssel.",
+    "autoProvisionGroupsCreated_one": "{{count}} Gruppen-API-Schlüssel für {{accountName}} erstellt.",
+    "autoProvisionGroupsCreated_other": "{{count}} Gruppen-API-Schlüssel für {{accountName}} erstellt.",
+    "autoProvisionGroupsIncomplete_one": "{{count}} Gruppen-API-Schlüssel für {{accountName}} erstellt, aber einige Gruppen benötigen noch eine Aktion. Bitte unter Schlüsselverwaltung → {{actionLabel}} prüfen.",
+    "autoProvisionGroupsIncomplete_other": "{{count}} Gruppen-API-Schlüssel für {{accountName}} erstellt, aber einige Gruppen benötigen noch eine Aktion. Bitte unter Schlüsselverwaltung → {{actionLabel}} prüfen.",
+    "autoProvisionGroupsUnavailable": "Für {{accountName}} wurden keine verfügbaren Gruppen zurückgegeben. Es wurden keine Schlüssel erstellt. Bitte unter Schlüsselverwaltung → {{actionLabel}} prüfen.",
+    "autoProvisionGroupsUnsupported": "Die automatische Schlüsselerstellung für alle Gruppen ist für {{accountName}} nicht verfügbar. Die Schlüsselverwaltung zeigt die verfügbaren Schlüsselaktionen für dieses Konto.",
+    "autoProvisionNeedsManualAction": "{{accountName}} wurde gespeichert, aber der Standardschlüssel benötigt eine manuelle Auswahl oder die Verarbeitung eines einmaligen Geheimnisses. Schließen Sie den Vorgang mit „{{actionLabel}}“ in der Schlüsselverwaltung ab.",
+    "autoProvisionUnsupported": "{{accountName}} wurde gespeichert, aber dieser Website-Typ unterstützt das automatische Erstellen eines Standard-API-Schlüssels nicht.",
+    "checkingApiKeys": "API-Schlüssel prüfen...",
+    "tokenNotFound": "Fehler beim Erstellen oder Finden eines API-Tokens"
+  },
+  "aihubmix": {
+    "oneTimeKeyPromptCancelled": "Konto gespeichert. Sie können einen AIHubMix API-Schlüssel später manuell in der Schlüsselverwaltung erstellen.",
+    "oneTimeKeyUnavailableAfterCreate": "Konto gespeichert, aber der vollständige AIHubMix-API-Schlüssel konnte nicht abgerufen werden. AIHubMix-Schlüssel werden nach der Erstellung nur einmal angezeigt; erstellen Sie in der Schlüsselverwaltung einen neuen Schlüssel und speichern Sie ihn sofort vollständig."
+  },
+  "aiToolbox": {
+    "attemptingRedirect": "Versuch einer Weiterleitung zu AI Toolbox",
+    "invalidApp": "Nicht unterstützte AI-Toolbox-Ziel-App",
+    "invalidBaseUrl": "Ungültige oder fehlende API-Basis-URL",
+    "invalidHomepage": "Ungültige oder fehlende Homepage-URL",
+    "missingCredentials": "Erforderliche Konto- oder Schlüsselinformationen fehlen",
+    "unableToOpen": "AI Toolbox kann nicht geöffnet werden. Bitte stellen Sie sicher, dass es installiert ist"
+  },
+  "autodetect": {
+    "currentTabNeedsReload": "Diese Seite wurde möglicherweise geöffnet, bevor die Erweiterung installiert oder aktualisiert wurde, sodass die Erweiterung noch keine Daten von dieser Registerkarte lesen kann. Laden Sie die aktuelle Seite neu und versuchen Sie es dann erneut mit der automatischen Erkennung.",
+    "failed": "Automatische Erkennung fehlgeschlagen: {{error}}",
+    "forbidden": "Zugriff verweigert. Bitte bestätigen Sie, ob die Website-Firewall die Anfrage blockiert",
+    "loginThisSite": "Melden Sie sich auf dieser Website an",
+    "networkError": "Netzwerkverbindung fehlgeschlagen, bitte überprüfen Sie Ihre Netzwerkverbindung und versuchen Sie es erneut",
+    "notFound": "Diese Website konnte nicht automatisch erkannt werden. Überprüfen Sie, ob die Adresse korrekt ist, oder melden Sie sich bei der Zielsite an und versuchen Sie es erneut.",
+    "notLoggedIn": "Sie sind nicht auf der aktuellen Website angemeldet oder die Anmeldeinformationen sind abgelaufen. Automatisches Hinzufügen nicht möglich. Bitte überprüfen Sie die Hilfedokumentation oder klicken Sie, um sich zuerst anzumelden",
+    "serverError": "Serverfehler. Bitte versuchen Sie es später noch einmal",
+    "timeout": "Zeitüberschreitung bei der automatischen Erkennung, bitte versuchen Sie es manuell hinzuzufügen",
+    "unexpectedData": "Automatische Erkennung fehlgeschlagen, die Website hat unerwartete Daten zurückgegeben. Bitte geben Sie die Informationen manuell ein oder stellen Sie sicher, dass Sie auf der Zielseite angemeldet sind"
+  },
+  "axonhub": {
+    "configMissing": "Bitte konfigurieren Sie zuerst die Adresse AxonHub, die Administrator-E-Mail-Adresse und das Passwort in den Grundeinstellungen",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "background": {
+    "cannotCreateWindowOrTab": "Fenster konnte nicht erstellt oder Registerkarte nicht abgerufen werden",
+    "incognitoAccessRequired": "Für die Nutzung eines privaten temporären Fensters ist Inkognito-Zugriff erforderlich. Bitte aktivieren Sie „Inkognito zulassen“ für diese Erweiterung und versuchen Sie es erneut.",
+    "invalidFetchRequest": "Ungültige Abrufanfrage",
+    "pageLoadTimeout": "Zeitüberschreitung beim Laden der Seite",
+    "tempWindowPolicyContextInvalid": "Dieser Vorgang kann nicht fortgesetzt werden. Starten Sie ihn erneut.",
+    "windowCreationUnavailable": "Für diesen Ablauf muss der Browser ein temporäres Fenster öffnen, die Fenstererstellung ist jedoch nicht möglich. Erlauben Sie von der Erweiterung erstellte Fenster oder versuchen Sie es erneut in einem Browser, der sie unterstützt.",
+    "windowNotFound": "Fenster oder Tab nicht gefunden"
+  },
+  "ccswitch": {
+    "attemptingRedirect": "Versuch einer Weiterleitung zum CC-Switch",
+    "invalidApp": "Nicht unterstützte CC Switch-Ziel-App",
+    "invalidEndpoint": "Ungültiger oder fehlender API-Endpunkt",
+    "invalidHomepage": "Ungültige oder fehlende Homepage-URL",
+    "missingCredentials": "Erforderliche Konto- oder Schlüsselinformationen fehlen",
+    "unableToOpen": "CC Switch kann nicht geöffnet werden. Bitte stellen Sie sicher, dass er installiert ist"
+  },
+  "cherryStudio": {
+    "attemptingRedirect": "Versuch einer Weiterleitung zu Cherry Studio",
+    "missingCredentials": "Erforderliche Konto- oder Schlüsselinformationen fehlen",
+    "unableToOpen": "Öffnen nicht möglich, bitte stellen Sie sicher, dass Cherry Studio installiert ist"
+  },
+  "claudecodehub": {
+    "configMissing": "Bitte konfigurieren Sie zuerst die Claude Code Hub-Adresse und den Admin-Token in den Grundeinstellungen",
+    "noChannelsToSync": "Keine Anbieter zum Synchronisieren"
+  },
+  "claudeCodeRouter": {
+    "configMissing": "Bitte konfigurieren Sie zuerst die Basis-URL des Code-Routers Claude in den Einstellungen",
+    "importFailed": "Fehler beim Importieren des Anbieters in den Claude Code Router",
+    "importSuccess": "Anbieter {{name}} erfolgreich in Claude Code Router importiert",
+    "modelsMissing": "Bitte geben Sie mindestens ein Modell an",
+    "updateSuccess": "Claude-Code-Router-Anbieter {{name}} erfolgreich aktualisiert"
+  },
+  "cliProxyApi": {
+    "managementApiForbidden": "CLIProxyAPI hat die Anfrage abgelehnt. Überprüfen Sie, ob der Verwaltungsschlüssel zu oft falsch eingegeben wurde oder ob der Zugriff auf den Server eingeschränkt ist.",
+    "managementApiHttpError": "Die CLIProxyAPI-Verwaltungs-API hat einen unerwarteten Statuscode zurückgegeben (HTTP {{status}})",
+    "managementApiInvalidKey": "Der Verwaltungsschlüssel CLIProxyAPI ist ungültig. Bitte überprüfen Sie den Schlüssel in den Einstellungen.",
+    "managementApiNotFound": "CLIProxyAPI Verwaltungs-API wurde nicht gefunden. Stellen Sie sicher, dass die Basis-URL mit /v0/management endet und dass für CLIProxyAPI ein Verwaltungsschlüssel konfiguriert ist.",
+    "managementApiUnreachable": "Die Verwaltungs-API CLIProxyAPI konnte nicht erreicht werden. Überprüfen Sie die Basis-URL, den Dienststatus und den Browser-Netzwerkzugriff auf diese Adresse."
+  },
+  "content": {
+    "userInfoNotFound": "Benutzerinformationen nicht gefunden, bitte stellen Sie sicher, dass Sie angemeldet sind",
+    "waitUserInfoTimeout": "Zeitüberschreitung beim Warten auf Benutzerinformationen. Bitte stellen Sie sicher, dass Sie angemeldet sind"
+  },
+  "cookieTransport": {
+    "permissionRequired": "Dieser Browser kann keine Anfrage mit dem Cookie dieses Kontos senden. Prüfen Sie die Erweiterungsberechtigungen oder aktualisieren Sie den Browser und versuchen Sie es erneut.",
+    "requestUnavailable": "Die Anfrage konnte nicht vorbereitet werden. Versuche es erneut. Lade die Erweiterung neu, falls der Fehler weiterhin auftritt.",
+    "scopeUnavailable": "Die Anfrage kann den ausgewählten Cookie-Bereich nicht verwenden. Importiere das Cookie des gewünschten Kontos oder nutze dessen reguläre Browsersitzung.",
+    "sessionUnavailable": "Die Anmeldesitzung ist nicht verfügbar. Melde dich erneut beim selben Konto an. Importiere ein zuvor importiertes Cookie erneut."
+  },
+  "donehub": {
+    "configMissing": "Bitte konfigurieren Sie zuerst die Done Hub-Adresse, das Admin-Token und die Benutzer-ID in den Grundeinstellungen",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "errors": {
+    "api": {
+      "invalidResponseFormat": "Ungültiges Antwortformat",
+      "nonJsonContent": "{{contentType}} statt JSON zurückgegeben (HTTP {{status}})",
+      "onlyJsonSupported": "Nur JSON-Antworten werden unterstützt",
+      "requestFailed": "Anfrage fehlgeschlagen: {{status}}"
+    },
+    "dayaRedemptionUnconfirmed": "Prüfen Sie das Ergebnis in der offiziellen Konsole. Kontrollieren Sie die Bereitstellung oder schließen Sie die Anwendung des Rabattcodes ab, bevor Sie es erneut versuchen.",
+    "operation": {
+      "accountDataFetchTimeout": "Zeitüberschreitung beim Abrufen der Kontodaten ({{seconds}}s)",
+      "failed": "Vorgang fehlgeschlagen: {{error}}",
+      "saveFailed": "Speichern fehlgeschlagen: {{error}}"
+    },
+    "relayForRedemptionUnconfirmed": "Das Einlöseergebnis ist unbestätigt. Prüfe vor einem erneuten Versuch die offizielle Konsole.",
+    "relayForVerificationRequired": "Dieser Vorgang erfordert einen Bestätigungscode. Schließe ihn in der offiziellen Konsole ab und aktualisiere hier.",
+    "unknown": "Unbekannter Fehler",
+    "validation": {
+      "bookmarkNameRequired": "Lesezeichenname darf nicht leer sein",
+      "bookmarkUrlRequired": "Lesezeichen-URL darf nicht leer sein",
+      "incompleteAccountInfo": "Bitte geben Sie alle Kontoinformationen ein",
+      "loginProviderInUse": "Die Anmeldemethode {{provider}} wird bereits vom AgentRouter-Konto „{{account}}“ mit aktiviertem automatischem Check-in verwendet. Wähle die andere Methode, deaktiviere dort den automatischen Check-in oder leere diese Auswahl.",
+      "updateAccountFailed": "Konto konnte nicht aktualisiert werden: {{error}}",
+      "urlRequired": "Website-URL darf nicht leer sein",
+      "userIdNumeric": "Die Benutzer-ID muss eine Zahl sein"
+    }
+  },
+  "gptLoad": {
+    "configMissing": "Configure the gpt-load deployment address and management key in settings first",
+    "noChannelsToSync": "No channels to sync"
+  },
+  "grsai": {
+    "openApiTokenRejected": "Dies ist das Token von der Grsai-Benutzerinfoseite. Es ist für die offenen APIs der Plattform gedacht, und die Konsole akzeptiert es nicht. Verwende die automatische Erkennung, um die angemeldete Konsolensitzung zu lesen, oder füge stattdessen das Sitzungstoken der Konsole ein.",
+    "sessionExpired": "Die gespeicherte Grsai-Konsolensitzung ist abgelaufen (eine Sitzung dauert etwa 30 Tage). Melde dich erneut in der Grsai-Konsole an und füge das Konto dann über die automatische Erkennung hinzu."
+  },
+  "kelivo": {
+    "copied": "Importcode für Kelivo Mobile kopiert. Füge ihn beim Anbieterimport in Kelivo Mobile ein.",
+    "copyFailed": "Der Kelivo-Importcode konnte nicht kopiert werden. Prüfe die Zwischenablageberechtigung und versuche es erneut.",
+    "customGoogleEndpointUnsupported": "Kelivo-Importcodes können benutzerdefinierte Google-API-Adressen nicht übernehmen.",
+    "invalidBaseUrl": "Die Base URL muss eine gültige HTTP- oder HTTPS-Adresse sein.",
+    "missingCredentials": "Ein Anbietername und ein vollständiger API-Schlüssel sind erforderlich.",
+    "unsupportedApiType": "Dieses API-Protokoll kann nicht nach Kelivo exportiert werden."
+  },
+  "magpie": {
+    "configMissing": "Konfigurieren Sie zuerst die Magpie-Web-Adresse und den Web-Verwaltungsschlüssel.",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "managedSite": {
+    "unsupportedModelSync": "{{siteName}} unterstützt in dieser Version keine Modellsynchronisierung für verwaltete Websites"
+  },
+  "newapi": {
+    "configMissing": "Bitte konfigurieren Sie zuerst New API Adresse, Admin-Token und Benutzer-ID in den Grundeinstellungen",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "octopus": {
+    "configMissing": "Bitte konfigurieren Sie zuerst Octopus Adresse, Benutzernamen und Passwort in den Grundeinstellungen",
+    "corsError": "Dies kann durch die CORS-Konfiguration verursacht werden. Bitte überprüfen Sie die CORS-Whitelist-Einstellung in den Octopus-Einstellungen.",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "omniroute": {
+    "configMissing": "Bitte konfigurieren Sie zuerst die OmniRoute-Adresse und das Zugriffstoken in den Grundeinstellungen",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "openrouter": {
+    "bootstrap": {
+      "cancelled_before_create": "Die Erstellung des OpenRouter-Schlüssels wurde abgebrochen, bevor etwas erstellt wurde.",
+      "cancelledAfterCreate": "Der Schlüssel wurde erstellt, während der Abbruch bereits angefordert war. Überprüfen Sie ihn unten und speichern oder widerrufen Sie ihn.",
+      "failed": "Die Erstellung des OpenRouter-Schlüssels konnte nicht bestätigt werden. Geben Sie einen Schlüssel manuell ein oder überprüfen Sie die Verwaltungsschlüssel.",
+      "invalid_origin": "Die Schlüsselerstellung in OpenRouter erfordert die kanonische OpenRouter-Seite.",
+      "logged_out": "Melden Sie sich bei OpenRouter an und versuchen Sie es dann erneut mit der automatischen Erkennung.",
+      "mutationUnconfirmed": "OpenRouter hat möglicherweise einen Schlüssel erstellt, aber das Ergebnis wurde nicht geliefert. Überprüfen Sie die Verwaltungsschlüssel, bevor Sie es erneut versuchen.",
+      "page_changed": "Lassen Sie die Seite „OpenRouter-Verwaltungsschlüssel“ geöffnet und versuchen Sie es dann erneut mit der automatischen Erkennung.",
+      "timeout": "Zeitüberschreitung bei der Erstellung des OpenRouter-Schlüssels. Überprüfen Sie die Verwaltungsschlüssel, bevor Sie es erneut versuchen.",
+      "validationFailed": "OpenRouter hat einen Schlüssel erstellt, aber die Validierung ist fehlgeschlagen. Fügen Sie ihn unten ein oder widerrufen Sie ihn in den Verwaltungsschlüsseln."
+    },
+    "credentialInvalid": "Dieser Verwaltungsschlüssel OpenRouter ist ungültig oder widerrufen.",
+    "malformedResponse": "OpenRouter hat eine unerwartete Antwort zurückgegeben. Versuchen Sie es später noch einmal.",
+    "managementKeyRequired": "Erstellen Sie einen neuen Verwaltungsschlüssel in OpenRouter und kopieren Sie ihn sofort. Vorhandene Verwaltungsschlüssel können nicht erneut offengelegt werden.",
+    "networkFallback": "Es konnte keine Verbindung zu OpenRouter hergestellt werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "permissionDenied": "Dieser Verwaltungsschlüssel OpenRouter verfügt nicht über die Berechtigung, Kontoguthaben zu lesen."
+  },
+  "operations": {
+    "detection": {
+      "failed": "Automatische Erkennung fehlgeschlagen, bitte geben Sie die Informationen manuell ein oder stellen Sie sicher, dass Sie auf der Zielseite angemeldet sind",
+      "getAccessTokenFailedDetailed": "Das Konto wurde erkannt, aber es konnte kein Zugriffstoken abgerufen werden. Bestätigen Sie, dass das Konto API-Token erstellen oder anzeigen kann, oder geben Sie das Token manuell ein.",
+      "getInfoFailed": "Benutzername oder Zugriffstoken konnten nicht abgerufen werden",
+      "getSiteStatusFailedDetailed": "Das Konto wurde erkannt, aber der Website-Status konnte nicht gelesen werden. Versuchen Sie es später noch einmal. Wenn dies immer noch fehlschlägt, speichern Sie das Konto zunächst manuell.",
+      "getUserIdFailed": "Benutzer-ID konnte nicht abgerufen werden",
+      "getUserIdFailedDetailed": "Das angemeldete Konto konnte nicht bestätigt werden. Öffnen Sie die Zielseite in diesem Browser, stellen Sie sicher, dass Sie angemeldet sind, und versuchen Sie es erneut. Falls es weiterhin fehlschlägt, ergänzen Sie die Kontodaten manuell.",
+      "getUsernameFailedDetailed": "Das Konto wurde erkannt, aber die Website hat keinen Benutzernamen zurückgegeben. Stellen Sie sicher, dass Sie angemeldet sind, oder geben Sie das Konto manuell ein."
+    }
+  },
+  "storage": {
+    "accountDisabled": "Konto {{id}} ist deaktiviert",
+    "accountNotFound": "Konto {{id}} existiert nicht",
+    "updateFailed": "Konto konnte nicht aktualisiert werden"
+  },
+  "sub2api": {
+    "authPersistenceFailed": "Die aktualisierte Sub2API-Anmeldung konnte nicht sicher in diesem Konto gespeichert werden. Aktualisieren oder importieren Sie das Konto erneut und versuchen Sie es dann noch einmal.",
+    "configMissing": "Bitte konfigurieren Sie zuerst die Sub2API-Basis-URL und den Admin API Key in den Grundeinstellungen.",
+    "loginRequired": "Bitte melden Sie sich zuerst beim Sub2API-Dashboard an (damit die Erweiterung auth_token/auth_user aus localStorage lesen kann) und versuchen Sie es erneut.",
+    "refreshTokenInvalid": "Das Sub2API-Aktualisierungstoken ist ungültig oder wurde rotiert. Importieren Sie die Sitzung erneut aus dem Dashboard (empfohlen: Inkognito-/privates Fenster) oder fügen Sie ein aktualisiertes refresh_token ein und versuchen Sie es erneut."
+  },
+  "toast": {
+    "error": {
+      "copyFailed": "Kopieren fehlgeschlagen",
+      "duplicateCleanupFailed": "Fehler beim Löschen doppelter Konten: {{error}}",
+      "externalCheckInNonePending": "Es gibt keine externen Check-in-Stationen, die heute nicht geöffnet wurden.",
+      "externalCheckInPartialFailed_one": "{{failedCount}} von {{totalCount}} externen Check-ins ist fehlgeschlagen.",
+      "externalCheckInPartialFailed_other": "{{failedCount}} von {{totalCount}} externen Check-ins sind fehlgeschlagen.",
+      "findAccountDetailsFailed": "Kontodetails konnten nicht gefunden werden",
+      "operationFailed": "Vorgang fehlgeschlagen: {{error}}",
+      "operationFailedGeneric": "Vorgang fehlgeschlagen",
+      "refreshAccount": "Aktualisierung {{accountName}} fehlgeschlagen",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "shareSnapshotAccountDisabled": "Dieses Konto ist deaktiviert",
+      "shareSnapshotNoEnabledAccounts": "Keine aktivierten Konten zum Teilen"
+    },
+    "loading": {
+      "refreshingAccount": "{{accountName}} wird aktualisiert..."
+    },
+    "success": {
+      "accountDisabled": "{{accountName}} deaktiviert",
+      "accountEnabled": "{{accountName}} aktiviert",
+      "accountPinned": "{{accountName}} angeheftet",
+      "accountSaveSuccess": "Konto erfolgreich gespeichert",
+      "accountsDisabled_one": "{{count}} Konto deaktiviert",
+      "accountsDisabled_other": "{{count}} Konten deaktiviert",
+      "accountsEnabled_one": "{{count}} Konto aktiviert",
+      "accountsEnabled_other": "{{count}} Konten aktiviert",
+      "accountUnpinned": "Anheftung von {{accountName}} aufgehoben",
+      "accountUpdateSuccess": "Konto erfolgreich aktualisiert",
+      "bookmarkAdded": "Lesezeichen {{name}} erfolgreich hinzugefügt!",
+      "bookmarkDeleted": "Lesezeichen {{name}} gelöscht",
+      "bookmarkPinned": "{{name}} angeheftet",
+      "bookmarkUnpinned": "Anheftung von {{name}} aufgehoben",
+      "bookmarkUpdated": "Lesezeichen {{name}} erfolgreich aktualisiert!",
+      "bookmarkUrlCopied": "{{name}} URL in Zwischenablage kopiert",
+      "duplicateCleanupSuccess_one": "{{count}} Konto aus {{groups}} Duplikatgruppen gelöscht.",
+      "duplicateCleanupSuccess_other": "{{count}} Konten aus {{groups}} Duplikatgruppen gelöscht.",
+      "externalCheckInModeAll": "alle",
+      "externalCheckInModeUnchecked": "nur ungeprüfte",
+      "externalCheckInOpened_one": "Externer Check-in für {{count}} Konto geöffnet ({{mode}}).",
+      "externalCheckInOpened_other": "Externe Check-ins für {{count}} Konten geöffnet ({{mode}}).",
+      "operationCompleted": "Vorgang abgeschlossen",
+      "refreshAccount": "{{accountName}} erfolgreich aktualisiert!",
+      "refreshSkipped": "Aktualisierungsintervall nicht erreicht, übersprungen",
+      "shareSnapshotCaptionCopied": "Beschriftung kopiert",
+      "shareSnapshotCopied": "Schnappschuss in Zwischenablage kopiert",
+      "shareSnapshotDownloaded": "Schnappschuss heruntergeladen",
+      "urlCopied": "{{accountName}} URL in Zwischenablage kopiert"
+    }
+  },
+  "tokenProvisioning": {
+    "createRequiresGroup": "Für die Schlüsselerstellung ist eine bestätigte Gruppe erforderlich. Wählen Sie eine verfügbare Gruppe aus, bevor Sie fortfahren.",
+    "createRequiresGroupSelection": "Dieses Konto verfügt über mehrere verfügbare Gruppen. Wählen Sie eine aus, bevor Sie den Schlüssel erstellen.",
+    "selectGroupTitle": "Schlüsselgruppe auswählen"
+  },
+  "veloera": {
+    "configMissing": "Bitte konfigurieren Sie zuerst die Veloera-Adresse, das Admin-Token und die Benutzer-ID in den Grundeinstellungen",
+    "noChannelsToSync": "Keine Kanäle zum Synchronisieren"
+  },
+  "warnings": {
+    "accountSavedWithoutDataRefresh": "Konto gespeichert, aber der aktuelle Kontostand, das Kontingent und die heutige Nutzung konnten nicht abgerufen werden. Die aktuellen Werte können Platzhalter sein. Aktualisieren Sie dieses Konto später über die Kontoliste.",
+    "accountUpdatedWithoutDataRefresh": "Kontoeinstellungen wurden gespeichert, aber der aktuelle Kontostand, das Kontingent und die heutige Nutzung konnten nicht aktualisiert werden. Die aktuellen Werte sind möglicherweise noch veraltet. Aktualisieren Sie dieses Konto später über die Kontoliste."
+  },
+  "webdav": {
+    "authFailed": "Authentifizierung fehlgeschlagen, bitte überprüfen Sie Benutzername/Passwort",
+    "configIncomplete": "Bitte füllen Sie WebDAV URL, Benutzername und Passwort vollständig aus",
+    "connectionFailed": "Verbindung fehlgeschlagen, Statuscode: {{status}}",
+    "decryptFailed": "Backup konnte nicht entschlüsselt werden. Überprüfen Sie Ihr Passwort.",
+    "decryptFailedNoPassword": "Das Backup ist verschlüsselt, aber es ist kein Passwort festgelegt",
+    "downloadFailed": "Download fehlgeschlagen, Statuscode: {{status}}",
+    "encryptFailedNoPassword": "Die Verschlüsselung ist aktiviert, aber es ist kein Passwort festgelegt",
+    "fileNotFound": "Remote-Backup-Datei existiert nicht",
+    "invalidBackupJson": "Die Cloud-Sicherungsdatei ist unvollständig und kann nicht für die Synchronisierung verwendet werden. Die Synchronisierung wurde gestoppt, um eine Zusammenführung beschädigter Daten zu vermeiden. Wenn dieses Gerät über vollständige lokale Daten verfügt, verwenden Sie „Auf WebDAV hochladen“, um das Cloud-Backup neu zu erstellen. Wenn nicht, laden Sie die Daten von einem anderen Gerät hoch, das über vollständige Daten verfügt, oder importieren Sie zunächst eine vollständige Sicherungsdatei.",
+    "safeCommitFailed": "Es konnte nicht bestätigt werden, dass das Cloud-Backup gespeichert wurde. Prüfen Sie die Verbindung und Ihre Lese- und Schreibberechtigungen und versuchen Sie es erneut.",
+    "syncDataSelectionRequired": "Wählen Sie mindestens eine Datendomäne zur Synchronisierung aus",
+    "uploadFailed": "Upload fehlgeschlagen, Statuscode: {{status}}",
+    "uploadStillProcessing": "Der Cloud-Dienst verarbeitet das hochgeladene Backup noch, daher konnte die Überprüfung noch nicht abgeschlossen werden. Versuchen Sie es später erneut.",
+    "uploadVerificationFailed": "Die Überprüfung des Backups nach dem Hochladen ist fehlgeschlagen. Die Datei in der Cloud ist möglicherweise unvollständig. Wiederholen Sie die Synchronisierung oder stellen Sie bei Bedarf ein lokales Backup wieder her."
+  }
+}

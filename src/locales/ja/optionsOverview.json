@@ -1,0 +1,396 @@
+{
+  "actions": {
+    "open": "開く"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "無効なアカウントは更新やチェックインなどの自動処理の対象外です。必要に応じて有効にしてください。",
+      "title_other": "{{count}} 件のアカウントがすべて無効です"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} はブラウザ設定の確認が必要です"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} に状態の問題があります"
+    },
+    "actions": {
+      "addAccount": "アカウントを追加",
+      "addProfile": "API 認証情報を追加",
+      "editAccount": "アカウントを編集",
+      "fixAccount": "アカウントを修正",
+      "handleCheckIn": "チェックインを処理",
+      "manageAccounts": "アカウントを管理",
+      "openSettings": "設定を開く",
+      "refreshAccounts": "アカウントを更新",
+      "signInAgain": "再ログイン",
+      "viewAccount": "アカウントを表示",
+      "viewAnnouncements": "お知らせを表示",
+      "viewCheckIn": "チェックインを表示",
+      "viewCheckInResults": "結果を表示"
+    },
+    "addAccount": {
+      "description": "残高、利用状況、自動タスクを集計するには、まずアカウントを追加してください。",
+      "title": "アカウントがありません"
+    },
+    "addProfile": {
+      "description": "認証情報庫は API Key や coding plan Key など各種 Key を保存し、残高と使用量を一元管理できます。coding plan の 5 時間 / 7 日 / 毎月の枠がどれだけ残っているかも一目でわかります。",
+      "title": "API 認証情報がありません"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_other": "{{count}} 件のアカウントで自動チェックインが有効ですが、全体スイッチが無効のため実行されません。チェックイン設定で再度有効にしてください。",
+      "title": "自動チェックインは全体で無効です"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "前回の実行で失敗または未確認の結果があります。自動チェックインを開いて原因を確認し、再試行してください。",
+      "title_other": "{{count}} 件のアカウントでチェックインの確認が必要です"
+    },
+    "categories": {
+      "accounts": "アカウント",
+      "automation": "自動化",
+      "credentials": "認証情報",
+      "data": "データ"
+    },
+    "categoryFilterLabel": "カテゴリ",
+    "checkInAccountDataMissing": {
+      "description": "保存された資格情報またはアカウント情報が不完全です。アカウント管理で再検出してから再実行してください。",
+      "title_other": "{{count}} 件のアカウントで保存済みログイン情報が不足しています"
+    },
+    "checkInMethodUnresolved": {
+      "description": "自動チェックインは有効ですが、利用できる方法がまだありません。アカウント管理で方法を再検出または選択してから実行してください。",
+      "title": "{{name}} のチェックイン方法を確認してください"
+    },
+    "checkInPermissionDenied": {
+      "description": "サイトがチェックイン要求を拒否しました。再ログインまたは権限の確認後に再試行してください。",
+      "title_other": "{{count}} 件のアカウントでチェックインが拒否されました"
+    },
+    "checkInReloginRequired": {
+      "description": "直近の実行ではログインの有効期限が切れていたためスキップされました。サイトに再ログインしてから再実行してください。",
+      "title_other": "{{count}} 件のアカウントで再ログインが必要です"
+    },
+    "filterAll": "すべて",
+    "severityFilterLabel": "重大度",
+    "siteTypeMismatch": {
+      "description": "このサイトは {{suggestedType}} に該当しますが、アカウントは {{storedType}} になっています。アカウントを編集してサイト種別を {{suggestedType}} に変更してください。",
+      "title": "{{name}} のサイト種別が正しくない可能性があります"
+    },
+    "siteTypeUnknown": {
+      "description": "自動チェックインでこのサイトのプロトコルを判定できません。アカウントを編集して正しいサイト種別を選択するか、自動検出を再実行してください。",
+      "title": "{{name}} のサイト種別が不明です"
+    },
+    "sortHint": "影響度順",
+    "summary_other": "{{count}} 件の未処理",
+    "unreadSiteAnnouncements": {
+      "description": "サイトのお知らせを開くと既読になり、メンテナンスやリスクの通知を見落としにくくなります。",
+      "title_other": "未読のサイトお知らせが {{count}} 件あります"
+    },
+    "usageRefreshPending": {
+      "description": "アカウントを更新すると、今日のリクエスト、Token、消費統計が補完されます。",
+      "title_other": "{{count}} 件のアカウントで今日の統計を更新してください"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "チェックインを見る",
+      "retryFailed": "失敗を再試行"
+    },
+    "empty": {
+      "disabled": {
+        "description": "自動チェックインはオフです。チェックイン報酬を自動で受け取りたいときは、設定で再度オンにできます。"
+      },
+      "notRun": {
+        "description": "まだチェックイン記録がありません。アカウントのチェックイン検出を有効にすると、次回予定で実行されます。自動チェックインページで手動処理することもできます。"
+      }
+    },
+    "lastRun": "前回実行",
+    "metrics": {
+      "failed": "失敗",
+      "skipped": "スキップ",
+      "success": "成功"
+    },
+    "nextRetry": "次回再試行",
+    "nextRun": "次回予定",
+    "notRunYet": "未実行",
+    "notScheduled": "未予定",
+    "status": {
+      "disabled": "無効",
+      "failed": "失敗",
+      "not_run": "初回実行待ち",
+      "partial": "一部成功",
+      "ready": "準備完了",
+      "skipped": "未実行",
+      "success": "成功"
+    },
+    "summary": "自動チェックイン実行サマリー"
+  },
+  "automation": {
+    "automaticEnabled": "自動実行は有効です",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "チェックイン報酬を自動で受け取りたいときは、自動チェックインをオンにしてください。以後の予定と結果がここに表示されます。"
+      },
+      "managedSiteModelSync": {
+        "disabled": "セルフホスト AI ゲートウェイのモデルを自動更新したいときは、モデル同期をオンにしてください。同期間隔と範囲がここに表示されます。"
+      },
+      "siteAnnouncements": {
+        "disabled": "サイトのお知らせを見逃したくないときは、公告取得をオンにしてください。最近の確認時刻と公告数がここに表示されます。"
+      },
+      "webdavAutoSync": {
+        "disabled": "端末間でバックアップしたいときは、WebDAV 自動同期を設定してください。同期戦略と範囲がここに表示されます。"
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "自動チェックイン"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "限定モデル数",
+        "concurrency": "並行数",
+        "interval": "同期間隔（時間）",
+        "label": "セルフホスト AI ゲートウェイモデル同期",
+        "open": "同期を開く"
+      },
+      "siteAnnouncements": {
+        "interval": "取得間隔（分）",
+        "label": "サイト公告の取得",
+        "lastChecked": "最終チェック",
+        "openPage": "公告を表示",
+        "openSettings": "取得設定",
+        "records": "公告総数",
+        "unread": "未読公告"
+      },
+      "webdavAutoSync": {
+        "domains": "同期範囲数",
+        "interval": "同期間隔（分）",
+        "label": "WebDAV バックアップ同期",
+        "open": "バックアップ同期を開く",
+        "strategy": "同期戦略"
+      }
+    },
+    "metrics": {
+      "failed": "失敗",
+      "skipped": "スキップ",
+      "success": "成功",
+      "unsupported": "未対応"
+    },
+    "neverChecked": "未チェック",
+    "openItem": "{{name}}を開く",
+    "status": {
+      "disabled": "無効",
+      "failed": "実行失敗",
+      "limited": "一部未対応",
+      "notRun": "初回実行待ち",
+      "partial": "一部失敗",
+      "ready": "準備完了",
+      "running": "実行中",
+      "skipped": "未実行",
+      "success": "実行成功",
+      "unknown": "状態不明",
+      "unsupported": "未対応"
+    },
+    "statusUnavailable": "実行状態を取得できません。詳細を開くか、再読み込みしてお試しください。"
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "アカウント、残高、ヘルス状態は他の機能の土台です。",
+      "label": "アカウント基盤",
+      "state": {
+        "disabled": "まだアカウント状態を読み取れません。アカウント設定が完了しているか確認してください。",
+        "needs_setup": "まずアカウントを 1 つ追加すると、概要で残高、利用状況、自動タスクの状態をまとめて確認できます。",
+        "not_applicable": "この環境ではアカウントを追加しなくても続行できます。"
+      }
+    },
+    "automation": {
+      "description": "自動チェックインと公告取得が利用可能かを示します。",
+      "label": "自動化",
+      "state": {
+        "disabled": "今はタスクが自動実行されません。必要なときに自動チェックインや公告取得をオンにできます。",
+        "needs_setup": "自動タスクには実行できるアカウントまたは検出設定がまだ必要です。先に関連設定を完了してください。",
+        "not_applicable": "この環境では利用できる自動タスクがまだありません。"
+      }
+    },
+    "backupSync": {
+      "description": "ローカルデータのバックアップと端末間同期の設定です。",
+      "label": "バックアップ同期",
+      "state": {
+        "disabled": "データはこの端末にのみ保存されています。端末間でバックアップしたいときは WebDAV 同期をオンにできます。",
+        "needs_setup": "まず WebDAV に接続すると、ローカルデータをリモートへバックアップできます。",
+        "not_applicable": "この環境ではバックアップ同期をまだ利用できません。"
+      }
+    },
+    "credentialAssets": {
+      "description": "各種 Key の保存と、残高・枠・使用量の監視。",
+      "label": "認証情報資産",
+      "state": {
+        "disabled": "まだ再利用できる認証情報がありません。アカウントまたは API 認証情報の設定を確認してください。",
+        "needs_setup": "API 認証情報（Base URL + API Key）を保存すると、残高・枠・使用量を一元管理できます。",
+        "not_applicable": "この環境では API 認証情報を個別に管理する必要はありません。"
+      }
+    },
+    "dataHistory": {
+      "description": "利用履歴と残高履歴に確認できるデータがあるかを示します。",
+      "label": "データ履歴",
+      "state": {
+        "disabled": "今は履歴を保存していません。オンにすると、今後の利用状況や残高の変化が蓄積されます。",
+        "needs_setup": "履歴はオンですが、アカウントまたは最初のデータがまだ必要です。データが発生するとここに反映されます。",
+        "not_applicable": "この環境では確認できるデータ履歴がまだありません。"
+      }
+    },
+    "managedSite": {
+      "description": "セルフホスト AI ゲートウェイのチャネル管理とモデル同期機能です。",
+      "label": "セルフホスト AI ゲートウェイ",
+      "state": {
+        "disabled": "セルフホスト AI ゲートウェイはまだ設定されていません。必要になったら先にゲートウェイ設定を完了してください。",
+        "needs_setup": "まずセルフホスト AI ゲートウェイを設定すると、ここでチャネル管理やモデル同期を使えます。",
+        "not_applicable": "このサイト種別ではセルフホスト AI ゲートウェイ管理をまだ利用できません。"
+      }
+    },
+    "subItems": {
+      "accounts": "アカウント管理",
+      "apiKeys": "API キー",
+      "apiProfiles": "API 認証情報",
+      "autoCheckin": "自動チェックイン",
+      "balanceHistory": "残高履歴",
+      "managedSiteChannels": "チャネル管理",
+      "managedSiteModelSync": "モデル同期",
+      "siteAnnouncements": "サイト公告",
+      "usageAnalytics": "利用分析",
+      "webdavAutoSync": "WebDAV 自動同期",
+      "webdavManual": "WebDAV 手動バックアップ"
+    }
+  },
+  "coverageStatus": {
+    "configured": "設定済み",
+    "disabled": "未有効化",
+    "needs_setup": "設定が必要",
+    "not_applicable": "対象外"
+  },
+  "description": "アカウント、キー、使用量の概要を確認し、自動タスクや未処理の項目を把握します。",
+  "sections": {
+    "automationOverview": "自動化実行",
+    "configurationOverview": "設定概要",
+    "needsAttention": "対応が必要",
+    "recentUsage": "最近の利用",
+    "unifiedApiGuidance": "統一 API 設定"
+  },
+  "severity": {
+    "error": "エラー",
+    "info": "情報",
+    "warning": "警告"
+  },
+  "states": {
+    "allClear": "現在対応が必要な項目はありません。",
+    "allClearDescription": "アカウントの問題、チェックイン方法の不足、更新が必要な統計がここに自動で表示されます。",
+    "loadDetailUnavailable": "概要の一部の情報を一時的に利用できません。もう一度読み込んでください。",
+    "loadedWithError": "一部の情報を読み込めませんでした。利用可能なデータを表示しています。",
+    "loading": "概要を読み込み中..."
+  },
+  "status": {
+    "accounts": {
+      "label": "アカウント"
+    },
+    "attention": {
+      "label": "対応"
+    },
+    "profiles": {
+      "label": "認証情報"
+    },
+    "todayUsage": {
+      "label": "今日"
+    }
+  },
+  "title": "概要",
+  "todayMetricAvailability": {
+    "coverage": "完全 {{complete}}・一部 {{partial}}・対象 {{eligible}}",
+    "coverageWithRefresh": "完全 {{complete}}・一部 {{partial}}・更新待ち {{refresh}}・対象 {{eligible}}",
+    "includesPendingRefresh": "更新待ちを含む",
+    "partial": "一部の日次統計",
+    "pendingRefresh": "更新待ち",
+    "pendingRefreshHelp": "今日の統計はまだ確認されていません。アカウント一覧で対象のアカウントを更新してください。",
+    "unavailable": "利用不可"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "アカウントを追加",
+      "addApiCredential": "API 認証情報を追加",
+      "addGatewayChannel": "最初のゲートウェイチャネルを追加",
+      "configureManagedSite": "セルフホスト AI ゲートウェイを設定",
+      "manageChannels": "チャネルを管理",
+      "openApiCredentialProfiles": "認証情報ライブラリを開く",
+      "openModelSync": "モデル同期を開く"
+    },
+    "boundaryNote": "My API Box は設定の管理とインポートを行います。モデルリクエストは中継せず、外部クライアントが呼び出す先はセルフホスト AI ゲートウェイです。",
+    "description": {
+      "has_gateway_channels": "ゲートウェイの設定ガイドは完了しています。チャネル管理で現在の状態を確認してください。",
+      "needs_importable_source": "アカウントはありますが、現在のアカウント種別からはインポート可能なキーを取得できません。先に API キーを保存するか、キーを取得できるアカウント種別を追加してから、セルフホスト AI ゲートウェイへ取り込んでください。",
+      "needs_managed_site": "アカウントキーまたは API キーがあります。セルフホスト AI ゲートウェイを設定すれば、ゲートウェイチャネルとして取り込み、複数のキーを 1 つの AI API から利用できます。",
+      "needs_sources": "アカウントを追加するか API キーを保存し、セルフホストの AI ゲートウェイにインポートして、統一 AI API にまとめます。",
+      "ready_accounts": "セルフホスト AI ゲートウェイの基本設定が完了しました。アカウントキーまたは API キーの取り込みへ進むと、接続を検証してゲートウェイチャネルを作成します。",
+      "ready_profiles": "セルフホスト AI ゲートウェイの基本設定が完了しました。認証情報ライブラリを開き、保存済み API キーを検証してゲートウェイチャネルとして取り込んでください。"
+    },
+    "headline": "複数のアカウントキーや API キーを 1 つの AI API にまとめる",
+    "modelSyncOptional": "モデル同期はゲートウェイのモデル一覧を自動更新して手動管理を減らします。チャネル作成後に必要に応じて有効化できます。",
+    "optionalLabel": "任意のメンテナンス",
+    "overview": {
+      "collapse": "折りたたむ",
+      "completedDescription": "設定ガイドは完了しました。いつでも手順の確認やゲートウェイのチャネル管理ができます。",
+      "description": "アカウントキーや API 認証情報を自分のゲートウェイにインポートし、1 つの API アドレスで利用できます。",
+      "progress": "設定の進捗 {{completed}}/{{total}}",
+      "reopen": "設定ガイド",
+      "resume": "設定を続ける",
+      "start": "手順を見る",
+      "title": "統一 API"
+    },
+    "sources": {
+      "account": "アカウントソース",
+      "accountUnavailable": "アカウントは未対応",
+      "both": "アカウント + 認証情報",
+      "none": "ソースはまだありません",
+      "profile": "認証情報ソース"
+    },
+    "stepper": {
+      "label": "統一 API の設定進捗",
+      "states": {
+        "completed": "完了",
+        "current": "現在の手順",
+        "upcoming": "後で"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "アカウントキーまたは保存済み API 認証情報を 1 つ以上取り込みます。",
+          "title": "ゲートウェイチャネルを作成"
+        },
+        "gatewaySettings": {
+          "description": "セルフホスト AI ゲートウェイの管理者接続情報を入力します。",
+          "title": "ゲートウェイ設定を保存"
+        },
+        "source": {
+          "description": "キーを取得できるアカウントを追加するか、API 認証情報を保存します。",
+          "title": "ソースを準備"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "アカウント、認証情報、またはゲートウェイ設定を読み込めませんでした。データソースがないとは判定しません。",
+      "retry": "設定状態を再確認",
+      "title": "設定状況を確認できません"
+    }
+  },
+  "usage": {
+    "activityMix": "最近の傾向",
+    "empty": {
+      "description": "リクエストを送信するか利用履歴を同期すると、今日のリクエスト、Token、消費量、直近 7 日間の傾向がここに自動でまとまります。",
+      "title": "利用記録はまだありません"
+    },
+    "noRecentActivity": "最近の利用記録はありません。",
+    "requestShare": "リクエスト比率",
+    "sevenDayRequests": "7日間のリクエスト",
+    "sevenDayTokens": "7日間のトークン",
+    "todayCost": "今日の消費",
+    "todayRequests": "今日のリクエスト",
+    "todayShare": "直近7日間に占める今日の割合",
+    "todayTokens": "今日のトークン",
+    "tokenShare": "トークン比率"
+  }
+}

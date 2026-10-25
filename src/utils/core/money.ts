@@ -1,0 +1,106 @@
+import {
+  CURRENCY_SYMBOLS,
+  DEFAULT_USD_TO_CNY_RATE,
+  QUOTA_PER_USD,
+} from "~/constants/money"
+import type { CurrencyAmount, CurrencyType } from "~/types"
+
+/** Decimal precision shared by static and animated money displays. */
+export const MONEY_DECIMAL_PLACES = 2
+
+/**
+ * Converts an internal quota amount into both display currencies.
+ *
+ * The account owns the USD-to-CNY rate used elsewhere in the UI, so callers
+ * pass their own account's `exchange_rate`.
+ */
+export const convertQuotaToCurrencyAmounts = (
+  quota: number,
+  exchangeRate: number,
+): CurrencyAmount => {
+  const USD = quota / QUOTA_PER_USD
+  return { USD, CNY: USD * exchangeRate }
+}
+
+/**
+ * Formatting options for money-like numeric values used across the UI.
+ */
+type MoneyFormatOptions = {
+  decimals: number
+  minNonZero: number
+}
+
+/**
+ * Default money formatting options for the application UI.
+ */
+const DEFAULT_MONEY_FORMAT_OPTIONS: MoneyFormatOptions = {
+  decimals: MONEY_DECIMAL_PLACES,
+  minNonZero: 0.01,
+}
+
+/**
+ * Maps extremely small non-zero values to a minimum display value so that fixed-decimal
+ * formatting does not render them as `0.00`.
+ */
+export const normalizeMoneyForDisplay = (
+  value: number,
+  { minNonZero }: Pick<MoneyFormatOptions, "minNonZero">,
+): number => {
+  if (!Number.isFinite(value) || value === 0) return 0
+
+  const abs = Math.abs(value)
+  if (abs < minNonZero) {
+    return Math.sign(value) * minNonZero
+  }
+
+  return value
+}
+
+/**
+ * Rounds a number to the specified decimal places as a numeric value.
+ */
+const roundToDecimals = (value: number, decimals: number): number => {
+  if (!Number.isFinite(value)) return 0
+  if (decimals <= 0) return Math.round(value)
+
+  const factor = 10 ** decimals
+  return Math.round((value + Number.EPSILON) * factor) / factor
+}
+
+/**
+ * Normalizes then rounds for display in UI (e.g. CountUp end/start values).
+ */
+export const getDisplayMoneyValue = (
+  value: number,
+  { decimals, minNonZero }: MoneyFormatOptions = DEFAULT_MONEY_FORMAT_OPTIONS,
+): number => {
+  const normalized = normalizeMoneyForDisplay(value, { minNonZero })
+  return roundToDecimals(normalized, decimals)
+}
+
+/**
+ * Formats a value using fixed decimals after applying minimum non-zero mapping.
+ */
+export const formatMoneyFixed = (
+  value: number,
+  { decimals, minNonZero }: MoneyFormatOptions = DEFAULT_MONEY_FORMAT_OPTIONS,
+): string => {
+  return getDisplayMoneyValue(value, { decimals, minNonZero }).toFixed(decimals)
+}
+
+/**
+ * Formats a USD telemetry amount in the selected display currency.
+ */
+export const formatTelemetryMoney = (
+  valueUsd: number | undefined,
+  currencyType: CurrencyType,
+): string => {
+  if (typeof valueUsd !== "number" || !Number.isFinite(valueUsd)) return "-"
+
+  const value =
+    currencyType === "CNY" ? valueUsd * DEFAULT_USD_TO_CNY_RATE : valueUsd
+
+  return `${CURRENCY_SYMBOLS[currencyType]}${getDisplayMoneyValue(
+    value,
+  ).toFixed(MONEY_DECIMAL_PLACES)}`
+}

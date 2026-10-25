@@ -1,0 +1,332 @@
+/**
+ * Shared storage key registry.
+ *
+ * Keep these constants in a standalone module to avoid circular dependencies
+ * between storage services (e.g. account storage <-> tag storage).
+ */
+
+/**
+ * localStorage key used by i18next-browser-languagedetector.
+ */
+export const I18NEXT_LANGUAGE_STORAGE_KEY = "all-api-hub-i18nextLng"
+export const LINKED_CHANNEL_CLEANUP_STORAGE_KEY = "linkedChannelCleanupTasks"
+/**
+ * Browser session that currently owns the extension's temporary pages.
+ *
+ * Markers carry it so a leftover can be reclaimed after an extension reload or
+ * update, while markers from an earlier browser session (where tab ids mean
+ * nothing) are only cleared.
+ */
+export const INTERNAL_TAB_BROWSER_SESSION_STORAGE_KEY =
+  "internalBrowsingBrowserSession_v1"
+
+export const STORAGE_LOCKS = {
+  /** Serializes sponsor creation handoffs between popup and side panels. */
+  SPONSOR_WORKFLOW: "all-api-hub:sponsor-workflow",
+  /** Serializes local Dahl key names and website-sync acknowledgements. */
+  DAHL_KEY_NAMES: "all-api-hub:dahl-key-names",
+  /** Orders website acknowledgements while local names remain independently writable. */
+  DAHL_KEY_NAME_SYNC: "all-api-hub:dahl-key-name-sync",
+  /** Serializes local diagnostic log history writes and clears. */
+  LOG_HISTORY: "all-api-hub:log-history",
+  /** Serializes the shared cooldown for passive browser identity requests. */
+  ACCOUNT_BROWSER_IDENTITY_RATE_LIMIT:
+    "all-api-hub:account-browser-identity-rate-limit",
+  /**
+   * Exclusive lock used for any read-modify-write sequences touching account
+   * storage and related derived blobs (e.g. global tag store).
+   */
+  ACCOUNT_STORAGE: "all-api-hub:account-storage",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the daily
+   * balance history store.
+   */
+  DAILY_BALANCE_HISTORY: "all-api-hub:daily-balance-history",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching API credential
+   * profiles storage.
+   */
+  API_CREDENTIAL_PROFILES: "all-api-hub:api-credential-profiles",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching resource-scoped
+   * managed-site channel configuration.
+   */
+  CHANNEL_CONFIG: "all-api-hub:channel-config",
+  /** Exclusive lock for cross-context legacy channel inventory discovery. */
+  LEGACY_CHANNEL_CONFIG_MIGRATION:
+    "all-api-hub:legacy-channel-config-migration",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching persisted API
+   * verification result history.
+   */
+  API_VERIFICATION_HISTORY: "all-api-hub:api-verification-history",
+  /** Exclusive lock for local protection-bypass diagnostic history. */
+  PROTECTION_BYPASS_HISTORY: "all-api-hub:protection-bypass-history",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching Web AI API
+   * Check input-assist history.
+   */
+  WEB_AI_API_CHECK: "all-api-hub:web-ai-api-check",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching user
+   * preferences storage.
+   */
+  USER_PREFERENCES: "all-api-hub:user-preferences",
+  /** Exclusive lock for versioned product-guidance experience state. */
+  FEATURE_GUIDANCE: "all-api-hub:feature-guidance",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching product
+   * analytics preferences and cadence state.
+   */
+  PRODUCT_ANALYTICS: "all-api-hub:product-analytics",
+  /**
+   * Best-effort lock used to serialize the WebDAV auto-sync apply/rollback
+   * section itself. Individual storage services still enforce their own
+   * storage-specific locks where applicable.
+   */
+  WEBDAV_SYNC_APPLY: "all-api-hub:webdav-sync-apply",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the changelog
+   * on update state store.
+   */
+  CHANGELOG_ON_UPDATE: "all-api-hub:changelog-on-update",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching cached release
+   * update status.
+   */
+  RELEASE_UPDATE: "all-api-hub:release-update",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the LDOH site
+   * lookup cache.
+   */
+  LDOH_SITE_LOOKUP: "all-api-hub:ldoh-site-lookup",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the local site
+   * announcement cache.
+   */
+  SITE_ANNOUNCEMENTS: "all-api-hub:site-announcements",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching product
+   * announcement state and cached feed data.
+   */
+  PRODUCT_ANNOUNCEMENTS: "all-api-hub:product-announcements",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the sponsor
+   * recommendation catalog cache.
+   */
+  SPONSOR_CATALOG: "all-api-hub:sponsor-catalog",
+  /** Serializes acceptance of community catalog and image responses in Cache Storage. */
+  COMMUNITY_RESOURCES: "all-api-hub:community-resources",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the GitHub
+   * star promotion state store.
+   */
+  STAR_PROMOTION: "all-api-hub:star-promotion",
+  /** Exclusive claim of a popup account draft by its destination view. */
+  ACCOUNT_DIALOG_RECOVERY: "all-api-hub:account-dialog-recovery",
+  /** Serializes interruption records without overwriting another popup's flow. */
+  POPUP_INTERRUPTION_HINT: "all-api-hub:popup-interruption-hint",
+  /** Per-flow liveness leases, released by the browser when a popup is destroyed. */
+  POPUP_CRITICAL_FLOW_PREFIX: "all-api-hub:popup-critical-flow:",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the
+   * development-only fixture account id registry.
+   */
+  DEV_FIXTURE_ACCOUNTS: "all-api-hub:dev-fixture-accounts",
+  /** Exclusive lock for the development-only fixture credential id registry. */
+  DEV_FIXTURE_API_CREDENTIALS: "all-api-hub:dev-fixture-api-credentials",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the auto
+   * check-in status blob.
+   */
+  AUTO_CHECKIN_STATUS: "all-api-hub:auto-checkin-status",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching recorded
+   * site-type observations.
+   */
+  SITE_TYPE_OBSERVATIONS: "all-api-hub:site-type-observations",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the usage
+   * history store.
+   */
+  USAGE_HISTORY: "all-api-hub:usage-history",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the options
+   * search recent-items list.
+   */
+  OPTIONS_SEARCH_RECENT_ITEMS: "all-api-hub:options-search-recent-items",
+  /**
+   * Exclusive lock used for read-modify-write sequences touching the uninstall
+   * survey state store.
+   */
+  UNINSTALL_SURVEY: "all-api-hub:uninstall-survey",
+} as const
+
+export const ACCOUNT_STORAGE_KEYS = {
+  ACCOUNTS: "site_accounts",
+} as const
+
+export const ACCOUNT_BROWSER_IDENTITY_STORAGE_KEYS = {
+  RATE_LIMITS: "accountBrowserIdentity_rateLimits_v1",
+} as const
+
+export const LOGIN_PROVIDER_EVIDENCE_STORAGE_KEYS = {
+  /** Last observed browser login outcome per account, keyed by account id. */
+  EVIDENCE: "login_provider_evidence",
+} as const
+
+export const SITE_TYPE_OBSERVATION_STORAGE_KEYS = {
+  /** Last recorded site-type mismatch per account, keyed by account id. */
+  OBSERVATIONS: "site_type_observations",
+} as const
+
+export const TAG_STORAGE_KEYS = {
+  TAG_STORE: "global_tag_store",
+} as const
+
+export const USER_PREFERENCES_STORAGE_KEYS = {
+  USER_PREFERENCES: "user_preferences",
+} as const
+
+const FEATURE_GUIDANCE_STORAGE_KEYS = {
+  FEATURE_GUIDANCE_STATE: "featureGuidance_state_v1",
+} as const
+
+export const PRODUCT_ANALYTICS_STORAGE_KEYS = {
+  PRODUCT_ANALYTICS_PREFERENCES: "productAnalytics_preferences_v1",
+  PRODUCT_ANALYTICS_STATE: "productAnalytics_state_v1",
+} as const
+
+/** Worker recovery facts kept independently of persistent local-storage writes. */
+export const AUTO_CHECKIN_SESSION_STORAGE_KEYS = {
+  DAILY_RUN_PERSIST_FAILED_AT: "autoCheckin_dailyRunPersistFailedAt_v1",
+} as const
+
+export const PRODUCT_ANALYTICS_SESSION_STORAGE_KEYS = {
+  AUTO_CHECKIN_CONFIG_SNAPSHOT_AT:
+    "productAnalytics_autoCheckinConfigSnapshotAt_v1",
+} as const
+
+const DAILY_BALANCE_HISTORY_STORAGE_KEYS = {
+  STORE: "dailyBalanceHistory_store",
+} as const
+
+export const API_CREDENTIAL_PROFILES_STORAGE_KEYS = {
+  API_CREDENTIAL_PROFILES: "api_credential_profiles",
+} as const
+
+export const CHANNEL_CONFIG_STORAGE_KEYS = {
+  CHANNEL_CONFIGS: "channel_configs",
+  CHANNEL_RESOURCE_CONFIGS: "channel_resource_configs",
+  LEGACY_MIGRATION_STATE: "channel_config_legacy_migration_state",
+  LEGACY_REPLACEMENT_STATE: "channel_config_legacy_replacement_state",
+} as const
+
+export const API_VERIFICATION_HISTORY_STORAGE_KEYS = {
+  VERIFICATION_RESULT_HISTORY: "api_verification_result_history",
+} as const
+
+export const WEB_AI_API_CHECK_STORAGE_KEYS = {
+  BASE_URL_HISTORY: "webAiApiCheck_baseUrlHistory_v1",
+} as const
+
+export const LDOH_SITE_LOOKUP_STORAGE_KEYS = {
+  SITE_LIST_CACHE: "ldohSiteLookup_siteListCache_v1",
+} as const
+
+export const ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS = {
+  REPAIR_PROGRESS: "accountKeyRepair_progress",
+  REPAIR_CREATED_RUNTIME_SECRETS: "accountKeyRepair_createdRuntimeSecrets_v1",
+} as const
+
+export const OPTIONS_SEARCH_STORAGE_KEYS = {
+  RECENT_ITEM_IDS: "optionsSearch_recentItemIds_v1",
+} as const
+
+const CHANGELOG_ON_UPDATE_STORAGE_KEYS = {
+  PENDING_VERSION: "changelogOnUpdate_pendingVersion",
+} as const
+
+const RELEASE_UPDATE_STORAGE_KEYS = {
+  STATUS: "releaseUpdate_status",
+} as const
+
+const SITE_ANNOUNCEMENTS_STORAGE_KEYS = {
+  STORE: "siteAnnouncements_store",
+} as const
+
+const PRODUCT_ANNOUNCEMENTS_STORAGE_KEYS = {
+  STATE: "productAnnouncements_state_v1",
+} as const
+
+const SPONSOR_CATALOG_STORAGE_KEYS = {
+  CACHE: "sponsorCatalog_cache_v1",
+  VERSIONED_CACHE: "sponsorCatalog_versionedCache_v1",
+} as const
+
+const POPUP_INTERRUPTION_STORAGE_KEYS = {
+  HINT: "popupInterruption_hint_v1",
+} as const
+
+const STAR_PROMOTION_STORAGE_KEYS = {
+  STATE: "starPromotion_state_v1",
+} as const
+
+const UNINSTALL_SURVEY_STORAGE_KEYS = {
+  STATE: "uninstallSurvey_state_v1",
+} as const
+
+export const SPONSOR_WORKFLOW_STORAGE_KEYS = {
+  DRAFT_PREFIX: "sponsorWorkflow_draft_v1:",
+  PENDING_PREFIX: "sponsorWorkflow_pending_v1:",
+} as const
+
+export const ACCOUNT_DIALOG_RECOVERY_STORAGE_KEYS = {
+  DRAFT_PREFIX: "accountDialogRecovery_draft_v1:",
+  PENDING_PREFIX: "accountDialogRecovery_pending_v1:",
+} as const
+
+/**
+ * Centralized storage keys registry.
+ *
+ * Prefer this export when you need to reference storage keys outside of a
+ * specific storage module so discovery and auditing remain straightforward.
+ */
+export const STORAGE_KEYS = {
+  DAHL_KEY_NAMES: "dahlKeyNames_v1",
+  /** Local logs are bounded and excluded from account backup/sync. */
+  LOG_HISTORY: "logHistory_v1",
+  PROTECTION_BYPASS_HISTORY: "protectionBypass_history_v1",
+  /**
+   * Development-only registry of account ids created by the dev panel fixture
+   * generator, so cleanup never has to match editable account fields.
+   */
+  DEV_FIXTURE_ACCOUNT_IDS: "devFixtureAccountIds_v1",
+  /** IDs of credentials created by the dev panel, used for safe cleanup. */
+  DEV_FIXTURE_API_CREDENTIAL_IDS: "devFixtureApiCredentialIds_v1",
+  ...ACCOUNT_STORAGE_KEYS,
+  ...ACCOUNT_BROWSER_IDENTITY_STORAGE_KEYS,
+  ...LOGIN_PROVIDER_EVIDENCE_STORAGE_KEYS,
+  ...TAG_STORAGE_KEYS,
+  ...API_CREDENTIAL_PROFILES_STORAGE_KEYS,
+  ...CHANNEL_CONFIG_STORAGE_KEYS,
+  ...API_VERIFICATION_HISTORY_STORAGE_KEYS,
+  ...WEB_AI_API_CHECK_STORAGE_KEYS,
+  ...LDOH_SITE_LOOKUP_STORAGE_KEYS,
+  ...ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS,
+  ...OPTIONS_SEARCH_STORAGE_KEYS,
+  ...USER_PREFERENCES_STORAGE_KEYS,
+  ...FEATURE_GUIDANCE_STORAGE_KEYS,
+  ...PRODUCT_ANALYTICS_STORAGE_KEYS,
+  CHANGELOG_ON_UPDATE_PENDING_VERSION:
+    CHANGELOG_ON_UPDATE_STORAGE_KEYS.PENDING_VERSION,
+  RELEASE_UPDATE_STATUS: RELEASE_UPDATE_STORAGE_KEYS.STATUS,
+  DAILY_BALANCE_HISTORY_STORE: DAILY_BALANCE_HISTORY_STORAGE_KEYS.STORE,
+  SITE_ANNOUNCEMENTS_STORE: SITE_ANNOUNCEMENTS_STORAGE_KEYS.STORE,
+  PRODUCT_ANNOUNCEMENTS_STATE: PRODUCT_ANNOUNCEMENTS_STORAGE_KEYS.STATE,
+  SPONSOR_CATALOG_CACHE: SPONSOR_CATALOG_STORAGE_KEYS.CACHE,
+  SPONSOR_CATALOG_VERSIONED_CACHE: SPONSOR_CATALOG_STORAGE_KEYS.VERSIONED_CACHE,
+  POPUP_INTERRUPTION_HINT: POPUP_INTERRUPTION_STORAGE_KEYS.HINT,
+  STAR_PROMOTION_STATE: STAR_PROMOTION_STORAGE_KEYS.STATE,
+  UNINSTALL_SURVEY_STATE: UNINSTALL_SURVEY_STORAGE_KEYS.STATE,
+} as const

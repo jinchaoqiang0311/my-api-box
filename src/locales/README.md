@@ -1,0 +1,119 @@
+# 国际化 (i18n) 翻译文件
+
+## 📁 目录结构
+
+```
+locales/
+├── en/                      # 英文翻译
+│   ├── common.json         # 通用操作、状态、标签
+│   ├── account.json        # 账户管理
+│   ├── accountDialog.json  # 账户对话框
+│   ├── aiApiVerification.json # AI API 验证对话框
+│   ├── keyManagement.json  # 密钥管理
+│   ├── modelList.json      # 模型列表
+│   ├── settings.json       # 设置
+│   ├── messages.json       # 消息提示
+│   ├── ui.json             # UI 元素
+│   ├── importExport.json   # 导入/导出
+│   ├── shareSnapshots.json # 分享快照（图片 + 文案）
+│   └── about.json          # 关于
+├── de/                      # 德文翻译
+│   └── (同上结构)
+├── es-419/                  # 拉丁美洲西班牙文翻译
+│   └── (同上结构)
+├── pt-BR/                   # 巴西葡萄牙文翻译
+│   └── (同上结构)
+├── ja/                      # 日文翻译
+│   └── (同上结构)
+├── vi/                      # 越南文翻译
+│   └── (同上结构)
+├── zh-CN/                  # 中文翻译
+│   └── (同上结构)
+├── zh-TW/                  # 繁体中文翻译
+│   └── (同上结构)
+├── runtime-assets.ts       # 构建期语言资源聚合模块
+└── README.md               # 本文件
+```
+
+---
+
+## ⚙️ 运行时加载
+
+各 namespace JSON 仍是唯一翻译源。WXT 构建时由 `runtime-assets.ts` 为每种语言生成一个压缩后的 `app-locales/<language>.json`；扩展运行时只加载当前语言与 `zh-CN` 回退，不要直接编辑 `.output/**/app-locales/` 中的生成文件。
+
+---
+
+## 🚀 快速开始
+
+### 基本用法
+
+```typescript
+import { useTranslation } from "react-i18next"
+
+function MyComponent() {
+  // 使用单个 namespace
+  const { t } = useTranslation("common")
+  
+  return <button>{t("actions.save")}</button>
+}
+```
+
+### 使用多个 namespace
+
+```typescript
+function MyComponent() {
+  const { t } = useTranslation(["account", "common"])
+  
+  return (
+    <div>
+      <h1>{t("account:title")}</h1>
+      <button>{t("common:actions.save")}</button>
+    </div>
+  )
+}
+```
+
+---
+
+## 📚 Namespace 说明
+
+| Namespace | 用途 | 示例 |
+|-----------|------|------|
+| `common` | 通用操作、状态 | `t("common:actions.save")` |
+| `account` | 账户管理 | `t("account:title")` |
+| `accountDialog` | 账户对话框 | `t("accountDialog:title.add")` |
+| `keyManagement` | 密钥管理 | `t("keyManagement:selectAccount")` |
+| `modelList` | 模型列表 | `t("modelList:searchModels")` |
+| `settings` | 设置 | `t("settings:display.title")` |
+| `messages` | 消息提示 | `t("messages:toast.success.accountSaveSuccess")` |
+| `ui` | UI 元素 | `t("ui:navigation.home")` |
+| `importExport` | 导入/导出 | `t("importExport:export.title")` |
+| `shareSnapshots` | 共享快照 | `t("shareSnapshots:<key>")` |
+| `about` | 关于 | `t("about:title")` |
+
+- `common.status.*` 是状态类文案（如 `enabled` / `disabled` / `error`）的唯一来源；不要再在 `common` 根级新增同名别名，避免中英文翻译漂移。
+
+---
+
+## 🔍 CLI 校验
+
+仓库已接入 `i18next-cli`，配置文件位于根目录的 `i18next.config.ts`。
+
+- 查看翻译状态：`pnpm run i18n:status`
+- 只读校验提取结果（适合 CI）：`pnpm run i18n:extract:ci`
+- 手动提取代码中的静态 key：`pnpm run i18n:extract`
+- 以 `zh-CN` 为主语言同步 `en`、`de`、`es-419`、`pt-BR`、`ja`、`vi`、`zh-TW` 结构：`pnpm run i18n:sync`
+
+当前配置刻意保持保守：
+
+- `primaryLanguage` 为 `zh-CN`，对应仓库目录 `src/locales/zh-CN/`
+- `secondaryLanguages` 由 `SUPPORTED_UI_LANGUAGES` 自动推导，当前为 `en`、`de`、`es-419`、`pt-BR`、`ja`、`vi` 与 `zh-TW`
+- `removeUnusedKeys` 为 `true`
+
+### Extract 可见性规则
+
+- 优先让静态 key 直接出现在 extractor 可识别的调用里，例如 `t("ui:dialog.title")`、`i18next.t("messages:error")` 或 `params.t("ns:key")`。
+- 如果 helper / util 显式接收翻译函数参数，统一使用 `import type { TFunction } from "i18next"`；不要手写 `(key: string, options?: any) => string` 或 `ReturnType<typeof useTranslation>["t"]`。
+- 避免把 `t` 重命名后再承载唯一引用，例如 `const { t: tMessages } = useTranslation("messages")` 后只写 `tMessages("toast.success")`；这类调用不一定会被提取器识别。
+- 如果必须封装翻译 helper，要么保证 helper 内部仍然出现可提取的 `t("ns:key")`，要么同步更新 `i18next.config.ts` 的 `functions` / `useTranslationNames` 配置。
+- 每次修改 `t(...)` 调用、locale JSON 或提取配置后，都要运行 `pnpm run i18n:extract` 并检查 locale diff；如果必需 key 被删掉，修源码调用方式或提取配置，不要只手动把 locale 补回来。

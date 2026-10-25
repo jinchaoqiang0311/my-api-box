@@ -1,0 +1,83 @@
+{
+  "alreadyStarred": "Star 済み",
+  "copyrightAck": "著作権と謝辞",
+  "description": "拡張機能のバージョン、変更履歴、プロジェクトのリンクを確認し、ヘルプや問題報告にアクセスします。",
+  "devMaintenance": "開発と保守",
+  "devMode": {
+    "activatedToast": "🛠️ 開発者モードが有効化されました！すべての Dev ラボが利用可能です。",
+    "alreadyDevToast": "現在開発ビルド環境 (wxt dev) で実行中です。開発者モードはデフォルトで有効のままです。",
+    "deactivatedToast": "開発者モードを終了しました。",
+    "tooltipDev": "開発環境で実行中 (wxt dev)",
+    "tooltipProd": "7回クリックして開発者モードを切り替えます"
+  },
+  "features": "機能",
+  "feedbackSection": {
+    "bugReport": {
+      "button": "不具合報告を開く",
+      "description": "bug-report テンプレートを使って、壊れた挙動、エラー、予期しない結果を報告してください。"
+    },
+    "community": {
+      "button": "コミュニティハブを開く",
+      "description": "WeChat の QR コード、QQ グループ、多言語 Discord コミュニティ、Telegram グループ、そのほかの窓口を確認して、質問やセットアップ相談、トラブルシュートを行えます。"
+    },
+    "discussion": {
+      "button": "ディスカッションを開く",
+      "description": "質問したり、構成を比較したり、GitHub Discussions でより広いコミュニティの議論を始められます。"
+    },
+    "featureRequest": {
+      "button": "機能要望を開く",
+      "description": "feature-request テンプレートを通じて、改善案やワークフロー要望を共有してください。"
+    },
+    "languageRequest": {
+      "button": "言語要望を開く",
+      "description": "My API Box で新しい表示言語の対応をリクエストできます。"
+    },
+    "title": "フィードバックとサポート"
+  },
+  "githubDesc": "ソースコードの確認、Issue の報告、プロジェクト開発への参加ができます",
+  "githubRepo": "GitHub リポジトリ",
+  "homepage": "プロジェクトホームページ",
+  "homepageDesc": "詳細なドキュメント、ユーザーガイド、その他の情報を確認できます",
+  "implementedFeatures": "実装済み機能",
+  "intro": "My API Box は中継サイトのアカウント、残高、API 認証情報をまとめて管理し、自動更新、チェックイン、モデル検証を提供します。CLIProxyAPI、New API、Sub2API などのセルフホスト型サイトでチャネルやプロバイダーを管理でき、対応サイトではモデル同期も利用できます。WebDAV バックアップとデータのインポート・エクスポートにも対応しています。",
+  "privacyText": "アカウント、API キー、Cookie、残高、リクエスト内容、ユーザー入力などの機密データは、既定でローカルにのみ保存されます。任意の匿名プロダクト分析は、よく起きる問題の修正、主要ワークフローと互換性の改善、不要な手間の削減を優先するためだけに使われ、上記の機密データは収集しません。",
+  "privacyTitle": "プライバシー保護",
+  "projectLinks": "プロジェクトリンク",
+  "releaseUpdate": {
+    "currentVersion": "現在のバージョン: v{{version}}",
+    "latestVersion": "最新安定版: v{{version}}",
+    "title": "バージョン更新"
+  },
+  "starRepo": "Star を付けに行く",
+  "stores": {
+    "chrome": "Chrome ウェブストア",
+    "edge": "Microsoft Edge アドオン",
+    "firefox": "Firefox Add-ons"
+  },
+  "storesSection": {
+    "download": {
+      "button": "ストアを開く",
+      "description": "{{store}} からダウンロードします。"
+    },
+    "review": {
+      "button": "{{store}} で評価する",
+      "description": "My API Box が役に立っている場合は、{{store}} での高評価レビューが大きな助けになります。",
+      "title": "高評価レビューをお願いします"
+    },
+    "title": "評価とダウンロード"
+  },
+  "techStack": {
+    "radix": "アクセシブルな UI プリミティブ",
+    "react": "ユーザーインターフェースライブラリ",
+    "tailwindcss": "ユーティリティファースト CSS フレームワーク",
+    "title": "技術スタック",
+    "typescript": "型安全な JavaScript",
+    "wxt": "ブラウザ拡張開発フレームワーク"
+  },
+  "thanksDesc": "オープンソースコミュニティに貢献してくださったすべての開発者に感謝します。このプラグインの開発は、これらの優れたオープンソースプロジェクトとツールの恩恵を受けています。",
+  "title": "この拡張機能について",
+  "upcomingFeatures": "今後の機能",
+  "version": "バージョン:",
+  "viewRepo": "リポジトリを見る",
+  "visitHomepage": "ホームページを開く"
+}

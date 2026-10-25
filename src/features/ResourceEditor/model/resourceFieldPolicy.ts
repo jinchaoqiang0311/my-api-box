@@ -1,0 +1,285 @@
+import type { TFunction } from "i18next"
+
+import type {
+  EditableResourceProjection,
+  ResourceFieldDescriptor,
+  ResourceFieldIssue,
+} from "~/services/apiAdapters/contracts/resourceNative"
+import { RESOURCE_FIELD_TYPES } from "~/services/apiAdapters/contracts/resourceNative"
+
+export type ResourceFieldTextResolver = (t: TFunction) => string
+
+type ResourceFieldPresentationBase<TSection extends string = string> = {
+  fieldId: string
+  section: TSection
+  order: number
+  renderer: ResourceFieldDescriptor["type"]
+  resolveLabel: ResourceFieldTextResolver
+  resolveHelp?: ResourceFieldTextResolver
+  resolvePlaceholder?: ResourceFieldTextResolver
+  /** Half-width controls share a row in a section with two columns. */
+  width?: "half"
+  /** Consecutive fields in the same group share a wrapping summary row. */
+  inlineGroup?: string
+  disabledWhen?: (values: EditableResourceProjection) => boolean
+  resolveDisabledHelp?: ResourceFieldTextResolver
+  rows?: number
+  /** Structured editing of an existing line-based projection; persistence stays adapter-owned. */
+  textEntries?: {
+    separator: "=" | ":"
+    omitEmptyValue?: boolean
+    resolveKeyLabel: ResourceFieldTextResolver
+    resolveValueLabel: ResourceFieldTextResolver
+    resolveValuePlaceholder?: ResourceFieldTextResolver
+  }
+  /** Saved credentials may start collapsed without loading their secrets. */
+  compactSecretRows?: boolean
+  /** Browse credentials as a list with status actions and one inline editor. */
+  secretListLayout?: "list"
+  resolveEntryTitle?: (
+    t: TFunction,
+    fields: Readonly<Record<string, string>>,
+  ) => string
+  resolveEntrySummary?: (
+    t: TFunction,
+    fields: Readonly<Record<string, string>>,
+  ) => string
+  /** Historical non-secret details, separate from the current editable state. */
+  resolveEntryDescription?: (
+    t: TFunction,
+    fields: Readonly<Record<string, string>>,
+  ) => string
+  /** Presentation of provider-declared, non-secret attributes on each credential row. */
+  entryFields?: readonly {
+    /** Responsive width within a credential row; defaults to a full row. */
+    width?: "wide" | "compact"
+    fieldId: string
+    resolveLabel: ResourceFieldTextResolver
+    resolvePlaceholder?: ResourceFieldTextResolver
+    resolveHelp?: ResourceFieldTextResolver
+    optionLabelResolvers?: Readonly<Record<string, ResourceFieldTextResolver>>
+  }[]
+  optionLabelResolvers?: Readonly<Record<string, ResourceFieldTextResolver>>
+  /** Unknown option labels may depend on the native value, such as a provider slug. */
+  resolveOptionFallback?: (t: TFunction, value?: string) => string
+  /** Selected values are an ordered routing list, not an unordered set. */
+  ordered?: boolean
+  /** Show decision-making information for a small provider-owned catalogue. */
+  multiSelectLayout?: "cards"
+  optionSourceFieldIds?: readonly string[]
+  customValuesMirrorFieldId?: string
+  autoSelectFirstOption?: boolean
+  issueLabelResolvers?: Partial<
+    Record<ResourceFieldIssue["code"], ResourceFieldTextResolver>
+  >
+  visibleWhen?: (values: EditableResourceProjection) => boolean
+}
+
+export type ResourceFieldPresentation<TSection extends string = string> =
+  | (ResourceFieldPresentationBase<TSection> & {
+      renderer: typeof RESOURCE_FIELD_TYPES.Select
+      /** Visible, keyboard-accessible choices for a small set of related configurations. */
+      selectLayout?: "cards"
+      resolveOptionBadge?: (
+        t: TFunction,
+        value: string,
+        values: EditableResourceProjection,
+      ) => string | undefined
+      /** Frontend-owned label for clearing a nullable single-select projection. */
+      resolveNullableOptionLabel?: ResourceFieldTextResolver
+    })
+  | (ResourceFieldPresentationBase<TSection> & {
+      renderer: Exclude<
+        ResourceFieldDescriptor["type"],
+        typeof RESOURCE_FIELD_TYPES.Select
+      >
+      resolveNullableOptionLabel?: never
+    })
+
+export type ResourceFieldHiddenField = {
+  fieldId: string
+  reason: "deferred" | "read-only" | "unsupported"
+}
+
+export type ResourceEditorFieldPolicy<TSection extends string = string> = {
+  fields: readonly ResourceFieldPresentation<TSection>[]
+  hiddenFields: readonly ResourceFieldHiddenField[]
+  sections?: Partial<
+    Record<
+      TSection,
+      {
+        columns?: 2
+        resolveLabel?: ResourceFieldTextResolver
+        defaultOpen?: boolean
+        resolveSummary?: (
+          t: TFunction,
+          values: EditableResourceProjection,
+        ) => string
+      }
+    >
+  >
+}
+
+export const RESOURCE_EDITOR_OPTION_STATE_LABEL_RESOLVERS = {
+  loadingField: (t: TFunction, field: string) =>
+    t("common:status.loadingField", { field }),
+  empty: (t: TFunction) => t("ui:multiSelect.noOptions"),
+  error: (t: TFunction) => t("common:status.error"),
+  loadField: (t: TFunction, field: string) =>
+    t("common:actions.loadField", { field }),
+  refreshField: (t: TFunction, field: string) =>
+    t("common:actions.refreshField", { field }),
+  retry: (t: TFunction) => t("common:actions.retry"),
+} as const
+
+const rendererValues = new Set<ResourceFieldDescriptor["type"]>(
+  Object.values(RESOURCE_FIELD_TYPES),
+)
+
+const assertPolicy = <TSection extends string>(
+  policy: ResourceEditorFieldPolicy<TSection>,
+) => {
+  const classified = new Set<string>()
+  for (const field of policy.fields) {
+    if (
+      !field.fieldId ||
+      classified.has(field.fieldId) ||
+      !rendererValues.has(field.renderer) ||
+      !Number.isFinite(field.order)
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    if (
+      field.resolveNullableOptionLabel !== undefined &&
+      field.renderer !== RESOURCE_FIELD_TYPES.Select
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    if (
+      (field.textEntries && field.renderer !== RESOURCE_FIELD_TYPES.Textarea) ||
+      (field.compactSecretRows &&
+        field.renderer !== RESOURCE_FIELD_TYPES.SecretList)
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    if (
+      field.rows !== undefined &&
+      (field.renderer !== RESOURCE_FIELD_TYPES.Textarea ||
+        !Number.isInteger(field.rows) ||
+        field.rows < 2 ||
+        field.rows > 12)
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    if (
+      field.optionSourceFieldIds !== undefined &&
+      (field.renderer !== RESOURCE_FIELD_TYPES.Select ||
+        field.optionSourceFieldIds.length === 0 ||
+        field.optionSourceFieldIds.some((fieldId) => !fieldId) ||
+        new Set(field.optionSourceFieldIds).size !==
+          field.optionSourceFieldIds.length)
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    if (
+      field.customValuesMirrorFieldId !== undefined &&
+      (field.renderer !== RESOURCE_FIELD_TYPES.MultiSelect ||
+        !field.customValuesMirrorFieldId ||
+        field.customValuesMirrorFieldId === field.fieldId)
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    if (
+      field.autoSelectFirstOption &&
+      (!field.optionSourceFieldIds || field.optionSourceFieldIds.length === 0)
+    ) {
+      throw new Error("invalid resource field policy")
+    }
+    classified.add(field.fieldId)
+  }
+  for (const field of policy.hiddenFields) {
+    if (!field.fieldId || classified.has(field.fieldId)) {
+      throw new Error("invalid resource field policy")
+    }
+    classified.add(field.fieldId)
+  }
+}
+
+/** Defines frontend-owned presentation without accepting adapter layout metadata. */
+export function defineResourceEditorFieldPolicy<
+  TSection extends string,
+  TPolicy extends ResourceEditorFieldPolicy<TSection>,
+>(policy: TPolicy): TPolicy {
+  assertPolicy(policy)
+  return policy
+}
+
+/** Correlates fact-only descriptors with frontend-owned presentation metadata. */
+export function resolveResourceFieldPolicy<TSection extends string>(
+  descriptors: readonly ResourceFieldDescriptor[],
+  policy: ResourceEditorFieldPolicy<TSection>,
+  sectionOrder: Readonly<Record<TSection, number>>,
+) {
+  try {
+    assertPolicy(policy)
+  } catch {
+    throw new Error("resource field policy mismatch")
+  }
+  const descriptorsByFieldId = new Map(
+    descriptors.map((descriptor) => [descriptor.fieldId, descriptor]),
+  )
+  const classifiedFieldIds = new Set([
+    ...policy.fields.map((field) => field.fieldId),
+    ...policy.hiddenFields.map((field) => field.fieldId),
+  ])
+  if (
+    descriptorsByFieldId.size !== descriptors.length ||
+    classifiedFieldIds.size !== descriptors.length ||
+    [...classifiedFieldIds].some(
+      (fieldId) => !descriptorsByFieldId.has(fieldId),
+    )
+  ) {
+    throw new Error("resource field policy mismatch")
+  }
+
+  const fields = policy.fields
+    .map((presentation) => {
+      const descriptor = descriptorsByFieldId.get(presentation.fieldId)
+      if (
+        !descriptor ||
+        descriptor.type !== presentation.renderer ||
+        (presentation.resolveNullableOptionLabel !== undefined &&
+          !descriptor.nullable) ||
+        sectionOrder[presentation.section] === undefined
+      ) {
+        throw new Error("resource field policy mismatch")
+      }
+      return { descriptor, presentation }
+    })
+    .sort(
+      (first, second) =>
+        sectionOrder[first.presentation.section] -
+          sectionOrder[second.presentation.section] ||
+        first.presentation.order - second.presentation.order,
+    )
+
+  return { fields, hiddenFields: policy.hiddenFields }
+}
+
+export const getResourceFieldOptionLabel = <TSection extends string>(
+  presentation: ResourceFieldPresentation<TSection>,
+  value: string,
+  t: TFunction,
+) => {
+  const resolver =
+    presentation.optionLabelResolvers &&
+    Object.prototype.hasOwnProperty.call(
+      presentation.optionLabelResolvers,
+      value,
+    )
+      ? presentation.optionLabelResolvers[value]
+      : undefined
+  return resolver
+    ? resolver(t)
+    : presentation.resolveOptionFallback?.(t, value) ?? value
+}

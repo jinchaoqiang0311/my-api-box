@@ -1,0 +1,694 @@
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { AUTO_DETECT_ERROR_CODES } from "~/constants/autoDetect"
+import { SITE_TYPES } from "~/constants/siteType"
+import {
+  analyzeAutoDetectError,
+  AUTO_DETECT_FAILURE_REASONS,
+  AutoDetectErrorType,
+  getAutoDetectErrorByCode,
+  isIdentityKnownAutoDetectFailureReason,
+  openLoginTab,
+  reloadCurrentTab,
+} from "~/services/accounts/utils/autoDetectUtils"
+import { getBestEffortLoginUrl } from "~/services/accounts/utils/siteRouteResolver"
+import { clearSiteRouteFactsCacheForTests } from "~/services/apiAdapters/newApi/account/accountRoutes"
+import { getDocsAutoDetectUrl } from "~/utils/navigation/docsLinks"
+
+const { tMock } = vi.hoisted(() => ({
+  tMock: vi.fn((key: string) => key),
+}))
+
+vi.mock("~/utils/i18n/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/i18n/core")>()
+  return {
+    ...actual,
+    t: tMock,
+  }
+})
+
+// Mock browser.tabs
+const originalBrowser = (globalThis as any).browser
+vi.stubGlobal("browser", {
+  tabs: {
+    create: vi.fn(),
+    query: vi.fn(),
+    reload: vi.fn(),
+  },
+})
+
+afterAll(() => {
+  vi.unstubAllGlobals()
+  ;(globalThis as any).browser = originalBrowser
+})
+
+describe("autoDetectUtils", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"))
+  })
+
+  describe("analyzeAutoDetectError", () => {
+    describe("Timeout errors", () => {
+      it("should detect timeout error with Chinese text", () => {
+        const error = new Error("请求超时")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.TIMEOUT)
+        expect(result.message).toBe("messages:autodetect.timeout")
+        expect(result.helpDocUrl).toBe(getDocsAutoDetectUrl())
+        expect(result.actionText).toBeUndefined()
+        expect(result.actionUrl).toBeUndefined()
+      })
+
+      it("should detect timeout error with English text", () => {
+        const error = new Error("Request timeout")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.TIMEOUT)
+        expect(result.message).toBe("messages:autodetect.timeout")
+      })
+
+      it("should detect timeout in error message", () => {
+        const error = { message: "Connection timeout after 5s" }
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.TIMEOUT)
+      })
+    })
+
+    describe("Unauthorized (401) errors", () => {
+      it("should detect 401 status code", () => {
+        const error = new Error("HTTP 401 Unauthorized")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNAUTHORIZED)
+        expect(result.message).toBe("messages:autodetect.notLoggedIn")
+        expect(result.actionText).toBe("messages:autodetect.loginThisSite")
+        expect(result.helpDocUrl).toBe(getDocsAutoDetectUrl())
+      })
+
+      it("should detect Chinese unauthorized text", () => {
+        const error = new Error("未授权访问")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNAUTHORIZED)
+      })
+
+      it("should detect Unauthorized text", () => {
+        const error = new Error("Unauthorized access")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNAUTHORIZED)
+      })
+    })
+
+    describe("Current-tab reload hints", () => {
+      it("should detect content-script connection errors", () => {
+        const error = new Error(
+          "Could not establish connection. Receiving end does not exist.",
+        )
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(
+          AutoDetectErrorType.CURRENT_TAB_RELOAD_REQUIRED,
+        )
+        expect(result.message).toBe("messages:autodetect.currentTabNeedsReload")
+        expect(result.actionText).toBe(
+          "accountDialog:actions.reloadCurrentPage",
+        )
+        expect(result.helpDocUrl).toBe(getDocsAutoDetectUrl())
+      })
+
+      it("should detect the localized reload hint directly", () => {
+        const result = analyzeAutoDetectError(
+          "messages:autodetect.currentTabNeedsReload",
+        )
+
+        expect(result.type).toBe(
+          AutoDetectErrorType.CURRENT_TAB_RELOAD_REQUIRED,
+        )
+        expect(result.actionText).toBe(
+          "accountDialog:actions.reloadCurrentPage",
+        )
+      })
+    })
+
+    describe("Invalid response errors", () => {
+      it.each([
+        "messages:operations.detection.getUserIdFailed",
+        "messages:operations.detection.getUserIdFailedDetailed",
+      ])("preserves actionable user-ID guidance for %s", (message) => {
+        expect(analyzeAutoDetectError(message)).toEqual({
+          type: AutoDetectErrorType.INVALID_RESPONSE,
+          message: "messages:operations.detection.getUserIdFailedDetailed",
+          helpDocUrl: getDocsAutoDetectUrl(),
+        })
+      })
+
+      it("should detect format error", () => {
+        const error = new Error("响应格式错误")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.INVALID_RESPONSE)
+        expect(result.message).toBe("messages:autodetect.unexpectedData")
+        expect(result.helpDocUrl).toBe(getDocsAutoDetectUrl())
+      })
+
+      it("should detect parsing error", () => {
+        const error = new Error("JSON解析失败")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.INVALID_RESPONSE)
+      })
+
+      it("should detect JSON error", () => {
+        const error = new Error("Invalid JSON response")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.INVALID_RESPONSE)
+      })
+
+      it("should detect data mismatch error", () => {
+        const error = new Error("数据不符合预期")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.INVALID_RESPONSE)
+      })
+
+      it("should detect data fetch failure", () => {
+        const error = new Error("无法获取用户信息")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.INVALID_RESPONSE)
+      })
+    })
+
+    describe("Network errors", () => {
+      it("should detect Chinese network error", () => {
+        const error = new Error("网络错误")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.NETWORK_ERROR)
+        expect(result.message).toBe("messages:autodetect.networkError")
+        expect(result.helpDocUrl).toBe(getDocsAutoDetectUrl())
+      })
+
+      it("should detect connection error", () => {
+        const error = new Error("连接失败")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.NETWORK_ERROR)
+      })
+
+      it("should detect Network error", () => {
+        const error = new Error("Network request failed")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.NETWORK_ERROR)
+      })
+
+      it("should detect TypeError: Failed to fetch", () => {
+        const error = new TypeError("Failed to fetch")
+        const result = analyzeAutoDetectError(error)
+
+        // Note: "Failed to fetch" doesn't contain "Network", so it might be UNKNOWN
+        // This tests the actual behavior
+        expect([
+          AutoDetectErrorType.NETWORK_ERROR,
+          AutoDetectErrorType.UNKNOWN,
+        ]).toContain(result.type)
+      })
+    })
+
+    describe("Unknown errors", () => {
+      it("should handle unknown error types", () => {
+        const error = new Error("Something went wrong")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNKNOWN)
+        expect(result.message).toBe("messages:autodetect.failed")
+        expect(result.helpDocUrl).toBe(getDocsAutoDetectUrl())
+        expect(tMock).toHaveBeenCalledWith("messages:autodetect.failed", {
+          error: "Something went wrong",
+        })
+      })
+
+      it("should handle non-Error objects", () => {
+        const error = { custom: "error object" }
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNKNOWN)
+      })
+
+      it("should handle string errors", () => {
+        const error = "Random error string"
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNKNOWN)
+        expect(result.message).toBe("messages:autodetect.failed")
+        expect(tMock).toHaveBeenCalledWith("messages:autodetect.failed", {
+          error: "Random error string",
+        })
+      })
+
+      it("should handle null/undefined errors", () => {
+        const nullResult = analyzeAutoDetectError(null)
+        const undefinedResult = analyzeAutoDetectError(undefined)
+
+        expect(nullResult.type).toBe(AutoDetectErrorType.UNKNOWN)
+        expect(undefinedResult.type).toBe(AutoDetectErrorType.UNKNOWN)
+      })
+    })
+
+    describe("Error priority", () => {
+      it("should prioritize timeout over other keywords", () => {
+        const error = new Error("网络超时错误")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.TIMEOUT)
+      })
+
+      it("should prioritize 401 over other keywords", () => {
+        const error = new Error("401 网络错误")
+        const result = analyzeAutoDetectError(error)
+
+        expect(result.type).toBe(AutoDetectErrorType.UNAUTHORIZED)
+      })
+
+      it("should check errors in order of specificity", () => {
+        // Timeout is checked first
+        expect(analyzeAutoDetectError(new Error("超时")).type).toBe(
+          AutoDetectErrorType.TIMEOUT,
+        )
+
+        // Then 401
+        expect(analyzeAutoDetectError(new Error("401")).type).toBe(
+          AutoDetectErrorType.UNAUTHORIZED,
+        )
+
+        // Then invalid response
+        expect(analyzeAutoDetectError(new Error("格式")).type).toBe(
+          AutoDetectErrorType.INVALID_RESPONSE,
+        )
+
+        // Then network
+        expect(analyzeAutoDetectError(new Error("网络")).type).toBe(
+          AutoDetectErrorType.NETWORK_ERROR,
+        )
+
+        // Finally unknown
+        expect(analyzeAutoDetectError(new Error("其他错误")).type).toBe(
+          AutoDetectErrorType.UNKNOWN,
+        )
+      })
+    })
+
+    describe("Case sensitivity", () => {
+      it("should handle mixed case error messages", () => {
+        expect(analyzeAutoDetectError(new Error("TimeOut")).type).toBe(
+          AutoDetectErrorType.TIMEOUT,
+        )
+        expect(analyzeAutoDetectError(new Error("UNAUTHORIZED")).type).toBe(
+          AutoDetectErrorType.UNAUTHORIZED,
+        )
+        expect(analyzeAutoDetectError(new Error("JSON")).type).toBe(
+          AutoDetectErrorType.INVALID_RESPONSE,
+        )
+        expect(analyzeAutoDetectError(new Error("Network")).type).toBe(
+          AutoDetectErrorType.NETWORK_ERROR,
+        )
+      })
+    })
+  })
+
+  describe("getAutoDetectErrorByCode", () => {
+    it("maps current-tab receiver-unavailable error code", () => {
+      const result = getAutoDetectErrorByCode(
+        AUTO_DETECT_ERROR_CODES.CURRENT_TAB_CONTENT_SCRIPT_UNAVAILABLE,
+      )
+
+      expect(result).toMatchObject({
+        type: AutoDetectErrorType.CURRENT_TAB_RELOAD_REQUIRED,
+        message: "messages:autodetect.currentTabNeedsReload",
+        actionText: "accountDialog:actions.reloadCurrentPage",
+        helpDocUrl: getDocsAutoDetectUrl(),
+      })
+    })
+
+    it("maps site-type detection failures to stable local guidance", () => {
+      const result = getAutoDetectErrorByCode(
+        AUTO_DETECT_ERROR_CODES.SITE_TYPE_DETECTION_FAILED,
+      )
+
+      expect(result).toMatchObject({
+        type: AutoDetectErrorType.NOT_FOUND,
+        message: "messages:autodetect.notFound",
+        helpDocUrl: getDocsAutoDetectUrl(),
+      })
+    })
+
+    it("returns null for unknown codes", () => {
+      expect(getAutoDetectErrorByCode(undefined)).toBeNull()
+    })
+  })
+
+  describe("getBestEffortLoginUrl", () => {
+    it("should generate login URL for valid site URL", () => {
+      const siteUrl = "https://example.com"
+      const result = getBestEffortLoginUrl(siteUrl)
+
+      expect(result).toBe("https://example.com/login")
+    })
+
+    it("should handle site URL with trailing slash", () => {
+      const siteUrl = "https://example.com/"
+      const result = getBestEffortLoginUrl(siteUrl)
+
+      expect(result).toBe("https://example.com/login")
+    })
+
+    it("should handle site URL with path", () => {
+      const siteUrl = "https://example.com/dashboard"
+      const result = getBestEffortLoginUrl(siteUrl)
+
+      expect(result).toBe("https://example.com/login")
+    })
+
+    it("should handle site URL with port", () => {
+      const siteUrl = "https://example.com:8080"
+      const result = getBestEffortLoginUrl(siteUrl)
+
+      expect(result).toBe("https://example.com:8080/login")
+    })
+
+    it("should handle HTTP protocol", () => {
+      const siteUrl = "http://localhost:3000"
+      const result = getBestEffortLoginUrl(siteUrl)
+
+      expect(result).toBe("http://localhost:3000/login")
+    })
+
+    it("should handle site URL with subdomain", () => {
+      const siteUrl = "https://api.example.com"
+      const result = getBestEffortLoginUrl(siteUrl)
+
+      expect(result).toBe("https://api.example.com/login")
+    })
+
+    it("should use the AIHubMix console sign-in route", () => {
+      expect(
+        getBestEffortLoginUrl("https://console.aihubmix.com/statistics"),
+      ).toBe("https://console.aihubmix.com/sign-in")
+      expect(getBestEffortLoginUrl("https://aihubmix.com")).toBe(
+        "https://console.aihubmix.com/sign-in",
+      )
+    })
+
+    it("should return original URL for invalid URL", () => {
+      const invalidUrl = "not a valid url"
+      const result = getBestEffortLoginUrl(invalidUrl)
+
+      expect(result).toBe(invalidUrl)
+    })
+
+    it("should handle empty string", () => {
+      const result = getBestEffortLoginUrl("")
+      expect(result).toBe("")
+    })
+
+    it("should handle relative URL", () => {
+      const relativeUrl = "/dashboard"
+      const result = getBestEffortLoginUrl(relativeUrl)
+      expect(result).toBe(relativeUrl)
+    })
+
+    it("should preserve protocol", () => {
+      expect(getBestEffortLoginUrl("http://example.com")).toContain("http://")
+      expect(getBestEffortLoginUrl("https://example.com")).toContain("https://")
+    })
+
+    it("should handle complex URLs", () => {
+      const complexUrl = "https://user:pass@example.com:8080/path?query=1#hash"
+      const result = getBestEffortLoginUrl(complexUrl)
+
+      expect(result).toBe("https://example.com:8080/login")
+    })
+  })
+
+  describe("openLoginTab", () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      clearSiteRouteFactsCacheForTests()
+      vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"))
+    })
+
+    it("should create new tab with login URL", async () => {
+      const siteUrl = "https://example.com"
+
+      await openLoginTab(siteUrl)
+
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://example.com/login",
+        active: true,
+      })
+    })
+
+    it("uses the New API default frontend sign-in route when a site type hint is available", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: { theme: "default" },
+          }),
+          {
+            headers: { "content-type": "application/json" },
+          },
+        ),
+      )
+
+      await openLoginTab("https://new-api-login.example", SITE_TYPES.NEW_API)
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://new-api-login.example/api/status",
+        expect.objectContaining({
+          method: "GET",
+        }),
+      )
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://new-api-login.example/sign-in",
+        active: true,
+      })
+
+      fetchSpy.mockRestore()
+    })
+
+    it("uses the hinted non-New API site route without probing New API status", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch")
+
+      await openLoginTab(
+        "https://console.aihubmix.com/statistics",
+        SITE_TYPES.AIHUBMIX,
+      )
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://console.aihubmix.com/sign-in",
+        active: true,
+      })
+    })
+
+    it("falls back to the generic login URL when the site type hint is unavailable", async () => {
+      await openLoginTab("https://fallback.example/path", SITE_TYPES.UNKNOWN)
+
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://fallback.example/login",
+        active: true,
+      })
+    })
+
+    it("should open tab in active state", async () => {
+      const siteUrl = "https://test.com"
+
+      await openLoginTab(siteUrl)
+
+      expect(browser.tabs.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          active: true,
+        }),
+      )
+    })
+
+    it("should handle different site URLs", async () => {
+      await openLoginTab("https://site1.com")
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://site1.com/login",
+        active: true,
+      })
+
+      await openLoginTab("https://site2.com:8080")
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://site2.com:8080/login",
+        active: true,
+      })
+    })
+
+    it("should handle invalid URLs gracefully", async () => {
+      const invalidUrl = "not-a-url"
+
+      await openLoginTab(invalidUrl)
+
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: invalidUrl,
+        active: true,
+      })
+    })
+
+    it("should be async and return Promise<void>", async () => {
+      const promise = openLoginTab("https://example.com")
+      expect(promise).toBeInstanceOf(Promise)
+      await expect(promise).resolves.toBeUndefined()
+    })
+
+    it("should handle browser.tabs.create rejection", async () => {
+      const mockError = new Error("Tab creation failed")
+      vi.mocked(browser.tabs.create).mockRejectedValueOnce(mockError)
+
+      await expect(openLoginTab("https://example.com")).rejects.toThrow(
+        "Tab creation failed",
+      )
+    })
+
+    it("should use the best-effort login route when no hint is available", async () => {
+      const siteUrl = "https://example.com/dashboard"
+      await openLoginTab(siteUrl)
+
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://example.com/login",
+        active: true,
+      })
+    })
+  })
+
+  describe("reloadCurrentTab", () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it("reloads the active tab in the current window", async () => {
+      vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 123 } as any])
+
+      await reloadCurrentTab()
+
+      expect(browser.tabs.query).toHaveBeenCalledWith({
+        active: true,
+        currentWindow: true,
+      })
+      expect(browser.tabs.reload).toHaveBeenCalledWith(123)
+    })
+
+    it("does nothing when no active tab is available", async () => {
+      vi.mocked(browser.tabs.query).mockResolvedValueOnce([])
+
+      await reloadCurrentTab()
+
+      expect(browser.tabs.reload).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("Error types enum", () => {
+    it("should have all error types defined", () => {
+      expect(AutoDetectErrorType.TIMEOUT).toBe("timeout")
+      expect(AutoDetectErrorType.UNAUTHORIZED).toBe("unauthorized")
+      expect(AutoDetectErrorType.CURRENT_TAB_RELOAD_REQUIRED).toBe(
+        "current_tab_reload_required",
+      )
+      expect(AutoDetectErrorType.INVALID_RESPONSE).toBe("invalid_response")
+      expect(AutoDetectErrorType.NETWORK_ERROR).toBe("network_error")
+      expect(AutoDetectErrorType.UNKNOWN).toBe("unknown")
+    })
+
+    it("should have unique error type values", () => {
+      const values = Object.values(AutoDetectErrorType)
+      const uniqueValues = new Set(values)
+      expect(uniqueValues.size).toBe(values.length)
+    })
+  })
+
+  describe("isIdentityKnownAutoDetectFailureReason", () => {
+    it("marks completion-stage credential failures as identity-detected", () => {
+      expect(
+        isIdentityKnownAutoDetectFailureReason(
+          AUTO_DETECT_FAILURE_REASONS.AccessTokenVerificationRequired,
+        ),
+      ).toBe(true)
+      expect(
+        isIdentityKnownAutoDetectFailureReason(
+          AUTO_DETECT_FAILURE_REASONS.AccountIdentityMismatch,
+        ),
+      ).toBe(true)
+      expect(
+        isIdentityKnownAutoDetectFailureReason(
+          AUTO_DETECT_FAILURE_REASONS.TokenFetchFailed,
+        ),
+      ).toBe(true)
+    })
+
+    it("does not mark detection-stage or missing reasons as identity-detected", () => {
+      expect(
+        isIdentityKnownAutoDetectFailureReason(
+          AUTO_DETECT_FAILURE_REASONS.UserDataMissing,
+        ),
+      ).toBe(false)
+      expect(
+        isIdentityKnownAutoDetectFailureReason(
+          AUTO_DETECT_FAILURE_REASONS.UsernameMissing,
+        ),
+      ).toBe(false)
+      expect(
+        isIdentityKnownAutoDetectFailureReason(
+          AUTO_DETECT_FAILURE_REASONS.SiteTypeDetectionFailed,
+        ),
+      ).toBe(false)
+      expect(isIdentityKnownAutoDetectFailureReason(undefined)).toBe(false)
+      expect(isIdentityKnownAutoDetectFailureReason(null)).toBe(false)
+    })
+  })
+
+  describe("Integration scenarios", () => {
+    it("should provide complete error info for unauthorized error", () => {
+      const error = new Error("401 Unauthorized")
+      const result = analyzeAutoDetectError(error)
+
+      expect(result).toMatchObject({
+        type: AutoDetectErrorType.UNAUTHORIZED,
+        message: expect.any(String),
+        actionText: expect.any(String),
+        helpDocUrl: getDocsAutoDetectUrl(),
+      })
+    })
+
+    it("should provide login workflow for unauthorized errors", async () => {
+      const error = new Error("401")
+      const analyzed = analyzeAutoDetectError(error)
+
+      expect(analyzed.type).toBe(AutoDetectErrorType.UNAUTHORIZED)
+      expect(analyzed.actionText).toBe("messages:autodetect.loginThisSite")
+
+      // Simulate user clicking login action
+      const siteUrl = "https://example.com"
+      await openLoginTab(siteUrl)
+
+      expect(browser.tabs.create).toHaveBeenCalledWith({
+        url: "https://example.com/login",
+        active: true,
+      })
+    })
+
+    it("should handle multi-language error messages", () => {
+      const cnError = analyzeAutoDetectError(new Error("网络超时"))
+      const enError = analyzeAutoDetectError(new Error("Network timeout"))
+
+      expect(cnError.type).toBe(AutoDetectErrorType.TIMEOUT)
+      expect(enError.type).toBe(AutoDetectErrorType.TIMEOUT)
+      expect(cnError.message).toBe(enError.message) // Both return the same translation key (key-based assertion)
+    })
+  })
+})

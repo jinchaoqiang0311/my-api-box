@@ -1,0 +1,154 @@
+import { buildDoneHubPricingPlan } from "~/services/apiService/oneHub/pricingPlan"
+import type {
+  OneHubModelPricing,
+  OneHubUserGroupMap,
+  OneHubUserGroupsResponse,
+} from "~/services/apiService/oneHub/type"
+import type { ModelCatalogSnapshot } from "~/services/modelCatalog/snapshot"
+import {
+  MODEL_PRICE_PRECISION_KINDS,
+  MODEL_PRICE_SOURCE_KINDS,
+  MODEL_UNAVAILABLE_PRICE_REASONS,
+  type ModelPricing,
+} from "~/services/modelList/pricingModel"
+import {
+  MODEL_VENDOR_EVIDENCE_KINDS,
+  normalizeModelDescriptors,
+} from "~/services/models/modelDescriptor"
+import type { UserGroupInfo } from "~/services/models/userGroup"
+
+const isFiniteNonnegativeRatio = (value: number | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0
+
+/**
+ * 将 OneHub 模型定价转换为通用定价
+ * @param modelPricing 原始模型定价
+ * @param userGroupMap 用户分组配置信息
+ * @returns 转换后的结构
+ */
+export function transformModelPricing(
+  modelPricing: OneHubModelPricing,
+  userGroupMap: OneHubUserGroupMap = {},
+  isDoneHub = false,
+): ModelCatalogSnapshot {
+  const data: ModelPricing[] = Object.entries(modelPricing).map(
+    ([modelName, model]) => {
+      const enableGroups = model.groups.length > 0 ? model.groups : ["default"]
+      // OneHub derives `owned_by` from an editable channel-type mapping, so it
+      // is routing-provider evidence rather than immutable publisher metadata.
+      // https://github.com/MartialBE/one-hub/blob/387f8bf16ed0d601fdede7ade378adb10aa1a35a/relay/model.go
+      // https://github.com/MartialBE/one-hub/blob/387f8bf16ed0d601fdede7ade378adb10aa1a35a/model/model_ownedby.go
+      const vendorEvidence = normalizeModelDescriptors([
+        {
+          id: modelName,
+          vendorEvidence: {
+            kind: MODEL_VENDOR_EVIDENCE_KINDS.RoutingProvider,
+            name: model.owned_by,
+          },
+        },
+      ])[0]?.vendorEvidence
+      const extraRatios = model.price.extra_ratios
+      // OneHub bills these as input-price multipliers. DoneHub adds tiered
+      // write keys that cannot be losslessly flattened into one cache meter.
+      // https://github.com/MartialBE/one-hub/blob/387f8bf16ed0d601fdede7ade378adb10aa1a35a/docs/deployment/ExtraRatios.md
+      const cacheReadRatio =
+        extraRatios?.cached_read_tokens ?? extraRatios?.cached_tokens
+      const cacheWriteRatio = extraRatios?.cached_write_tokens
+      const hasValidTokenRatios =
+        model.price.type !== "tokens" ||
+        (isFiniteNonnegativeRatio(model.price.input) &&
+          isFiniteNonnegativeRatio(model.price.output) &&
+          (isDoneHub || model.price.input > 0 || model.price.output === 0))
+
+      return {
+        ...(isDoneHub
+          ? { pricingPlan: buildDoneHubPricingPlan(model.price) }
+          : {}),
+        model_name: modelName,
+        ...(vendorEvidence === undefined ? {} : { vendorEvidence }),
+        quota_type: model.price.type === "tokens" ? 0 : 1,
+        model_ratio:
+          model.price.type === "tokens" && hasValidTokenRatios
+            ? model.price.input
+            : 1,
+        model_price: {
+          input: model.price.input,
+          output: model.price.output,
+        },
+        owner_by: model.owned_by || "",
+        completion_ratio:
+          model.price.type === "tokens" && hasValidTokenRatios
+            ? model.price.input === 0
+              ? 1
+              : model.price.output / model.price.input
+            : 1,
+        ...(!hasValidTokenRatios
+          ? {
+              price_metadata: {
+                source: MODEL_PRICE_SOURCE_KINDS.CHANNEL_PRICING,
+                precision: MODEL_PRICE_PRECISION_KINDS.UNAVAILABLE,
+                unavailable_reason:
+                  MODEL_UNAVAILABLE_PRICE_REASONS.PRICING_SOURCE_UNAVAILABLE,
+              },
+            }
+          : {}),
+        ...(hasValidTokenRatios &&
+        model.price.type === "tokens" &&
+        (isFiniteNonnegativeRatio(cacheReadRatio) ||
+          isFiniteNonnegativeRatio(cacheWriteRatio))
+          ? {
+              token_price_ratios_to_input: {
+                ...(isFiniteNonnegativeRatio(cacheReadRatio)
+                  ? { cache_read: cacheReadRatio }
+                  : {}),
+                ...(isFiniteNonnegativeRatio(cacheWriteRatio)
+                  ? { cache_write: cacheWriteRatio }
+                  : {}),
+              },
+            }
+          : {}),
+        enable_groups: enableGroups,
+        supported_endpoint_types: [],
+      }
+    },
+  )
+
+  const group_ratio: Record<string, number> = {}
+  const usable_group: Record<string, string> = {}
+  for (const [key, group] of Object.entries(userGroupMap)) {
+    const ratio = group.ratio
+    group_ratio[key] =
+      typeof ratio === "number" && Number.isFinite(ratio) ? ratio : 1
+    usable_group[key] = group.name
+  }
+
+  return {
+    data,
+    groupRatios: group_ratio,
+    success: true,
+    groupAccess: {
+      kind: "authoritative",
+      usableGroups: Object.keys(usable_group),
+    },
+  }
+}
+
+/**
+ * 将 OneHub 用户分组转换为通用分组
+ * @param input OneHub 分组接口返回值
+ * @returns 通用结构
+ */
+export function transformUserGroup(
+  input: OneHubUserGroupsResponse["data"],
+): Record<string, UserGroupInfo> {
+  const result: Record<string, UserGroupInfo> = {}
+
+  // 转换已有的分组
+  for (const [key, group] of Object.entries(input)) {
+    result[key] = {
+      desc: group.name,
+      ratio: group.ratio,
+    }
+  }
+  return result
+}

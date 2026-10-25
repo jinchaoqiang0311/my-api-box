@@ -1,0 +1,1019 @@
+{
+  "accountManagement": {
+    "description": "Manage accounts, balances, API keys, and configure sorting priorities in the dedicated management console.",
+    "openPage": "Open Account Management Page",
+    "title": "Account Management"
+  },
+  "actionClick": {
+    "actionIconClickDesc": "Choose whether toolbar clicks open the popup, side panel, or full options page.",
+    "actionIconClickTitle": "Default destination",
+    "description": "Set what opens when you click the extension icon in the browser toolbar.",
+    "optionsLabel": "Options page",
+    "optionsTitle": "Open full options page",
+    "popupLabel": "Popup",
+    "popupTitle": "Open popup",
+    "sidepanelFallbackToast": "Side panel preference saved. This browser does not support side panels, so toolbar clicks will open the popup.",
+    "sidepanelLabel": "Side panel",
+    "sidepanelTitle": "Open side panel",
+    "sidepanelUnsupportedHelper": "This browser does not support side panels; side panel selections will fall back to the popup.",
+    "title": "Extension icon click"
+  },
+  "appearance": {
+    "color": "Theme color",
+    "colors": {
+      "blue": "Blue",
+      "green": "Green",
+      "orange": "Orange",
+      "rose": "Rose",
+      "slate": "Slate",
+      "violet": "Violet"
+    },
+    "contentWidth": "Content width",
+    "contentWidthDescription": "Applies to the full management page only.",
+    "contentWidths": {
+      "centered": "Centered",
+      "full": "Full width"
+    },
+    "densities": {
+      "comfortable": "Comfortable",
+      "compact": "Compact",
+      "default": "Default"
+    },
+    "density": "Interface density",
+    "densityDescription": "Adjust row spacing and control height without changing text size.",
+    "description": "Changes are saved automatically and apply to options, popup and side panel.",
+    "font": "Font",
+    "fontDescription": "Choose the interface font. Follow theme uses sans serif for the default theme and serif for Anthropic.",
+    "fonts": {
+      "default": "Follow theme",
+      "sans": "Sans serif",
+      "serif": "Serif"
+    },
+    "preset": "Theme preset",
+    "presetColorsHint": "This theme includes its own palette. Choose Default theme to pick an accent color separately.",
+    "presetDescriptions": {
+      "anthropic": "Warm cream and clay, with a charcoal dark mode.",
+      "default": "Classic neutrals with your choice of accent."
+    },
+    "presets": {
+      "anthropic": "Anthropic",
+      "default": "Default theme"
+    },
+    "radii": {
+      "default": "Default",
+      "large": "Large",
+      "none": "Square",
+      "small": "Small"
+    },
+    "radius": "Corner radius",
+    "reset": "Reset appearance",
+    "resetDensity": "Reset density",
+    "resetFont": "Reset font",
+    "resetTextSize": "Reset text size",
+    "saveFailed": "Could not save. Please try again.",
+    "textSize": "Text size",
+    "textSizeDescription": "Adjust text size and line height. Controls grow to fit content without changing your density setting.",
+    "textSizes": {
+      "default": "Default",
+      "extraLarge": "Extra large",
+      "large": "Large"
+    },
+    "title": "Appearance settings"
+  },
+  "appearanceLanguage": {
+    "language": "Language",
+    "languageDesc": "Choose your preferred language",
+    "onboardingHelper": "The guide and later settings pages will use your selected language.",
+    "onboardingLabel": "Choose your language",
+    "onboardingLanguageRequest": "Don't see your language? Request language support",
+    "switcher": {
+      "currentLanguage": "Current interface language: {{language}}",
+      "groupLabel": "Interface language selector",
+      "options": {
+        "de": {
+          "label": "DE",
+          "name": "German"
+        },
+        "en": {
+          "label": "EN",
+          "name": "English"
+        },
+        "es-419": {
+          "label": "ES",
+          "name": "Spanish (Latin America)"
+        },
+        "ja": {
+          "label": "JA",
+          "name": "Japanese"
+        },
+        "pt-BR": {
+          "label": "PT-BR",
+          "name": "Portuguese (Brazil)"
+        },
+        "vi": {
+          "label": "VI",
+          "name": "Vietnamese"
+        },
+        "zh-CN": {
+          "label": "SC",
+          "name": "Simplified Chinese"
+        },
+        "zh-TW": {
+          "label": "TC",
+          "name": "Traditional Chinese"
+        }
+      },
+      "switchToLanguage": "Switch interface language to {{language}}"
+    }
+  },
+  "autoFillCurrentSiteUrlOnAccountAdd": {
+    "description": "Control whether Add Account starts with the current site's URL already filled in.",
+    "title": "Accounts",
+    "toggleDesc": "When enabled, opening Add Account prefills the URL field with the current browser tab's site origin. Detection still uses the existing next step.",
+    "toggleLabel": "Prefill URL from current site when adding accounts"
+  },
+  "autoProvisionKeyOnAccountAdd": {
+    "description": "Prepare API keys after adding an account: a default key or keys for all available groups.",
+    "manualHint": "For saved accounts, use Key Management → {{actionLabel}} to fill missing keys across all available groups.",
+    "modeDescription": "Default prepares one key when no active key exists. All groups fills each missing group; sites without group requirements prepare one default key. Both modes may open a dialog for required input or one-time key handling.",
+    "modeLabel": "Automatic creation scope",
+    "modes": {
+      "allGroups": "All available groups",
+      "default": "Default key only"
+    },
+    "title": "API keys",
+    "toggleDesc": "Once the account is saved, check for missing keys and create them within the selected scope.",
+    "toggleLabel": "Automatically create keys after adding an account"
+  },
+  "axonHub": {
+    "cors": {
+      "description": "New AxonHub instances usually require a server-side CORS update before the browser extension can access AxonHub. Prefer allowing only the trusted browser / extension origin in AXONHUB_SERVER_CORS_ALLOWED_ORIGINS, and use \"*\" only as a short-lived local development fallback.",
+      "title": "Required CORS setup"
+    },
+    "description": "Configure integration settings for connecting to an AxonHub admin site.",
+    "fields": {
+      "baseUrlDesc": "Set the AxonHub site base URL",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://axonhub.example.com",
+      "emailDesc": "AxonHub admin email used for /admin/auth/signin",
+      "emailLabel": "Admin email",
+      "emailPlaceholder": "admin@example.com",
+      "hidePassword": "Hide password",
+      "passwordDesc": "AxonHub admin password used to obtain an admin GraphQL session token",
+      "passwordLabel": "Admin password",
+      "passwordPlaceholder": "Enter password",
+      "showPassword": "Show password"
+    },
+    "title": "AxonHub Integration Settings",
+    "validation": {
+      "corsFailed": "AxonHub validation failed: {{error}}. This usually means the AxonHub instance has not allowed the extension's browser origin yet. Update AXONHUB_SERVER_CORS_ALLOWED_ORIGINS to allow the trusted browser / extension origin, and use \"*\" only as a short-lived local development fallback, then retry.",
+      "description": "Check whether the current configuration can connect to and manage the site.",
+      "failed": "AxonHub validation failed: {{error}}",
+      "missingFields": "Please fill in all required fields",
+      "title": "Verify connection"
+    }
+  },
+  "changelogOnUpdate": {
+    "description": "Control whether My API Box shows a What's New dialog the first time you open the settings page after updates.",
+    "title": "Changelog",
+    "toggleDesc": "When enabled, the update log is shown inline when you first open the settings page after an update (once per version). You can still open the full docs changelog manually.",
+    "toggleLabel": "Show What's New after updates"
+  },
+  "claudeCodeHub": {
+    "description": "Configure connection settings for a Claude Code Hub admin site.",
+    "fields": {
+      "adminTokenDesc": "Admin token or API key accepted by Claude Code Hub's action API",
+      "adminTokenLabel": "Admin token",
+      "adminTokenPlaceholder": "Enter admin token",
+      "baseUrlDesc": "Set the Claude Code Hub site base URL",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://claude-code-hub.example.com",
+      "hideAdminToken": "Hide admin token",
+      "showAdminToken": "Show admin token"
+    },
+    "title": "Claude Code Hub Integration Settings",
+    "unsupported": {
+      "description": "Model sync and model redirect are not available for Claude Code Hub in this version.",
+      "title": "Unsupported channel actions"
+    },
+    "validation": {
+      "description": "Check whether the current configuration can connect to and manage the site.",
+      "failed": "Claude Code Hub validation failed: {{error}}",
+      "missingFields": "Please fill in all required fields",
+      "title": "Verify connection"
+    }
+  },
+  "claudeCodeRouter": {
+    "apiKeyLabel": "API key",
+    "apiKeyPlaceholder": "sk-123456",
+    "baseUrlLabel": "Base URL",
+    "baseUrlPlaceholder": "http://localhost:3000",
+    "description": "Configure connection to Claude Code Router admin API",
+    "keyDesc": "Optional API key for /api/config (APIKEY)",
+    "title": "Claude Code Router",
+    "urlDesc": "Claude Code Router server base URL, e.g. http://localhost:3000"
+  },
+  "cliProxyApi": {
+    "baseUrlLabel": "Management API Base URL",
+    "checkConnectionDesc": "Check whether the current configuration can connect to and manage the site.",
+    "checkConnectionLabel": "Verify connection",
+    "description": "Configure connection to CLIProxyAPI Management API",
+    "hideKey": "Hide key",
+    "keyDesc": "Management key for interface access authentication",
+    "managementDocsLinkLabel": "Open Management API docs",
+    "managementKeyLabel": "Management Key",
+    "showKey": "Show key",
+    "title": "CLIProxyAPI Settings",
+    "urlDesc": "Set the Management API base URL, e.g. http://localhost:8317/v0/management"
+  },
+  "danger": {
+    "resetAllSettings": "Reset All Settings",
+    "resetDesc": "Reset all configurations to default values, this operation cannot be undone",
+    "resetFailed": "Failed to reset settings",
+    "resetSettings": "Reset Settings",
+    "title": "Danger Zone"
+  },
+  "dataBackup": {
+    "importExport": {
+      "description": "Access the dedicated page for importing and exporting data.",
+      "info": "The Import/Export page provides full access to data import, exporting to different formats, and backup management.",
+      "openPage": "Open Import / Export Page",
+      "title": "Import & Export"
+    }
+  },
+  "description": "Adjust appearance, account management, automated tasks and data backup settings.",
+  "display": {
+    "cny": "CNY (¥)",
+    "currencyDesc": "Set the default currency unit for balance and cashflow display",
+    "currencyUnit": "Currency Unit",
+    "defaultTab": "Default Tab",
+    "defaultTabDesc": "Set the default tab displayed when the plugin starts",
+    "description": "Customize the interface language and display preferences of the plugin",
+    "title": "Display Settings",
+    "todayCashflow": "Today's Cashflow",
+    "todayCashflowEnabled": "Show Today's Cashflow",
+    "todayCashflowEnabledDesc": "Controls whether today's consumption/income stats are displayed and fetched. When disabled, today stats are hidden and refresh skips the data requests used to compute them.",
+    "totalBalance": "Total Balance",
+    "usd": "USD ($)"
+  },
+  "doneHub": {
+    "adminCredentialsLink": {
+      "description": "Open the profile page to find the system access token and user ID.",
+      "open": "Open page",
+      "title": "Quick access"
+    },
+    "description": "Configure integration settings for connecting to Done Hub compatible services.",
+    "fields": {
+      "adminTokenLabel": "Administrator's system access token",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "Hide system access token",
+      "showToken": "Show system access token",
+      "userIdLabel": "Administrator user ID"
+    },
+    "title": "Done Hub Integration Settings",
+    "tokenDesc": "System access token for the administrator user. Find it in Done Hub dashboard → Personal settings → Token.",
+    "urlDesc": "Set the base URL for Done Hub integration",
+    "userIdDesc": "Administrator user ID (numeric only). Root admin is usually 1."
+  },
+  "duplicateAccountWarningOnAdd": {
+    "description": "Check saved accounts before adding to help avoid duplicates.",
+    "title": "Accounts",
+    "toggleDesc": "Ask for confirmation when the same user ID is already saved for this site. OpenRouter checks for an identical Management Key.",
+    "toggleLabel": "Warn before adding duplicates"
+  },
+  "gptLoad": {
+    "description": "Manage a self-hosted gpt-load instance: a lightweight Go AI gateway that load balances requests across provider channels.",
+    "fields": {
+      "baseUrlDesc": "The base URL of your gpt-load dashboard (for example https://gateway.example.com).",
+      "baseUrlLabel": "Gateway address",
+      "baseUrlPlaceholder": "https://gateway.example.com",
+      "hideManagementKey": "Hide management key",
+      "managementKeyDesc": "The gateway's root AUTH_KEY, presented to the management API as a bearer token. It holds the same power as every workspace channel key.",
+      "managementKeyLabel": "Management key",
+      "managementKeyPlaceholder": "The AUTH_KEY from your gateway config",
+      "showManagementKey": "Show management key"
+    },
+    "title": "gpt-load",
+    "validation": {
+      "description": "Send one request with the key above to verify the gateway is reachable and the key is accepted.",
+      "failed": "Could not reach the gateway: {{error}}",
+      "insufficientPrivilege": "The management key lacks permission: {{error}}",
+      "invalidCredential": "The management key was rejected: {{error}}",
+      "missingFields": "Enter the gateway address and management key first",
+      "title": "Check connection"
+    }
+  },
+  "logging": {
+    "consoleEnabled": "Enable logging",
+    "consoleEnabledDesc": "When disabled, console output and new local log recording stop.",
+    "description": "Configure log output and local diagnostic history.",
+    "history": {
+      "allContexts": "All sources",
+      "allLevels": "All levels",
+      "allTime": "All retained logs",
+      "clearDescription": "Delete all log entries retained on this device.",
+      "clearError": "Failed to clear logs",
+      "clearTitle": "Clear local logs",
+      "context": "Source",
+      "copied": "Logs copied",
+      "copy": "Copy filtered logs",
+      "copyError": "Failed to copy logs",
+      "description": "Shows up to {{limit}} local entries from the last {{hours}} hours. Cleanup of expired entries runs when recording or viewing logs. Enable logging to record events; set Minimum log level to Debug for more detail.",
+      "details": "Details",
+      "empty": "No matching logs. Enable logging, reproduce the issue, then return here.",
+      "entryDescription": "Follow logs from all extension pages live or review recent history.",
+      "lastHour": "Last hour",
+      "lastMinutes": "Last 5 minutes",
+      "level": "Log level",
+      "loadError": "Failed to read logs. Previously displayed entries are retained. Please retry.",
+      "more": "Load older logs",
+      "open": "View logs",
+      "pause": "Pause updates",
+      "period": "Time range",
+      "resume": "Resume live updates",
+      "search": "Search message, scope or request ID",
+      "showing": "Showing {{visible}} / {{total}}",
+      "title": "Recent logs"
+    },
+    "levels": {
+      "debug": "Debug",
+      "error": "Error",
+      "info": "Info",
+      "warn": "Warn"
+    },
+    "minLevel": "Minimum log level",
+    "minLevelDesc": "Logs below the selected level are neither emitted nor saved.",
+    "title": "Logging"
+  },
+  "magpie": {
+    "description": "Manage providers on your self-hosted Magpie Web server.",
+    "fields": {
+      "baseUrlDesc": "Start magpie web (default port 3430). Enter its Web URL, not the inference URL on port 3425.",
+      "baseUrlLabel": "Web management URL",
+      "baseUrlPlaceholder": "http://localhost:3430",
+      "hideWebKey": "Hide management key",
+      "showWebKey": "Show management key",
+      "webKeyDesc": "Use MAGPIE_WEB_KEY or the k value in the startup link. A fixed MAGPIE_WEB_KEY survives restarts; otherwise update this field after restarting. Inference API keys cannot manage Magpie.",
+      "webKeyLabel": "Web management key",
+      "webKeyPlaceholder": "Enter the Web management key"
+    },
+    "title": "Magpie",
+    "validation": {
+      "description": "Use the key above to check connectivity and access to the provider inventory.",
+      "failed": "Unable to connect to Magpie. Check the Web address and that the server is running.",
+      "invalidCredential": "The Web key was rejected. Check MAGPIE_WEB_KEY or copy the current startup key.",
+      "missingFields": "Enter the gateway address and management key first",
+      "title": "Check connection"
+    }
+  },
+  "managedSite": {
+    "axonHub": "AxonHub",
+    "claudeCodeHub": "Claude Code Hub",
+    "cliProxyApi": "CLIProxyAPI",
+    "deploymentDocs": "Official deployment documentation",
+    "deploymentDocsLink": "{{site}} official deployment documentation",
+    "description": "Select which API aggregator platform you want to manage. This determines which configuration will be used for channel management and model syncing.",
+    "doneHub": "Done Hub",
+    "gatewayGuidance": {
+      "actions": {
+        "importAccountKeys": "Add channel with account key",
+        "importApiKeys": "Add channel with API key",
+        "viewChannels": "View imported channels"
+      },
+      "configComplete": {
+        "description": "Gateway settings are saved. Import account keys or API credentials as gateway channels. Connectivity is checked during verification or import.",
+        "title": "Next: import channels"
+      },
+      "unconfigured": {
+        "description": "Configure your self-hosted AI gateway, then import account keys or API keys as gateway channels so multiple keys can be used through one AI API.",
+        "title": "Configure your self-hosted AI gateway"
+      }
+    },
+    "gptLoad": "gpt-load",
+    "magpie": "Magpie",
+    "newApi": "New API",
+    "octopus": "Octopus",
+    "omniroute": "OmniRoute",
+    "popularityHint": "Ordered by a snapshot of GitHub star counts.",
+    "siteTypeDesc": "Choose the platform used for channel management and model sync",
+    "siteTypeLabel": "Gateway type",
+    "sub2api": "Sub2API",
+    "title": "Self-hosted AI gateway configuration",
+    "veloera": "Veloera"
+  },
+  "managedSiteConnection": {
+    "check": "Check connection",
+    "checkError": "Configuration saved, but connection check failed. Please retry.",
+    "checking": "Checking…",
+    "conflict": "Configuration changed in another page. Your input was kept. Review the latest settings and retry, or reload saved configuration to replace your input.",
+    "failed": "Configuration saved, but connection check failed: {{reason}}",
+    "invalidField": "Check {{field}} before saving",
+    "reload": "Reload saved configuration",
+    "saveError": "Could not save configuration. Your input was kept. Please retry.",
+    "saveFailed": "Could not save configuration: {{reason}}. Your input was kept. Please retry.",
+    "saving": "Saving…",
+    "success": "Configuration saved. Connection verified.",
+    "unreachable": "The site could not be reached"
+  },
+  "messages": {
+    "alreadyDefault": "Already at defaults",
+    "confirmReset": "Confirm Reset",
+    "preferencesChangedExternally": "Preferences changed externally. Refresh and try again.",
+    "resetAllConfirmDesc": "Restore all preferences and clear configured connection addresses and credentials? Saved accounts are kept; history retention policies also return to defaults.",
+    "resetConfirmDesc": "Are you sure you want to reset {{name}} to default settings? This operation cannot be undone.",
+    "resetConnectionConfirmDesc": "This clears the connection addresses, credentials, and related settings in this group. You will need to configure them again. Restore defaults?",
+    "resetFailed": "Failed to reset {{name}}",
+    "resetHistoryConfirmDesc": "Restoring defaults shortens the history retention period. Older records may be removed permanently. Continue?",
+    "resetSuccess": "{{name}} has been reset to default settings",
+    "retentionSaveHint": "Other options save automatically. Apply retention days explicitly; shortening retention may remove history.",
+    "runtimeRequestFailed": "Runtime request failed. Try again later.",
+    "saveSettingsFailed": "Failed to save settings",
+    "updateFailed": "{{name}} Update failed",
+    "updateSuccess": "{{name}} Update successful"
+  },
+  "newApi": {
+    "adminCredentialsLink": {
+      "description": "Open the admin personal settings page to find the system access token and user ID.",
+      "open": "Open page",
+      "title": "Quick access"
+    },
+    "description": "Configure integration settings for connecting to New API compatible services.",
+    "fields": {
+      "adminTokenLabel": "Administrator's system access token",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hidePassword": "Hide login password",
+      "hideToken": "Hide system access token",
+      "hideTotpSecret": "Hide TOTP secret",
+      "passwordDesc": "Optional. Used together with the login username to sign in to the New API admin console and establish a login session when viewing a channel key or running full key comparison.",
+      "passwordLabel": "Login password",
+      "passwordPlaceholder": "Enter password",
+      "showPassword": "Show login password",
+      "showToken": "Show system access token",
+      "showTotpSecret": "Show TOTP secret",
+      "totpSecretDesc": "Optional. When provided, My API Box can automatically generate TOTP codes for login 2FA and the secure verification required to view channel keys.",
+      "totpSecretLabel": "TOTP secret",
+      "totpSecretPlaceholder": "Paste Base32 TOTP secret",
+      "userIdLabel": "Administrator user ID",
+      "usernameDesc": "Optional. Used to sign in to the New API admin console and complete 2FA when needed. This is mainly used for viewing the real channel key in Channel Management and for checking whether a key is already used by a channel in Key Management.",
+      "usernameLabel": "Login username",
+      "usernamePlaceholder": "admin"
+    },
+    "sessionTest": {
+      "description": "Test whether the entered login username, password, and TOTP secret are correct and usable. After a successful check, you can continue with actions that require login and 2FA.",
+      "testing": "Testing config...",
+      "title": "Test login & 2FA config"
+    },
+    "title": "New API Integration Settings",
+    "tokenDesc": "System access token for the administrator user",
+    "urlDesc": "Set the base URL for New API integration",
+    "userIdDesc": "Administrator user ID (numeric only)"
+  },
+  "octopus": {
+    "description": "Configure integration settings for connecting to Octopus self-hosted sites. The system will automatically log in using your credentials and manage the JWT Token.",
+    "fields": {
+      "baseUrlDesc": "Set the base URL for Octopus site",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://octopus.example.com",
+      "hidePassword": "Hide password",
+      "passwordDesc": "Octopus admin password for automatic login",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter password",
+      "showPassword": "Show password",
+      "usernameDesc": "Octopus admin username for automatic login",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "admin"
+    },
+    "title": "Octopus Integration Settings",
+    "validation": {
+      "description": "Check whether the current configuration can connect to and manage the site.",
+      "error": "An error occurred during validation",
+      "failed": "Configuration validation failed, please check username and password",
+      "missingFields": "Please fill in all required fields",
+      "title": "Verify connection"
+    }
+  },
+  "omniroute": {
+    "accessTokens": {
+      "description": "Manage access tokens on the gateway dashboard and revoke the one this extension uses at any time.",
+      "missingBaseUrl": "Enter the deployment address first to open the gateway's access-token page.",
+      "open": "Open access-token page",
+      "title": "Manage gateway access tokens"
+    },
+    "description": "Configure the connection to your self-hosted OmniRoute gateway.",
+    "fields": {
+      "baseUrlDesc": "The address you use to open the OmniRoute dashboard in your browser.",
+      "baseUrlLabel": "Deployment address",
+      "baseUrlPlaceholder": "http://localhost:20128",
+      "credentialDesc": "Generate an admin-scoped access token in the gateway's Settings → Access Tokens and paste it here.",
+      "credentialLabel": "Access token",
+      "credentialPlaceholder": "oma_…",
+      "hideCredential": "Hide access token",
+      "showCredential": "Show access token"
+    },
+    "title": "OmniRoute Integration Settings",
+    "validation": {
+      "description": "Check whether the current configuration can connect to and manage the site.",
+      "failed": "OmniRoute configuration check failed: {{error}}",
+      "insufficientScope": "The token scope is insufficient: it has {{have}} but needs {{need}}. Create a new token with the admin scope under the gateway's Settings → Access Tokens.",
+      "invalidCredential": "The access token is invalid or expired: {{error}}",
+      "missingFields": "Enter the deployment URL and access token",
+      "title": "Verify connection",
+      "unknownScope": "unknown"
+    }
+  },
+  "permissions": {
+    "actions": {
+      "allow": "Allow (recommended)",
+      "refresh": "Refresh status",
+      "remove": "Revoke"
+    },
+    "description": "Grant optional permissions as needed for account data refresh, assistive tools, task notifications, and site imports.",
+    "helper": "Each permission is used only by its related feature and can be revoked at any time. Features without permission may be limited, while others keep working.",
+    "incognito": {
+      "checking": "Checking private browsing access…",
+      "chromeInstructions": "In this extension’s Chrome details, enable “Allow in incognito”.",
+      "denied": "Private browsing access is not allowed",
+      "details": "Settings",
+      "edgeInstructions": "In this extension’s Edge details, enable “Allow in InPrivate”.",
+      "enabled": "Private browsing access allowed",
+      "firefoxInstructions": "Open Firefox Add-ons and themes, select this extension and allow Run in Private Windows.",
+      "firefoxMobileInstructions": "Firefox: Open extension management from your browser menu and check this extension’s private browsing options. Menus and support vary by browser version.",
+      "genericInstructions": "Check this extension’s private browsing access in your browser’s extension manager.",
+      "manualSteps": "View setup steps",
+      "mobileInstructions": "Open extension management from your browser menu and check this extension’s private browsing options. Menus and support vary by browser version.",
+      "openChromeSettings": "Chrome settings",
+      "openEdgeSettings": "Edge settings",
+      "recommended": "Allow private browsing for isolated login",
+      "reloadWarning": "Changing this permission may reload the extension, close extension pages or interrupt tasks. Save unfinished edits first.",
+      "safariInstructions": "Select this extension in Safari’s extension settings and allow it in Private Browsing. Available options depend on your Safari version.",
+      "settingsFailed": "Could not open settings. Open your browser’s extensions manager and allow this extension in private windows.",
+      "summary": "Keep password login separate from regular windows to avoid account mix-ups and session interference.",
+      "title": "Incognito / private browsing access",
+      "unknown": "Could not check private browsing access"
+    },
+    "items": {
+      "bookmarks": {
+        "description": "Read saved URLs only when you choose to import sites from browser bookmarks.",
+        "title": "Browser bookmarks"
+      },
+      "clipboardRead": {
+        "description": "After you copy related content, help Redemption Assist or AI API Test recognize redemption codes and API details.",
+        "title": "Clipboard Read"
+      },
+      "cookies": {
+        "description": "Read only the cookies needed for the relevant site when checking sign-in status or refreshing account data.",
+        "title": "Cookie access"
+      },
+      "declarativeNetRequestWithHostAccess": {
+        "description": "Apply the request details needed for the current account in a temporary window to prevent data from different accounts being mixed up.",
+        "title": "Network request rules"
+      },
+      "notifications": {
+        "description": "Allow background scheduled tasks to send system notifications after they finish.",
+        "title": "System Notifications"
+      },
+      "webRequest": {
+        "description": "Identify requests that need account details only during temporary-window verification or automatic refresh.",
+        "title": "Network request access"
+      },
+      "webRequestBlocking": {
+        "description": "Add the current account's required cookie before a request is sent so temporary-window verification can complete.",
+        "title": "Modify network requests"
+      }
+    },
+    "messages": {
+      "granted": "{{name}} enabled. Related workflows will now run as expected.",
+      "grantFailed": "Couldn’t enable {{name}}. Please retry later if you still need it.",
+      "revoked": "{{name}} permission revoked",
+      "revokeFailed": "Failed to revoke {{name}} permission"
+    },
+    "status": {
+      "checking": "Checking…",
+      "denied": "Not granted",
+      "granted": "Granted",
+      "unavailable": "Unavailable"
+    },
+    "statusCaption": "Permission status is synced with the browser. Click refresh if you changed permissions outside this page.",
+    "title": "Permissions"
+  },
+  "permissionsOnboarding": {
+    "actions": {
+      "allowAll": "Allow all recommended permissions",
+      "maybeLater": "Not now"
+    },
+    "analyticsDisclosure": "Anonymous analytics only help us find issues and improve the experience. You can turn them off at any time; they never include your account information, credentials, or the content you send or enter.",
+    "intro": "The source is open for anyone to review. You choose whether to enable permissions and anonymous analytics.",
+    "openSourceBadge": "Open source, transparent, and community-built",
+    "permissionListDescription": "Some features need additional permissions. Review what each permission is used for, grant only what you need, and revoke access at any time.",
+    "permissionListTitle": "Choose optional permissions",
+    "project": {
+      "cta": "Explore the source and latest progress on GitHub. You can also report problems or share ideas.",
+      "getStartedCta": "Open getting started",
+      "label": "Source code",
+      "starCta": "Finding My API Box useful? Star it on GitHub to support the project"
+    },
+    "reason": {
+      "newPermissions": "New features need additional optional permissions. Review what each one does and allow only what you need."
+    },
+    "subtitle": "Choose your language, then enable only the optional permissions you need. You can change these settings later.",
+    "title": "Welcome to My API Box",
+    "toasts": {
+      "error": "Not all recommended permissions were granted",
+      "success": "All recommended permissions granted"
+    }
+  },
+  "productAnalytics": {
+    "description": "Anonymous statistics that help us spot common issues sooner, improve everyday workflows, and strengthen compatibility. We do not collect API keys, cookies, account URLs, balances, request content, or user input.",
+    "enableDescription": "Allow limited feature usage, error category, and coarse site-type statistics so we can focus on the parts that affect your experience most.",
+    "enableLabel": "Enable anonymous product analytics",
+    "title": "Anonymous product analytics"
+  },
+  "refresh": {
+    "autoRefresh": "Auto Refresh",
+    "autoRefreshDesc": "Regularly auto-refresh account data (runs in the background even after closing the extension interface)",
+    "description": "Configure auto-refresh related settings, such as refresh interval and behavior at startup",
+    "minRefreshInterval": "Minimum Refresh Interval",
+    "minRefreshIntervalDesc": "Minimum time interval between refreshes to avoid frequent requests (at least {{minSeconds}} seconds)",
+    "minRefreshIntervalInvalid": "Please enter a valid minimum refresh interval (at least {{minSeconds}} seconds).",
+    "refreshInterval": "Refresh Interval",
+    "refreshIntervalDesc": "Set the time interval for auto-refresh (default {{defaultInterval}} seconds, it is recommended not to set too small to avoid frequent requests)",
+    "refreshIntervalHint": "Frequent refreshes may trigger site rate limits when you have many accounts. Consider an interval of {{minutes}} minutes or longer.",
+    "refreshIntervalInvalid": "Please enter a valid refresh interval (at least {{minSeconds}} seconds).",
+    "refreshOnOpen": "Auto-refresh when opening plugin",
+    "refreshOnOpenDesc": "Auto-refresh account data when opening the plugin popup",
+    "shieldAutomaticFeatureAccountRefresh": "Account refresh",
+    "shieldAutomaticFeatureBalanceHistory": "Balance history",
+    "shieldAutomaticFeatureCheckin": "Check-in",
+    "shieldAutomaticFeatureKeyManagement": "Key management",
+    "shieldAutomaticFeatureLdohSiteLookup": "Site lookup",
+    "shieldAutomaticFeatureManagedSiteChannels": "Managed-site channels",
+    "shieldAutomaticFeatureManagedSiteModelSync": "Managed-site model sync",
+    "shieldAutomaticFeatureRedemptionAssist": "Redemption assistance",
+    "shieldAutomaticFeaturesDesc": "Choose which automatic features may open a temporary verification page. These choices do not enable or disable the product feature and do not affect actions you start yourself.",
+    "shieldAutomaticFeaturesTitle": "Automatic features",
+    "shieldDescriptionTempWindowOnly": "When a site asks for verification, the extension can temporarily open a tab or window. The operation continues after verification succeeds.",
+    "shieldDescriptionWithCookieInterceptor": "On Firefox, the extension can open a temporary page for site verification and continue with the verified login state. This requires the Cookies, Web Request, and Web Request Blocking permissions.",
+    "shieldDevFocusDuring": "During: {{transition}}",
+    "shieldDevFocusEnd": "End: {{state}}",
+    "shieldDevFocusStart": "Start: {{state}}",
+    "shieldDevFocusStateFocused": "browser in foreground",
+    "shieldDevFocusStateUnfocused": "browser in background",
+    "shieldDevFocusStateUnknown": "unable to determine",
+    "shieldDevFocusTitle": "This run",
+    "shieldDevFocusTransitionBackgrounded": "browser moved to background",
+    "shieldDevFocusTransitionForegrounded": "browser returned to foreground",
+    "shieldDevFocusTransitionMixed": "browser moved between foreground and background",
+    "shieldDevFocusTransitionRemainedFocused": "browser remained in foreground",
+    "shieldDevFocusTransitionRemainedUnfocused": "browser remained in background",
+    "shieldDevFocusTransitionUnknown": "unable to determine",
+    "shieldDevTriggerCancel": "Cancel",
+    "shieldDevTriggerCountdown_one": "Triggers in {{count}} second",
+    "shieldDevTriggerCountdown_other": "Triggers in {{count}} seconds",
+    "shieldDevTriggerDelayLabel": "Delay (seconds)",
+    "shieldDevTriggerDescription": "After a delay, simulate an existing automatic behavior and request the specified URL through website verification assistance. Available only in development mode.",
+    "shieldDevTriggerFailureFallback": "The request failed. Check the extension logs for details.",
+    "shieldDevTriggerInvalidDelay": "Enter a whole number from 0 to {{maxSeconds}} seconds.",
+    "shieldDevTriggerInvalidUrl": "Enter a valid HTTP or HTTPS URL.",
+    "shieldDevTriggerPresetAccountRefreshScheduled": "Scheduled account refresh",
+    "shieldDevTriggerPresetBalanceHistoryScheduled": "Scheduled balance history",
+    "shieldDevTriggerPresetCheckinScheduled": "Scheduled check-in",
+    "shieldDevTriggerPresetKeyManagementRecovery": "Key management recovery",
+    "shieldDevTriggerPresetLabel": "Behavior to simulate",
+    "shieldDevTriggerPresetLdohSiteLookupRecovery": "Site lookup recovery",
+    "shieldDevTriggerPresetRedemptionAssistRecovery": "Redemption recovery",
+    "shieldDevTriggerPresetTurnstileAutomatic": "Turnstile: automatic success",
+    "shieldDevTriggerPresetTurnstileFailure": "Turnstile: verification failure",
+    "shieldDevTriggerPresetTurnstileInteractive": "Turnstile: manual verification",
+    "shieldDevTriggerPresetTurnstileQueue": "Turnstile: three-site queue",
+    "shieldDevTriggerRunning": "Triggering...",
+    "shieldDevTriggerStart": "Trigger after delay",
+    "shieldDevTriggerSuccess": "Request completed (HTTP {{status}})",
+    "shieldDevTriggerTitle": "Development test",
+    "shieldDevTriggerTurnstileHint": "Run pnpm dev:turnstile first. These presets use the official local test component without checking in to real accounts. Enable in-page reminders, then click each reminder to open verification.",
+    "shieldDevTriggerUrlLabel": "Target URL",
+    "shieldEnabled": "Allow automatic tasks to open temporary pages",
+    "shieldEnabledDescTempWindowOnly": "When enabled, automatic refresh, check-in, and similar tasks can open a temporary page when site verification is required. When disabled, actions you start yourself can still use this feature according to the settings below.",
+    "shieldEnabledDescWithCookieInterceptor": "When enabled, automatic refresh, check-in, and similar tasks can open a temporary page when site verification is required. When disabled, actions you start yourself can still use this feature according to the settings below.",
+    "shieldMethodAuto": "Automatic",
+    "shieldMethodComposite": "Single shared window",
+    "shieldMethodDesc": "Choose how temporary pages open when a website requires verification.",
+    "shieldMethodHintAuto": "Automatically switches based on browser state: while you are using the browser, verification pages stay in a shared window instead of mixing with your regular tabs; while the browser is in the background, they use an inactive tab to avoid bringing the window to the front.",
+    "shieldMethodHintComposite": "Best when you want to keep verification pages separate from everyday browsing. Pages stay together in one separate window; the browser may come to the foreground when that window first opens.",
+    "shieldMethodHintTab": "Best when you do not want verification to interrupt what you are doing. The page opens as an inactive tab in your current browser window without opening another window or bringing the browser to the foreground.",
+    "shieldMethodHintWindow": "Best when you want each verification to use its own window. Each one opens separately; consecutive verifications may create multiple windows and repeatedly bring the browser to the foreground.",
+    "shieldMethodRecommended": "Recommended",
+    "shieldMethodTab": "Tab in current window",
+    "shieldMethodTitle": "Opening method",
+    "shieldMethodWindow": "New window each time",
+    "shieldPermissionAction": "Open Permissions Tab",
+    "shieldPermissionWarningDesc": "Firefox needs these three permissions to read cookies created during site verification and preserve the signed-in state for subsequent requests.",
+    "shieldPermissionWarningTitle": "Cookies, Web Request, and Web Request Blocking permissions required",
+    "shieldPopupFirefoxNote": "On Firefox, starting this feature from the extension popup would close the popup, so this entry point is unavailable. Use the side panel or settings page instead.",
+    "shieldTitle": "Website verification assistance",
+    "shieldTurnstileAssistDesc": "Choose how to be told when Turnstile must be completed by hand. The verification window stays open until it finishes or times out.",
+    "shieldTurnstileAssistNotify": "Browser notifications",
+    "shieldTurnstileAssistNotifyHint": "Send a local browser notification. Click it to open verification; notification permission is required.",
+    "shieldTurnstileAssistPage": "In-page reminders",
+    "shieldTurnstileAssistPageHint": "Show a reminder on your current web or extension page. Click it to open verification.",
+    "shieldTurnstileAssistQuietNotice": "All reminders are off. Verification still proceeds in the background window, but will not prompt you.",
+    "shieldTurnstileAssistTitle": "When verification needs you",
+    "shieldWindowHeight": "Height (px)",
+    "shieldWindowSizeDesc": "Set the width and height in pixels, then save. Applies to newly opened verification windows; existing windows and tabs keep their size.",
+    "shieldWindowSizeReset": "Restore defaults",
+    "shieldWindowSizeTitle": "Verification window size",
+    "shieldWindowWidth": "Width (px)",
+    "title": "Refresh Settings",
+    "turnstileNotificationEnable": "Enable system notifications",
+    "turnstileNotificationManage": "Manage notification permissions",
+    "turnstileNotificationPermissionTitle": "Allow browser notifications from My API Box",
+    "turnstileNotificationStatus": {
+      "available": "System notifications: permission granted. OS quiet mode or browser settings may still hide notifications.",
+      "blocked": "Notifications are blocked by the browser. Check your browser notification settings, then return here and try again.",
+      "loading": "Checking system notification permission…",
+      "permission_required": "System notifications: permission needed. Page reminders do not need this permission.",
+      "unavailable": "This browser does not support notifications. You can enable in-page reminders separately.",
+      "unknown": "Notification availability could not be confirmed. Check permissions and try again."
+    }
+  },
+  "releaseUpdate": {
+    "changelog": "Changelog",
+    "checkNow": "Check for updates",
+    "downloadUpdate": "Download update",
+    "helpers": {
+      "amoUpdate": "A newer version is published on Firefox Add-ons. Open the store to update, or let Firefox update automatically.",
+      "checkFailed": "Try checking for updates again.",
+      "manualUpdate": "This install is updated manually. Open the release page to get the new version.",
+      "manualUpdateGeneric": "Update through your current install channel, or open the release page if you need to update manually.",
+      "storeUpdate": "Store installs update automatically through the browser. Wait for the store rollout.",
+      "storeUpdateReady": "The browser found a store update. Reload the extension to start using the new version.",
+      "unavailable": "Try checking for updates again."
+    },
+    "latestAmoVersion": "Firefox Add-ons: v{{version}}",
+    "latestNightlyVersion": "Latest Nightly: {{version}}",
+    "reloadToUpdate": "Reload to update",
+    "states": {
+      "checkFailed": "Could not check for updates",
+      "notChecked": "The latest stable release has not been checked yet. Run a manual check to compare versions",
+      "storeUpdatePending": "Waiting for the store update",
+      "storeUpdateReady": "Update ready to apply",
+      "unavailable": "Update status unavailable",
+      "updateAvailable": "Update available",
+      "upToDate": "You’re up to date"
+    },
+    "versionBadge": {
+      "changelogAriaLabel": "Version {{version}} changelog",
+      "updateAvailableAriaLabel": "Version {{version}} update available"
+    }
+  },
+  "siteAnnouncementNotifications": {
+    "description": "Controls whether enabled account sites are checked for site announcements in the background.",
+    "page": {
+      "description": "Checks in the background every {{intervalMinutes}} minutes. You can also run a manual check.",
+      "open": "View announcements",
+      "title": "Announcement page"
+    },
+    "polling": {
+      "enable": "Enable site announcement polling",
+      "enableDesc": "When disabled, scheduled background polling stops. Existing local records are kept, and the announcement page can still run a manual check.",
+      "interval": "Polling interval",
+      "intervalDesc": "Set the background site announcement polling interval in minutes, from 15 to 1440.",
+      "intervalInvalid": "Enter a whole number from {{min}} to {{max}} minutes.",
+      "maxAge": "Notification age limit",
+      "maxAgeDesc": "Announcements published earlier than this limit are saved to the list as already read and never notify.",
+      "maxAgeInvalid": "Enter a whole number from {{min}} to {{max}} days.",
+      "upstreamRead": "Mark announcements read on the site after notifying",
+      "upstreamReadDesc": "When enabled, a delivered notification also marks the fetched announcements read on the site. When disabled, the upstream read state only syncs after you mark an announcement read on the page; being notified is not the same as having read. Only applies to sites that support upstream read sync."
+    },
+    "title": "Site announcements"
+  },
+  "sorting": {
+    "contextBoostDescription": "Show the current site account first, then accounts with related pages open, ahead of other pinned accounts. Within each tier, pins come first, followed by the selected field sort. Disabled accounts stay last. Search and manual reorder do not apply these rules.",
+    "contextBoostTitle": "Prioritize browsing context",
+    "currentSiteDesc": "Show the account matching the current site’s signed-in user first.",
+    "currentSitePriority": "Prioritize the current site account",
+    "customCheckInUrl": "External check-in URL",
+    "customRedeemUrl": "Custom Redeem URL",
+    "description": "Browsing context takes priority over pins. Other accounts remain ordered as pinned, normal, and disabled.",
+    "matchedOpenTabs": "Prioritize accounts matching other open tabs",
+    "matchedOpenTabsDesc": "Prioritize accounts whose site or configured check-in or redeem page is open, and label them “Related page open”.",
+    "title": "Sorting Priority Settings",
+    "unknownSortRule": "Unknown sorting rule"
+  },
+  "sub2apiManagedSite": {
+    "adminCredentialsLink": {
+      "description": "Sign in as an administrator, then create and copy a key under System Settings → Security. The full key is shown only once; regenerating it invalidates the old key.",
+      "missingBaseUrl": "Enter a valid site URL first to open the dashboard and get an Admin API Key.",
+      "open": "Open system settings",
+      "title": "Get an Admin API Key"
+    },
+    "defaultScope": {
+      "description": "If your site requires additional verification for sensitive operations, the extension cannot view or export channel keys. Complete these actions in the Sub2API dashboard. Migration is also affected when it needs to read a source key.",
+      "title": "Key viewing and export limits"
+    },
+    "description": "Connect your site to import existing API keys into Sub2API and view, edit, and migrate channels in My API Box.",
+    "fields": {
+      "adminApiKeyDesc": "Use an Admin API Key generated in the dashboard to manage channels. A regular API key used to call models will not work here.",
+      "adminApiKeyLabel": "Admin API Key",
+      "adminApiKeyPlaceholder": "Paste the Admin API Key from your dashboard",
+      "baseUrlDesc": "Enter your Sub2API dashboard URL, including http:// or https://.",
+      "baseUrlLabel": "Site URL",
+      "baseUrlPlaceholder": "https://sub2api.example.com",
+      "hideAdminApiKey": "Hide Admin API Key",
+      "showAdminApiKey": "Show Admin API Key"
+    },
+    "title": "Connect to Sub2API",
+    "validation": {
+      "description": "Check whether the current configuration can connect to and manage the site.",
+      "failed": "Sub2API connection check failed: {{error}}",
+      "missingFields": "Enter the site URL and Admin API Key first",
+      "title": "Verify connection"
+    }
+  },
+  "tabs": {
+    "accountManagement": "Account Management",
+    "accountUsage": "Account usage",
+    "balanceHistory": "Balance History",
+    "checkinRedeem": "Check-in & Redeem",
+    "claudeCodeRouter": "Claude Code Router",
+    "dataBackup": "Data & Backup",
+    "general": "General",
+    "managedSite": "Self-hosted AI gateway",
+    "notifications": "Notifications",
+    "permissions": "Permissions",
+    "refresh": "Data Refresh",
+    "select": "Select a tab",
+    "siteAnnouncements": "Site announcements",
+    "webAiApiCheck": "AI API Test"
+  },
+  "taskNotifications": {
+    "channels": {
+      "browser": {
+        "description": "Send through browser system notifications. Requires the notifications permission.",
+        "title": "Browser system notifications"
+      },
+      "dingtalk": {
+        "description": "Send task notifications through a DingTalk group custom bot. Pasting the full webhook URL from DingTalk is recommended, and the access_token value is still supported.",
+        "docsLink": "View setup docs",
+        "secret": "Signing secret (optional)",
+        "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "DingTalk Bot",
+        "webhookKey": "Webhook URL or access_token",
+        "webhookKeyDescription": "Copy the webhook URL from the DingTalk custom bot settings page and paste it here. If you enter only the value after `access_token=`, My API Box will complete the URL automatically. If signed security is enabled, enter the secret as well.",
+        "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "feishu": {
+        "description": "Send task notifications through a Feishu custom bot. Pasting the full webhook URL from Feishu is recommended, and the final key segment is still supported.",
+        "docsLink": "View setup docs",
+        "title": "Feishu Bot",
+        "webhookKey": "Webhook URL or key",
+        "webhookKeyDescription": "Copy the webhook URL from the Feishu custom bot settings page and paste it here. If you enter only the key after `/hook/`, My API Box will complete the URL automatically.",
+        "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      "ntfy": {
+        "accessToken": "Access token (optional)",
+        "accessTokenPlaceholder": "tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "description": "Send task notifications through an ntfy topic, using ntfy.sh or a self-hosted ntfy server.",
+        "docsLink": "View setup docs",
+        "title": "ntfy",
+        "topicUrl": "Topic URL or topic name",
+        "topicUrlDescription": "Enter a full topic URL such as `https://ntfy.sh/mytopic`, or enter only an ntfy.sh topic name. Add an access token when your self-hosted server or private topic requires one.",
+        "topicUrlPlaceholder": "https://ntfy.sh/mytopic"
+      },
+      "telegram": {
+        "botToken": "Bot token",
+        "botTokenPlaceholder": "123456:ABC-DEF...",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "123456789 or -1001234567890",
+        "description": "Send task notifications through a Telegram Bot.",
+        "title": "Telegram Bot"
+      },
+      "webhook": {
+        "description": "Send JSON notifications to a custom HTTP(S) webhook. The URL supports template variables for services such as Bark that put notification text in the path.",
+        "title": "Generic webhook",
+        "url": "Webhook URL",
+        "urlDescription": "Use {title}, {message}, {task}, {status}, {total}, {success}, {failed}, or {skipped} in the URL. Values are URL-encoded before sending. For Bark, use https://api.day.app/your-key/{title}/{message}.",
+        "urlPlaceholder": "https://api.day.app/your-key/{title}/{message}"
+      },
+      "wecom": {
+        "description": "Send task notifications through WeCom group message push. Pasting the full webhook URL from WeCom is recommended, and the key value is still supported.",
+        "docsLink": "View setup docs",
+        "title": "WeCom Bot",
+        "webhookKey": "Webhook URL or key",
+        "webhookKeyDescription": "Copy the webhook URL from the WeCom group's message push settings and paste it here. If you enter only the key after `key=`, My API Box will complete the URL automatically.",
+        "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    "enable": "Enable task notifications",
+    "enableDesc": "When enabled, selected tasks send success, partial success, or failure notifications after scheduled runs finish.",
+    "groups": {
+      "channels": {
+        "description": "Choose where notifications are delivered. Browser notifications need permission, while Telegram, Feishu, DingTalk, WeCom, ntfy, and webhook channels can be configured and tested separately.",
+        "title": "Notification channels"
+      },
+      "setup": {
+        "description": "Turn scheduled task notifications on or off before choosing channels and event types.",
+        "title": "Settings"
+      },
+      "tasks": {
+        "description": "Select which scheduled task completions or site announcement updates should notify you.",
+        "title": "Notification events"
+      }
+    },
+    "notification": {
+      "body": {
+        "failure": "{{task}} failed.",
+        "partialSuccess": "{{task}} partially completed.",
+        "success": "{{task}} completed successfully."
+      },
+      "counts": "Total {{total}}, success {{success}}, failed {{failed}}, skipped {{skipped}}.",
+      "countsWithAutoCheckinCategories": "Total {{total}}, checked in this run {{success}}, already checked {{alreadyChecked}}, failed {{failed}}, pending confirmation {{uncertain}}, not executed {{skipped}}.",
+      "title": {
+        "failure": "{{task}} failed",
+        "partialSuccess": "{{task}} partially succeeded",
+        "success": "{{task}} completed"
+      }
+    },
+    "permission": {
+      "description": "System notifications require the browser's optional notifications permission. You can also revoke it from Permissions.",
+      "request": "Grant notification permission",
+      "requestFailed": "Notification permission was not granted",
+      "requestSuccess": "Notification permission granted",
+      "title": "Notification permission"
+    },
+    "siteAnnouncements": {
+      "enable": "Site announcement notifications",
+      "enableDesc": "When enabled, newly fetched site announcements send task notifications. Local announcement records are still saved when disabled."
+    },
+    "taskDescriptions": {
+      "autoCheckin": "Notify after daily automatic check-in and automatic retry runs finish.",
+      "balanceHistoryCapture": "Notify after the end-of-day balance history capture finishes.",
+      "managedSiteModelSync": "Notify after scheduled managed-site model sync finishes.",
+      "usageHistorySync": "Notify after scheduled usage history sync finishes.",
+      "webdavAutoSync": "Notify after scheduled WebDAV automatic sync finishes."
+    },
+    "tasks": {
+      "autoCheckin": "Auto check-in",
+      "balanceHistoryCapture": "End-of-day balance capture",
+      "managedSiteModelSync": "Model sync",
+      "usageHistorySync": "Usage history sync",
+      "webdavAutoSync": "WebDAV auto sync"
+    },
+    "tasksLabel": "Task notifications",
+    "test": {
+      "action": "Send test notification",
+      "browserFailed": "Browser notification test failed. Make sure the browser notification channel is enabled and notification permission is granted.",
+      "channelDisabled": "Failed to send the test notification. Enable and configure this notification channel first.",
+      "dingtalkMissingConfig": "DingTalk Bot webhook URL or access_token is not configured.",
+      "failed": "Failed to send the test notification. Check this notification channel configuration.",
+      "feishuMissingConfig": "Feishu Bot webhook URL or key is not configured.",
+      "httpError": "{{label}} returned HTTP {{status}}.",
+      "httpErrorWithDetail": "{{label}} returned HTTP {{status}}: {{detail}}",
+      "message": "This is an My API Box task notification test.",
+      "ntfyInvalidUrl": "The ntfy topic must be an http:// or https:// URL, or a valid ntfy.sh topic name.",
+      "ntfyMissingConfig": "The ntfy topic URL or topic name is not configured.",
+      "sent": "Test notification sent",
+      "telegramMissingConfig": "Telegram Bot token or Chat ID is not configured.",
+      "title": "My API Box test notification",
+      "webhookInvalidUrl": "Webhook URL must use http:// or https://.",
+      "webhookMissingConfig": "Webhook URL is not configured.",
+      "wecomMissingConfig": "WeCom Bot webhook URL or key is not configured."
+    }
+  },
+  "theme": {
+    "appearance": "Appearance",
+    "current": "Current: {{theme}} ({{resolvedTheme}})",
+    "currentTheme": "Current: Follow system ({{theme}})",
+    "dark": "Dark",
+    "followSystem": "Follow system",
+    "followSystemTheme": "Follow system theme settings",
+    "light": "Light",
+    "mode": "Theme mode",
+    "selectTheme": "Choose light, dark, or follow system",
+    "switchTo": "Switch to {{theme}} theme: {{description}}",
+    "useDarkTheme": "Use dark theme",
+    "useLightTheme": "Use light theme"
+  },
+  "title": "Settings",
+  "veloera": {
+    "adminCredentialsLink": {
+      "description": "Open the admin personal settings page to find the system access token and user ID.",
+      "open": "Open page",
+      "title": "Quick access"
+    },
+    "description": "Configure integration settings for connecting to Veloera compatible services.",
+    "fields": {
+      "adminTokenLabel": "Administrator's system access token",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "Hide system access token",
+      "showToken": "Show system access token",
+      "userIdLabel": "Administrator user ID"
+    },
+    "title": "Veloera Integration Settings",
+    "tokenDesc": "System access token for the administrator user",
+    "urlDesc": "Set the base URL for Veloera integration",
+    "userIdDesc": "Administrator user ID (numeric only)"
+  }
+}

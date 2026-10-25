@@ -1,0 +1,122 @@
+import { useEffect, useRef, useState } from "react"
+
+type UsePreferenceDraftOptions<T> = {
+  savedValue: T
+  savedVersion: number
+  /**
+   * Optional comparator for `usePreferenceDraft`. Keep this callback stable
+   * across renders, for example by defining it at module scope or memoizing it
+   * with `useCallback`, because it participates in the reconciliation effect.
+   */
+  isEqual?: (left: T, right: T) => boolean
+}
+
+/**
+ * Compare draft values with a serialization fallback for small settings objects.
+ */
+function defaultIsEqual<T>(left: T, right: T) {
+  if (Object.is(left, right)) {
+    return true
+  }
+
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+/**
+ * Check whether a value can be reconciled field-by-field.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+/**
+ * Manage a local settings draft against a persisted preference snapshot.
+ *
+ * Clean drafts rehydrate automatically from storage refreshes. Dirty drafts keep
+ * their local edits and retain the version they branched from so stale writes can
+ * be rejected safely.
+ */
+export function usePreferenceDraft<T>({
+  savedValue,
+  savedVersion,
+  isEqual = defaultIsEqual,
+}: UsePreferenceDraftOptions<T>) {
+  const [draft, setDraft] = useState(savedValue)
+  const [baselineValue, setBaselineValue] = useState(savedValue)
+  const [baselineVersion, setBaselineVersion] = useState(savedVersion)
+  const acceptedFromSnapshotRef = useRef<{ value: T } | null>(null)
+
+  const isDirty = !isEqual(draft, baselineValue)
+
+  const acceptDraft = (value: T) => {
+    acceptedFromSnapshotRef.current = { value: savedValue }
+    setDraft(value)
+    setBaselineValue(value)
+  }
+
+  useEffect(() => {
+    if (!isDirty) {
+      if (savedVersion < baselineVersion) {
+        return
+      }
+      if (
+        acceptedFromSnapshotRef.current &&
+        isEqual(savedValue, acceptedFromSnapshotRef.current.value)
+      ) {
+        return
+      }
+      acceptedFromSnapshotRef.current = null
+      if (isEqual(draft, savedValue) && isEqual(baselineValue, savedValue)) {
+        if (savedVersion !== baselineVersion) {
+          setBaselineVersion(savedVersion)
+        }
+        return
+      }
+      setDraft(savedValue)
+      setBaselineValue(savedValue)
+      setBaselineVersion(savedVersion)
+      return
+    }
+
+    if (isEqual(draft, savedValue)) {
+      setBaselineValue(savedValue)
+      setBaselineVersion(savedVersion)
+      return
+    }
+
+    if (savedVersion <= baselineVersion) {
+      return
+    }
+
+    if (!isRecord(savedValue) || !isRecord(baselineValue) || !isRecord(draft)) {
+      return
+    }
+
+    const savedChangesMatchDraft = Object.entries(savedValue).every(
+      ([key, value]) =>
+        defaultIsEqual(value, baselineValue[key]) ||
+        defaultIsEqual(draft[key], value),
+    )
+
+    if (savedChangesMatchDraft) {
+      setBaselineValue(savedValue)
+      setBaselineVersion(savedVersion)
+    }
+  }, [
+    baselineValue,
+    baselineVersion,
+    draft,
+    isDirty,
+    isEqual,
+    savedValue,
+    savedVersion,
+  ])
+
+  return {
+    draft,
+    setDraft,
+    acceptDraft,
+    isDirty,
+    expectedLastUpdated: baselineVersion,
+  }
+}

@@ -1,0 +1,101 @@
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+.pnpm-store
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+/playwright-report
+/test-results
+/diagnostics-results
+# Vitest shard inputs and outputs: blob reports, and the durations manifest the
+# shard sequencer reads (CI restores both from the Actions cache).
+/.vitest-reports
+/.vitest-durations
+
+# playwright-cli
+.playwright-cli/
+.playwright/
+.playwright-profiles/
+
+# misc
+.DS_Store
+*.pem
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# local env files
+.env*.local
+
+out/
+build/
+dist/
+
+# plasmo
+.plasmo
+
+# typescript
+.tsbuildinfo
+
+# 文档项目的依赖和构建产物
+/docs/node_modules/
+/docs/docs/.vuepress/dist/
+/docs/docs/.vuepress/.cache/
+/docs/docs/.vuepress/.temp/
+/docs/docs/.vuepress/public/data/changelog-index.json
+
+# 其他可能的文档生成器特定忽略项 (例如 Docusaurus 的 build 目录)
+# /docs/build/
+
+
+# Logs
+logs
+*.log
+*.pid
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.output
+stats.html
+stats-*.json
+.wxt
+web-ext.config.ts
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+# Share only portable JetBrains module and directory-exclusion settings.
+/.idea/*
+!/.idea/modules.xml
+!/.idea/all-api-hub.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.env
+.env.*
+src/public/react-devtools*
+.ace-tool/
+/All API Hub – AI Relay & New API Manager/
+
+# Local Scout audit records
+.scratch/**/scout-audit-*.md
+
+# Local screenshot comparison runs
+.scratch/visual-comparisons/
+.scratch/visual-captures/
+
+# Authenticated RelayFor identity and screenshot evidence stays local.
+.scratch/relayfor-parity-audit/

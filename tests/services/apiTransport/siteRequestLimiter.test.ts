@@ -1,0 +1,896 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { createDeferredAbortDeadline } from "~/services/apiTransport/abortableTask"
+import {
+  createSiteRequestLeaseLimiter,
+  withSiteApiRequestLease,
+} from "~/services/apiTransport/siteRequestLimiter"
+import {
+  createTaskLease,
+  createTaskLimiter,
+} from "~~/tests/test-utils/siteRequestLease"
+
+const flushMicrotasks = async () => {
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
+describe("createTaskLimiter", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(0)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("limits concurrent work for the same site key", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 2,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+
+    const events: string[] = []
+    const releases: Array<() => void> = []
+    const createTask = (label: string) => async () => {
+      events.push(`${label}:start`)
+      await new Promise<void>((resolve) => {
+        releases.push(resolve)
+      })
+      events.push(`${label}:end`)
+    }
+
+    const first = limiter("site-a", createTask("first"))
+    const second = limiter("site-a", createTask("second"))
+    const third = limiter("site-a", createTask("third"))
+
+    await flushMicrotasks()
+    expect(events).toEqual(["first:start", "second:start"])
+
+    releases[0]?.()
+    await first
+    await flushMicrotasks()
+
+    expect(events).toEqual([
+      "first:start",
+      "second:start",
+      "first:end",
+      "third:start",
+    ])
+
+    releases[1]?.()
+    await second
+    await flushMicrotasks()
+
+    expect(events).toEqual([
+      "first:start",
+      "second:start",
+      "first:end",
+      "third:start",
+      "second:end",
+    ])
+
+    releases[2]?.()
+    await third
+    expect(events).toEqual([
+      "first:start",
+      "second:start",
+      "first:end",
+      "third:start",
+      "second:end",
+      "third:end",
+    ])
+  })
+
+  it("dispatches an export before queued automatic checks without bypassing rate limits", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const events: string[] = []
+    const first = limiter("site", async () => {
+      events.push("active")
+    })
+    const background = limiter(
+      "site",
+      async () => {
+        events.push("automatic")
+      },
+      undefined,
+      { priority: "background" },
+    )
+    const exported = limiter("site", async () => {
+      events.push("export")
+    })
+    await first
+    await vi.advanceTimersByTimeAsync(999)
+    expect(events).toEqual(["active"])
+    await vi.advanceTimersByTimeAsync(1)
+    expect(events).toEqual(["active", "export"])
+    await vi.advanceTimersByTimeAsync(1000)
+    await Promise.all([background, exported])
+    expect(events).toEqual(["active", "export", "automatic"])
+  })
+
+  it("starts export at the next refill despite twenty waiting automatic checks", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    await limiter("site", async () => {})
+    const pending = Array.from({ length: 20 }, () =>
+      limiter("site", async () => {}, undefined, { priority: "background" }),
+    )
+    const start = Date.now()
+    const dispatch = vi.fn(async () => Date.now() - start)
+    const exported = limiter("site", dispatch)
+    await vi.advanceTimersByTimeAsync(999)
+    expect(dispatch).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(exported).resolves.toBe(1000)
+    await vi.advanceTimersByTimeAsync(20_000)
+    await Promise.all(pending)
+  })
+
+  it("observes promotion of shared queued work and gives background work bounded turns", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const events: string[] = []
+    const scheduling = { priority: "background" as "background" | "foreground" }
+    const requests = [limiter("site", async () => {})]
+    requests.push(
+      limiter(
+        "site",
+        async () => {
+          events.push("background")
+        },
+        undefined,
+        { priority: "background" },
+      ),
+    )
+    requests.push(
+      limiter(
+        "site",
+        async () => {
+          events.push("shared-export")
+        },
+        undefined,
+        scheduling,
+      ),
+    )
+    for (let i = 0; i < 8; i++)
+      requests.push(
+        limiter("site", async () => {
+          events.push(`foreground-${i}`)
+        }),
+      )
+    scheduling.priority = "foreground"
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(events[0]).toBe("shared-export")
+    await vi.advanceTimersByTimeAsync(10_000)
+    await Promise.all(requests)
+    expect(events.indexOf("background")).toBeLessThanOrEqual(5)
+  })
+
+  it("keeps a free slot for waiting foreground work instead of starting background work", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 2,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const events: string[] = []
+    const releases: Array<() => void> = []
+    const hold = (label: string) => async () => {
+      events.push(`${label}:start`)
+      await new Promise<void>((resolve) => {
+        releases.push(resolve)
+      })
+    }
+
+    // Both slots are held by automatic work that outlives the user's request.
+    const background = { priority: "background" } as const
+    const held = [
+      limiter("site", hold("automatic-1"), undefined, background),
+      limiter("site", hold("automatic-2"), undefined, background),
+    ]
+    await flushMicrotasks()
+    expect(events).toEqual(["automatic-1:start", "automatic-2:start"])
+
+    // Six instant foreground turns put the queue in debt to the background
+    // request, which must still leave the last slot to the held seventh one.
+    const foreground = [
+      ...Array.from({ length: 6 }, (_, index) =>
+        limiter("site", async () => {
+          events.push(`user-${index}`)
+        }),
+      ),
+      limiter("site", hold("user-6")),
+    ]
+    const automaticController = new AbortController()
+    const automatic = limiter(
+      "site",
+      hold("automatic-3"),
+      automaticController.signal,
+      background,
+    )
+
+    releases[0]?.()
+    await vi.advanceTimersByTimeAsync(1_000)
+
+    expect(events.filter((event) => event.startsWith("user-"))).toHaveLength(7)
+    expect(events).not.toContain("automatic-3:start")
+
+    automaticController.abort()
+    for (const release of releases) release()
+    await Promise.allSettled([...held, automatic, ...foreground])
+  })
+
+  it("never spends the token a queued foreground request is waiting for", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 2,
+      requestsPerMinute: 60,
+      burst: 2,
+    })
+    const dispatchedAt = new Map<string, number>()
+    const releases: Array<() => void> = []
+    const record = (label: string) => () => {
+      dispatchedAt.set(label, Date.now())
+    }
+
+    // Five foreground turns put the queue in debt to background work while more
+    // foreground requests still wait, so every queued foreground request must
+    // keep the refill it is waiting for and the background turn must wait for a
+    // second token instead of spending the reserved one.
+    const foreground = Array.from({ length: 9 }, (_, index) =>
+      limiter("site", async () => {
+        record(`user-${index}`)()
+      }),
+    )
+    const automatic = limiter(
+      "site",
+      async () => {
+        record("automatic")()
+        await new Promise<void>((resolve) => {
+          releases.push(resolve)
+        })
+      },
+      undefined,
+      { priority: "background" },
+    )
+
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(dispatchedAt.get("user-7")).toBeLessThan(
+      dispatchedAt.get("automatic")!,
+    )
+    expect(dispatchedAt.get("user-8")).toBeLessThan(
+      dispatchedAt.get("automatic")!,
+    )
+
+    releases[0]?.()
+    await Promise.all([...foreground, automatic])
+  })
+
+  it("keeps FIFO order for queued same-site work", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+
+    const events: string[] = []
+    const releases: Array<() => void> = []
+    const createTask = (label: string) => async () => {
+      events.push(`${label}:start`)
+      await new Promise<void>((resolve) => {
+        releases.push(resolve)
+      })
+      events.push(`${label}:end`)
+    }
+
+    const first = limiter("site-a", createTask("first"))
+    const second = limiter("site-a", createTask("second"))
+    const third = limiter("site-a", createTask("third"))
+
+    await flushMicrotasks()
+    expect(events).toEqual(["first:start"])
+
+    releases[0]?.()
+    await first
+    await flushMicrotasks()
+    expect(events).toEqual(["first:start", "first:end", "second:start"])
+
+    releases[1]?.()
+    await second
+    await flushMicrotasks()
+    expect(events).toEqual([
+      "first:start",
+      "first:end",
+      "second:start",
+      "second:end",
+      "third:start",
+    ])
+
+    releases[2]?.()
+    await third
+    expect(events).toEqual([
+      "first:start",
+      "first:end",
+      "second:start",
+      "second:end",
+      "third:start",
+      "third:end",
+    ])
+  })
+
+  it("removes queued aborted work without running it or consuming a token", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const abortController = new AbortController()
+    const events: string[] = []
+    let releaseFirst: (() => void) | undefined
+
+    const first = limiter("site-a", async () => {
+      events.push("first:start")
+      await new Promise<void>((resolve) => {
+        releaseFirst = resolve
+      })
+      events.push("first:end")
+    })
+    const secondTask = vi.fn(async () => {
+      events.push("second:start")
+    })
+    const second = limiter("site-a", secondTask, abortController.signal)
+    let secondOutcome: unknown = "pending"
+    const captureSecondOutcome = second.then(
+      () => {
+        secondOutcome = "resolved"
+      },
+      (error) => {
+        secondOutcome = error
+      },
+    )
+    const third = limiter("site-a", async () => {
+      events.push("third:start")
+    })
+
+    await flushMicrotasks()
+    abortController.abort()
+    await flushMicrotasks()
+    releaseFirst?.()
+    await first
+
+    vi.advanceTimersByTime(999)
+    await flushMicrotasks()
+    expect(events).toEqual(["first:start", "first:end"])
+
+    vi.advanceTimersByTime(1)
+    await flushMicrotasks()
+
+    expect(secondOutcome).toBe(abortController.signal.reason)
+    expect(secondTask).not.toHaveBeenCalled()
+    expect(events).toEqual(["first:start", "first:end", "third:start"])
+    await third
+    await captureSecondOutcome
+  })
+
+  it("removes a queued request when its started shared deadline expires", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const abortDeadline = createDeferredAbortDeadline(1_000)
+    let releaseFirst: (() => void) | undefined
+    const secondTask = vi.fn(async () => "unexpected")
+    const first = limiter("site-a", async () => {
+      abortDeadline.start()
+      await new Promise<void>((resolve) => {
+        releaseFirst = resolve
+      })
+    })
+    const second = limiter("site-a", secondTask, abortDeadline.signal)
+    const secondOutcome = second.then(
+      () => ({ status: "fulfilled" }) as const,
+      (reason) => ({ status: "rejected", reason }) as const,
+    )
+
+    try {
+      await flushMicrotasks()
+      await vi.advanceTimersByTimeAsync(1_000)
+
+      await expect(secondOutcome).resolves.toMatchObject({
+        status: "rejected",
+        reason: { name: "TimeoutError" },
+      })
+      releaseFirst?.()
+      await first
+      expect(secondTask).not.toHaveBeenCalled()
+    } finally {
+      abortDeadline.dispose()
+      releaseFirst?.()
+      await Promise.allSettled([first, second])
+    }
+  })
+
+  it("does not start work admitted with an already aborted signal", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const abortController = new AbortController()
+    const task = vi.fn(async () => "unexpected")
+    abortController.abort()
+
+    await expect(limiter("site-a", task, abortController.signal)).rejects.toBe(
+      abortController.signal.reason,
+    )
+    expect(task).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("does not start disabled limiter work with an already aborted signal", async () => {
+    const limiter = createTaskLimiter({
+      enabled: false,
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const abortController = new AbortController()
+    const task = vi.fn(async () => "unexpected")
+    abortController.abort()
+
+    await expect(limiter("site-a", task, abortController.signal)).rejects.toBe(
+      abortController.signal.reason,
+    )
+    expect(task).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("keeps an acquired task active and detaches its queue abort listener", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const abortController = new AbortController()
+    const removeEventListener = vi.spyOn(
+      abortController.signal,
+      "removeEventListener",
+    )
+    let releaseTask: (() => void) | undefined
+
+    const task = limiter(
+      "site-a",
+      async () => {
+        await new Promise<void>((resolve) => {
+          releaseTask = resolve
+        })
+        return "done"
+      },
+      abortController.signal,
+    )
+
+    await flushMicrotasks()
+    abortController.abort()
+    releaseTask?.()
+
+    await expect(task).resolves.toBe("done")
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "abort",
+      expect.any(Function),
+    )
+  })
+
+  it("does not remove queued work when an acquired item's stale abort listener fires", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const firstController = new AbortController()
+    const secondController = new AbortController()
+    vi.spyOn(firstController.signal, "removeEventListener").mockImplementation(
+      () => {},
+    )
+    let releaseFirst: (() => void) | undefined
+    const firstTask = vi.fn(
+      async () =>
+        await new Promise<string>((resolve) => {
+          releaseFirst = () => resolve("first")
+        }),
+    )
+    const secondTask = vi.fn(async () => "second")
+
+    const first = limiter("site-a", firstTask, firstController.signal)
+    const firstOutcome = first.then(
+      (value) => ({ status: "fulfilled", value }) as const,
+      (reason) => ({ status: "rejected", reason }) as const,
+    )
+    const second = limiter("site-a", secondTask, secondController.signal)
+
+    try {
+      await flushMicrotasks()
+      expect(firstTask).toHaveBeenCalledTimes(1)
+      expect(secondTask).not.toHaveBeenCalled()
+
+      firstController.abort()
+      releaseFirst?.()
+      const settledFirst = await firstOutcome
+      await flushMicrotasks()
+
+      expect(settledFirst).toEqual({
+        status: "fulfilled",
+        value: "first",
+      })
+      expect(secondTask).toHaveBeenCalledTimes(1)
+      await expect(second).resolves.toBe("second")
+    } finally {
+      releaseFirst?.()
+      secondController.abort()
+      await Promise.allSettled([first, second])
+    }
+  })
+
+  it("does not block different site keys", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+
+    const events: string[] = []
+    let releaseSiteA: (() => void) | undefined
+
+    const first = limiter("site-a", async () => {
+      events.push("site-a:start")
+      await new Promise<void>((resolve) => {
+        releaseSiteA = resolve
+      })
+      events.push("site-a:end")
+    })
+    const second = limiter("site-b", async () => {
+      events.push("site-b:start")
+    })
+
+    await flushMicrotasks()
+    expect(events).toEqual(["site-a:start", "site-b:start"])
+
+    await second
+    releaseSiteA?.()
+    await first
+    expect(events).toEqual(["site-a:start", "site-b:start", "site-a:end"])
+  })
+
+  it("waits for token refill after the configured burst is consumed", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 2,
+    })
+    const events: string[] = []
+
+    await limiter("site-a", async () => {
+      events.push("first")
+    })
+    await limiter("site-a", async () => {
+      events.push("second")
+    })
+
+    const third = limiter("site-a", async () => {
+      events.push("third")
+    })
+
+    await flushMicrotasks()
+    expect(events).toEqual(["first", "second"])
+
+    vi.advanceTimersByTime(999)
+    await flushMicrotasks()
+    expect(events).toEqual(["first", "second"])
+
+    vi.advanceTimersByTime(1)
+    await third
+    expect(events).toEqual(["first", "second", "third"])
+  })
+
+  it("reschedules a pending token refill when more same-site work is queued", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+    const events: string[] = []
+
+    await limiter("site-a", async () => {
+      events.push("first")
+    })
+
+    const second = limiter("site-a", async () => {
+      events.push("second")
+    })
+    await flushMicrotasks()
+    expect(events).toEqual(["first"])
+
+    vi.advanceTimersByTime(400)
+
+    const third = limiter("site-a", async () => {
+      events.push("third")
+    })
+    await flushMicrotasks()
+    expect(events).toEqual(["first"])
+
+    vi.advanceTimersByTime(599)
+    await flushMicrotasks()
+    expect(events).toEqual(["first"])
+
+    vi.advanceTimersByTime(1)
+    await second
+    await flushMicrotasks()
+    expect(events).toEqual(["first", "second"])
+
+    vi.advanceTimersByTime(1_000)
+    await third
+    expect(events).toEqual(["first", "second", "third"])
+  })
+
+  it("runs the idle cleanup timer after a site queue drains", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 60,
+      burst: 1,
+    })
+
+    await limiter("site-a", async () => "done")
+    vi.advanceTimersByTime(5 * 60 * 1_000)
+    await flushMicrotasks()
+
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("releases the concurrency slot when a task rejects", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const events: string[] = []
+
+    const first = limiter("site-a", async () => {
+      events.push("first:start")
+      throw new Error("boom")
+    })
+    const second = limiter("site-a", async () => {
+      events.push("second:start")
+      return "ok"
+    })
+
+    await expect(first).rejects.toThrow("boom")
+    await expect(second).resolves.toBe("ok")
+    expect(events).toEqual(["first:start", "second:start"])
+  })
+
+  it("releases the concurrency slot when a task throws synchronously", async () => {
+    const limiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const taskError = new Error("synchronous failure")
+    const events: string[] = []
+
+    const first = limiter("site-a", () => {
+      events.push("first:start")
+      throw taskError
+    })
+    const second = limiter("site-a", async () => {
+      events.push("second:start")
+      return "ok"
+    })
+
+    await expect(first).rejects.toBe(taskError)
+    await expect(second).resolves.toBe("ok")
+    expect(events).toEqual(["first:start", "second:start"])
+  })
+
+  it("holds a lease slot until completion after its result rejects", async () => {
+    const limiter = createSiteRequestLeaseLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const timeoutError = new DOMException("Timed out", "TimeoutError")
+    let rejectResult: ((reason: unknown) => void) | undefined
+    let completeWork: (() => void) | undefined
+    const events: string[] = []
+
+    const first = limiter("site-a", () => {
+      events.push("first:start")
+      return {
+        result: new Promise<never>((_resolve, reject) => {
+          rejectResult = reject
+        }),
+        completion: new Promise<void>((resolve) => {
+          completeWork = resolve
+        }),
+      }
+    })
+    const second = limiter("site-a", () => {
+      events.push("second:start")
+      return {
+        result: Promise.resolve("second"),
+        completion: Promise.resolve(),
+      }
+    })
+
+    await flushMicrotasks()
+    rejectResult?.(timeoutError)
+    await expect(first).rejects.toBe(timeoutError)
+    await flushMicrotasks()
+    expect(events).toEqual(["first:start"])
+
+    completeWork?.()
+    await flushMicrotasks()
+    await expect(second).resolves.toBe("second")
+    expect(events).toEqual(["first:start", "second:start"])
+  })
+
+  it("releases a lease slot when completion rejects after result settles", async () => {
+    const limiter = createSiteRequestLeaseLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const completionError = new Error("late completion failure")
+    let rejectCompletion: ((reason: unknown) => void) | undefined
+    const events: string[] = []
+
+    const first = limiter("site-a", () => {
+      events.push("first:start")
+      return {
+        result: Promise.resolve("first"),
+        completion: new Promise<void>((_resolve, reject) => {
+          rejectCompletion = reject
+        }),
+      }
+    })
+    const second = limiter("site-a", () => {
+      events.push("second:start")
+      return {
+        result: Promise.resolve("second"),
+        completion: Promise.resolve(),
+      }
+    })
+
+    await expect(first).resolves.toBe("first")
+    await flushMicrotasks()
+    expect(events).toEqual(["first:start"])
+
+    rejectCompletion?.(completionError)
+    await flushMicrotasks()
+    await expect(second).resolves.toBe("second")
+    expect(events).toEqual(["first:start", "second:start"])
+  })
+
+  it("releases a lease slot when its factory throws synchronously", async () => {
+    const limiter = createSiteRequestLeaseLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 600,
+      burst: 10,
+    })
+    const factoryError = new Error("factory failed")
+    const events: string[] = []
+
+    const first = limiter("site-a", () => {
+      events.push("first:start")
+      throw factoryError
+    })
+    const second = limiter("site-a", () => {
+      events.push("second:start")
+      return {
+        result: Promise.resolve("second"),
+        completion: Promise.resolve(),
+      }
+    })
+
+    await expect(first).rejects.toBe(factoryError)
+    await expect(second).resolves.toBe("second")
+    expect(events).toEqual(["first:start", "second:start"])
+  })
+
+  it.each([
+    ["disabled limiter", false, "site-a"],
+    ["empty key", true, ""],
+  ])(
+    "consumes rejecting completion for the %s fast path",
+    async (_label, enabled, key) => {
+      const limiter = createSiteRequestLeaseLimiter({
+        enabled,
+        maxConcurrentPerSite: 1,
+        requestsPerMinute: 600,
+        burst: 10,
+      })
+
+      await expect(
+        limiter(key, () => ({
+          result: Promise.resolve("result"),
+          completion: Promise.reject(new Error("late completion failure")),
+        })),
+      ).resolves.toBe("result")
+      await flushMicrotasks()
+    },
+  )
+
+  it("runs immediately when disabled or when the key is empty", async () => {
+    const disabledLimiter = createTaskLimiter({
+      enabled: false,
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 1,
+      burst: 1,
+    })
+    const enabledLimiter = createTaskLimiter({
+      maxConcurrentPerSite: 1,
+      requestsPerMinute: 1,
+      burst: 1,
+    })
+
+    let releasePending: (() => void) | undefined
+    const pendingRequest = enabledLimiter("site-a", async () => {
+      await new Promise<void>((resolve) => {
+        releasePending = resolve
+      })
+      return "pending"
+    })
+    await flushMicrotasks()
+    expect(releasePending).toBeTypeOf("function")
+
+    await expect(
+      disabledLimiter("site-a", async () => "disabled"),
+    ).resolves.toBe("disabled")
+    await expect(enabledLimiter("", async () => "empty-key")).resolves.toBe(
+      "empty-key",
+    )
+
+    releasePending?.()
+    await expect(pendingRequest).resolves.toBe("pending")
+  })
+
+  it.each([
+    ["maxConcurrentPerSite", Number.NaN],
+    ["maxConcurrentPerSite", Number.POSITIVE_INFINITY],
+    ["maxConcurrentPerSite", 0],
+    ["burst", Number.NaN],
+    ["burst", Number.POSITIVE_INFINITY],
+    ["burst", 0],
+    ["requestsPerMinute", Number.NaN],
+    ["requestsPerMinute", Number.POSITIVE_INFINITY],
+    ["requestsPerMinute", -1],
+  ])("rejects malformed %s config values", (field, value) => {
+    expect(() =>
+      createTaskLimiter({
+        maxConcurrentPerSite: 1,
+        requestsPerMinute: 1,
+        burst: 1,
+        [field]: value,
+      }),
+    ).toThrow(TypeError)
+  })
+
+  it("withSiteApiRequestLease runs the wrapped task in test mode", async () => {
+    await expect(
+      withSiteApiRequestLease("site-a", () =>
+        createTaskLease(async () => "wrapped"),
+      ),
+    ).resolves.toBe("wrapped")
+  })
+})

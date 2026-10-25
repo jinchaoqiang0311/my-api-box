@@ -1,0 +1,87 @@
+name: 部署文档
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths: # <<<<<< 新增：路径过滤
+      - "docs/docs/**" # 匹配 /docs/docs/ 目录下所有文档内容和配置 (包括 .vuepress/、config.js 等)
+      - "docs/package.json" # 匹配 /docs/package.json 文件 (因为依赖定义在这里)
+      - "docs/pnpm-lock.yaml" # 匹配 /docs/pnpm-lock.yaml 文件 (因为依赖版本锁定在这里)
+      - "docs/pnpm-workspace.yaml"
+      - "resources/wechat_group.png" # 文档首页直接引用的微信群二维码，更新时也需要重新部署 Pages
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-gh-pages:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs # 所有 run 命令将在此目录下执行
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # 如果你的文档需要 Git 子模块，取消注释下一行
+          # submodules: true
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          package_json_file: docs/package.json
+          run_install: false
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: 注入卸载问卷 PostHog 配置
+        env:
+          VITE_PUBLIC_POSTHOG_HOST: ${{ secrets.VITE_PUBLIC_POSTHOG_HOST || vars.VITE_PUBLIC_POSTHOG_HOST }}
+          VITE_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ secrets.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || vars.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN }}
+        run: |-
+          # 卸载问卷页（静态 HTML）在构建前替换 PostHog 占位符。
+          # 未配置时保留占位符：页面照常展示问卷，只是不上报。
+          if [ -n "$VITE_PUBLIC_POSTHOG_HOST" ] && [ -n "$VITE_PUBLIC_POSTHOG_PROJECT_TOKEN" ]; then
+            sed -i \
+              -e "s|__POSTHOG_HOST__|${VITE_PUBLIC_POSTHOG_HOST}|g" \
+              -e "s|__POSTHOG_TOKEN__|${VITE_PUBLIC_POSTHOG_PROJECT_TOKEN}|g" \
+              docs/.vuepress/public/uninstall.html
+          else
+            echo "PostHog 配置缺失，卸载问卷将不进行数据上报"
+          fi
+
+      - name: 构建文档
+        env:
+          NODE_OPTIONS: --max_old_space_size=8192
+        run: |-
+          # 因为 working-directory 是 docs，所以这里执行的是 docs/package.json 中的 docs:build
+          # 且构建输出在 /docs/docs/.vuepress/dist (相对于仓库根目录)
+          # 或者在当前工作目录 /docs 内的 docs/.vuepress/dist
+          pnpm run docs:build
+          # 创建 .nojekyll 文件，防止 GitHub Pages 尝试解析 Jekyll
+          # 该文件将位于 /docs/docs/.vuepress/dist/.nojekyll
+          > docs/.vuepress/dist/.nojekyll
+
+      - name: 部署文档
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages # 部署到的目标分支
+          # 指定要部署的文件夹。相对于 GitHub 仓库根目录。
+          # 您的 VitePress 文档内容在 /docs/docs/ 下，构建输出通常在 /docs/docs/.vuepress/dist
+          folder: docs/docs/.vuepress/dist

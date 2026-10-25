@@ -1,0 +1,574 @@
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import DedupeAccountsDialog from "~/features/AccountManagement/components/DedupeAccountsDialog"
+import { scanDuplicateAccounts } from "~/services/accounts/identity/accountDedupe"
+import { createCompatibilityCheckInConfig } from "~/services/checkin/autoCheckin/configuration/compatibilityConfig"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import {
+  ACCOUNT_TODAY_METRIC_REASONS,
+  ACCOUNT_TODAY_METRIC_STATUSES,
+} from "~/types/accountTodayStats"
+import { buildSiteAccount } from "~~/tests/test-utils/factories"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+import { render, screen, waitFor, within } from "~~/tests/test-utils/render"
+
+const accounts = [
+  buildSiteAccount({
+    id: "acc-keep",
+    site_name: "Example",
+    site_url: "https://api.example.com/panel",
+    site_type: "new-api",
+    exchange_rate: 7.2,
+    notes: "keep notes",
+    updated_at: 200,
+    created_at: 200,
+    excludeFromTotalBalance: true,
+    checkIn: createCompatibilityCheckInConfig({
+      siteType: SITE_TYPES.NEW_API,
+      supported: true,
+      automaticExecutionEnabled: true,
+      customCheckIn: { url: "https://checkin.example.com" },
+    }),
+    account_info: {
+      id: "1",
+      access_token: "token",
+      username: "keep",
+      quota: 0,
+      today_prompt_tokens: 0,
+      today_completion_tokens: 0,
+      today_quota_consumption: 123,
+      today_requests_count: 456,
+      today_income: 0,
+      todayStatsAvailability: {
+        consumption: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.PageLimit,
+        },
+        requests: { status: ACCOUNT_TODAY_METRIC_STATUSES.Complete },
+        tokens: { status: ACCOUNT_TODAY_METRIC_STATUSES.Complete },
+        income: { status: ACCOUNT_TODAY_METRIC_STATUSES.Complete },
+      },
+    },
+    last_sync_time: 0,
+  }),
+  buildSiteAccount({
+    id: "acc-del",
+    site_name: "Example",
+    site_url: "https://api.example.com/v1",
+    site_type: "new-api",
+    exchange_rate: 7.2,
+    notes: "del notes",
+    updated_at: 100,
+    created_at: 100,
+    checkIn: createCompatibilityCheckInConfig({
+      siteType: SITE_TYPES.NEW_API,
+      supported: false,
+      automaticExecutionEnabled: false,
+    }),
+    account_info: {
+      id: "1",
+      access_token: "token",
+      username: "del",
+      quota: 0,
+      today_prompt_tokens: 0,
+      today_completion_tokens: 0,
+      today_quota_consumption: 0,
+      today_requests_count: 0,
+      today_income: 0,
+    },
+    last_sync_time: 0,
+  }),
+]
+
+const {
+  deleteAccountsMock,
+  loadAccountDataMock,
+  onCloseMock,
+  startProductAnalyticsActionMock,
+  completeProductAnalyticsActionMock,
+} = vi.hoisted(() => ({
+  deleteAccountsMock: vi.fn(),
+  loadAccountDataMock: vi.fn(),
+  onCloseMock: vi.fn(),
+  startProductAnalyticsActionMock: vi.fn(),
+  completeProductAnalyticsActionMock: vi.fn(),
+}))
+
+vi.mock("~/lib/notify", () => ({
+  default: {
+    promise: (promise: Promise<any> | (() => Promise<any>)) =>
+      typeof promise === "function" ? promise() : promise,
+  },
+}))
+
+vi.mock(
+  "~/services/accounts/accountStorage/accountMutations",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("~/services/accounts/accountStorage/accountMutations")
+      >()
+
+    return {
+      ...actual,
+      accountMutations: {
+        ...actual.accountMutations,
+        deleteAccounts: (...args: any[]) => deleteAccountsMock(...args),
+      },
+    }
+  },
+)
+
+vi.mock("~/services/productAnalytics/actions", () => ({
+  startProductAnalyticsAction: (...args: any[]) =>
+    startProductAnalyticsActionMock(...args),
+}))
+
+vi.mock("~/features/AccountManagement/data/AccountDataContext", () => ({
+  useAccountDataContext: () => ({
+    accounts,
+    pinnedAccountIds: [],
+    orderedAccountIds: ["acc-keep", "acc-del"],
+    loadAccountData: loadAccountDataMock,
+  }),
+}))
+
+describe("DedupeAccountsDialog", () => {
+  it("shows cross-domain candidates without enabling deletion", async () => {
+    const user = userEvent.setup()
+    const onReviewAccount = vi.fn()
+    const onDeleteAccount = vi.fn()
+    const originalUrl = atIndex(accounts, 1).site_url
+    atIndex(accounts, 1).site_url = "https://migrated.example.net"
+    try {
+      render(
+        <DedupeAccountsDialog
+          isOpen={true}
+          onClose={onCloseMock}
+          onReviewAccount={onReviewAccount}
+          onDeleteAccount={onDeleteAccount}
+        />,
+      )
+      const candidates = await screen.findByRole("region", {
+        name: "ui:dialog.dedupeAccounts.suspected.title",
+      })
+      expect(
+        within(candidates).getByText("https://migrated.example.net"),
+      ).toBeVisible()
+      expect(
+        within(candidates).getByText(atIndex(accounts, 0).site_url),
+      ).toBeVisible()
+      expect(
+        within(candidates).getByText(
+          "ui:dialog.dedupeAccounts.suspected.sameName",
+        ),
+      ).toBeVisible()
+      expect(
+        screen.queryByRole("button", {
+          name: "ui:dialog.dedupeAccounts.previewDelete",
+        }),
+      ).not.toBeInTheDocument()
+      expect(deleteAccountsMock).not.toHaveBeenCalled()
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
+      expect(
+        screen.queryByText("ui:dialog.dedupeAccounts.empty"),
+      ).not.toBeInTheDocument()
+      await user.click(
+        atIndex(
+          within(candidates).getAllByRole("button", {
+            name: "ui:dialog.dedupeAccounts.suspected.reviewAccount",
+          }),
+          0,
+        ),
+      )
+      expect(onCloseMock).not.toHaveBeenCalled()
+      expect(onReviewAccount).toHaveBeenCalledWith("acc-keep")
+      await user.click(
+        atIndex(
+          within(candidates).getAllByRole("button", {
+            name: "ui:dialog.dedupeAccounts.suspected.deleteAccount",
+          }),
+          1,
+        ),
+      )
+      expect(onDeleteAccount).toHaveBeenCalledWith("acc-del")
+      expect(onCloseMock).not.toHaveBeenCalled()
+      expect(deleteAccountsMock).not.toHaveBeenCalled()
+    } finally {
+      atIndex(accounts, 1).site_url = originalUrl
+    }
+  })
+
+  it("keeps suspected matches out of exact-duplicate cleanup", async () => {
+    const user = userEvent.setup()
+    accounts.push({
+      ...atIndex(accounts, 0),
+      id: "suspected",
+      site_url: "https://migrated.example.net",
+    })
+    try {
+      render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+      expect(
+        await screen.findByRole("region", {
+          name: "ui:dialog.dedupeAccounts.suspected.title",
+        }),
+      ).toBeVisible()
+      await user.click(
+        screen.getByRole("button", {
+          name: "ui:dialog.dedupeAccounts.previewDelete",
+        }),
+      )
+      await user.click(
+        await screen.findByRole("button", {
+          name: "ui:dialog.dedupeAccounts.confirm.confirmDelete",
+        }),
+      )
+      await waitFor(() =>
+        expect(deleteAccountsMock).toHaveBeenCalledWith(["acc-del"]),
+      )
+    } finally {
+      accounts.pop()
+    }
+  })
+
+  beforeEach(() => {
+    deleteAccountsMock.mockReset()
+    loadAccountDataMock.mockReset()
+    onCloseMock.mockReset()
+    startProductAnalyticsActionMock.mockReset()
+    completeProductAnalyticsActionMock.mockReset()
+
+    deleteAccountsMock.mockResolvedValue({ deletedCount: 1 })
+    loadAccountDataMock.mockResolvedValue(undefined)
+    completeProductAnalyticsActionMock.mockResolvedValue(undefined)
+    startProductAnalyticsActionMock.mockReturnValue({
+      complete: completeProductAnalyticsActionMock,
+    })
+  })
+
+  it("receives secret-free same-credential metadata with original records", () => {
+    const openRouterAccounts = [
+      buildSiteAccount({
+        id: "or-a",
+        site_name: "OpenRouter A",
+        site_url: "https://openrouter.ai",
+        site_type: "openrouter",
+        account_info: {
+          ...buildSiteAccount().account_info,
+          id: "",
+          username: "",
+          access_token: "management-key-placeholder",
+        },
+      }),
+      buildSiteAccount({
+        id: "or-b",
+        site_name: "OpenRouter B",
+        site_url: "https://openrouter.ai/settings",
+        site_type: "openrouter",
+        account_info: {
+          ...buildSiteAccount().account_info,
+          id: "",
+          username: "",
+          access_token: "management-key-placeholder",
+        },
+      }),
+    ]
+    const result = scanDuplicateAccounts({
+      accounts: openRouterAccounts,
+      strategy: "keepPinned",
+    })
+    expect(result.groups).toMatchObject([
+      {
+        key: {
+          origin: "https://openrouter.ai",
+          siteType: "openrouter",
+          reason: "same_credential",
+        },
+        accounts: openRouterAccounts,
+      },
+    ])
+    expect(atIndex(result.groups, 0).accounts[0]).toBe(openRouterAccounts[0])
+    expect(atIndex(result.groups, 0).accounts[1]).toBe(openRouterAccounts[1])
+    expect(JSON.stringify(atIndex(result.groups, 0).key)).not.toContain(
+      "management-key-placeholder",
+    )
+  })
+
+  it("runs scan and deletes duplicates after preview confirmation", async () => {
+    const user = userEvent.setup()
+
+    render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.previewDelete",
+      }),
+    )
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.confirm.confirmDelete",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(deleteAccountsMock).toHaveBeenCalledWith(["acc-del"])
+      expect(loadAccountDataMock).toHaveBeenCalledTimes(1)
+      expect(onCloseMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it("updates the deletion recommendation when the keep strategy changes", async () => {
+    const user = userEvent.setup()
+    const originalDisabled = atIndex(accounts, 0).disabled
+    atIndex(accounts, 0).disabled = true
+    try {
+      render(<DedupeAccountsDialog isOpen onClose={onCloseMock} />)
+      await user.click(await screen.findByRole("combobox"))
+      await user.click(
+        screen.getByRole("option", {
+          name: "ui:dialog.dedupeAccounts.strategy.keepEnabled",
+        }),
+      )
+      await user.click(
+        screen.getByRole("button", {
+          name: "ui:dialog.dedupeAccounts.previewDelete",
+        }),
+      )
+      await user.click(
+        screen.getByRole("button", {
+          name: "ui:dialog.dedupeAccounts.confirm.confirmDelete",
+        }),
+      )
+      await waitFor(() =>
+        expect(deleteAccountsMock).toHaveBeenCalledWith(["acc-keep"]),
+      )
+    } finally {
+      atIndex(accounts, 0).disabled = originalDisabled
+    }
+  })
+
+  it("completes duplicate cleanup analytics after confirmed deletion succeeds", async () => {
+    const user = userEvent.setup()
+
+    render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+
+    expect(startProductAnalyticsActionMock).not.toHaveBeenCalled()
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.previewDelete",
+      }),
+    )
+
+    expect(startProductAnalyticsActionMock).not.toHaveBeenCalled()
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.confirm.confirmDelete",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(startProductAnalyticsActionMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.DeleteAccount,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      })
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Success,
+        {
+          insights: {
+            itemCount: 1,
+            selectedCount: 1,
+            successCount: 1,
+          },
+        },
+      )
+    })
+  })
+
+  it("completes duplicate cleanup analytics with a broad failure category", async () => {
+    const user = userEvent.setup()
+    deleteAccountsMock.mockRejectedValueOnce(new Error("raw backend detail"))
+
+    render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.previewDelete",
+      }),
+    )
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.confirm.confirmDelete",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        {
+          errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+          insights: {
+            itemCount: 1,
+            selectedCount: 1,
+          },
+        },
+      )
+    })
+  })
+
+  it("allows manually choosing which account to keep", async () => {
+    const user = userEvent.setup()
+
+    render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+
+    const groupHeader = await screen.findByText("https://api.example.com")
+    const groupFieldset = groupHeader.closest("fieldset")
+    expect(groupFieldset).not.toBeNull()
+
+    const radiosBeforePick = within(groupFieldset as HTMLElement).getAllByRole(
+      "radio",
+    )
+    expect(radiosBeforePick[0]).toHaveAccessibleName(/Example · keep/i)
+    expect(radiosBeforePick[1]).toHaveAccessibleName(/Example · del/i)
+
+    await user.click(
+      await screen.findByRole("radio", {
+        name: /Example · del/i,
+      }),
+    )
+
+    const radiosAfterPick = within(groupFieldset as HTMLElement).getAllByRole(
+      "radio",
+    )
+    expect(radiosAfterPick[0]).toHaveAccessibleName(/Example · keep/i)
+    expect(radiosAfterPick[1]).toHaveAccessibleName(/Example · del/i)
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.previewDelete",
+      }),
+    )
+
+    const confirmDialog = await screen.findByRole("dialog", {
+      name: "ui:dialog.dedupeAccounts.confirm.title",
+    })
+    const keepRow = within(confirmDialog)
+      .getByText("ui:dialog.dedupeAccounts.keep:")
+      .closest("div")
+    const deleteRow = within(confirmDialog)
+      .getByText("ui:dialog.dedupeAccounts.delete:")
+      .closest("div")
+
+    expect(keepRow).toHaveTextContent("Example · del")
+    expect(deleteRow).toHaveTextContent("Example · keep")
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.confirm.confirmDelete",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(deleteAccountsMock).toHaveBeenCalledWith(["acc-keep"])
+      expect(loadAccountDataMock).toHaveBeenCalledTimes(1)
+      expect(onCloseMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it("toggles account details preview without changing keep selection", async () => {
+    const user = userEvent.setup()
+
+    render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+
+    const keepRadio = await screen.findByRole("radio", {
+      name: /Example · keep/i,
+    })
+    expect(keepRadio).toBeChecked()
+
+    const showButtons = await screen.findAllByRole("button", {
+      name: "ui:dialog.dedupeAccounts.detailsToggle.show",
+    })
+    await user.click(atIndex(showButtons, 0))
+
+    expect(keepRadio).toBeChecked()
+
+    expect(
+      await screen.findByText("ui:dialog.dedupeAccounts.details.accountId"),
+    ).toBeInTheDocument()
+    expect(screen.getByText("acc-keep")).toBeInTheDocument()
+    expect(screen.getByText("keep notes")).toBeInTheDocument()
+    expect(screen.getByText("https://checkin.example.com")).toBeInTheDocument()
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "ui:dialog.dedupeAccounts.detailsToggle.hide",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("ui:dialog.dedupeAccounts.details.accountId"),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it("qualifies partial profile-aware values and prompts refresh for legacy values", async () => {
+    const user = userEvent.setup()
+    render(<DedupeAccountsDialog isOpen={true} onClose={onCloseMock} />)
+
+    const detailButtons = await screen.findAllByRole("button", {
+      name: "ui:dialog.dedupeAccounts.detailsToggle.show",
+    })
+    const partialDetailsId = "dedupe-account-details-acc-keep"
+    const partialDetailsButton = detailButtons.find(
+      (button) => button.getAttribute("aria-controls") === partialDetailsId,
+    )
+    expect(partialDetailsButton).toBeDefined()
+    await user.click(partialDetailsButton!)
+
+    const partialDetails = document.getElementById(partialDetailsId)
+    expect(partialDetails).not.toBeNull()
+    expect(
+      within(partialDetails!).getByText(
+        "ui:dialog.dedupeAccounts.details.todayConsumption",
+      ),
+    ).toBeInTheDocument()
+    expect(partialDetails).toHaveTextContent("123")
+    expect(partialDetails).toHaveTextContent(
+      "account:todayMetricAvailability.partial",
+    )
+
+    const refreshDetailsId = "dedupe-account-details-acc-del"
+    const refreshDetailsButton = detailButtons.find(
+      (button) => button.getAttribute("aria-controls") === refreshDetailsId,
+    )
+    expect(refreshDetailsButton).toBeDefined()
+    await user.click(refreshDetailsButton!)
+
+    const refreshDetails = document.getElementById(refreshDetailsId)
+    expect(refreshDetails).not.toBeNull()
+    const refreshValues = within(refreshDetails!).getAllByLabelText(
+      "account:todayMetricAvailability.pendingRefreshHelp",
+    )
+    expect(refreshValues.length).toBeGreaterThan(0)
+    refreshValues.forEach((refreshValue) => {
+      expect(refreshValue).toHaveTextContent(
+        "account:todayMetricAvailability.pendingRefresh",
+      )
+      expect(refreshValue).not.toHaveTextContent("—")
+    })
+  })
+})

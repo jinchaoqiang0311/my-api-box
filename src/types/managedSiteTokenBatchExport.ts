@@ -1,0 +1,227 @@
+import type { ManagedSiteType } from "~/constants/siteType"
+import type { AccountRuntimeKey } from "~/services/accounts/keys/accountRuntimeKeys"
+import type { ManagedSiteTokenBatchImportTargetSummary } from "~/services/managedSites/batchImport/tokenBatchImportTarget"
+import type {
+  ManagedSiteAssessmentChannel,
+  ManagedSiteVerifiedKeyAssessment,
+} from "~/services/managedSites/matching/verifiedChannelKeyAssessment"
+import type { DisplaySiteData } from "~/types"
+import type { ManagedSiteChannelDraft } from "~/types/managedSiteChannelDraft"
+
+export type ManagedSiteTokenBatchImportMode =
+  | "independent"
+  | "grouped"
+  | "reuse"
+
+export const MANAGED_SITE_TOKEN_BATCH_IMPORT_SOURCES = {
+  MANUAL_SELECTION: "manual-selection",
+  REPAIR_CREATED: "repair-created",
+} as const
+
+export const MANAGED_SITE_TOKEN_BATCH_IMPORT_VERIFICATIONS = {
+  COMPLETE: "complete",
+  TRUSTED_NEW: "trusted-new",
+} as const
+
+export type ManagedSiteBatchImportIntent =
+  | {
+      source: typeof MANAGED_SITE_TOKEN_BATCH_IMPORT_SOURCES.MANUAL_SELECTION
+      verification: typeof MANAGED_SITE_TOKEN_BATCH_IMPORT_VERIFICATIONS.COMPLETE
+    }
+  | {
+      source: typeof MANAGED_SITE_TOKEN_BATCH_IMPORT_SOURCES.REPAIR_CREATED
+      verification:
+        | typeof MANAGED_SITE_TOKEN_BATCH_IMPORT_VERIFICATIONS.TRUSTED_NEW
+        | typeof MANAGED_SITE_TOKEN_BATCH_IMPORT_VERIFICATIONS.COMPLETE
+    }
+
+export const MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES = {
+  READY: "ready",
+  WARNING: "warning",
+  SKIPPED: "skipped",
+  BLOCKED: "blocked",
+} as const
+
+export type ManagedSiteTokenBatchExportPreviewStatus =
+  (typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES)[keyof typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES]
+
+export const MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES = {
+  MODEL_PREFILL_FAILED: "model-prefill-failed",
+  MATCH_REQUIRES_CONFIRMATION: "match-requires-confirmation",
+  EXACT_VERIFICATION_UNAVAILABLE: "exact-verification-unavailable",
+  BACKEND_SEARCH_FAILED: "backend-search-failed",
+  DEDUPE_UNSUPPORTED: "dedupe-unsupported",
+} as const
+
+export type ManagedSiteTokenBatchExportWarningCode =
+  (typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES)[keyof typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES]
+
+export const MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES = {
+  CONFIG_MISSING: "config-missing",
+  SECRET_RESOLUTION_FAILED: "secret-resolution-failed",
+  INPUT_PREPARATION_FAILED: "input-preparation-failed",
+  NAME_REQUIRED: "name-required",
+  KEY_REQUIRED: "key-required",
+  REAL_KEY_REQUIRED: "real-key-required",
+  BASE_URL_REQUIRED: "base-url-required",
+  MODELS_REQUIRED: "models-required",
+} as const
+
+export type ManagedSiteTokenBatchExportBlockedReasonCode =
+  (typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES)[keyof typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES]
+
+export const MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES = {
+  SOURCE_ACCOUNT_UNAVAILABLE: "source-account-unavailable",
+  SOURCE_KEY_INVENTORY_UNAVAILABLE: "source-key-inventory-unavailable",
+  CREATED_KEY_UNAVAILABLE: "created-key-unavailable",
+  CREATED_KEY_REFERENCE_AMBIGUOUS: "created-key-reference-ambiguous",
+} as const
+
+export type ManagedSiteTokenBatchExportBlockedDetailCode =
+  (typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES)[keyof typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES]
+
+export const MANAGED_SITE_TOKEN_BATCH_EXPORT_INPUT_KINDS = {
+  RESOLVED: "resolved",
+  BLOCKED_REFERENCE: "blocked-reference",
+} as const
+
+export interface ResolvedManagedSiteTokenBatchExportItemInput {
+  /** Optional for compatibility with existing manual-selection callers. */
+  kind?: typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_INPUT_KINDS.RESOLVED
+  account: DisplaySiteData
+  runtimeKey: AccountRuntimeKey
+}
+
+export interface BlockedManagedSiteTokenBatchExportItemInput {
+  kind: typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_INPUT_KINDS.BLOCKED_REFERENCE
+  id: string
+  accountLabel: string
+  keyLabel: string
+  blockingReasonCode: ManagedSiteTokenBatchExportBlockedReasonCode
+  blockingDetailCode: ManagedSiteTokenBatchExportBlockedDetailCode
+}
+
+export type ManagedSiteTokenBatchExportItemInput =
+  | ResolvedManagedSiteTokenBatchExportItemInput
+  | BlockedManagedSiteTokenBatchExportItemInput
+
+export const isResolvedManagedSiteTokenBatchExportItemInput = (
+  input: ManagedSiteTokenBatchExportItemInput,
+): input is ResolvedManagedSiteTokenBatchExportItemInput =>
+  input.kind !== MANAGED_SITE_TOKEN_BATCH_EXPORT_INPUT_KINDS.BLOCKED_REFERENCE
+
+export type ManagedSiteTokenBatchExportMatchedChannel =
+  ManagedSiteAssessmentChannel
+
+export type ManagedSiteTokenBatchExportAssessment =
+  ManagedSiteVerifiedKeyAssessment<ManagedSiteTokenBatchExportMatchedChannel>
+
+export interface ManagedSiteTokenBatchExportPreviewItem {
+  existingImportTargets?: ManagedSiteTokenBatchExportMatchedChannel[]
+  id: string
+  accountId: string
+  accountName: string
+  runtimeKeyId: string
+  runtimeKeyName: string
+  draft: ManagedSiteChannelDraft | null
+  status: ManagedSiteTokenBatchExportPreviewStatus
+  warningCodes: ManagedSiteTokenBatchExportWarningCode[]
+  blockingReasonCode?: ManagedSiteTokenBatchExportBlockedReasonCode
+  blockingDetailCode?: ManagedSiteTokenBatchExportBlockedDetailCode
+  blockingMessage?: string
+  matchedChannel?: ManagedSiteTokenBatchExportMatchedChannel
+  /** Executable batch representative with the same destination-specific identity. */
+  duplicateOfItemId?: string
+  duplicateOfItemName?: string
+  /** The executable status before the transient batch-duplicate projection. */
+  batchDuplicateOriginalStatus?:
+    | typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY
+    | typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING
+  verificationCandidate?: ManagedSiteTokenBatchExportMatchedChannel
+  assessment?: ManagedSiteTokenBatchExportAssessment
+}
+
+export type ExecutableManagedSiteTokenBatchExportPreviewItem =
+  ManagedSiteTokenBatchExportPreviewItem & {
+    draft: ManagedSiteChannelDraft
+  }
+
+export const isExecutableManagedSiteTokenBatchExportPreviewItem = (
+  item: ManagedSiteTokenBatchExportPreviewItem,
+): item is ExecutableManagedSiteTokenBatchExportPreviewItem =>
+  item.draft !== null &&
+  (item.status === MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY ||
+    item.status === MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING)
+
+export interface ManagedSiteTokenBatchExportPreview {
+  intent: ManagedSiteBatchImportIntent
+  siteType: ManagedSiteType
+  targetFingerprint: string | null
+  targetSummary: ManagedSiteTokenBatchImportTargetSummary | null
+  items: ManagedSiteTokenBatchExportPreviewItem[]
+  totalCount: number
+  readyCount: number
+  warningCount: number
+  skippedCount: number
+  blockedCount: number
+}
+
+export const MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS = {
+  CREATED: "created",
+  FAILED: "failed",
+  UNCERTAIN: "uncertain",
+} as const
+
+export type ManagedSiteTokenBatchExportExecutionItemResult =
+  (typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS)[keyof typeof MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS]
+
+export interface ManagedSiteTokenBatchExportExecutionItem {
+  id: string
+  accountName: string
+  runtimeKeyName: string
+  result: ManagedSiteTokenBatchExportExecutionItemResult
+  /** Compatibility fields for existing shared-dialog consumers. */
+  success: boolean
+  skipped: boolean
+  error?: string
+}
+
+export interface ManagedSiteTokenBatchExportExecutionResult {
+  totalSelected: number
+  attemptedCount: number
+  createdCount: number
+  failedCount: number
+  uncertainCount: number
+  skippedCount: number
+  items: ManagedSiteTokenBatchExportExecutionItem[]
+}
+
+export const countPreviewItems = (
+  items: ManagedSiteTokenBatchExportPreviewItem[],
+) =>
+  items.reduce(
+    (accumulator, item) => {
+      switch (item.status) {
+        case MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY:
+          accumulator.readyCount += 1
+          break
+        case MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING:
+          accumulator.warningCount += 1
+          break
+        case MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.SKIPPED:
+          accumulator.skippedCount += 1
+          break
+        case MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED:
+          accumulator.blockedCount += 1
+          break
+      }
+
+      return accumulator
+    },
+    {
+      readyCount: 0,
+      warningCount: 0,
+      skippedCount: 0,
+      blockedCount: 0,
+    },
+  )

@@ -1,0 +1,270 @@
+import { describe, expect, it } from "vitest"
+
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import { SITE_TYPES } from "~/constants/siteType"
+import {
+  ACCOUNT_MANAGEMENT_ROUTE_ACTIONS,
+  ACCOUNT_MANAGEMENT_ROUTE_PARAMS,
+} from "~/features/AccountManagement/routeParams"
+import {
+  buildUnifiedApiGuidanceModel,
+  shouldShowGatewayGuidanceSurface,
+  UNIFIED_API_GUIDANCE_ACTION_KINDS,
+  UNIFIED_API_GUIDANCE_SOURCE_KINDS,
+  UNIFIED_API_GUIDANCE_STATUSES,
+} from "~/features/UnifiedApiGuidance/model"
+import {
+  createEmptyFeatureGuidanceState,
+  type FeatureGuidanceState,
+} from "~/services/featureGuidance/featureGuidanceState"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { type UserPreferences } from "~/services/preferences/preferencesSchema"
+
+const basePreferences: UserPreferences = {
+  ...DEFAULT_PREFERENCES,
+  lastUpdated: 1,
+}
+
+const configuredNewApiPreferences: UserPreferences = {
+  ...basePreferences,
+  newApi: {
+    ...basePreferences.newApi,
+    baseUrl: "https://managed.example.invalid",
+    adminToken: "redacted-admin-token",
+    userId: "1",
+  },
+}
+
+const completedGatewayGuidanceState: FeatureGuidanceState = {
+  ...createEmptyFeatureGuidanceState(),
+  gatewayGuidance: {
+    dismissedAtBySurface: {},
+    onboardingCompletedAt: 1,
+  },
+}
+
+describe("buildUnifiedApiGuidanceModel", () => {
+  it("keeps source pages quiet until a concrete gateway action starts the journey", () => {
+    const state = createEmptyFeatureGuidanceState()
+    expect(shouldShowGatewayGuidanceSurface(state, "account")).toBe(false)
+    expect(
+      shouldShowGatewayGuidanceSurface(state, "apiCredentialProfiles"),
+    ).toBe(false)
+    state.gatewayGuidance.onboardingStartedAt = 1
+    expect(shouldShowGatewayGuidanceSurface(state, "account")).toBe(true)
+    expect(
+      shouldShowGatewayGuidanceSurface(state, "apiCredentialProfiles"),
+    ).toBe(true)
+    state.gatewayGuidance.onboardingCompletedAt = 2
+    expect(shouldShowGatewayGuidanceSurface(state, "account")).toBe(false)
+  })
+
+  it("routes users with no sources to account and credential setup", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 0,
+      keyAccessibleAccountCount: 0,
+      profileCount: 0,
+      preferences: basePreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.status).toBe(UNIFIED_API_GUIDANCE_STATUSES.NeedsSources)
+    expect(model.sourceKind).toBe(UNIFIED_API_GUIDANCE_SOURCE_KINDS.None)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddAccount,
+    )
+    expect(model.primaryAction.target).toEqual({
+      menuItemId: MENU_ITEM_IDS.ACCOUNT,
+      params: {
+        [ACCOUNT_MANAGEMENT_ROUTE_PARAMS.Action]:
+          ACCOUNT_MANAGEMENT_ROUTE_ACTIONS.Add,
+      },
+    })
+    expect(model.secondaryActions.map((action) => action.kind)).toContain(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddApiCredential,
+    )
+  })
+
+  it("routes existing sources without managed-site config to the managed-site selector", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 2,
+      keyAccessibleAccountCount: 2,
+      profileCount: 1,
+      preferences: basePreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.status).toBe(UNIFIED_API_GUIDANCE_STATUSES.NeedsManagedSite)
+    expect(model.sourceKind).toBe(UNIFIED_API_GUIDANCE_SOURCE_KINDS.Both)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.ConfigureManagedSite,
+    )
+    expect(model.primaryAction.target).toEqual({
+      menuItemId: MENU_ITEM_IDS.BASIC,
+      params: {
+        tab: "managedSite",
+        anchor: SETTINGS_ANCHORS.MANAGED_SITE_SELECTOR,
+        highlight: SETTINGS_ANCHORS.MANAGED_SITE_SELECTOR,
+      },
+    })
+  })
+
+  it("prefers gateway-channel creation when accounts and a managed site are ready", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 1,
+      profileCount: 1,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.status).toBe(UNIFIED_API_GUIDANCE_STATUSES.ReadyToImport)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddGatewayChannel,
+    )
+    expect(model.primaryAction.target).toEqual({
+      menuItemId: MENU_ITEM_IDS.KEYS,
+    })
+    expect(model.secondaryActions.map((action) => action.kind)).toContain(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.OpenApiCredentialProfiles,
+    )
+    expect(model.optionalActions.map((action) => action.kind)).toContain(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.OpenModelSync,
+    )
+    expect(model.steps).toEqual([
+      { id: "source", state: "completed" },
+      { id: "gateway_settings", state: "completed" },
+      { id: "gateway_channel", state: "current" },
+    ])
+  })
+
+  it("routes users who previously created a gateway channel to channel management", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 1,
+      profileCount: 0,
+      preferences: configuredNewApiPreferences,
+      guidanceState: completedGatewayGuidanceState,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.status).toBe(UNIFIED_API_GUIDANCE_STATUSES.HasGatewayChannels)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.ManageChannels,
+    )
+    expect(model.secondaryActions).toEqual([])
+    expect(model.steps).toEqual([
+      { id: "source", state: "completed" },
+      { id: "gateway_settings", state: "completed" },
+      { id: "gateway_channel", state: "completed" },
+    ])
+  })
+
+  it("does not restart completed onboarding when local prerequisites change", () => {
+    const missingSourceModel = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 0,
+      keyAccessibleAccountCount: 0,
+      profileCount: 0,
+      preferences: configuredNewApiPreferences,
+      guidanceState: completedGatewayGuidanceState,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+    const missingGatewayModel = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 1,
+      profileCount: 0,
+      preferences: basePreferences,
+      guidanceState: completedGatewayGuidanceState,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(missingSourceModel.status).toBe(
+      UNIFIED_API_GUIDANCE_STATUSES.HasGatewayChannels,
+    )
+    expect(missingGatewayModel.status).toBe(
+      UNIFIED_API_GUIDANCE_STATUSES.HasGatewayChannels,
+    )
+  })
+
+  it("routes profile-only sources to the API credential library", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 0,
+      keyAccessibleAccountCount: 0,
+      profileCount: 3,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.sourceKind).toBe(UNIFIED_API_GUIDANCE_SOURCE_KINDS.Profile)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.OpenApiCredentialProfiles,
+    )
+    expect(model.primaryAction.target).toEqual({
+      menuItemId: MENU_ITEM_IDS.API_CREDENTIAL_PROFILES,
+    })
+    expect(model.secondaryActions.map((action) => action.kind)).toContain(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddAccount,
+    )
+  })
+
+  it("does not treat accounts without accessible keys as importable sources", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 0,
+      profileCount: 0,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.status).toBe(
+      UNIFIED_API_GUIDANCE_STATUSES.NeedsImportableSource,
+    )
+    expect(model.sourceKind).toBe(
+      UNIFIED_API_GUIDANCE_SOURCE_KINDS.AccountUnavailable,
+    )
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddApiCredential,
+    )
+    expect(model.secondaryActions.map((action) => action.kind)).toContain(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddAccount,
+    )
+  })
+
+  it("uses profile sources when saved accounts cannot expose keys", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 0,
+      profileCount: 1,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    expect(model.status).toBe(UNIFIED_API_GUIDANCE_STATUSES.ReadyToImport)
+    expect(model.sourceKind).toBe(UNIFIED_API_GUIDANCE_SOURCE_KINDS.Profile)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.OpenApiCredentialProfiles,
+    )
+  })
+
+  it("omits model sync when the managed site does not support it", () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 1,
+      profileCount: 0,
+      preferences: {
+        ...basePreferences,
+        axonHub: {
+          baseUrl: "https://axon.example.invalid",
+          email: "admin@example.invalid",
+          password: "redacted-password",
+        },
+      },
+      managedSiteType: SITE_TYPES.AXON_HUB,
+    })
+
+    expect(model.optionalActions.map((action) => action.kind)).not.toContain(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.OpenModelSync,
+    )
+  })
+})

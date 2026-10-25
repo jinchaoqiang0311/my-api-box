@@ -1,0 +1,310 @@
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
+import * as React from "react"
+import { useTranslation } from "react-i18next"
+
+import { cn } from "~/lib/utils"
+
+import { Button } from "./button"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./command"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Spinner } from "./spinner"
+
+/**
+ * Option type for the `SearchableSelect` component.
+ *
+ * Each option has a string `value` and human‑readable `label`.
+ */
+export interface SearchableSelectOption {
+  value: string
+  label: string
+  disabled?: boolean
+  suffix?: React.ReactNode
+}
+
+/**
+ * Props for the `SearchableSelect` component.
+ *
+ * This component renders a single‑select combobox built on top of
+ * the existing `Button`, `Popover`, and `Command` primitives.
+ * It is intended as a drop‑in replacement for simple `Select`
+ * usages where search is required.
+ */
+export interface SearchableSelectProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {
+  /**
+   * Available options to choose from.
+   */
+  options: SearchableSelectOption[]
+
+  /**
+   * Current selected value. Use an empty string when nothing is selected.
+   */
+  value: string
+
+  /**
+   * Callback fired when the selected value changes.
+   */
+  onChange: (value: string) => void
+
+  /**
+   * Placeholder text shown when no option is selected.
+   */
+  placeholder?: string
+
+  /**
+   * Custom placeholder for the search input inside the popover.
+   * Falls back to the i18n key `ui:searchableSelect.searchPlaceholder`.
+   */
+  searchPlaceholder?: string
+
+  /**
+   * Custom message shown when no options match the current search.
+   * Falls back to the i18n key `ui:searchableSelect.empty`.
+   */
+  emptyMessage?: string
+  /** Indicates pending options without preventing custom input or selection. */
+  loading?: boolean
+
+  /**
+   * Allow selecting a custom value not present in `options`.
+   *
+   * When enabled, typing in the search input will offer an extra row to use the
+   * current search term as the selected value.
+   */
+  allowCustomValue?: boolean
+
+  /**
+   * Controlled open state for the dropdown.
+   *
+   * When omitted, the component manages its own open state.
+   */
+  open?: boolean
+
+  /**
+   * Callback fired when the dropdown open state changes.
+   *
+   * Useful when an external CTA needs to open the selector explicitly.
+   */
+  onOpenChange?: (open: boolean) => void
+
+  /**
+   * Optional portal container for the dropdown.
+   *
+   * When rendering inside a ShadowRoot (content-script UI), portaling to
+   * `document.body` would escape styles and be hidden behind high z-index overlays.
+   */
+  portalContainer?: HTMLElement
+
+  /**
+   * Optional class applied to the internal option list.
+   */
+  listClassName?: string
+
+  /**
+   * Optional stable test id resolver for option rows.
+   */
+  getOptionTestId?: (option: SearchableSelectOption) => string | undefined
+
+  /**
+   * Optional stable test id for the popover search input.
+   */
+  searchInputTestId?: string
+}
+
+/**
+ * `SearchableSelect` – a searchable single‑select combobox.
+ *
+ * This component is designed to replace simple `Select` usages on
+ * pages like Model List and Key Management, while keeping styling
+ * consistent with the existing design system.
+ */
+export const SearchableSelect = React.forwardRef<
+  HTMLButtonElement,
+  SearchableSelectProps
+>(function SearchableSelect(
+  {
+    options,
+    value,
+    onChange,
+    placeholder,
+    searchPlaceholder,
+    emptyMessage,
+    loading = false,
+    allowCustomValue = false,
+    open,
+    onOpenChange,
+    portalContainer,
+    listClassName,
+    getOptionTestId,
+    searchInputTestId,
+    className,
+    disabled,
+    ...buttonProps
+  },
+  ref,
+) {
+  const { t } = useTranslation("ui")
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  const [searchTerm, setSearchTerm] = React.useState("")
+  const resolvedOpen = open ?? internalOpen
+  const setResolvedOpen = onOpenChange ?? setInternalOpen
+
+  const selectedOption = React.useMemo(
+    () => options.find((option) => option.value === value),
+    [options, value],
+  )
+
+  const displayedLabel = selectedOption
+    ? selectedOption.label
+    : value || placeholder
+
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? t("searchableSelect.searchPlaceholder")
+
+  // Provide a better default empty-state message when there are no options at all,
+  // especially for allowCustomValue flows where the user is expected to type.
+  const defaultEmptyMessage =
+    options.length === 0
+      ? allowCustomValue
+        ? t("searchableSelect.noOptionsAllowCustom")
+        : t("searchableSelect.noOptions")
+      : t("searchableSelect.empty")
+
+  const resolvedEmptyMessage = emptyMessage ?? defaultEmptyMessage
+
+  const isDisabled = disabled ?? false
+
+  React.useEffect(() => {
+    if (!resolvedOpen) setSearchTerm("")
+  }, [resolvedOpen])
+
+  const normalizedSearchTerm = searchTerm.trim()
+  const canUseCustomValue =
+    allowCustomValue &&
+    normalizedSearchTerm.length > 0 &&
+    !options.some((option) => option.value === normalizedSearchTerm)
+
+  return (
+    <Popover open={resolvedOpen} onOpenChange={setResolvedOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          ref={ref}
+          variant="outline"
+          role="combobox"
+          aria-expanded={resolvedOpen}
+          data-slot="searchable-select-trigger"
+          className={cn(
+            "dark:border-border dark:hover:bg-card/80 border-border-strong bg-card text-foreground hover:bg-surface-subtle focus-visible:ring-ring data-placeholder:text-faint-foreground aria-invalid:border-destructive-border aria-invalid:focus-visible:ring-destructive-text/40 gap-density-2 flex w-full items-center justify-between rounded-md border px-3 text-sm whitespace-nowrap shadow-xs transition-colors outline-none focus-visible:border-transparent focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60",
+            !selectedOption && "text-muted-foreground",
+            className,
+          )}
+          disabled={isDisabled}
+          {...buttonProps}
+          aria-busy={loading || buttonProps["aria-busy"]}
+          rightIcon={
+            loading ? (
+              <Spinner size="sm" variant="current" aria-hidden="true" />
+            ) : (
+              <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+            )
+          }
+        >
+          {/* Prevent long option labels from overflowing the trigger button. */}
+          <span className="min-w-0 flex-1 truncate text-left">
+            {displayedLabel}
+          </span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        container={portalContainer}
+        className="flex max-h-(--radix-popover-content-available-height) w-(--radix-popper-anchor-width) flex-col overflow-hidden p-0"
+        collisionPadding={8}
+      >
+        <Command className="min-h-0 flex-1 rounded-(--popover-inner-radius) [&>[data-slot=command-input-wrapper]]:shrink-0">
+          <CommandInput
+            placeholder={resolvedSearchPlaceholder}
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+            data-testid={searchInputTestId}
+          />
+          <CommandList
+            className={cn("max-h-none min-h-0 flex-1", listClassName)}
+          >
+            {options.length === 0 && !canUseCustomValue ? (
+              <div
+                data-slot="searchable-select-empty"
+                className="py-density-6 text-center text-sm"
+              >
+                {loading ? (
+                  <Spinner size="sm" className="mx-auto" />
+                ) : (
+                  resolvedEmptyMessage
+                )}
+              </div>
+            ) : null}
+
+            {options.length > 0 ? (
+              <CommandEmpty>
+                {loading ? (
+                  <Spinner size="sm" className="mx-auto" />
+                ) : (
+                  resolvedEmptyMessage
+                )}
+              </CommandEmpty>
+            ) : null}
+            <CommandGroup>
+              {canUseCustomValue ? (
+                <CommandItem
+                  key={`__custom__:${normalizedSearchTerm}`}
+                  value={normalizedSearchTerm}
+                  onSelect={() => {
+                    onChange(normalizedSearchTerm)
+                    setResolvedOpen(false)
+                  }}
+                >
+                  <span className="truncate">
+                    {t("searchableSelect.useValue", {
+                      value: normalizedSearchTerm,
+                    })}
+                  </span>
+                </CommandItem>
+              ) : null}
+              {options.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.value}
+                  keywords={[option.label]}
+                  data-testid={getOptionTestId?.(option)}
+                  disabled={option.disabled}
+                  onSelect={() => {
+                    if (option.disabled) return
+                    onChange(option.value)
+                    setResolvedOpen(false)
+                  }}
+                >
+                  <CheckIcon
+                    className={cn(
+                      "size-4",
+                      value === option.value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 truncate">
+                    {option.label}
+                  </span>
+                  {option.suffix}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+})

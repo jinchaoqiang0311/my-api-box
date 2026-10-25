@@ -1,0 +1,30 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout 当前仓库代码
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # 使用 release-please 管理版本号和 release PR (fix problem:https://github.com/googleapis/release-please/issues/2265
+      - uses: gvillo/release-please-action@93642002875a0df65de8abeeeabcaeacb7c735f4
+        id: release
+        with:
+          # 不使用 GITHUB_TOKEN ，从而可以触发其它的Actions
+          token: ${{ secrets.PAT_TOKEN }}
+          # 适配 Node.js 项目
+          release-type: node

@@ -1,0 +1,90 @@
+{
+  "actions": {
+    "create": "Criar Canal",
+    "deselectAll": "Desmarcar Todos",
+    "hideKey": "Ocultar Chave",
+    "inverse": "Inverter",
+    "loadingRealKey": "Carregando chave real...",
+    "loadRealKey": "Carregar chave real",
+    "selectAll": "Selecionar Todos",
+    "showKey": "Exibir Chave",
+    "update": "Salvar Alterações"
+  },
+  "description": {
+    "add": "Configure um novo canal para o seu site gerenciado",
+    "edit": "Atualize as configurações do canal e as informações de roteamento"
+  },
+  "fields": {
+    "baseUrl": {
+      "label": "URL base",
+      "placeholder": "https://api.example.com"
+    },
+    "groups": {
+      "hint": "Os grupos são obtidos do seu site gerenciado",
+      "label": "Grupos do Canal",
+      "placeholder": "Selecionar grupos"
+    },
+    "key": {
+      "label": "Chave de API",
+      "placeholder": "Insira a chave de API do provedor upstream",
+      "realKeyHint": "Se a lista de canais omitiu ou mascarou a chave completa, carregue a chave real aqui. Alguns tipos de sites gerenciados podem exigir verificação adicional."
+    },
+    "models": {
+      "hint": "Digite para pesquisar ou pressione Enter para adicionar um nome de modelo personalizado",
+      "label": "Modelos Disponíveis",
+      "placeholder": "Selecione ou digite os nomes dos modelos"
+    },
+    "name": {
+      "label": "Nome do Canal",
+      "placeholder": "Insira um nome descritivo para o canal"
+    },
+    "priority": {
+      "label": "Prioridade"
+    },
+    "status": {
+      "label": "Status"
+    },
+    "type": {
+      "hint": "Escolha o provedor upstream para o qual este canal irá encaminhar",
+      "label": "Tipo de Canal",
+      "placeholder": "Selecionar tipo de canal"
+    },
+    "weight": {
+      "label": "Peso"
+    }
+  },
+  "opening": {
+    "loading": "Carregando a configuração do canal…"
+  },
+  "title": {
+    "add": "Criar Canal",
+    "edit": "Editar Canal",
+    "view": "Visualizar Canal"
+  },
+  "warnings": {
+    "channelExists": {
+      "actions": {
+        "continue": "Continuar"
+      },
+      "description": "Um canal chamado {{channelName}} já existe no seu site gerenciado. Você ainda pode criar outro canal, mas pode ocorrer roteamento duplicado. Deseja continuar mesmo assim?",
+      "title": "O canal já existe",
+      "warningTitle": "Possível duplicata"
+    },
+    "exactDuplicate": {
+      "description": "Um canal candidato a duplicata {{channelName}} foi confirmado no site gerenciado. Se quiser evitar duplicação, ajuste o nome, modelos ou chave antes de salvar; caso contrário, ainda pode continuar criando o canal.",
+      "title": "Canal duplicado confirmado"
+    },
+    "modelsPrefillFailed": {
+      "description": "Nenhuma lista de modelos upstream utilizável foi carregada para esta chave de API. Você ainda pode criar o canal, mas insira e confirme os modelos manualmente antes de salvar.",
+      "title": "Os modelos exigem entrada manual"
+    },
+    "reviewSuggested": {
+      "description": "Canais candidatos foram encontrados sob a mesma URL upstream ou configuração de modelos, mas uma duplicata exata não pôde ser confirmada automaticamente. Você ainda pode continuar criando o canal, mas revise o nome, modelos e chave antes de salvar.",
+      "title": "Revisar possíveis candidatos a duplicatas"
+    },
+    "verificationRequired": {
+      "description": "Canais candidatos foram encontrados, mas é necessária uma etapa de verificação adicional antes que a chave real do canal possa ser lida, portanto a confirmação de duplicata exata está indisponível no momento. Você ainda pode continuar criando o canal; conclua a verificação primeiro se precisar de uma verificação de desduplicação exata.",
+      "title": "Possível duplicata exige verificação"
+    }
+  }
+}

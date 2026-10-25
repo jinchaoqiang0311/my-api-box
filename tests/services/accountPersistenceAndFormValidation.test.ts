@@ -1,0 +1,790 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { QUOTA_PER_USD } from "~/constants/money"
+import { SITE_TYPES } from "~/constants/siteType"
+import { AccountUpdateUserTimestampMode } from "~/services/accounts/editing/accountDefaults"
+import {
+  isValidAccount,
+  isValidExchangeRate,
+  parseManualQuotaFromUsd,
+} from "~/services/accounts/editing/accountFormValidation"
+import { validateAndUpdateAccount } from "~/services/accounts/editing/accountUpdate"
+import {
+  extractDomainPrefix,
+  getSiteName,
+} from "~/services/accounts/identity/siteName"
+import { openRouterAccountPersistence } from "~/services/apiAdapters/openrouter/account/accountPersistence"
+import { AuthTypeEnum } from "~/types"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+
+const {
+  mockFetchAccountData,
+  mockLoadBootstrapFacts,
+  mockgetSiteTypeCapabilities,
+  mockUpdateAccount,
+  mockUpdateAccountWithCheckInDraft,
+  mockUpdateAccountCheckInDraft,
+  mockGetAllAccountsOrThrow,
+  mockValidateManagementKey,
+} = vi.hoisted(() => ({
+  mockFetchAccountData: vi.fn(),
+  mockLoadBootstrapFacts: vi.fn(),
+  mockgetSiteTypeCapabilities: vi.fn(),
+  mockUpdateAccount: vi.fn(),
+  mockUpdateAccountWithCheckInDraft: vi.fn(),
+  mockUpdateAccountCheckInDraft: vi.fn(),
+  mockGetAllAccountsOrThrow: vi.fn(),
+  mockValidateManagementKey: vi.fn(),
+}))
+
+vi.mock("~/services/apiAdapters/registry", () => ({
+  getSiteTypeCapabilities: mockgetSiteTypeCapabilities,
+}))
+
+vi.mock("~/services/apiService/openrouter", () => ({
+  validateManagementKey: mockValidateManagementKey,
+}))
+
+vi.mock("~/services/accounts/accountStorage/accountQueries", () => ({
+  accountQueries: { getAllAccountsOrThrow: mockGetAllAccountsOrThrow },
+}))
+vi.mock("~/services/accounts/accountStorage/accountMutations", () => ({
+  accountMutations: {
+    updateAccount: mockUpdateAccount,
+    updateAccountWithCheckInDraft: mockUpdateAccountWithCheckInDraft,
+    updateAccountCheckInDraft: mockUpdateAccountCheckInDraft,
+  },
+}))
+
+describe("account persistence and form validation", () => {
+  beforeEach(() => {
+    mockFetchAccountData.mockReset()
+    mockLoadBootstrapFacts.mockReset()
+    mockgetSiteTypeCapabilities.mockReset()
+    mockUpdateAccount.mockReset()
+    mockUpdateAccountWithCheckInDraft.mockReset()
+    mockUpdateAccountWithCheckInDraft.mockResolvedValue(true)
+    mockUpdateAccountCheckInDraft.mockReset()
+    mockUpdateAccountCheckInDraft.mockResolvedValue(true)
+    mockGetAllAccountsOrThrow.mockReset()
+    mockValidateManagementKey.mockReset()
+    mockValidateManagementKey.mockResolvedValue({})
+    mockgetSiteTypeCapabilities.mockImplementation((siteType) => ({
+      siteType: SITE_TYPES.NEW_API,
+      account: {
+        persistence:
+          siteType === SITE_TYPES.OPENROUTER
+            ? openRouterAccountPersistence
+            : undefined,
+        data: {
+          fetchData: mockFetchAccountData,
+        },
+        bootstrap: {
+          loadBootstrapFacts: mockLoadBootstrapFacts,
+        },
+      },
+    }))
+  })
+
+  const checkInDisabled = buildCheckInConfig()
+
+  describe("validateAndUpdateAccount", () => {
+    it("fails closed for an OpenRouter edit when the strict account read fails", async () => {
+      mockGetAllAccountsOrThrow.mockRejectedValue(
+        new Error("storage unavailable"),
+      )
+
+      await expect(
+        validateAndUpdateAccount({
+          accountId: "account-1",
+          url: "https://openrouter.ai",
+          siteName: "OpenRouter",
+          username: "",
+          accessToken: "management-key",
+          userId: "",
+          exchangeRate: "7.0",
+          notes: "",
+          tagIds: [],
+          checkInConfig: checkInDisabled,
+          siteType: SITE_TYPES.OPENROUTER,
+          authType: AuthTypeEnum.AccessToken,
+          cookieAuthSessionCookie: "",
+          manualBalanceUsd: undefined,
+          excludeFromTotalBalance: false,
+          excludeFromTodayIncome: false,
+          sub2apiAuth: undefined,
+          options: { deferDataRefresh: true },
+        }),
+      ).resolves.toEqual({
+        success: false,
+        message: "messages:errors.validation.updateAccountFailed",
+      })
+      expect(mockValidateManagementKey).not.toHaveBeenCalled()
+      expect(mockUpdateAccount).not.toHaveBeenCalled()
+      expect(mockUpdateAccountWithCheckInDraft).not.toHaveBeenCalled()
+    })
+
+    it("persists empty tagIds to clear account tags", async () => {
+      mockFetchAccountData.mockResolvedValueOnce({
+        quota: 1,
+        today_prompt_tokens: 0,
+        today_completion_tokens: 0,
+        today_quota_consumption: 0,
+        today_requests_count: 0,
+        today_income: 0,
+        checkIn: buildCheckInConfig(),
+      })
+      const result = await validateAndUpdateAccount({
+        accountId: "account-1",
+        url: "https://api.example.com",
+        siteName: "Test Site",
+        username: "user",
+        accessToken: "token",
+        userId: "1",
+        exchangeRate: "7.0",
+        notes: "notes",
+        tagIds: [],
+        checkInConfig: checkInDisabled,
+        siteType: "openai",
+        authType: AuthTypeEnum.AccessToken,
+        cookieAuthSessionCookie: "",
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.feedbackLevel).toBe("success")
+      expect(mockUpdateAccountWithCheckInDraft).toHaveBeenCalledWith(
+        "account-1",
+        expect.objectContaining({
+          tagIds: [],
+        }),
+        checkInDisabled,
+        {
+          refreshed: checkInDisabled,
+          userTimestampMode: AccountUpdateUserTimestampMode.Touch,
+        },
+      )
+      expect(mockUpdateAccount).not.toHaveBeenCalled()
+      expect(mockUpdateAccountCheckInDraft).not.toHaveBeenCalled()
+    })
+
+    it("clears tagIds even when data refresh fails", async () => {
+      mockFetchAccountData.mockRejectedValueOnce(new Error("network error"))
+      const result = await validateAndUpdateAccount({
+        accountId: "account-1",
+        url: "https://api.example.com",
+        siteName: "Test Site",
+        username: "user",
+        accessToken: "token",
+        userId: "1",
+        exchangeRate: "7.0",
+        notes: "notes",
+        tagIds: [],
+        checkInConfig: checkInDisabled,
+        siteType: "openai",
+        authType: AuthTypeEnum.AccessToken,
+        cookieAuthSessionCookie: "",
+      })
+
+      expect(result.success).toBe(true)
+      expect(result).toMatchObject({
+        message: "messages:warnings.accountUpdatedWithoutDataRefresh",
+        feedbackLevel: "warning",
+      })
+      expect(mockUpdateAccountWithCheckInDraft).toHaveBeenCalledWith(
+        "account-1",
+        expect.objectContaining({
+          tagIds: [],
+        }),
+        checkInDisabled,
+        { userTimestampMode: AccountUpdateUserTimestampMode.Touch },
+      )
+    })
+
+    it("returns a stable failure when the refreshed update cannot be persisted", async () => {
+      mockFetchAccountData.mockResolvedValueOnce({
+        quota: 1,
+        today_prompt_tokens: 0,
+        today_completion_tokens: 0,
+        today_quota_consumption: 0,
+        today_requests_count: 0,
+        today_income: 0,
+        checkIn: buildCheckInConfig(),
+      })
+      mockUpdateAccountWithCheckInDraft.mockResolvedValueOnce(false)
+
+      const result = await validateAndUpdateAccount({
+        accountId: "account-1",
+        url: "https://api.example.com",
+        siteName: "Test Site",
+        username: "user",
+        accessToken: "token",
+        userId: "1",
+        exchangeRate: "7.0",
+        notes: "notes",
+        tagIds: [],
+        checkInConfig: checkInDisabled,
+        siteType: "openai",
+        authType: AuthTypeEnum.AccessToken,
+        cookieAuthSessionCookie: "",
+      })
+
+      expect(result).toEqual({
+        success: false,
+        message: "messages:errors.validation.updateAccountFailed",
+      })
+    })
+
+    it("returns the same stable failure when the config-only fallback update cannot be persisted", async () => {
+      mockFetchAccountData.mockRejectedValueOnce(new Error("network error"))
+      mockUpdateAccountWithCheckInDraft.mockResolvedValueOnce(false)
+
+      const result = await validateAndUpdateAccount({
+        accountId: "account-1",
+        url: "https://api.example.com",
+        siteName: "Test Site",
+        username: "user",
+        accessToken: "token",
+        userId: "1",
+        exchangeRate: "7.0",
+        notes: "notes",
+        tagIds: [],
+        checkInConfig: checkInDisabled,
+        siteType: "openai",
+        authType: AuthTypeEnum.AccessToken,
+        cookieAuthSessionCookie: "",
+      })
+
+      expect(result).toEqual({
+        success: false,
+        message: "messages:errors.validation.updateAccountFailed",
+      })
+    })
+
+    it("normalizes unsupported site types before updating", async () => {
+      mockFetchAccountData.mockResolvedValueOnce({
+        quota: 1,
+        today_prompt_tokens: 0,
+        today_completion_tokens: 0,
+        today_quota_consumption: 0,
+        today_requests_count: 0,
+        today_income: 0,
+        checkIn: buildCheckInConfig(),
+      })
+      const result = await validateAndUpdateAccount({
+        accountId: "account-1",
+        url: "https://api.example.com",
+        siteName: "Test Site",
+        username: "user",
+        accessToken: "token",
+        userId: "1",
+        exchangeRate: "7.0",
+        notes: "notes",
+        tagIds: [],
+        checkInConfig: checkInDisabled,
+        siteType: "legacy-invalid-site",
+        authType: AuthTypeEnum.AccessToken,
+        cookieAuthSessionCookie: "",
+      })
+
+      expect(result.success).toBe(true)
+      const { getSiteTypeCapabilities } = await import(
+        "~/services/apiAdapters/registry"
+      )
+      expect(vi.mocked(getSiteTypeCapabilities)).toHaveBeenCalledWith(
+        SITE_TYPES.UNKNOWN,
+      )
+      expect(mockUpdateAccountWithCheckInDraft).toHaveBeenCalledWith(
+        "account-1",
+        expect.objectContaining({
+          site_type: SITE_TYPES.UNKNOWN,
+        }),
+        checkInDisabled,
+        {
+          refreshed: checkInDisabled,
+          userTimestampMode: AccountUpdateUserTimestampMode.Touch,
+        },
+      )
+    })
+  })
+
+  describe("isValidAccount", () => {
+    const isValidAuthCombination = (
+      auth: Pick<
+        Parameters<typeof isValidAccount>[0],
+        "siteType" | "authType" | "accessToken" | "cookieAuthSessionCookie"
+      >,
+    ) =>
+      isValidAccount({
+        siteName: "Example Site",
+        username: "example-user",
+        userId: "example-user-id",
+        exchangeRate: "7.0",
+        ...auth,
+      })
+
+    it("validates complete account", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "user",
+          userId: "123",
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(true)
+    })
+
+    it("rejects empty siteName", () => {
+      expect(
+        isValidAccount({
+          siteName: "",
+          username: "user",
+          userId: "123",
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(false)
+    })
+
+    it("rejects empty username", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "",
+          userId: "123",
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(false)
+    })
+
+    it("does not treat invalid site types as Sub2API username exemptions", () => {
+      expect(
+        isValidAccount({
+          siteName: "Legacy",
+          username: "",
+          userId: "123",
+          siteType: "legacy-sub2api" as any,
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(false)
+    })
+
+    it("allows empty usernames only for profile-permitted account sites", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "",
+          userId: "123",
+          siteType: SITE_TYPES.SUB2API,
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(true)
+
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "",
+          userId: "123",
+          siteType: SITE_TYPES.NEW_API,
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(false)
+    })
+
+    it("rejects empty userId", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "user",
+          userId: "",
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(false)
+    })
+
+    it("does not require optional OpenRouter identity metadata", () => {
+      expect(
+        isValidAccount({
+          siteName: "OpenRouter",
+          username: "",
+          userId: "",
+          siteType: SITE_TYPES.OPENROUTER,
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "management-key",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(true)
+    })
+
+    it.each([
+      {
+        siteType: SITE_TYPES.SHAREDCHAT,
+        authType: AuthTypeEnum.Cookie,
+        accessToken: "",
+        cookieAuthSessionCookie: "session=placeholder",
+      },
+      {
+        siteType: SITE_TYPES.SUB2API,
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "placeholder-token",
+        cookieAuthSessionCookie: "",
+      },
+      {
+        siteType: SITE_TYPES.VO_API_V2,
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "placeholder-token",
+        cookieAuthSessionCookie: "",
+      },
+      {
+        siteType: SITE_TYPES.VO_API,
+        authType: AuthTypeEnum.Cookie,
+        accessToken: "",
+        cookieAuthSessionCookie: "session=placeholder",
+      },
+      {
+        siteType: SITE_TYPES.NEW_API,
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "placeholder-token",
+        cookieAuthSessionCookie: "",
+      },
+      {
+        siteType: SITE_TYPES.NEW_API,
+        authType: AuthTypeEnum.Cookie,
+        accessToken: "",
+        cookieAuthSessionCookie: "session=placeholder",
+      },
+    ])(
+      "accepts the supported $authType credential for $siteType",
+      ({ siteType, authType, accessToken, cookieAuthSessionCookie }) => {
+        expect(
+          isValidAuthCombination({
+            siteType,
+            authType,
+            accessToken,
+            cookieAuthSessionCookie,
+          }),
+        ).toBe(true)
+      },
+    )
+
+    it.each([
+      {
+        siteType: SITE_TYPES.SHAREDCHAT,
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "placeholder-token",
+        cookieAuthSessionCookie: "",
+      },
+      {
+        siteType: SITE_TYPES.SUB2API,
+        authType: AuthTypeEnum.Cookie,
+        accessToken: "",
+        cookieAuthSessionCookie: "session=placeholder",
+      },
+      {
+        siteType: SITE_TYPES.VO_API_V2,
+        authType: AuthTypeEnum.Cookie,
+        accessToken: "",
+        cookieAuthSessionCookie: "session=placeholder",
+      },
+      {
+        siteType: SITE_TYPES.OPENROUTER,
+        authType: AuthTypeEnum.Cookie,
+        accessToken: "",
+        cookieAuthSessionCookie: "session=placeholder",
+      },
+    ])(
+      "rejects unsupported $authType credentials for $siteType",
+      ({ siteType, authType, accessToken, cookieAuthSessionCookie }) => {
+        expect(
+          isValidAuthCombination({
+            siteType,
+            authType,
+            accessToken,
+            cookieAuthSessionCookie,
+          }),
+        ).toBe(false)
+      },
+    )
+
+    it("keeps no-auth accounts compatible with single-auth site profiles", () => {
+      expect(
+        isValidAuthCombination({
+          siteType: SITE_TYPES.SUB2API,
+          authType: AuthTypeEnum.None,
+          accessToken: "",
+          cookieAuthSessionCookie: "",
+        }),
+      ).toBe(true)
+    })
+
+    it("rejects invalid exchange rate", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "user",
+          userId: "123",
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          exchangeRate: "invalid",
+        }),
+      ).toBe(false)
+    })
+
+    it("allows empty accessToken for Cookie auth", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "user",
+          userId: "123",
+          authType: AuthTypeEnum.Cookie,
+          accessToken: "",
+          cookieAuthSessionCookie: "session=abc",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(true)
+    })
+
+    it("rejects empty token for AccessToken auth", () => {
+      expect(
+        isValidAccount({
+          siteName: "Test",
+          username: "user",
+          userId: "123",
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "",
+          exchangeRate: "7.0",
+        }),
+      ).toBe(false)
+    })
+  })
+
+  describe("isValidExchangeRate", () => {
+    it("accepts valid rates", () => {
+      expect(isValidExchangeRate("7.0")).toBe(true)
+      expect(isValidExchangeRate("1")).toBe(true)
+      expect(isValidExchangeRate("0.11111111111111111111")).toBe(true)
+      expect(isValidExchangeRate("1000000000000000000000")).toBe(true)
+    })
+
+    it("rejects invalid rates", () => {
+      expect(isValidExchangeRate("0")).toBe(false)
+      expect(isValidExchangeRate("-1")).toBe(false)
+      expect(isValidExchangeRate("abc")).toBe(false)
+      expect(isValidExchangeRate("7foo")).toBe(false)
+      expect(isValidExchangeRate("Infinity")).toBe(false)
+      expect(isValidExchangeRate("")).toBe(false)
+    })
+  })
+
+  describe("parseManualQuotaFromUsd", () => {
+    it("rounds valid manual balances into quota units", () => {
+      expect(parseManualQuotaFromUsd("1.234")).toBe(
+        Math.round(1.234 * QUOTA_PER_USD),
+      )
+    })
+
+    it("rejects blank, malformed, negative, and non-finite manual balances", () => {
+      expect(parseManualQuotaFromUsd(undefined)).toBeUndefined()
+      expect(parseManualQuotaFromUsd("   ")).toBeUndefined()
+      expect(parseManualQuotaFromUsd("10usd")).toBeUndefined()
+      expect(parseManualQuotaFromUsd("-1")).toBeUndefined()
+      expect(parseManualQuotaFromUsd("Infinity")).toBeUndefined()
+    })
+  })
+
+  describe("extractDomainPrefix", () => {
+    it.each([
+      ["api.alice.github.io", "Alice"],
+      ["bob.github.io", "Bob"],
+      ["school.k12.ak.us", "School"],
+      ["www.city.kawasaki.jp", "City"],
+      ["127.0.0.1", "127.0.0.1"],
+      ["[::1]", "[::1]"],
+    ])("uses the registrable name or full host for %s", (hostname, name) => {
+      expect(extractDomainPrefix(hostname)).toBe(name)
+    })
+
+    it("extracts simple domain", () => {
+      expect(extractDomainPrefix("example.com")).toBe("Example")
+    })
+
+    it("removes www prefix", () => {
+      expect(extractDomainPrefix("www.example.com")).toBe("Example")
+    })
+
+    it("handles subdomains", () => {
+      expect(extractDomainPrefix("api.example.com")).toBe("Example")
+    })
+
+    it("handles double suffixes", () => {
+      expect(extractDomainPrefix("example.com.cn")).toBe("Example")
+      expect(extractDomainPrefix("example.co.uk")).toBe("Example")
+    })
+
+    it("handles empty hostname", () => {
+      expect(extractDomainPrefix("")).toBe("")
+    })
+
+    it("handles single-segment hostnames", () => {
+      expect(extractDomainPrefix("localhost")).toBe("Localhost")
+    })
+
+    it("capitalizes first letter", () => {
+      expect(extractDomainPrefix("github.com")).toBe("Github")
+    })
+  })
+
+  describe("getSiteName", () => {
+    it("prefers a custom browser-tab title without calling site status", async () => {
+      const result = await getSiteName({
+        id: 1,
+        title: "Custom Portal",
+        url: "https://example.com/console",
+      } as browser.tabs.Tab)
+
+      expect(result).toBe("Custom Portal")
+      expect(mockLoadBootstrapFacts).not.toHaveBeenCalled()
+    })
+
+    it("falls back to the normalized domain when no site-type hint is available", async () => {
+      mockLoadBootstrapFacts.mockResolvedValueOnce({
+        displayName: "Billing Center",
+      })
+
+      const result = await getSiteName({
+        id: 2,
+        title: "new-api",
+        url: "https://example.com/console",
+      } as browser.tabs.Tab)
+
+      expect(result).toBe("Example")
+      expect(mockLoadBootstrapFacts).not.toHaveBeenCalled()
+    })
+
+    it("falls back to the normalized domain when site status also returns a default-like name", async () => {
+      mockLoadBootstrapFacts.mockResolvedValueOnce({
+        displayName: "one-api",
+      })
+
+      const result = await getSiteName("https://api.example.co.uk/console")
+
+      expect(result).toBe("Example")
+    })
+
+    it("uses the provided site-type hint when resolving site status", async () => {
+      mockLoadBootstrapFacts.mockResolvedValueOnce({
+        displayName: "Sub2 Portal",
+      })
+
+      const result = await getSiteName(
+        "https://example.com/console",
+        SITE_TYPES.SUB2API,
+      )
+
+      expect(result).toBe("Sub2 Portal")
+      const { getSiteTypeCapabilities } = await import(
+        "~/services/apiAdapters/registry"
+      )
+      expect(vi.mocked(getSiteTypeCapabilities)).toHaveBeenCalledWith(
+        SITE_TYPES.SUB2API,
+      )
+      expect(mockLoadBootstrapFacts).toHaveBeenCalledWith({
+        baseUrl: "https://example.com",
+        auth: { authType: AuthTypeEnum.None },
+      })
+    })
+
+    it("falls back to the domain when site-type hint has no bootstrap status probe", async () => {
+      mockgetSiteTypeCapabilities.mockReturnValueOnce({
+        siteType: SITE_TYPES.NEW_API,
+      })
+
+      const result = await getSiteName(
+        "https://api.example.com/dashboard",
+        SITE_TYPES.NEW_API,
+      )
+
+      expect(result).toBe("Example")
+      expect(mockLoadBootstrapFacts).not.toHaveBeenCalled()
+    })
+
+    it("falls back to displayName when a default tab title is paired with a site-type hint", async () => {
+      mockLoadBootstrapFacts.mockResolvedValueOnce({
+        displayName: "Billing Center",
+      })
+
+      const result = await getSiteName(
+        {
+          id: 2,
+          title: "new-api",
+          url: "https://example.com/console",
+        } as browser.tabs.Tab,
+        "new-api",
+      )
+
+      expect(result).toBe("Billing Center")
+      expect(mockLoadBootstrapFacts).toHaveBeenCalledWith({
+        baseUrl: "https://example.com",
+        auth: { authType: AuthTypeEnum.None },
+      })
+    })
+
+    it("reuses provided site status instead of fetching it again", async () => {
+      const result = await getSiteName(
+        "https://example.com/console",
+        "new-api",
+        {
+          displayName: "Billing Center",
+        },
+      )
+
+      expect(result).toBe("Billing Center")
+      expect(mockLoadBootstrapFacts).not.toHaveBeenCalled()
+    })
+
+    it("treats an explicit null site status as a completed lookup", async () => {
+      mockLoadBootstrapFacts.mockResolvedValueOnce({
+        displayName: "Unexpected second lookup",
+      })
+
+      const result = await getSiteName(
+        "https://api.example.com/console",
+        SITE_TYPES.NEW_API,
+        null,
+      )
+
+      expect(result).toBe("Example")
+      expect(mockLoadBootstrapFacts).not.toHaveBeenCalled()
+    })
+
+    it("falls back to the raw input prefix when the URL cannot be parsed", async () => {
+      const result = await getSiteName("not a url/path", SITE_TYPES.NEW_API)
+
+      expect(result).toBe("not a url")
+      expect(mockLoadBootstrapFacts).not.toHaveBeenCalled()
+    })
+
+    it("falls back to the domain name when site status fetch fails", async () => {
+      mockLoadBootstrapFacts.mockRejectedValueOnce(new Error("status failed"))
+
+      const result = await getSiteName(
+        "https://api.example.com/dashboard",
+        SITE_TYPES.NEW_API,
+      )
+
+      expect(result).toBe("Example")
+    })
+  })
+})

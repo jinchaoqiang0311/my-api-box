@@ -1,0 +1,944 @@
+{
+  "accountSummary": {
+    "keys_other": "{{count}} キー",
+    "loadFailed": "読み込み失敗",
+    "loading": "読み込み中",
+    "partialLoadFailed": "一部読み込み",
+    "title": "アカウント概要",
+    "unavailableAccounts_other": "キーを読み込めません · {{count}}",
+    "unsupported": "未対応"
+  },
+  "actions": {
+    "collapseAll": "すべて折りたたむ",
+    "copyKelivoImportCode": "Kelivo モバイル版にエクスポート",
+    "deleteKey": "キーを削除",
+    "details": "詳細を見る",
+    "detailsFor": "{{name}} の詳細を見る",
+    "editKey": "キーを編集",
+    "expandAll": "すべて展開",
+    "exportToAiToolbox": "AI Toolbox にエクスポート",
+    "exportToCCSwitch": "CC Switch にエクスポート",
+    "exportToCursorPlus": "Cursor++ プロバイダー設定をエクスポート",
+    "exportToKiloCode": "Kilo Code 設定をエクスポート",
+    "hideKey": "キーを隠す",
+    "importToClaudeCodeRouter": "Claude Code Router にインポート",
+    "importToManagedSite": "{{site}} にインポート",
+    "openApiProfiles": "API 認証情報庫を開く",
+    "openSelectedAccountModels": "アカウントモデルを見る",
+    "retryFailed": "失敗を再試行",
+    "saveToApiProfiles": "保存して API 認証情報に関連付け",
+    "showKey": "キーを表示",
+    "useInCherry": "Cherry Studio で使う",
+    "verifyApi": "API を検証",
+    "verifyCliSupport": "CLI 対応を検証"
+  },
+  "actionToolbar": {
+    "apiCredential": "API 認証情報",
+    "diagnostics": "診断",
+    "integrationsAndExport": "連携とエクスポート",
+    "label": "キーの操作",
+    "management": "管理",
+    "quickActions": "クイック操作"
+  },
+  "allAccounts": "すべてのアカウント",
+  "allAccountsFailed_other": "{{count}} 件のアカウントの読み込みに失敗したため、結果は不完全です",
+  "allAccountsLoading_other": "{{count}} 件読み込み中",
+  "allAccountsProgress": "{{completed}}/{{total}} アカウントを処理済み",
+  "batchApiCredentialProfiles": {
+    "actions": {
+      "open": "API 認証情報庫に保存（{{selectedCount}}）"
+    }
+  },
+  "batchManagedSiteExport": {
+    "actions": {
+      "clearSelection": "選択をクリア",
+      "open": "{{site}} に一括インポート（{{selectedCount}}）",
+      "refreshPreview": "プレビューを更新",
+      "retry": "失敗したキーを再試行",
+      "running": "インポート中...",
+      "selectAll": "{{selected}}/{{total}} 選択中",
+      "start": "インポート開始",
+      "verifyAndRefresh": "検証してプレビューを更新",
+      "verifying": "検証中...",
+      "viewChannels": "チャネル管理を開く"
+    },
+    "blockedDetails": {
+      "createdKeyReferenceAmbiguous": "新しく作成されたキーを安全に特定できませんでした。",
+      "createdKeyUnavailable": "新しく作成されたキーは利用できなくなりました。",
+      "sourceAccountUnavailable": "元のアカウントは利用できなくなりました。",
+      "sourceKeyInventoryUnavailable": "元のアカウントのキーを読み込めませんでした。"
+    },
+    "blockedReasons": {
+      "baseUrlRequired": "対象のセルフホスト AI ゲートウェイでは Base URL が必要です。",
+      "configMissing": "セルフホスト AI ゲートウェイの管理者設定がありません。",
+      "inputPreparationFailed": "このキーのチャネルデータを準備できませんでした。",
+      "keyRequired": "生成されたチャネル Key が空です。",
+      "modelsRequired": "利用可能なモデルを解決できませんでした。",
+      "nameRequired": "生成されたチャネル名が空です。",
+      "realKeyRequired": "対象のセルフホスト AI ゲートウェイでは実際のプロバイダー Key が必要です。",
+      "secretResolutionFailed": "実際のトークンシークレットを解決できませんでした。"
+    },
+    "confirm": {
+      "description": "{{selectedCount}} 件の選択済みキーに対してチャネルを作成します。完全一致済みまたはブロックされた行は作成されません。",
+      "title": "選択済みキーをインポート"
+    },
+    "description": "{{site}} に作成する前に、選択済み {{selectedCount}} 件のキーを確認します。",
+    "fallbackLabels": {
+      "createdKey": "作成されたキー"
+    },
+    "fields": {
+      "baseUrl": "Base URL",
+      "editModelsLabel": "{{name}} のモデル一覧を編集",
+      "groups": "グループ",
+      "models": "モデル"
+    },
+    "gatewayDescription": "アカウントキーをセルフホスト AI ゲートウェイチャネルとして取り込みます。取り込み後は、複数のキーを 1 つの AI API からクライアントで利用できます。",
+    "importMode": {
+      "appendTo": "既存のチャネルに追加：{{name}}",
+      "chooseTarget": "キーを追加するチャネルを選択",
+      "createNew": "新しいチャネルを作成",
+      "grouped": "同じサイトのキーを1つの新しいチャネルにまとめる",
+      "independent": "キーごとに新しいチャネルを作成",
+      "keyCount_other": "キー {{count}} 個",
+      "label": "キーのインポート方法",
+      "modelDifferences": "キーごとにモデル一覧が異なります。統合リソースでは一覧の和集合を使用し、ゲートウェイがルーティングを行います。",
+      "models": "モデル：{{models}}",
+      "preserveSettings": "既存のチャネル設定とモデル設定を保持し、未インポートのキーだけを追加します。",
+      "resourceName": "新しいチャネルの名前",
+      "resultSummary": "キーの結果：{{created}} 個インポート済み、{{failed}} 個失敗、{{uncertain}} 個結果不明、{{skipped}} 個スキップ。",
+      "reuse": "既存のチャネルへの追加を優先",
+      "reuseHelp": "同じアドレスのチャネルにキーを追加します。複数ある場合は追加先を選び、ない場合はまとめて新規作成します。",
+      "reuseSummary": "{{keyCount}} 個のキーを選択：{{createCount}} 個のチャネルを新規作成し、{{appendCount}} 個の既存チャネルに追加します。",
+      "saveFailed": "今回のインポートには選択が適用されますが、設定を保存できませんでした。",
+      "scheduling": "複数キーの切り替えは接続先のゲートウェイが行います。用途に応じて選択してください。",
+      "summary": "{{keyCount}} 個のキーを選択。{{resourceCount}} 個のチャネルを新規作成します。",
+      "target": "キーの追加先チャネル",
+      "unsupported": "このリソースの種類は複数キーの統合に対応していないため、個別に作成します。"
+    },
+    "loadingDescription": "選択済み {{selectedCount}} 件のキーのプレビューを準備しています。",
+    "messages": {
+      "batchDuplicate": "このバッチの {{item}} と重複するため、スキップしました。",
+      "completed": "キーの結果：{{created}} 個インポート済み、{{failed}} 個失敗、{{uncertain}} 個結果不明、{{skipped}} 個スキップ。",
+      "duplicate": "完全一致するチャネルが既にあります: {{channel}}。再作成されません。",
+      "executionFailed": "一括インポートの実行に失敗しました: {{error}}",
+      "targetChanged": "管理対象サイトが変更されました。インポート前にプレビューを更新するか、対象を選び直してください。",
+      "verificationFailed": "New API の検証に失敗しました: {{error}}"
+    },
+    "preview": {
+      "loadFailed": "プレビューの読み込みに失敗しました: {{error}}",
+      "loading": "チャネルプレビューを準備中...",
+      "selected_other": "{{count}} 件のキーを選択中",
+      "summary": "プレビュー: 作成可能 {{ready}} 件、警告 {{warning}} 件、スキップ {{skipped}} 件、ブロック {{blocked}} 件、合計 {{total}} 件。"
+    },
+    "repairTrusted": {
+      "description": "これらのキーは直前に作成されました。簡易レビューでは重複と正確な Key のチェックを省略します。インポート前に完全なチェックへ切り替えることもできます。",
+      "useCompleteChecks": "完全なチェックを使用"
+    },
+    "results": {
+      "channelCreationFailed": "キーのインポートに失敗しました。",
+      "status": {
+        "failed": "失敗",
+        "notSelected": "未選択",
+        "skipped": "スキップ",
+        "success": "インポート済み",
+        "uncertain": "要確認"
+      },
+      "summary": "キーの結果：{{created}} 個インポート済み、{{failed}} 個失敗、{{uncertain}} 個結果不明、{{skipped}} 個スキップ。"
+    },
+    "selection": {
+      "accountGroup": "アカウント {{name}} の表示中のキーを選択",
+      "rowLabel": "一括インポート用に {{name}} を選択",
+      "visible": "表示中の選択: {{selected}}/{{total}}"
+    },
+    "status": {
+      "blocked": "ブロック",
+      "ready": "準備完了",
+      "skipped": "スキップ",
+      "warning": "警告"
+    },
+    "target": {
+      "change": "対象を変更",
+      "title": "{{site}} にインポート"
+    },
+    "title": "セルフホスト AI ゲートウェイへ一括インポート",
+    "warnings": {
+      "backendSearchFailed": "対象バックエンドで重複チェックを完了できませんでした。",
+      "dedupeUnsupported": "現在のセルフホスト AI ゲートウェイでは Base URL による重複チェックを信頼できません。",
+      "exactVerificationUnavailable": "一致するチャネルが存在する可能性がありますが、正確な Key を確認できません。作成前に確認してください。",
+      "matchRequiresConfirmation": "類似チャネルがあります。作成前に確認してください。",
+      "modelPrefillFailed": "モデルの事前入力に失敗しました。利用可能なモデルリストを使用します。"
+    }
+  },
+  "batchSelection": {
+    "accountUnavailableReason": "このアカウントには一括操作に対応するキーがありません。",
+    "eligibilityNotice_other": "現在 {{count}} 件のキーが一括操作に対応しています。その他のキーは対象外です。",
+    "unavailableReason": "このキーは一括操作に対応していません。"
+  },
+  "createdKey": {
+    "subtitle": "{{name}} を作成しました。今すぐコピーでき、後から再表示もできます。",
+    "title": "キーを作成しました"
+  },
+  "createFirstKey": "最初のキーを作成",
+  "credentialAssociation": {
+    "linked": "API 認証情報に関連付け済み",
+    "needsConfirmation": "関連付けの確認が必要です",
+    "reviewCredential": "認証情報の関連付けを確認",
+    "target": {
+      "clear": "キー一覧を表示",
+      "found": "関連付けられたキーが見つかりました",
+      "loading": "認証情報の関連付けを読み込み中...",
+      "locating": "関連付けられたキーを検索中...",
+      "missing": "この認証情報の関連付けは存在しません。",
+      "needsConfirmation": "この認証情報の関連付けは、開く前に確認が必要です。",
+      "retry": "再試行",
+      "unavailable": "現在、関連付けられたキーを特定できません。アカウント接続を確認して再試行してください。"
+    },
+    "viewCredential": "関連付けた API 認証情報を表示"
+  },
+  "description": "サイトのアカウントの API キーを管理・作成し、設定や使用量を確認します。",
+  "details": {
+    "empty": "追加の詳細はありません",
+    "loading": "詳細を読み込んでいます",
+    "unavailable": "詳細を利用できません"
+  },
+  "dialog": {
+    "accountSelect": "アカウントを選択",
+    "addToken": "API キーを追加",
+    "advancedSettings": "詳細設定",
+    "availableModels": "利用可能モデル",
+    "basicInfo": "基本情報",
+    "createNotSupported": "このアカウントでは API キーを作成できません。",
+    "createToken": "キーを作成",
+    "expiration": "有効期限",
+    "expirationPlaceholder": "無期限の場合は空欄のまま",
+    "groupLabel": "グループ",
+    "ipLimits": "IP 制限",
+    "ipPlaceholder": "制限なしの場合は空欄。複数 IP はカンマ区切り",
+    "modelLimits": "モデル制限",
+    "quotaPlaceholder": "クォータ量（USD）を入力してください",
+    "quotaSettings": "クォータ設定",
+    "selectModels": "モデルを選択",
+    "subnetLimits": "Subnet 制限",
+    "subnetPlaceholder": "制限なしの場合は空欄。subnet または CIDR を入力",
+    "tokenName": "トークン名",
+    "unlimitedQuota": "無制限クォータ",
+    "warningText": "API キーは安全に保管し、漏洩を避けてください",
+    "warningTitle": "注意事項"
+  },
+  "enabledCount_other": "{{count}} 件有効",
+  "exportMenu": {
+    "groups": {
+      "chatClients": "チャットクライアント",
+      "codingAgents": "コーディングエージェント",
+      "gateways": "ゲートウェイとルーティングツール"
+    }
+  },
+  "keyDetails": {
+    "channels": "チャネル",
+    "createResponseOnlySecret": "このサイトで完全なキーが表示されるのは作成時だけです。保存していない場合は、キー管理を開いて新しいキーを作成してください。",
+    "createTime": "作成時刻:",
+    "defaultChannels": "サイトの既定チャネル",
+    "expireTime": "有効期限:",
+    "followsAccountGroup": "アカウントのグループに従う",
+    "group": "グループ:",
+    "ipLimits": "IP 制限:",
+    "key": "キー:",
+    "lastUsedTime": "最終使用日時:",
+    "models": "モデル制限:",
+    "neverExpires": "期限なし",
+    "note": "メモ:",
+    "remainingQuota": "残りクォータ:",
+    "totalQuota": "合計クォータ：",
+    "ungrouped": "グループなし",
+    "usedQuota": "使用済みクォータ:"
+  },
+  "knownTotalKeys_other": "{{count}} 件のキーを読み込み済み",
+  "linkedCleanup": {
+    "description": "このキーを使う全チャネルを確認します。複数キーの場合は該当する認証情報のみを削除し、キーが残らない場合にチャネルを削除します。確認に失敗した場合は元のキーを保持します。",
+    "option": "現在の管理サイトの関連チャネルも整理する",
+    "pending_other": "{{count}} 件のチャネルの整理が保留中",
+    "retry": "整理を再試行",
+    "retryDescription": "未完了の処理は保存されます。元のキーの削除が確認されるまで整理は続行しません。"
+  },
+  "loadError": {
+    "description": "このアカウントのキー一覧を取得できませんでした。ログインが失効している、権限が不足している、またはサイトが一時的に利用できない可能性があります。サイトに再ログインしてから再試行してください。\n\nエラー: {{error}}",
+    "openSite": "サイトを開く",
+    "title": "キー一覧を読み込めませんでした"
+  },
+  "managedSiteSetupRecovery": {
+    "configureManagedSite": "セルフホスト AI ゲートウェイを設定",
+    "description": "セルフホスト AI ゲートウェイを設定すると、アカウントキーをゲートウェイチャネルとして取り込み、1 つの AI API にまとめられます。"
+  },
+  "managedSiteStatus": {
+    "actions": {
+      "configureChecks": "管理対象サイト確認を設定",
+      "refresh": "管理対象サイトのチャネル状態を更新",
+      "refreshing": "管理対象サイトのチャネル状態を更新中",
+      "reviewChannels": "チャネルを確認",
+      "verifyNow": "今すぐ検証"
+    },
+    "badges": {
+      "added": "追加済み",
+      "checkFailed": "確認失敗",
+      "checking": "確認中",
+      "configMissing": "未設定",
+      "notAdded": "未追加",
+      "requiresConfirmation": "確認が必要",
+      "unknown": "不明",
+      "verificationUnavailable": "完全確認不可"
+    },
+    "descriptions": {
+      "backendSearchFailed": "管理対象サイトの確認を完了できませんでした。",
+      "baseUrlSearchUnsupported": "現在の管理対象サイトはチャネル検索時の Base URL 検索をサポートしていないため、この機能は利用できません。",
+      "configMissingOptional": "任意の管理対象サイトのチャネル確認はまだ有効化されていません。キーの表示、コピー、作成は引き続き利用できます。",
+      "inputPreparationFailed": "検証に必要な比較用チャネル入力を準備できませんでした。",
+      "newApiRetrieveKeyHint": "New API では完全なキー比較がチャネルキーに依存しますが、そのチャネルキー自体の表示に 2FA 認証が必要なため、現時点では完全なキー比較は利用できません。"
+    },
+    "label": "管理サイト",
+    "pageUnsupported": "このページでは管理対象サイトのチャネル確認を利用できません。現在の管理対象サイトが URL によるチャネル検索をサポートしていないためです。",
+    "recovery": {
+      "configureLogin": "先に設定で New API のログイン情報と 2FA 補助項目を追加してください。それまではチャネルキーを読み取れず、完全なキー比較を完了できません。",
+      "verificationRequired": "New API のチャネルキー表示自体に 2FA が必要なため、完全なキー比較には先に短時間の New API 認証手順が必要です。"
+    },
+    "signals": {
+      "key": {
+        "matched": "キー一致",
+        "noMatch": "キー不一致",
+        "notProvided": "キーなし",
+        "tooltipMatched": "同じ正規化 URL バケット内でこのキーに一致するチャネルが見つかりました: {{channelName}}。",
+        "tooltipNoMatch": "比較可能なチャネルキーはありましたが、このキーに一致するものはありませんでした。",
+        "tooltipNotProvided": "このトークンには比較可能なキーがありませんでした。",
+        "tooltipUnavailable": "比較可能なチャネルキーが利用できず、キー比較を完了できませんでした。",
+        "unavailable": "キー比較不可"
+      },
+      "models": {
+        "contained": "モデル包含一致",
+        "exact": "モデル完全一致",
+        "noMatch": "モデル不一致",
+        "notProvided": "モデルなし",
+        "similar": "モデル類似",
+        "tooltipContained": "正規化モデル集合は包含一致でチャネル {{channelName}} に一致しました。",
+        "tooltipExact": "正規化モデル集合はチャネル {{channelName}} と完全一致しました。",
+        "tooltipNoMatch": "正規化 URL バケット内でモデル一致は確認できませんでした。",
+        "tooltipNotProvided": "このトークンには比較可能なモデル一覧がありませんでした。",
+        "tooltipSimilar": "正規化モデル集合は類似度 {{score}}% でチャネル {{channelName}} に一致しました。",
+        "tooltipUnavailable": "比較可能な URL バケットがなく、モデル比較を完了できませんでした。",
+        "unavailable": "モデル比較不可"
+      },
+      "url": {
+        "matched": "URL 一致",
+        "noMatch": "URL 未検出",
+        "tooltipMatched_other": "同じ正規化 URL バケット内で {{count}} 件の候補チャネルが見つかりました。候補例: {{channelName}}。",
+        "tooltipNoMatch": "同じ正規化 URL バケット内にチャネルは見つかりませんでした。"
+      }
+    }
+  },
+  "messages": {
+    "batchSavedToApiProfiles": "選択したキーを API 認証情報庫に保存しました",
+    "batchSavedToApiProfilesNeedsConfirmation": "選択したキーを保存しました。API 認証情報庫で強調表示された関連付けを確認してください。",
+    "batchSaveToApiProfilesFailed": "選択したキーを API 認証情報庫に保存できませんでした",
+    "batchSaveToApiProfilesPartialFailed": "選択した {{totalCount}} 件のうち {{savedCount}} 件を保存しました。{{failedCount}} 件は保存できませんでした。",
+    "copyFailed": "コピーに失敗しました",
+    "keyCopied": "キー {{name}} をクリップボードにコピーしました",
+    "keyDeleted": "キー {{name}} を削除しました",
+    "keyDeletedSimple": "キーを削除しました",
+    "keySiteTypeMismatch": "このサイトは {{suggestedType}} に該当しますが、アカウントは {{storedType}} になっています。「アカウント編集」でサイト種別を {{suggestedType}} に変更してから再試行してください。",
+    "keyUpdated": "キー {{name}} を更新しました",
+    "keyUpdatedSimple": "キーを更新しました",
+    "loadFailed": "キー一覧の読み込みに失敗しました",
+    "revealFailed": "キーの表示に失敗しました",
+    "savedToApiProfiles": "{{name}} を API 認証情報庫に保存しました",
+    "savedToApiProfilesNeedsConfirmation": "認証情報を保存しました。API 認証情報庫でキーの関連付けを確認してください。",
+    "saveToApiProfilesFailed": "API 認証情報庫への保存に失敗しました",
+    "serviceCredentialCopied": "サービスキーをクリップボードにコピーしました",
+    "serviceCredentialRotated": "サービスキーをリセットしました",
+    "serviceCredentialRotateFailed": "サービスキーのリセットに失敗しました",
+    "verifyApiFailed": "API 検証を開けませんでした",
+    "verifyCliSupportFailed": "CLI 互換性検証を開けませんでした"
+  },
+  "native": {
+    "actions": {
+      "delete": "キーを削除",
+      "disable": "API キーを無効化",
+      "edit": "キーを編集",
+      "enable": "API キーを有効化",
+      "revoke": "キーを失効",
+      "rotate": "API キーをローテーション"
+    },
+    "delete": {
+      "confirm": "キーを削除",
+      "description": "API キー {{name}} を完全に削除しますか？この操作は取り消せません。",
+      "feedback": {
+        "authenticationFailed": "再度ログインするか、このアカウントの認証情報を更新してから再試行してください。",
+        "error": "このキーを削除できませんでした。更新してから再試行してください。",
+        "permissionDenied": "キーを表示・管理できる権限を持つ認証情報を使用して、再試行してください。",
+        "unavailable": "サービスは一時的に利用できません。再試行前に更新してください。",
+        "uncertain": "キーの状態が変わった可能性があります。キーを更新してから、再試行するか判断してください。"
+      },
+      "refresh": "キーを更新",
+      "title": "API キーを削除しますか？"
+    },
+    "detailsLoadFailed": "キーの詳細を読み込めませんでした。",
+    "editor": {
+      "actions": {
+        "cancel": "キャンセル",
+        "save": "キーを保存"
+      },
+      "allowlistHelp": "カンマまたは改行で区切ります。空欄は制限なし。",
+      "allowWallet": "残高の使用を許可",
+      "allowWalletHelp": "プランのクォータを使い切った後も、このキーがアカウント残高から課金されて使い続けられます。",
+      "budget5h": "5 時間の予算（USD）",
+      "budgetDay": "1 日の予算（USD）",
+      "budgetMonth": "月間予算（USD）",
+      "budgetNextReset": "リセット {{time}}（UTC+8）",
+      "budgetResetHelp": "0 は無制限。5 時間枠はローリング方式、日・週・月は北京時間でリセットされ、週は月曜日に始まります。",
+      "budgetRolling": "ローリング期間",
+      "budgetsAndLimits": "予算とアクセス制限",
+      "budgetUsage": "使用 ${{used}} / ${{limit}} · 残り ${{remaining}} · 予約 ${{reserved}}",
+      "budgetWeek": "週間予算（USD）",
+      "channel": "チャネル",
+      "dahl": {
+        "allocate": "トークンを割り当て",
+        "amountHelp": "整数または K/M で入力してください。利用可能：{{max}} トークン。",
+        "amountInvalid": "利用可能な残高内で有効な数量を入力してください。",
+        "amountPlaceholder": "例：2.5M または 500K",
+        "create": "キーを作成",
+        "createdHelp": "{{name}} をトークン未割り当てで作成しました。キーをコピーするか、トークンを割り当てて利用を開始できます。後から再表示できます。",
+        "createHelp": "残高 0 トークンの新しいキーを作成します。名前は任意です。作成後にキーをコピーするか、トークンを割り当ててください。",
+        "createTitle": "API キーを作成",
+        "invalidAmount": "正の整数で、{{max}} トークン以下を入力してください。",
+        "keyAfter": "転送後のキー残高",
+        "keyBalance": "キー残高（トークン）",
+        "manageTitle": "キーを管理",
+        "max": "すべて",
+        "name": "キー名",
+        "nameCached": "ローカルにキャッシュされた名前です。同じアカウントのサイトを開くと名前を確認します。",
+        "nameHelp": "同じアカウントのサイトページを開いていると、このブラウザー内で名前を同期します。変更を見るにはサイトを再読み込みしてください。",
+        "nameInvalid": "名前は128文字以内にしてください。",
+        "namePending": "ローカルに保存済み・同期待ちです。このアカウントでサイトを開き、キー一覧を更新してください。",
+        "namePlaceholder": "名前（任意）",
+        "nameSynced": "名前をサイトと同期しました。サイトを再読み込みすると反映されます。",
+        "noKeyTokens": "このキーには返却できるトークンがありません。",
+        "noPoolTokens": "アカウントにトークンがありません。公式サイトで補充するか、他のキーから返却してください。",
+        "poolAfter": "転送後のアカウント残高",
+        "poolBalance": "アカウント残高（トークン）",
+        "rename": "名前を変更",
+        "return": "トークンを返却",
+        "revoke": "キーを失効",
+        "revokeDescription": "{{name}} を失効しますか？キーは利用できなくなり、残りのトークンはアカウントに返却されます。サイトには失効記録が残ります。元に戻すことはできません。",
+        "revokeTitle": "API キーを失効",
+        "saveName": "名前を保存",
+        "transferAmount": "転送するトークン数"
+      },
+      "daya": {
+        "allowFast": "Fast モードを許可",
+        "allowFastHelp": "OpenAI リクエストで Fast を要求できます。Fast の適用はサービス側のルールで決まります。無効にすると、Flex を含むすべての OpenAI リクエストが通常モードと通常料金になります。",
+        "budget7d": "7日間の予算（USD）",
+        "budgetHelp": "各期間の利用上限（USD）。0は無制限です。",
+        "customKey": "カスタムキー（任意）",
+        "customKeyHelp": "未入力の場合は自動生成します。英数字、アンダースコア、ハイフンで16文字以上入力してください。",
+        "groupOrderHelp": "この順序でルートを試行します。ドラッグまたは上下ボタンで並べ替えます。",
+        "ipBlacklist": "IP拒否リスト",
+        "ipWhitelist": "IP許可リスト"
+      },
+      "description": "説明（任意）",
+      "emrank": {
+        "expiration": "有効期限",
+        "expirationOptions": {
+          "custom": "日時を指定",
+          "day": "1日",
+          "hour": "1時間",
+          "keep": "現在の有効期限を維持",
+          "month": "1か月（30日）",
+          "never": "無期限"
+        },
+        "quotaHelp": "1 M = 1,000,000 Token。小数は最大 6 桁。",
+        "quotaMToken": "クォータ（M Token）"
+      },
+      "excludeIps": "除外 IP",
+      "excludeIpsPlaceholder": "1 行に 1 件（CIDR 対応）",
+      "expiryDays": "有効期間（日）",
+      "feedback": {
+        "adminOnlyKeySettings": "このサイトでは IP ホワイトリストなどの高度なキー設定は管理者に限定されています。該当フィールドを消してから再試行してください。",
+        "authenticationFailed": "再度ログインするか、このアカウントの認証情報を更新してから再試行してください。",
+        "error": "エラーの詳細に従って対処してから再試行してください。",
+        "permissionDenied": "キーを表示・管理できる権限を持つ認証情報を使用して、再試行してください。",
+        "title": "キーを保存できませんでした",
+        "unavailable": "サービスは一時的に利用できません。しばらくしてからお試しください。",
+        "uncertain": "サービスが変更を適用した可能性があります。キーを更新して現在の状態を確認してから、再試行するか判断してください。"
+      },
+      "followAccountQuotaHelp": "-1 はアカウントのクォータに従います。",
+      "followsAccount": "アカウント設定に従う",
+      "groupOnly": "選択したグループのみ使用",
+      "groupOnlyHelp": "他のグループへ自動的に切り替えず、選択したグループだけを使います。",
+      "independentQuotaUsd": "個別クォータ（USD）",
+      "ipCidrAllowlist": "IP/CIDR 許可リスト",
+      "issues": {
+        "inconsistentValue": "この値を確認して、もう一度お試しください。",
+        "invalidValue": "有効な値を入力してください。",
+        "outOfRange": "許可された範囲の値を入力してください。",
+        "required": "この項目は必須です。",
+        "unsupportedOption": "利用可能な選択肢を選んでください。"
+      },
+      "keyConcurrency": "キーの同時実行数",
+      "keyRateHelp": "0 はアカウントの制限に従います。",
+      "keyRpm": "キー RPM",
+      "keyUnlimitedQuota": "キーのクォータ無制限",
+      "keyUnlimitedQuotaHelp": "アカウント残高またはサブスクリプションの制限は適用されます。",
+      "krill": {
+        "allowAnyIp": "すべての IP を許可",
+        "allowAnyIpHelp": "保存された IP ホワイトリストを無効にし、すべての IP からのリクエストを許可します。",
+        "channels": "チャネル",
+        "channelsHelp": "このキーを使用できる課金経路。"
+      },
+      "laozhang": {
+        "activateOnFirstUse": "初回使用時に有効化",
+        "activationHelp": "0 は有効化後の期間を設定しないことを意味します。絶対有効期限はサイトの規則に従います。",
+        "billingHybrid": "混合課金",
+        "billingRequest": "リクエスト単位の課金",
+        "billingRequestPriority": "リクエスト単位の課金を優先",
+        "billingType": "課金方式",
+        "billingUsage": "従量課金",
+        "billingUsagePriority": "従量課金を優先",
+        "discordProxy": "Discord プロキシ URL",
+        "fallbackGroups": "代替グループ（順序どおり）",
+        "fallbackHelp": "代替グループは選択順に試されます。自動グループでは使用しません。上限数はサイトの設定に従います。",
+        "mjApiKey": "MJ 翻訳 API キー",
+        "mjBaseUrl": "MJ 翻訳 API URL",
+        "mjModel": "MJ 翻訳モデル",
+        "mjTranslation": "MJ 翻訳を有効化",
+        "rateLimitDuration": "レート制限期間（秒）",
+        "rateLimitEnabled": "レート制限を有効化",
+        "rateLimitMessage": "レート制限超過時のメッセージ",
+        "rateLimitNum": "期間内のリクエスト数",
+        "remark": "キーの備考",
+        "retryAuto": "自動（グローバル設定に従う）",
+        "retryBilling": "再試行時に課金方式を維持",
+        "retryOff": "オフ",
+        "retryOn": "オン",
+        "validDuration": "有効化後の有効日数"
+      },
+      "modelAllowlist": "モデル許可リスト",
+      "opening": {
+        "failed": "キーエディターを開けませんでした",
+        "loading": "キーエディターを開いています...",
+        "retry": "再試行"
+      },
+      "quotaCredits": "残りクレジット",
+      "quotaCreditsHelp": "クレジットを使い切ると、このキーは使用できなくなります。",
+      "quotaUsd": "クォータ（米ドル）",
+      "remainingCount": "残り回数",
+      "remainingCountPlaceholder": "このキーであと何回呼び出せるか",
+      "storageLocation": "ストレージ地域",
+      "storageLocationGlobal": "グローバルノード",
+      "storageLocationHelp": "このキーが生成した画像や動画などの保存先。",
+      "storageLocationNone": "転送しない（元のリンクを使用）",
+      "storageLocationUnconfigured": "デプロイの既定",
+      "title": {
+        "create": "APIキーを作成",
+        "edit": "APIキーを編集"
+      },
+      "totalQuotaUsd": "合計クォータ（米ドル）",
+      "unlimitedCount": "呼び出し回数無制限",
+      "unlimitedCountHelp": "オフにすると「残り回数」を使い切った時点で停止します。回数と残高は別々に計測されます。",
+      "unsaved": {
+        "description": "閉じると、今回の変更は保存されません。",
+        "discard": "変更を破棄",
+        "keepEditing": "編集を続ける",
+        "title": "変更を破棄しますか？"
+      }
+    },
+    "heading": "API キー",
+    "lifecycle": {
+      "disableDescription": "一時的に無効にします。後から再び有効にできます。",
+      "enableDescription": "既存の設定でキーを再び有効にします。",
+      "rotateDescription": "古いキーは直ちに無効になります。新しいキーをコピーし、クライアントを更新してください。他の設定は保持されます。"
+    },
+    "missing": "利用不可",
+    "revoke": {
+      "description": "「{{name}}」を失効しますか？キーは永久に無効になります。削除するまで記録は残ります。",
+      "feedback": {
+        "error": "キーを無効化できませんでした。更新して再試行してください。"
+      },
+      "success": "キーを失効しました",
+      "title": "キーを失効",
+      "working": "失効中..."
+    },
+    "scope": {
+      "empty": "利用可能なスコープがありません",
+      "error": "スコープを読み込めませんでした",
+      "errorHelp": "アカウントのアクセス権を確認して再試行してください。",
+      "fallback": "指定されたスコープは利用できません。既定のスコープを表示しています。",
+      "heading": "スコープ",
+      "label": "スコープを選択",
+      "loading": "スコープを読み込み中…",
+      "partial": "一部のスコープを読み込めませんでした。読み込み済みのスコープは引き続き利用できます。",
+      "placeholder": "スコープを選んでください",
+      "retry": "スコープを再読み込み"
+    },
+    "status": {
+      "all": "すべて",
+      "disabled": "無効",
+      "enabled": "有効",
+      "expired": "期限切れ",
+      "unknown": "不明"
+    },
+    "statusFilter": {
+      "label": "キーの状態"
+    }
+  },
+  "noAccountsSupportKeyCreation": "このビューのアカウントはいずれも API キーの作成に対応していません。別のアカウントを選択するか、対応するアカウントを追加してください。",
+  "noKeys": "まだキーデータがありません",
+  "noMatchingKeys": "一致するキーが見つかりません",
+  "oneTimeKey": {
+    "close": "閉じる",
+    "closeConfirm": {
+      "cancel": "キーの確認に戻る",
+      "confirm": "そのまま閉じる",
+      "description": "まだコピーまたは保存していない場合は、戻ってこのキーを先に処理してください。",
+      "title": "閉じると完全なキーを再表示できません"
+    },
+    "copied": "完全なキーをクリップボードにコピーしました",
+    "copiedAction": "コピー済み",
+    "copy": "完全なキーをコピー",
+    "copyFailed": "完全なキーのコピーに失敗しました",
+    "keyLabel": "完全なキー",
+    "subtitle": "キー {{name}} の完全な値は、この操作直後にのみ表示されます。",
+    "subtitleUnnamed": "完全なキーは、この操作直後にのみ表示されます。",
+    "title": "完全なキーを今すぐ保存してください",
+    "warningDescription": "このダイアログを閉じると、拡張機能で完全なキーを再表示できません。",
+    "warningTitle": "このキーは一度だけ表示できます"
+  },
+  "openRouter": {
+    "editor": {
+      "fields": {
+        "creator": {
+          "editHelp": "作成者を変更するには、新しいキーを作成してください。",
+          "help": "必要に応じてワークスペースのメンバーにこのキーを割り当てます。",
+          "label": "作成者",
+          "placeholder": "作成者なし"
+        },
+        "disabled": {
+          "help": "無効なキーは再度有効にするまで使用できません。",
+          "label": "キーを無効化"
+        },
+        "expiresAt": {
+          "editHelp": "有効期限を変更するには、新しいキーを作成してください。",
+          "help": "日時はローカル時刻で入力され、UTC として保存されます。",
+          "label": "有効期限"
+        },
+        "includeByokInLimit": {
+          "help": "持ち込みキーの使用量をこの上限に含めます。",
+          "label": "BYOK の使用量を含める"
+        },
+        "limit": {
+          "help": "上限を 0 USD にすると使用できません。",
+          "label": "上限"
+        },
+        "limitMode": {
+          "label": "使用上限"
+        },
+        "limitReset": {
+          "help": "使用上限をリセットする頻度を選択します。",
+          "label": "リセット間隔"
+        },
+        "name": {
+          "help": "識別しやすいキー名を付けてください。",
+          "label": "キー名",
+          "placeholder": "本番用キー"
+        },
+        "workspace": {
+          "editHelp": "ワークスペースを変更するには、新しいキーを作成してください。",
+          "help": "このキーが属するワークスペースを選択します。",
+          "label": "ワークスペース",
+          "placeholder": "ワークスペースを選択"
+        }
+      },
+      "options": {
+        "creator": {
+          "empty": "このワークスペースで利用できるメンバーはいません。",
+          "none": "作成者なし",
+          "unavailable": "選択したワークスペースではメンバーを割り当てられません。メンバーを選択せずにキーを作成できます。",
+          "unknown": "不明なメンバー"
+        },
+        "limitMode": {
+          "limited": "上限あり",
+          "unlimited": "無制限"
+        },
+        "limitReset": {
+          "daily": "毎日",
+          "monthly": "毎月",
+          "none": "リセットしない",
+          "weekly": "毎週"
+        },
+        "workspace": {
+          "unknown": "不明なワークスペース"
+        }
+      },
+      "sections": {
+        "advanced": "詳細",
+        "basic": "基本",
+        "lifecycle": "ライフサイクル",
+        "spending": "使用上限"
+      },
+      "summary": "APIキーの設定",
+      "summaryRules": {
+        "byok": {
+          "excluded": "BYOK 使用量を含めない",
+          "included": "BYOK 使用量を含める"
+        },
+        "expiresAt": "ローカル時刻 {{expiresAt}} に期限切れとなり、UTC で保存されます",
+        "limit": "使用上限: {{limit}} USD",
+        "limitUnset": "使用上限が設定されていません",
+        "neverExpires": "期限なし",
+        "reset": {
+          "daily": "毎日リセット",
+          "monthly": "毎月リセット",
+          "none": "リセットしない",
+          "weekly": "毎週リセット"
+        },
+        "unlimited": "使用上限なし"
+      }
+    },
+    "list": {
+      "details": {
+        "byokUsage": "BYOK 使用量",
+        "byokUsageDaily": "BYOK 日次使用量",
+        "byokUsageMonthly": "BYOK 月次使用量",
+        "byokUsageWeekly": "BYOK 週次使用量",
+        "createdAt": "作成日時",
+        "creator": "作成者",
+        "disabled": "無効",
+        "expiresAt": "有効期限",
+        "includeByokInLimit": "BYOK 使用量を含める",
+        "limit": "上限",
+        "limitMode": "上限モード",
+        "loadFailed": "キーの詳細を読み込めませんでした。",
+        "remaining": "残り",
+        "reset": "リセット",
+        "updatedAt": "更新日時",
+        "usage": "使用量",
+        "usageDaily": "日次使用量",
+        "usageMonthly": "月次使用量",
+        "usageWeekly": "週次使用量",
+        "workspace": "ワークスペース"
+      },
+      "values": {
+        "missing": "利用不可",
+        "no": "いいえ",
+        "unlimited": "無制限",
+        "yes": "はい"
+      }
+    },
+    "workspace": {
+      "empty": "このアカウントで利用可能なワークスペースはありません。",
+      "error": "ワークスペースを読み込めませんでした",
+      "errorHelp": "アカウントのアクセス権を確認して、もう一度お試しください。",
+      "fallback": "指定したワークスペースは利用できないため、既定のワークスペースを表示しています。",
+      "heading": "ワークスペース",
+      "label": "ワークスペース",
+      "loading": "ワークスペースを読み込んでいます...",
+      "partial": "一部のワークスペースを読み込めませんでした。",
+      "placeholder": "ワークスペースを選択",
+      "retry": "ワークスペースの読み込みを再試行"
+    }
+  },
+  "pleaseAddAccount": "先にアカウントを追加してください",
+  "pleaseSelectAccount": "アカウントを選択してください",
+  "provisioning": {
+    "actions": {
+      "allGroups": "すべての不足グループを補完",
+      "default": "デフォルトキーを補完",
+      "hint": "不足分のみ作成し、既存のキーは保持します。",
+      "title": "不足するキーを補完"
+    },
+    "cancelled": "停止しました。作成済みのキーは保持されます。",
+    "completed": "キーの準備完了：{{created}} 件を作成、{{covered}} 件は既存のキーで対応済み。",
+    "continue": "入力して続行",
+    "creating": "アカウントのキーを作成中：{{created}} / {{total}}…",
+    "input": "{{label}} · {{current}} / {{total}}。すべての入力が完了してからキーを作成します。",
+    "preparing": "アカウントのキーを確認しています…",
+    "progress": "作成済み {{created}} / {{total}}、既存の対応数：{{covered}}。",
+    "result": {
+      "cancelled": "キーの補完を停止しました",
+      "covered": "既存キーで対応済み",
+      "created": "作成済み",
+      "failed": "一部のキーを作成できませんでした",
+      "next": "次の手順",
+      "remaining": "作成未確認",
+      "resume": "後で再度補完できます。既存のキーはスキップされます。",
+      "retained": "作成済みのキーと既存のキーは保持されます。",
+      "uncertain": "確認が必要なキーがあります"
+    }
+  },
+  "refreshTokenList": "キー一覧を更新",
+  "repairMissingKeys": {
+    "action": "チェックと修復",
+    "actions": {
+      "cancel": "チェックをキャンセル",
+      "rerun": "再チェック",
+      "start": "チェックして不足分を補完"
+    },
+    "deleteConfirm": {
+      "confirm": "選択したキーを削除",
+      "description": "これらのキーは対応するサイトからも削除され、拡張機能からは復元できません。不要であることを確認してください。",
+      "more_other": "ほか {{count}} 件",
+      "title_other": "{{count}} 件の例外キーを削除しますか？"
+    },
+    "description": "選択したアカウントの利用可能なすべてのグループを確認し、自動作成に対応している場合は不足している有効なキーを作成します。その他の問題は下に表示されます。",
+    "failureGuidance": {
+      "aborted": "完了前に操作がキャンセルされました。準備ができたら、もう一度チェックしてください。",
+      "authenticationFailed": "再度ログインするか、このアカウントの認証情報を更新してから再試行してください。",
+      "configurationRequired": "このサイトに必要な設定を完了してから、キーのチェックをもう一度実行してください。",
+      "invalidConfiguration": "このアカウントに保存されたサイト設定を確認してから、キーのチェックをもう一度実行してください。",
+      "mutationStateUncertain": "サイト側で変更が反映されている可能性があります。再試行する前にキー一覧を更新してください。",
+      "notFound": "キーは存在しなくなっています。アカウントを更新してから、もう一度チェックしてください。",
+      "permissionDenied": "キーを表示・管理できる権限を持つ認証情報を使用して、再試行してください。",
+      "unavailable": "サイトに接続できないか、利用可能な応答が返されませんでした。しばらくしてから再試行してください。",
+      "unexpected": "キーのチェックをもう一度実行してください。再度失敗する場合は、サイトからの応答を確認して原因を調べてください。",
+      "upstreamRejected": "サイトがリクエストを拒否しました。応答に示された問題を修正してから再試行してください。",
+      "validationFailed": "必要なキー設定を確認して修正し、再試行してください。"
+    },
+    "historyNote": "前回のチェック結果を表示しています。現在実行中のタスクはありません。再チェックできます。",
+    "initialNotice": "選択したアカウントのグループを順に確認し、対応しているグループの不足しているキーを作成します。有効なキーがあるグループはスキップされます。",
+    "invalidKeys": {
+      "badge": "例外",
+      "deleteFailed": "例外キーの削除に失敗しました",
+      "deleteNeedsAttention": "{{applied}} 件を削除しました。{{rejected}} 件は拒否され、{{uncertain}} 件は確認が必要です",
+      "deleteSelected": "選択項目を削除",
+      "deleteSuccess_other": "{{count}} 件の例外キーを削除しました",
+      "emptyDescription": "今回のチェックでは、無効なキーは見つかりませんでした。",
+      "emptyTitle": "例外キーはありません",
+      "group": "以前のグループ：{{name}}",
+      "reason": "理由: {{reason}}",
+      "reasons": {
+        "orphanedPlacement": "理由：このキーが属していたグループは現在利用できません。不要であれば削除してください。"
+      },
+      "selectAll": "現在の結果をすべて選択",
+      "selectedCount_other": "{{count}} 件の例外キーを選択中",
+      "unnamed": "名前のないキー"
+    },
+    "inventoryIssues": {
+      "duplicateResourceRefs_other": "重複するキー記録が {{count}} 件見つかったため、対応するキーを安全に特定できません。",
+      "inheritedAccountGroupUnavailable_other": "{{count}} 件のキーはアカウントグループを継承していますが、現在のグループを確認できませんでした。",
+      "invalidRequirementPlacement_other": "{{count}} 件のキーのグループ情報が、現在利用可能なグループと一致しません。",
+      "partialFailure": "すべてのキーを読み込めなかったため、自動処理を停止しました。アカウント横のサイト応答を確認してから再試行してください。",
+      "refreshFailed": "キー変更後の最新結果を確認できませんでした。キー一覧を更新してから再試行してください。",
+      "unknownCoverage_other": "{{count}} 件のキーの状態または有効期限を認識できません。",
+      "unknownPlacement_other": "{{count}} 件のキーが属するグループを認識できません。"
+    },
+    "managedSiteImport": {
+      "action_other": "{{count}} 件の修復済みキーを確認",
+      "changeTarget": "対象を変更",
+      "configMissing": "現在の管理サイトが未設定です。設定ページを開き、設定後にここへ戻ってもう一度インポートしてください。",
+      "configurationOpenFailed": "管理サイト設定を開けませんでした。「設定 > 管理サイト」から手動で設定してください。",
+      "failed": "修復済みキーのインポート準備に失敗しました。もう一度お試しください。",
+      "nothingPending": "これらのキーは現在の対象で処理済みです。対応するチャネルは作成済みか、完全一致で存在しています。再確認する場合は、通常インポートで完全検証してください。",
+      "openConfiguration": "管理サイト設定を開く",
+      "receiptFailed": "インポートは完了しましたが、修復結果を更新できませんでした。最新の状態を確認するには結果を更新してください。",
+      "target_other": "{{site}} 用の修復済みキーが {{count}} 件見つかりました。確認前に現在の利用可否と過去のインポート結果を確認します。",
+      "title": "修復済みキーをインポート",
+      "unavailable": "修復済みキーをインポートできません。修復結果を更新して、もう一度お試しください。",
+      "useRegularImport": "通常インポートを使用"
+    },
+    "messages": {
+      "cancelFailed": "修復ジョブをキャンセルできませんでした",
+      "loadFailed": "修復進捗の読み込みに失敗しました",
+      "startFailed": "修復ジョブの開始に失敗しました"
+    },
+    "noMatchingResults": "一致する結果がありません",
+    "outcomes": {
+      "blocked": "ブロック",
+      "covered": "不足キーなし",
+      "failed": "失敗",
+      "partial": "一部完了",
+      "repaired": "不足キーを補完済み",
+      "skipped": "スキップ"
+    },
+    "previousResult": {
+      "backToSetup": "チェックに戻る",
+      "description": "前回のチェック結果を確認できます。新しいチェックは現在の設定で実行されます。",
+      "title": "前回のチェック結果があります",
+      "view": "前回の結果を表示"
+    },
+    "progressChecked": "確認済み",
+    "progressLabel": "進捗",
+    "remoteWriteNotice": "この操作により、対応するサイトで新しいキーが作成される場合があります。キーが自動的に削除されることはありません。",
+    "renameOption": {
+      "helper": "拡張機能が自動作成したキーだけが対象です。チェック時に、名前を現在のグループに合わせます。",
+      "infoLabel": "キー名の整合について表示",
+      "label": "キー名とグループを一致させる",
+      "tooltip": "「user group (auto)」や「vip group (auto)」のような自動作成風の名前だけを処理します。修復後、名前はキーの現在のグループに合わせられます。その他の名前は変更されません。"
+    },
+    "renameSummary": {
+      "accountApplied_other": "{{count}} 件の名前を同期しました",
+      "accountRejected_other": "{{count}} 件の名前変更が拒否されました",
+      "accountUncertain_other": "{{count}} 件の名前変更は確認が必要です"
+    },
+    "requirements": {
+      "blockedIncompleteInventory": "キーをすべて読み込めませんでした",
+      "blockedInputRequired": "手動設定が必要",
+      "covered": "利用可能なキーあり",
+      "coveredAfterUncertain": "更新後に利用可能と確認",
+      "created": "新しいキーを作成",
+      "rejected": "サイト側の変更なし",
+      "uncertain": "再試行前に結果を確認"
+    },
+    "resultsTitle": "結果",
+    "runningNote": "このジョブはバックグラウンドで実行されます。このダイアログを閉じて後で確認するか、進捗カードからキャンセルできます。",
+    "scope": {
+      "allSelected": "すべてのアカウントを選択済み",
+      "label": "確認するアカウント"
+    },
+    "searchLabel": "検索",
+    "searchPlaceholder": "アカウント、キー名、グループ、ドメイン、サイト種別で検索...",
+    "skipReasons": {
+      "noneAuth": "認証情報なし（auth type: none）",
+      "oneTimeKey": "このサイトでは作成時にのみ完全なキーが表示されます。手動で作成し、すぐに保存してください。",
+      "provisioningUnavailable": "このアカウントではキーを自動作成できません。必要な場合はサイトで手動作成してください。"
+    },
+    "status": {
+      "completed": "完了",
+      "needsAttention": "対応が必要"
+    },
+    "summary": {
+      "completedNeedsAttention": "確認が完了しましたが、対応が必要な結果があります。詳しい理由は下で確認してください。",
+      "completedWithSkipped": "確認が完了しました。一部のアカウントは自動処理されませんでした。理由は下で確認してください。",
+      "healthy": "確認が完了しました。対応が必要な問題は見つかりませんでした。"
+    },
+    "title": "アカウントのキーを確認",
+    "views": {
+      "accountCoverage": "アカウント別の結果",
+      "invalidKeys": "例外キー",
+      "label": "結果ビュー"
+    }
+  },
+  "searchPlaceholder": "キー名を検索...",
+  "selectAccount": "アカウントを選択",
+  "selectAccountToContinue": "上のアカウントを選択してから、キーの確認または作成を行ってください。",
+  "serviceCredential": {
+    "authenticated": "認証済み",
+    "baseUrl": "Base URL:",
+    "copy": "コピー",
+    "notAuthenticated": "未認証",
+    "rotate": "リセット",
+    "rotateUnsupported": "このサイトはサービスキーのリセットに対応していません",
+    "rotating": "リセット中...",
+    "singleton": "サービスキー"
+  },
+  "showingCount_other": "{{count}} 件を表示中",
+  "title": "キー管理",
+  "tools": {
+    "title": "キー管理ツール"
+  },
+  "totalKeys_other": "合計 {{count}} キー",
+  "unifiedApiGuidance": {
+    "headerBridge": "キーを自前のゲートウェイにインポートするか、クライアントにエクスポートできます。"
+  },
+  "unsupportedSource": {
+    "description": "このアカウントのサイト種別は保存できますが、拡張機能はこのサイトのキー一覧プロトコルにはまだ対応していません。サイト対応リクエストを送信すると、キー管理機能の追加に役立ちます。",
+    "requestSiteSupport": "サイト対応をリクエスト",
+    "supportRequestErrorMessage": "{{siteType}} のキー管理はまだ実装されていません",
+    "title": "このサイト種別のキー管理にはまだ対応していません"
+  }
+}

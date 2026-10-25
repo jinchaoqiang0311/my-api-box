@@ -1,0 +1,1575 @@
+import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import {
+  AIHUBMIX_API_ORIGIN,
+  AIHUBMIX_WEB_ORIGIN,
+  SITE_TYPES,
+} from "~/constants/siteType"
+import { KEY_MANAGEMENT_TEST_IDS } from "~/features/KeyManagement/testIds"
+import toast from "~/lib/notify"
+import type { AccountRuntimeKey } from "~/services/accounts/keys/accountRuntimeKeys"
+import {
+  MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS,
+  MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS,
+} from "~/services/managedSites/matching/channelMatch"
+import {
+  MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS,
+  MANAGED_SITE_TOKEN_CHANNEL_STATUSES,
+  type ManagedSiteTokenChannelAssessment,
+} from "~/services/managedSites/matching/tokenChannelStatus"
+import * as managedSiteSupport from "~/services/managedSites/utils/managedSite"
+import { API_TYPES } from "~/services/verification/aiApiVerification"
+import { AuthTypeEnum, SiteHealthStatus, type DisplaySiteData } from "~/types"
+import { buildNewApiRuntimeKey } from "~~/tests/test-utils/accountKeyFixtures"
+import { buildCompleteTodayStatsAvailability } from "~~/tests/test-utils/accountTodayStats"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+import { testI18n } from "~~/tests/test-utils/i18n"
+import {
+  RECOVERABLE_ACTION_POLICY,
+  RuntimeKeyHeaderHarness as RuntimeKeyHeader,
+} from "~~/tests/test-utils/keyManagement/RuntimeKeyHeaderHarness"
+import { matchingResourceRef } from "~~/tests/test-utils/managedResourceMatching"
+import { render, screen, waitFor } from "~~/tests/test-utils/render"
+
+const mockCreateProfile = vi.fn()
+const mockOpenApiCredentialProfilesPage = vi.fn()
+const mockOpenManagedSiteChannelsPage = vi.fn()
+const mockOpenSettingsTab = vi.fn()
+const mockOpenWithAccount = vi.fn()
+const mockLoggerError = vi.fn()
+const mockResolveDisplayAccountRuntimeKeySecret = vi.fn()
+
+vi.mock(
+  "~/services/accounts/utils/apiServiceRequest",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("~/services/accounts/utils/apiServiceRequest")
+      >()
+
+    return {
+      ...actual,
+      resolveDisplayAccountRuntimeKeySecret: (...args: unknown[]) =>
+        mockResolveDisplayAccountRuntimeKeySecret(...args),
+    }
+  },
+)
+
+vi.mock("~/services/apiCredentialProfiles/links", () => ({
+  apiCredentialProfileLinks: {
+    capture: async ({ profile }: { profile: unknown }) => ({
+      status: "captured",
+      profile: await mockCreateProfile(profile),
+    }),
+  },
+}))
+
+vi.mock("~/lib/notify", () => ({
+  default: {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  },
+}))
+
+vi.mock("~/utils/navigation", () => ({
+  openApiCredentialProfilesPage: (...args: unknown[]) =>
+    mockOpenApiCredentialProfilesPage(...args),
+  openManagedSiteChannelsPage: (...args: unknown[]) =>
+    mockOpenManagedSiteChannelsPage(...args),
+  openSettingsTab: (...args: unknown[]) => mockOpenSettingsTab(...args),
+}))
+
+vi.mock("~/utils/core/logger", async () => {
+  const actual = await vi.importActual<typeof import("~/utils/core/logger")>(
+    "~/utils/core/logger",
+  )
+
+  return {
+    ...actual,
+    createLogger: () => ({
+      debug: vi.fn(),
+      error: (...args: unknown[]) => mockLoggerError(...args),
+      info: vi.fn(),
+      warn: vi.fn(),
+    }),
+  }
+})
+
+vi.mock("~/features/ManagedSiteChannels/editor/ChannelDialog", () => {
+  return {
+    ChannelDialogProvider: ({ children }: { children: ReactNode }) => children,
+    useChannelDialog: () => ({
+      openWithAccount: mockOpenWithAccount,
+    }),
+  }
+})
+
+const mockedUseUserPreferencesContext = vi.fn()
+
+vi.mock("~/contexts/FeatureGuidanceContext", () => ({
+  useFeatureGuidanceContext: () => ({
+    markGatewayGuidanceOnboardingCompleted: vi.fn(),
+  }),
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", async () => {
+  const actual = await vi.importActual<
+    typeof import("~/contexts/UserPreferencesContext")
+  >("~/contexts/UserPreferencesContext")
+
+  return {
+    ...actual,
+    UserPreferencesProvider: ({ children }: { children: any }) => children,
+    useUserPreferencesContext: () => mockedUseUserPreferencesContext(),
+  }
+})
+
+/**
+ * Creates an account stub for tests.
+ */
+function createAccountStub(): DisplaySiteData {
+  return {
+    id: "account-1",
+    name: "Test Account",
+    username: "user",
+    balance: { USD: 0, CNY: 0 },
+    todayConsumption: { USD: 0, CNY: 0 },
+    todayIncome: { USD: 0, CNY: 0 },
+    todayTokens: { upload: 0, download: 0 },
+    todayStatsAvailability: buildCompleteTodayStatsAvailability(),
+    health: { status: SiteHealthStatus.Healthy },
+    siteType: SITE_TYPES.NEW_API,
+    baseUrl: "https://example.com",
+    token: "token",
+    userId: "1",
+    authType: AuthTypeEnum.AccessToken,
+    checkIn: buildCheckInConfig(),
+  }
+}
+
+/**
+ * Creates a baseline managed-site assessment that individual tests can override.
+ */
+function createManagedSiteAssessment(
+  overrides: Partial<ManagedSiteTokenChannelAssessment> = {},
+): ManagedSiteTokenChannelAssessment {
+  const base: ManagedSiteTokenChannelAssessment = {
+    searchBaseUrl: "https://example.com",
+    searchCompleted: true,
+    url: {
+      matched: true,
+      candidateCount: 1,
+      channel: {
+        ref: matchingResourceRef(88),
+        name: "Managed Channel 88",
+      },
+    },
+    key: {
+      comparable: true,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.NO_MATCH,
+    },
+    models: {
+      comparable: true,
+      matched: true,
+      reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.EXACT,
+      channel: {
+        ref: matchingResourceRef(88),
+        name: "Managed Channel 88",
+      },
+      similarityScore: 1,
+    },
+  }
+
+  return {
+    ...base,
+    ...overrides,
+    url: {
+      ...base.url,
+      ...overrides.url,
+    },
+    key: {
+      ...base.key,
+      ...overrides.key,
+    },
+    models: {
+      ...base.models,
+      ...overrides.models,
+    },
+  }
+}
+
+const getBadgeTooltip = (label: string) => {
+  const element = screen.getByText(label)
+  return element.closest("span[title]")
+}
+
+const expectNoVisibleManagedSiteDescription = () => {
+  expect(
+    screen.queryAllByText((content) =>
+      content.includes("managedSiteStatus.descriptions."),
+    ),
+  ).toHaveLength(0)
+}
+
+async function clickSaveAndAssociateAction(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  await user.click(
+    screen.getByTestId(KEY_MANAGEMENT_TEST_IDS.apiCredentialAssociationButton),
+  )
+  await user.click(
+    screen.getByRole("menuitem", {
+      name: "keyManagement:actions.saveToApiProfiles",
+    }),
+  )
+}
+
+describe("RuntimeKeyHeader save to API profiles", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    mockCreateProfile.mockReset()
+    mockOpenApiCredentialProfilesPage.mockReset()
+    mockOpenManagedSiteChannelsPage.mockReset()
+    mockOpenSettingsTab.mockReset()
+    mockOpenWithAccount.mockReset()
+    mockLoggerError.mockReset()
+    mockResolveDisplayAccountRuntimeKeySecret
+      .mockReset()
+      .mockImplementation(
+        async (_account: DisplaySiteData, runtimeKey: AccountRuntimeKey) =>
+          runtimeKey,
+      )
+    ;(toast.success as any).mockReset()
+    ;(toast.error as any).mockReset()
+    ;(toast.dismiss as any).mockReset()
+    mockedUseUserPreferencesContext.mockReturnValue({
+      managedSiteType: "new-api",
+      claudeCodeRouterBaseUrl: "",
+      claudeCodeRouterApiKey: "",
+      cliProxyApiBaseUrl: "",
+      cliProxyApiManagementKey: "",
+    })
+  })
+
+  it("exposes the API credential relationship menu on the row", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+
+    const token = {
+      id: 1,
+      user_id: 1,
+      key: "sk-test",
+      status: 1,
+      name: "Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+      />,
+    )
+
+    const button = screen.getByTestId(
+      KEY_MANAGEMENT_TEST_IDS.apiCredentialAssociationButton,
+    )
+    expect(button).not.toHaveAttribute("title")
+    await user.hover(button)
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "keyManagement:actionToolbar.apiCredential",
+    )
+  })
+
+  it("creates an openai-compatible profile from token + account baseUrl", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+    const expectedProfileName = `${account.name} - Token`
+
+    const token = {
+      id: 1,
+      user_id: 1,
+      key: "sk-test",
+      status: 1,
+      name: "Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    mockCreateProfile.mockResolvedValue({
+      id: "p-1",
+      name: expectedProfileName,
+      apiType: API_TYPES.OPENAI_COMPATIBLE,
+      baseUrl: account.baseUrl,
+      apiKey: token.key,
+      tagIds: [],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+      />,
+    )
+
+    await clickSaveAndAssociateAction(user)
+
+    expect(mockResolveDisplayAccountRuntimeKeySecret).toHaveBeenCalledWith(
+      account,
+      buildNewApiRuntimeKey(account, token),
+      expect.objectContaining({
+        abortSignal: expect.any(AbortSignal),
+        secretSource: "provider-then-associated-profile",
+      }),
+    )
+    await waitFor(() => {
+      expect(mockCreateProfile).toHaveBeenCalledWith({
+        name: expectedProfileName,
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: account.baseUrl,
+        apiKey: token.key,
+        tagIds: [],
+      })
+    })
+  })
+
+  it("normalizes AIHubMix row saves to the API origin", async () => {
+    const user = userEvent.setup()
+    const account = {
+      ...createAccountStub(),
+      name: "AIHubMix",
+      siteType: SITE_TYPES.AIHUBMIX,
+      baseUrl: AIHUBMIX_WEB_ORIGIN,
+    }
+    const expectedProfileName = `${account.name} - Token`
+
+    const token = {
+      id: 1,
+      user_id: 1,
+      key: "sk-aihubmix",
+      status: 1,
+      name: "Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    mockCreateProfile.mockResolvedValue({
+      id: "p-aihubmix",
+      name: expectedProfileName,
+      apiType: API_TYPES.OPENAI_COMPATIBLE,
+      baseUrl: AIHUBMIX_API_ORIGIN,
+      apiKey: token.key,
+      tagIds: [],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    // AIHubMix is create-response-only in production; this explicit policy keeps
+    // the save action reachable so the test can isolate origin normalization.
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        actionPolicy={RECOVERABLE_ACTION_POLICY}
+      />,
+    )
+
+    await clickSaveAndAssociateAction(user)
+
+    await waitFor(() => {
+      expect(mockCreateProfile).toHaveBeenCalledWith({
+        name: expectedProfileName,
+        apiType: API_TYPES.OPENAI_COMPATIBLE,
+        baseUrl: AIHUBMIX_API_ORIGIN,
+        apiKey: token.key,
+        tagIds: [],
+      })
+    })
+  })
+
+  it("provides a quick-open button after saving", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+    const expectedProfileName = `${account.name} - Token`
+
+    const token = {
+      id: 1,
+      user_id: 1,
+      key: "sk-test",
+      status: 1,
+      name: "Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    mockCreateProfile.mockResolvedValue({
+      id: "p-1",
+      name: expectedProfileName,
+      apiType: API_TYPES.OPENAI_COMPATIBLE,
+      baseUrl: account.baseUrl,
+      apiKey: token.key,
+      tagIds: [],
+      notes: "",
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+      />,
+    )
+
+    await clickSaveAndAssociateAction(user)
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalled()
+    })
+
+    const toastMessageRenderer = (toast.success as any).mock.calls[0]?.[0]
+    expect(toastMessageRenderer).toEqual(expect.any(Function))
+
+    render(toastMessageRenderer({ id: "toast-1" }))
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "keyManagement:actions.openApiProfiles",
+      }),
+    )
+
+    expect(mockOpenApiCredentialProfilesPage).toHaveBeenCalledTimes(1)
+    expect(toast.dismiss).toHaveBeenCalledWith("toast-1")
+  })
+
+  it("renders managed-site status copy and follow-up link when a weak match exists", async () => {
+    const account = createAccountStub()
+
+    const token = {
+      id: 2,
+      user_id: 1,
+      key: "sk-weak",
+      status: 1,
+      name: "Weak Match Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.MATCH_REQUIRES_CONFIRMATION,
+          assessment: createManagedSiteAssessment(),
+        }}
+      />,
+    )
+
+    expect(
+      screen.queryByText("keyManagement:managedSiteStatus.signals.url.matched"),
+    ).not.toBeInTheDocument()
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.badges.requiresConfirmation",
+      ),
+    ).toBeInTheDocument()
+    expectNoVisibleManagedSiteDescription()
+    expect(
+      screen.getByText("keyManagement:managedSiteStatus.signals.url.matched"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("keyManagement:managedSiteStatus.signals.key.noMatch"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("keyManagement:managedSiteStatus.signals.models.exact"),
+    ).toBeInTheDocument()
+    expect(
+      getBadgeTooltip("keyManagement:managedSiteStatus.signals.key.noMatch"),
+    )?.toHaveAttribute("title")
+    expect(
+      getBadgeTooltip(
+        "keyManagement:managedSiteStatus.signals.key.noMatch",
+      )?.getAttribute("title"),
+    ).toContain("keyManagement:managedSiteStatus.signals.key.tooltipNoMatch")
+    const button = screen.getByRole("button", {
+      name: `${testI18n.t("managedSiteModelSync:execution.table.manageChannel")}: keyManagement:managedSiteStatus.actions.reviewChannels`,
+    })
+    expect(button).toHaveTextContent(
+      "keyManagement:managedSiteStatus.actions.reviewChannels",
+    )
+
+    await userEvent.setup().click(button)
+
+    expect(mockOpenManagedSiteChannelsPage).toHaveBeenCalledWith({
+      search: "https://example.com",
+    })
+  })
+
+  it("suppresses status badges and review links without a matching registration", () => {
+    vi.spyOn(
+      managedSiteSupport,
+      "supportsManagedSiteBaseUrlChannelLookup",
+    ).mockReturnValue(false)
+    mockedUseUserPreferencesContext.mockReturnValue({
+      managedSiteType: "Veloera",
+      claudeCodeRouterBaseUrl: "",
+      claudeCodeRouterApiKey: "",
+      cliProxyApiBaseUrl: "",
+      cliProxyApiManagementKey: "",
+    })
+
+    const account = createAccountStub()
+    const token = {
+      id: 2,
+      user_id: 1,
+      key: "sk-veloera",
+      status: 1,
+      name: "Veloera Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.MATCH_REQUIRES_CONFIRMATION,
+          assessment: createManagedSiteAssessment(),
+        }}
+      />,
+    )
+
+    expect(
+      screen.queryByText(
+        "keyManagement:managedSiteStatus.badges.requiresConfirmation",
+      ),
+    ).toBeNull()
+    expect(
+      screen.queryByText("keyManagement:managedSiteStatus.signals.url.matched"),
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: `${testI18n.t("managedSiteModelSync:execution.table.manageChannel")}: keyManagement:managedSiteStatus.actions.reviewChannels`,
+      }),
+    ).toBeNull()
+  })
+
+  it.each([
+    [
+      MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.BACKEND_SEARCH_FAILED,
+      "keyManagement:managedSiteStatus.badges.checkFailed",
+    ],
+    [
+      MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.CONFIG_MISSING,
+      "keyManagement:managedSiteStatus.badges.configMissing",
+    ],
+  ])("renders the %s managed-site unknown status badge", (reason, label) => {
+    const account = createAccountStub()
+
+    render(
+      <RuntimeKeyHeader
+        token={
+          {
+            id: 9,
+            user_id: 1,
+            key: "sk-unknown",
+            status: 1,
+            name: "Unknown Status Token",
+            created_time: 0,
+            accessed_time: 0,
+            expired_time: 0,
+            remain_quota: 0,
+            unlimited_quota: false,
+            used_quota: 0,
+            accountId: account.id,
+            accountName: account.name,
+          } as any
+        }
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason,
+        }}
+      />,
+    )
+
+    expect(screen.getByText(label)).toBeInTheDocument()
+  })
+
+  it.each([
+    {
+      siteType: SITE_TYPES.NEW_API,
+      resourceId: "99",
+      scopeKey: "https://managed.example",
+    },
+    {
+      siteType: SITE_TYPES.AXON_HUB,
+      resourceId: "native/99+=",
+      scopeKey: "https://managed.example",
+    },
+    {
+      siteType: SITE_TYPES.NEW_API,
+      resourceId: "99",
+      scopeKey: "https://other.example",
+    },
+  ])(
+    "links an added token to the stable $siteType channel identity",
+    async ({ siteType, resourceId, scopeKey }) => {
+      const resourceRef = matchingResourceRef(resourceId, {
+        siteType,
+        scopeKey,
+      })
+      mockedUseUserPreferencesContext.mockReturnValue({
+        managedSiteType: siteType,
+      })
+      const account = createAccountStub()
+
+      const token = {
+        id: 4,
+        user_id: 1,
+        key: "sk-added",
+        status: 1,
+        name: "Added Token",
+        created_time: 0,
+        accessed_time: 0,
+        expired_time: 0,
+        remain_quota: 0,
+        unlimited_quota: false,
+        used_quota: 0,
+        accountId: account.id,
+        accountName: account.name,
+      }
+
+      render(
+        <RuntimeKeyHeader
+          token={token as any}
+          copyKey={vi.fn()}
+          handleEditToken={vi.fn()}
+          handleDeleteToken={vi.fn()}
+          account={account}
+          managedSiteStatus={{
+            status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.ADDED,
+            matchedChannel: {
+              ref: resourceRef,
+              name: "Managed Channel 99",
+            },
+            assessment: createManagedSiteAssessment({
+              url: {
+                matched: true,
+                candidateCount: 1,
+                channel: {
+                  ref: resourceRef,
+                  name: "Managed Channel 99",
+                },
+              },
+              key: {
+                comparable: true,
+                matched: true,
+                reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.MATCHED,
+                channel: {
+                  ref: resourceRef,
+                  name: "Managed Channel 99",
+                },
+              },
+              models: {
+                comparable: true,
+                matched: true,
+                reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.EXACT,
+                channel: {
+                  ref: resourceRef,
+                  name: "Managed Channel 99",
+                },
+                similarityScore: 1,
+              },
+            }),
+          }}
+        />,
+      )
+
+      await userEvent
+        .setup()
+        .click(screen.getByTestId("managed-site-status-details"))
+
+      expect(
+        screen.getByText("keyManagement:managedSiteStatus.badges.added"),
+      ).toBeInTheDocument()
+      expectNoVisibleManagedSiteDescription()
+      expect(
+        screen.getByText("keyManagement:managedSiteStatus.signals.key.matched"),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          "keyManagement:managedSiteStatus.signals.models.exact",
+        ),
+      ).toBeInTheDocument()
+
+      await userEvent.setup().click(
+        screen.getByRole("button", {
+          name: `${testI18n.t("managedSiteModelSync:execution.table.manageChannel")}: Managed Channel 99`,
+        }),
+      )
+
+      expect(mockOpenManagedSiteChannelsPage).toHaveBeenCalledWith({
+        resourceRef,
+      })
+    },
+  )
+
+  it("adds the New API 2FA hint when exact key verification is unavailable", async () => {
+    const account = createAccountStub()
+
+    const token = {
+      id: 5,
+      user_id: 1,
+      key: "sk-newapi-hint",
+      status: 1,
+      name: "New API Hint Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+          assessment: createManagedSiteAssessment({
+            url: {
+              matched: false,
+              candidateCount: 0,
+            },
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+            models: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+          }),
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.badges.verificationUnavailable",
+      ),
+    ).toBeInTheDocument()
+    expectNoVisibleManagedSiteDescription()
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.signals.key.unavailable",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      getBadgeTooltip(
+        "keyManagement:managedSiteStatus.signals.key.unavailable",
+      ),
+    )?.toHaveAttribute("title")
+    expect(
+      getBadgeTooltip(
+        "keyManagement:managedSiteStatus.signals.key.unavailable",
+      )?.getAttribute("title"),
+    ).toContain(
+      "keyManagement:managedSiteStatus.signals.key.tooltipUnavailable",
+    )
+    expect(
+      getBadgeTooltip(
+        "keyManagement:managedSiteStatus.signals.key.unavailable",
+      )?.getAttribute("title"),
+    ).toContain(
+      "keyManagement:managedSiteStatus.descriptions.newApiRetrieveKeyHint",
+    )
+  })
+
+  it("shows a New API verification retry action when login-assist credentials are configured", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+    const onManagedSiteVerificationRetry = vi.fn()
+
+    const token = {
+      id: 8,
+      user_id: 1,
+      key: "sk-recoverable",
+      status: 1,
+      name: "Recoverable Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        onManagedSiteVerificationRetry={onManagedSiteVerificationRetry}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+          assessment: createManagedSiteAssessment({
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+          }),
+          recovery: {
+            siteType: "new-api",
+            managedBaseUrl: "https://managed.example",
+            searchBaseUrl: "https://example.com",
+            loginCredentialsConfigured: true,
+            authenticatedBrowserSessionExists: false,
+            automaticCodeConfigured: true,
+          },
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.recovery.verificationRequired",
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "keyManagement:managedSiteStatus.actions.verifyNow",
+      }),
+    )
+
+    expect(onManagedSiteVerificationRetry).toHaveBeenCalledWith(
+      buildNewApiRuntimeKey(account, token),
+      expect.objectContaining({
+        reason:
+          MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      }),
+    )
+  })
+
+  it("shows retry guidance when an authenticated browser session already exists", async () => {
+    const user = userEvent.setup()
+    const onManagedSiteVerificationRetry = vi.fn()
+    const account = createAccountStub()
+
+    const token = {
+      id: 8_1,
+      user_id: 1,
+      key: "sk-session-ready",
+      status: 1,
+      name: "Session Ready Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        onManagedSiteVerificationRetry={onManagedSiteVerificationRetry}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+          assessment: createManagedSiteAssessment({
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+          }),
+          recovery: {
+            siteType: "new-api",
+            managedBaseUrl: "https://managed.example",
+            searchBaseUrl: "https://example.com",
+            loginCredentialsConfigured: false,
+            authenticatedBrowserSessionExists: true,
+            automaticCodeConfigured: false,
+          },
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.recovery.verificationRequired",
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "keyManagement:managedSiteStatus.actions.verifyNow",
+      }),
+    )
+
+    expect(onManagedSiteVerificationRetry).toHaveBeenCalledWith(
+      buildNewApiRuntimeKey(account, token),
+      expect.objectContaining({
+        reason:
+          MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+      }),
+    )
+  })
+
+  it("shows loading and ignores duplicate clicks while managed-site verification retry is pending", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+    let resolveRetry: () => void = () => {}
+    const retryPromise = new Promise<void>((resolve) => {
+      resolveRetry = resolve
+    })
+    const onManagedSiteVerificationRetry = vi.fn(() => retryPromise)
+
+    const token = {
+      id: 8_2,
+      user_id: 1,
+      key: "sk-verification-pending",
+      status: 1,
+      name: "Verification Pending Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        onManagedSiteVerificationRetry={onManagedSiteVerificationRetry}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+          assessment: createManagedSiteAssessment({
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+          }),
+          recovery: {
+            siteType: "new-api",
+            managedBaseUrl: "https://managed.example",
+            searchBaseUrl: "https://example.com",
+            loginCredentialsConfigured: true,
+            authenticatedBrowserSessionExists: false,
+            automaticCodeConfigured: true,
+          },
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    const retryButton = screen.getByRole("button", {
+      name: "keyManagement:managedSiteStatus.actions.verifyNow",
+    })
+
+    await user.click(retryButton)
+
+    expect(onManagedSiteVerificationRetry).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(retryButton).toBeDisabled())
+    expect(retryButton).toHaveAccessibleName("common:status.checking")
+    expect(retryButton).toHaveAttribute("aria-busy", "true")
+
+    await user.click(retryButton)
+    expect(onManagedSiteVerificationRetry).toHaveBeenCalledTimes(1)
+
+    resolveRetry()
+    await waitFor(() => expect(retryButton).not.toBeDisabled())
+  })
+
+  it("directs the user to Settings instead of showing retry when login-assist credentials are missing", async () => {
+    const account = createAccountStub()
+
+    const token = {
+      id: 9,
+      user_id: 1,
+      key: "sk-config-needed",
+      status: 1,
+      name: "Config Needed Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+          assessment: createManagedSiteAssessment({
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+          }),
+          recovery: {
+            siteType: "new-api",
+            managedBaseUrl: "https://managed.example",
+            searchBaseUrl: "https://example.com",
+            loginCredentialsConfigured: false,
+            authenticatedBrowserSessionExists: false,
+            automaticCodeConfigured: false,
+          },
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.recovery.configureLogin",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "keyManagement:managedSiteStatus.actions.verifyNow",
+      }),
+    ).toBeNull()
+    expect(
+      screen.getByRole("button", {
+        name: "common:labels.settings",
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it("explains missing managed-site admin credentials as an optional check and opens the setup anchor", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+
+    const token = {
+      id: 9_2,
+      user_id: 1,
+      key: "sk-managed-site-config-missing",
+      status: 1,
+      name: "Managed Site Config Missing Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.CONFIG_MISSING,
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expect(
+      screen.getByText("keyManagement:managedSiteStatus.badges.configMissing"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.descriptions.configMissingOptional",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        "keyManagement:managedSiteStatus.descriptions.configMissing",
+      ),
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "keyManagement:managedSiteStatus.actions.verifyNow",
+      }),
+    ).toBeNull()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "keyManagement:managedSiteStatus.actions.configureChecks",
+      }),
+    )
+
+    expect(mockOpenSettingsTab).toHaveBeenCalledWith("managedSite", {
+      preserveHistory: true,
+    })
+  })
+
+  it("logs a settings navigation failure instead of leaving the rejection unhandled", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+
+    const token = {
+      id: 9_1,
+      user_id: 1,
+      key: "sk-config-needed-error",
+      status: 1,
+      name: "Config Needed Error Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    const navigationError = new Error("navigation failed")
+    mockOpenSettingsTab.mockRejectedValueOnce(navigationError)
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.EXACT_VERIFICATION_UNAVAILABLE,
+          assessment: createManagedSiteAssessment({
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+          }),
+          recovery: {
+            siteType: "new-api",
+            managedBaseUrl: "https://managed.example",
+            searchBaseUrl: "https://example.com",
+            loginCredentialsConfigured: false,
+            authenticatedBrowserSessionExists: false,
+            automaticCodeConfigured: false,
+          },
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "common:labels.settings",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(mockOpenSettingsTab).toHaveBeenCalledWith("managedSite", {
+        preserveHistory: true,
+      })
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        "Failed to open managed-site settings",
+        navigationError,
+      )
+    })
+  })
+
+  it("renders fuzzy and similarity explanations for non-exact managed-site matches", async () => {
+    const account = createAccountStub()
+
+    const fuzzyToken = {
+      id: 6,
+      user_id: 1,
+      key: "sk-fuzzy",
+      status: 1,
+      name: "Fuzzy Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    const { rerender } = render(
+      <RuntimeKeyHeader
+        token={fuzzyToken as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.MATCH_REQUIRES_CONFIRMATION,
+          assessment: createManagedSiteAssessment({
+            url: {
+              matched: true,
+              candidateCount: 1,
+              channel: {
+                ref: matchingResourceRef(77),
+                name: "Managed Channel 77",
+              },
+            },
+            key: {
+              comparable: true,
+              matched: false,
+              reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.NO_MATCH,
+            },
+            models: {
+              comparable: true,
+              matched: false,
+              reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.NO_MATCH,
+            },
+          }),
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expectNoVisibleManagedSiteDescription()
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.signals.models.noMatch",
+      ),
+    ).toBeInTheDocument()
+
+    rerender(
+      <RuntimeKeyHeader
+        token={fuzzyToken as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.MATCH_REQUIRES_CONFIRMATION,
+          assessment: createManagedSiteAssessment({
+            url: {
+              matched: true,
+              candidateCount: 1,
+              channel: {
+                ref: matchingResourceRef(78),
+                name: "Managed Channel 78",
+              },
+            },
+            key: {
+              comparable: false,
+              matched: false,
+              reason:
+                MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+            },
+            models: {
+              comparable: true,
+              matched: true,
+              reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.SIMILAR,
+              channel: {
+                ref: matchingResourceRef(78),
+                name: "Managed Channel 78",
+              },
+              similarityScore: 0.5,
+            },
+          }),
+        }}
+      />,
+    )
+
+    expectNoVisibleManagedSiteDescription()
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.signals.models.similar",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("renders separate key and model badges when key matches but models do not", async () => {
+    const account = createAccountStub()
+    const token = {
+      id: 7,
+      user_id: 1,
+      key: "sk-key-only",
+      status: 1,
+      name: "Key Only Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        managedSiteStatus={{
+          status: MANAGED_SITE_TOKEN_CHANNEL_STATUSES.UNKNOWN,
+          reason:
+            MANAGED_SITE_TOKEN_CHANNEL_STATUS_UNKNOWN_REASONS.MATCH_REQUIRES_CONFIRMATION,
+          assessment: createManagedSiteAssessment({
+            key: {
+              comparable: true,
+              matched: true,
+              reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.MATCHED,
+              channel: {
+                ref: matchingResourceRef(91),
+                name: "Managed Channel 91",
+              },
+            },
+            models: {
+              comparable: true,
+              matched: false,
+              reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.NO_MATCH,
+            },
+          }),
+        }}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("managed-site-status-details"))
+
+    expectNoVisibleManagedSiteDescription()
+    expect(
+      screen.getByText("keyManagement:managedSiteStatus.signals.key.matched"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "keyManagement:managedSiteStatus.signals.models.noMatch",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      getBadgeTooltip("keyManagement:managedSiteStatus.signals.key.matched"),
+    )?.toHaveAttribute("title")
+    expect(
+      getBadgeTooltip(
+        "keyManagement:managedSiteStatus.signals.key.matched",
+      )?.getAttribute("title"),
+    ).toContain("keyManagement:managedSiteStatus.signals.key.tooltipMatched")
+  })
+
+  it("refreshes the token status after a successful managed-site import", async () => {
+    const user = userEvent.setup()
+    const account = createAccountStub()
+    const onManagedSiteImportSuccess = vi.fn()
+
+    const token = {
+      id: 3,
+      user_id: 1,
+      key: "sk-import",
+      status: 1,
+      name: "Import Token",
+      created_time: 0,
+      accessed_time: 0,
+      expired_time: 0,
+      remain_quota: 0,
+      unlimited_quota: false,
+      used_quota: 0,
+      accountId: account.id,
+      accountName: account.name,
+    }
+
+    mockOpenWithAccount.mockImplementation(
+      async (
+        _account: DisplaySiteData,
+        _token: typeof token,
+        onSuccess?: (result: { success: boolean; message: string }) => void,
+      ) => {
+        onSuccess?.({ success: true, message: "imported" })
+        return { opened: true }
+      },
+    )
+
+    render(
+      <RuntimeKeyHeader
+        token={token as any}
+        copyKey={vi.fn()}
+        handleEditToken={vi.fn()}
+        handleDeleteToken={vi.fn()}
+        account={account}
+        onManagedSiteImportSuccess={onManagedSiteImportSuccess}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "keyManagement:actions.importToManagedSite",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(mockOpenWithAccount).toHaveBeenCalled()
+      expect(onManagedSiteImportSuccess).toHaveBeenCalledWith(
+        buildNewApiRuntimeKey(account, token),
+      )
+    })
+  })
+})

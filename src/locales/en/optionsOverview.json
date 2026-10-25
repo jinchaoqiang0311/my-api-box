@@ -1,0 +1,405 @@
+{
+  "actions": {
+    "open": "Open"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "Disabled accounts are skipped by refresh, check-in, and other automation. Re-enable the ones you still use.",
+      "title_one": "The only account is disabled",
+      "title_other": "All {{count}} accounts are disabled"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} needs a browser settings check"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} has a health issue"
+    },
+    "actions": {
+      "addAccount": "Add account",
+      "addProfile": "Add API credential",
+      "editAccount": "Edit account",
+      "fixAccount": "Fix account",
+      "handleCheckIn": "Handle check-in",
+      "manageAccounts": "Manage accounts",
+      "openSettings": "Open settings",
+      "refreshAccounts": "Refresh accounts",
+      "signInAgain": "Sign in again",
+      "viewAccount": "View account",
+      "viewAnnouncements": "View announcements",
+      "viewCheckIn": "View check-in",
+      "viewCheckInResults": "View results"
+    },
+    "addAccount": {
+      "description": "Add an account before balances, usage, and automation can be summarized.",
+      "title": "No accounts yet"
+    },
+    "addProfile": {
+      "description": "The library stores API keys, coding-plan keys and other keys, and monitors balance and usage in one place — including how much of a coding plan's 5-hour / 7-day / monthly quota is left.",
+      "title": "No API credentials yet"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_one": "{{count}} account has automatic check-in enabled, but nothing runs while the global switch is off. Re-enable it in check-in settings.",
+      "description_other": "{{count}} accounts have automatic check-in enabled, but nothing runs while the global switch is off. Re-enable it in check-in settings.",
+      "title": "Automatic check-in is off globally"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "The latest run had failures or unconfirmed results. Open auto check-in to review the reasons and retry.",
+      "title_one": "Automatic check-in needs attention for {{count}} account",
+      "title_other": "Automatic check-in needs attention for {{count}} accounts"
+    },
+    "categories": {
+      "accounts": "Accounts",
+      "automation": "Automation",
+      "credentials": "Credentials",
+      "data": "Data"
+    },
+    "categoryFilterLabel": "Category",
+    "checkInAccountDataMissing": {
+      "description": "Saved credentials or account details are incomplete. Re-detect the account in Accounts, then try check-in again.",
+      "title_one": "{{count}} account is missing saved sign-in data",
+      "title_other": "{{count}} accounts are missing saved sign-in data"
+    },
+    "checkInMethodUnresolved": {
+      "description": "Auto check-in is enabled, but no usable method is ready yet. In Accounts, redetect or choose a check-in method before the next run.",
+      "title": "{{name}} needs a check-in method"
+    },
+    "checkInPermissionDenied": {
+      "description": "The site rejected the check-in request. Sign in again or review the account permissions before retrying.",
+      "title_one": "{{count}} account was denied during check-in",
+      "title_other": "{{count}} accounts were denied during check-in"
+    },
+    "checkInReloginRequired": {
+      "description": "The latest run skipped these accounts because the site sign-in expired. Sign in on the site, then run check-in again.",
+      "title_one": "{{count}} account needs a new sign-in",
+      "title_other": "{{count}} accounts need a new sign-in"
+    },
+    "filterAll": "All",
+    "severityFilterLabel": "Severity",
+    "siteTypeMismatch": {
+      "description": "This site matches {{suggestedType}}, but the account is set to {{storedType}}. Edit the account and set the Site Type to {{suggestedType}}.",
+      "title": "{{name}} may have the wrong site type"
+    },
+    "siteTypeUnknown": {
+      "description": "Automatic check-in cannot determine this site's protocol. Edit the account and choose the correct site type, or run auto-detection again.",
+      "title": "{{name}} has an unknown site type"
+    },
+    "sortHint": "Sorted by impact",
+    "summary_one": "{{count}} pending",
+    "summary_other": "{{count}} pending",
+    "unreadSiteAnnouncements": {
+      "description": "Open site announcements to mark them as read and avoid missing maintenance or risk notices.",
+      "title_one": "{{count}} unread site announcement",
+      "title_other": "{{count}} unread site announcements"
+    },
+    "usageRefreshPending": {
+      "description": "Refresh accounts to complete today's request, token, and cost statistics.",
+      "title_one": "{{count}} account needs a stats refresh",
+      "title_other": "{{count}} accounts need a stats refresh"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "View check-in",
+      "retryFailed": "Retry failed"
+    },
+    "empty": {
+      "disabled": {
+        "description": "Auto check-in is turned off. Turn it back on when you want the extension to claim check-in rewards for you."
+      },
+      "notRun": {
+        "description": "No check-in has run yet. After account detection is enabled, the next schedule will handle it, or you can open auto check-in to run it manually."
+      }
+    },
+    "lastRun": "Last run",
+    "metrics": {
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "success": "Success"
+    },
+    "nextRetry": "Next retry",
+    "nextRun": "Next run",
+    "notRunYet": "Not run yet",
+    "notScheduled": "Not scheduled",
+    "status": {
+      "disabled": "Disabled",
+      "failed": "Failed",
+      "not_run": "Waiting for first run",
+      "partial": "Partial success",
+      "ready": "Ready",
+      "skipped": "Not executed",
+      "success": "Successful"
+    },
+    "summary": "Auto check-in run summary"
+  },
+  "automation": {
+    "automaticEnabled": "Automatic execution is on",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "Turn on auto check-in when you want rewards claimed automatically. Future schedules and results will appear here."
+      },
+      "managedSiteModelSync": {
+        "disabled": "Turn on model sync when you want self-hosted AI gateway models refreshed automatically. Sync interval and scope will appear here."
+      },
+      "siteAnnouncements": {
+        "disabled": "Turn on announcement polling when you want site updates surfaced here. Recent checks and announcement counts will appear here."
+      },
+      "webdavAutoSync": {
+        "disabled": "Configure WebDAV auto sync when you want cross-device backups. Sync strategy and scope will appear here."
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "Auto check-in"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "Allowed models",
+        "concurrency": "Concurrency",
+        "interval": "Sync interval (hours)",
+        "label": "Self-hosted AI gateway model sync",
+        "open": "Open sync"
+      },
+      "siteAnnouncements": {
+        "interval": "Polling interval (minutes)",
+        "label": "Site announcement polling",
+        "lastChecked": "Last checked",
+        "openPage": "View announcements",
+        "openSettings": "Polling settings",
+        "records": "Total announcements",
+        "unread": "Unread announcements"
+      },
+      "webdavAutoSync": {
+        "domains": "Sync scopes",
+        "interval": "Sync interval (minutes)",
+        "label": "WebDAV backup sync",
+        "open": "Open backup sync",
+        "strategy": "Sync strategy"
+      }
+    },
+    "metrics": {
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "success": "Succeeded",
+      "unsupported": "Unsupported"
+    },
+    "neverChecked": "Not checked yet",
+    "openItem": "Open {{name}}",
+    "status": {
+      "disabled": "Disabled",
+      "failed": "Run failed",
+      "limited": "Partially supported",
+      "notRun": "Awaiting first run",
+      "partial": "Partially failed",
+      "ready": "Ready",
+      "running": "Running",
+      "skipped": "Not executed",
+      "success": "Run succeeded",
+      "unknown": "Status unknown",
+      "unsupported": "Not supported"
+    },
+    "statusUnavailable": "Execution status is unavailable. Open the details or refresh to try again."
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "Accounts, balances, and health state that other features depend on.",
+      "label": "Account foundation",
+      "state": {
+        "disabled": "Account status cannot be read yet. Check that the account setup is complete.",
+        "needs_setup": "Add at least one account so the overview can summarize balances, usage, and automation status for you.",
+        "not_applicable": "You can continue without adding an account in this environment."
+      }
+    },
+    "automation": {
+      "description": "Whether auto check-in and announcement polling are ready to run.",
+      "label": "Automation",
+      "state": {
+        "disabled": "No tasks will run automatically for now. Turn on check-in or announcement polling when you need them.",
+        "needs_setup": "Automation still needs an eligible account or detection setup before it can run.",
+        "not_applicable": "There are no automation tasks available in this environment yet."
+      }
+    },
+    "backupSync": {
+      "description": "Local data backup and cross-device sync configuration.",
+      "label": "Backup sync",
+      "state": {
+        "disabled": "Your data stays on this device. Turn on WebDAV sync when you want a cross-device backup.",
+        "needs_setup": "Connect WebDAV first so local data can be backed up remotely.",
+        "not_applicable": "Backup sync is not available in this environment yet."
+      }
+    },
+    "credentialAssets": {
+      "description": "Storage for your keys, plus balance, quota and usage monitoring.",
+      "label": "Credential assets",
+      "state": {
+        "disabled": "There are no reusable credentials yet. Check account or API credential setup.",
+        "needs_setup": "Save one API credential (Base URL + API Key) to monitor balance, quota and usage in one place.",
+        "not_applicable": "This environment does not need separate API credentials."
+      }
+    },
+    "dataHistory": {
+      "description": "Whether usage and balance history have data to inspect.",
+      "label": "Data history",
+      "state": {
+        "disabled": "History is not being saved yet. Turn it on to keep future usage and balance changes.",
+        "needs_setup": "History is enabled, but it still needs an account or first data point. This section will update after data appears.",
+        "not_applicable": "There is no data history to view in this environment yet."
+      }
+    },
+    "managedSite": {
+      "description": "Channel administration and model sync for your self-hosted AI gateway.",
+      "label": "Self-hosted AI gateway",
+      "state": {
+        "disabled": "No self-hosted AI gateway is configured yet. Configure one when you need channel or model management.",
+        "needs_setup": "Configure a self-hosted AI gateway first, then you can manage channels or sync models here.",
+        "not_applicable": "This site type does not support self-hosted AI gateway administration yet."
+      }
+    },
+    "subItems": {
+      "accounts": "Accounts",
+      "apiKeys": "API keys",
+      "apiProfiles": "API credentials",
+      "autoCheckin": "Auto check-in",
+      "balanceHistory": "Balance history",
+      "managedSiteChannels": "Channel management",
+      "managedSiteModelSync": "Model sync",
+      "siteAnnouncements": "Site announcements",
+      "usageAnalytics": "Usage analytics",
+      "webdavAutoSync": "WebDAV auto sync",
+      "webdavManual": "WebDAV manual backup"
+    }
+  },
+  "coverageStatus": {
+    "configured": "Configured",
+    "disabled": "Not enabled",
+    "needs_setup": "Needs setup",
+    "not_applicable": "Not applicable"
+  },
+  "description": "Review accounts, keys and usage, and follow up on automated tasks and pending actions.",
+  "sections": {
+    "automationOverview": "Automation runs",
+    "configurationOverview": "Configuration Overview",
+    "needsAttention": "Needs Attention",
+    "recentUsage": "Recent Usage",
+    "unifiedApiGuidance": "Unified API setup"
+  },
+  "severity": {
+    "error": "Error",
+    "info": "Info",
+    "warning": "Warning"
+  },
+  "states": {
+    "allClear": "There is nothing that needs attention right now.",
+    "allClearDescription": "Account issues, missing check-in methods, and statistics that need refresh will appear here automatically.",
+    "loadDetailUnavailable": "Some overview information is temporarily unavailable. Try loading it again.",
+    "loadedWithError": "Some information failed to load. Showing available data.",
+    "loading": "Loading overview..."
+  },
+  "status": {
+    "accounts": {
+      "label": "Accounts"
+    },
+    "attention": {
+      "label": "Attention"
+    },
+    "profiles": {
+      "label": "Credentials"
+    },
+    "todayUsage": {
+      "label": "Today"
+    }
+  },
+  "title": "Overview",
+  "todayMetricAvailability": {
+    "coverage": "Complete {{complete}} · Partial {{partial}} · Eligible {{eligible}}",
+    "coverageWithRefresh": "Complete {{complete}} · Partial {{partial}} · Refresh needed {{refresh}} · Eligible {{eligible}}",
+    "includesPendingRefresh": "Includes pending refresh",
+    "partial": "Partial daily statistic",
+    "pendingRefresh": "Refresh pending",
+    "pendingRefreshHelp": "Today's statistics have not been confirmed. Refresh the relevant account from the Accounts list.",
+    "unavailable": "Unavailable"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "Add account",
+      "addApiCredential": "Add API credential",
+      "addGatewayChannel": "Add first gateway channel",
+      "configureManagedSite": "Configure self-hosted AI gateway",
+      "manageChannels": "Manage channels",
+      "openApiCredentialProfiles": "Open credential library",
+      "openModelSync": "Open model sync"
+    },
+    "boundaryNote": "My API Box manages and imports configuration. It does not proxy model requests; external clients call your self-hosted AI gateway.",
+    "description": {
+      "has_gateway_channels": "Gateway setup guidance is complete. Open channel management to check the current status.",
+      "needs_importable_source": "You have accounts, but their current account types cannot expose importable keys. Save an API key first, or add an account type that supports key access, then import it into your self-hosted AI gateway.",
+      "needs_managed_site": "You have account keys or API keys. Configure your self-hosted AI gateway to import them as gateway channels, so multiple keys can be used through one AI API.",
+      "needs_sources": "Add an account or save an API key, then import it into your self-hosted AI gateway to provide a unified AI API.",
+      "ready_accounts": "Your self-hosted AI gateway's basic configuration is complete. Continue by importing an account key or API key; the import flow will validate the connection and create a gateway channel.",
+      "ready_profiles": "Your self-hosted AI gateway's basic configuration is complete. Open the credential library to validate and import a saved API key as a gateway channel."
+    },
+    "headline": "Combine account keys or API keys into one unified AI API",
+    "modelSyncOptional": "Model sync can update gateway model lists automatically and reduce manual maintenance; enable it after channels exist when needed.",
+    "optionalLabel": "Optional maintenance",
+    "overview": {
+      "collapse": "Collapse",
+      "completedDescription": "Setup guidance is complete. You can revisit the steps or manage gateway channels anytime.",
+      "description": "Import account keys or API credentials into your gateway to use one API address.",
+      "progress": "Setup progress {{completed}}/{{total}}",
+      "reopen": "Setup guide",
+      "resume": "Continue setup",
+      "start": "View steps",
+      "title": "Unified API"
+    },
+    "sources": {
+      "account": "Account sources",
+      "accountUnavailable": "Accounts not importable",
+      "both": "Accounts + credentials",
+      "none": "No sources yet",
+      "profile": "Credential sources"
+    },
+    "stepper": {
+      "label": "Unified API setup progress",
+      "states": {
+        "completed": "Completed",
+        "current": "Current step",
+        "upcoming": "Later"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "Import at least one account key or saved API credential.",
+          "title": "Create a gateway channel"
+        },
+        "gatewaySettings": {
+          "description": "Enter the admin connection details for your self-hosted AI gateway.",
+          "title": "Save gateway settings"
+        },
+        "source": {
+          "description": "Add an account that can expose keys or save an API credential.",
+          "title": "Prepare a source"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "Accounts, credentials, or gateway settings could not be loaded. No missing-source conclusion has been made.",
+      "retry": "Retry setup check",
+      "title": "Setup status unavailable"
+    }
+  },
+  "usage": {
+    "activityMix": "Recent trend",
+    "empty": {
+      "description": "After you send a request or sync usage history, this card will summarize today's requests, tokens, cost, and the latest 7-day trend.",
+      "title": "No usage recorded yet"
+    },
+    "noRecentActivity": "No recent usage recorded.",
+    "requestShare": "Request share",
+    "sevenDayRequests": "7-day requests",
+    "sevenDayTokens": "7-day tokens",
+    "todayCost": "Today cost",
+    "todayRequests": "Today requests",
+    "todayShare": "Today's share of the latest 7 days",
+    "todayTokens": "Today tokens",
+    "tokenShare": "Token share"
+  }
+}

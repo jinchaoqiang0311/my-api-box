@@ -1,0 +1,712 @@
+{
+  "alerts": {
+    "authenticationFailed": {
+      "description": "保存されている {{site}} の認証情報が拒否されました。設定を開いて更新し、チャネル一覧を再読み込みしてください。",
+      "title": "{{site}} に再度サインインしてください"
+    },
+    "editorLoadError": {
+      "description": "チャネルフォームを読み込めませんでした。チャネル一覧を更新してから再試行してください。",
+      "title": "チャネルエディターを開けません"
+    },
+    "editorSaveError": {
+      "description": "変更は保存されませんでした。もう一度お試しください。",
+      "title": "チャネルを保存できません"
+    },
+    "loadError": {
+      "title": "チャネルを読み込めません"
+    },
+    "partialMutation": {
+      "description": "一部の項目は保存された可能性がありますが、ステータスを確認できませんでした。チャネル一覧を更新して内容を確認してから再試行してください。",
+      "title": "チャネル更新の確認が必要です"
+    },
+    "permissionDenied": {
+      "description": "この {{site}} アカウントではチャネルを管理できません。管理者アカウントを使用するか権限を更新してから、再読み込みしてください。",
+      "title": "{{site}} へのアクセスが拒否されました"
+    },
+    "resourceChanged": {
+      "description": "編集中にこのチャネルが変更されました。今回の変更は保存されていません。編集画面を閉じ、一覧を更新してから再編集してください。"
+    },
+    "savedRefreshError": {
+      "description": "チャネルは保存されましたが、最新の一覧を読み込めませんでした。さらに変更する前にチャネル一覧を更新してください。",
+      "title": "チャネルを保存しました。更新が必要です"
+    },
+    "unavailable": {
+      "description": "{{site}} に接続できませんでした。サーバーとネットワークを確認してから、チャネル一覧を再読み込みしてください。",
+      "title": "{{site}} を利用できません"
+    }
+  },
+  "cliProxyApi": {
+    "credentialWeightHelp": "空欄の場合の重みは 1 です。0 以下は重み付きルーティングの対象外となります。上限は 1,000,000 です。",
+    "excludedModels": "除外モデル（1 行に 1 つ）",
+    "headers": "リクエストヘッダー",
+    "headersHelp": "1 行に 1 ヘッダー。名前: 値 の形式で入力します。",
+    "prefix": "モデル接頭辞",
+    "proxyUrl": "プロキシ URL"
+  },
+  "dialog": {
+    "cancel": "キャンセル",
+    "confirm": "削除",
+    "deleteDescription": "この操作は元に戻せません。選択したチャネルは完全に削除されます。",
+    "deleteRefreshAction": "チャネル一覧を更新",
+    "deleteRefreshRequired": "再度削除する前に、チャネル一覧を更新して最新の状態を確認してください。",
+    "deleteResultStatus": {
+      "failed": "失敗",
+      "success": "削除済み",
+      "uncertain": "状態不明"
+    },
+    "deleteResultsTitle": "削除結果",
+    "deleteTitle": "チャネルを削除しますか？",
+    "deleteTitlePlural": "チャネルを削除しますか？"
+  },
+  "editor": {
+    "advanced": {
+      "autoBan": {
+        "help": "New API に設定された障害条件を満たすと、このチャネルの自動無効化を許可します。",
+        "label": "チャネルを自動無効化"
+      },
+      "autoSync": {
+        "help": "更新の確認を有効にしてください。変更を検出すると、New API がこのチャネルのモデル一覧を自動更新します。",
+        "label": "上流モデルを自動同期"
+      },
+      "check": {
+        "help": "New API サーバーが定期的に確認します。拡張機能のモデル同期とは別に動作します。",
+        "label": "上流モデルの更新を確認"
+      },
+      "detectedModels": "追加可能なモデル",
+      "groups": {
+        "detection": "上流モデルの検出",
+        "management": "チャネル管理",
+        "network": "ネットワーク設定"
+      },
+      "ignored": {
+        "help": "検出と同期の対象から除外するモデルの完全な名前を入力します。",
+        "label": "無視する上流モデル"
+      },
+      "invalidExisting": "保存された設定を安全に解析できません。サイトの管理画面で修正してから編集してください。",
+      "lastCheck": "最終確認日時",
+      "mapping": {
+        "add": "マッピングを追加",
+        "help": "リクエストのモデル名を上流に送信するモデル名に変換します。リクエストモデルは各行で一意にしてください。",
+        "invalid": "各行の両方のモデル名を入力し、重複するリクエストモデルを削除してください。",
+        "label": "モデル名のマッピング",
+        "remove": "マッピング {{index}} を削除",
+        "source": "リクエストモデル {{index}}",
+        "sourcePlaceholder": "リクエストモデル",
+        "target": "上流モデル {{index}}",
+        "targetPlaceholder": "上流モデル"
+      },
+      "neverChecked": "未確認",
+      "noModels": "なし",
+      "proxy": {
+        "help": "New API サーバーがこのチャネルに接続する際に使用します。HTTP、HTTPS、SOCKS5、SOCKS5H に対応。空欄にするとチャネルのプロキシ設定を解除します。",
+        "invalid": "有効な HTTP、HTTPS、SOCKS5、SOCKS5H プロキシ URL を入力してください。",
+        "label": "プロキシアドレス"
+      },
+      "remark": {
+        "help": "チャネルの用途や注意事項を記録します（最大 255 文字）。",
+        "label": "備考"
+      },
+      "removedModels": "削除を検出したモデル",
+      "tag": "チャネルタグ",
+      "testModel": {
+        "help": "モデルを選択するか名前を入力します。空欄の場合、New API の既定のテストモデルを使用します。",
+        "label": "テストモデル"
+      },
+      "unsupportedDetection": "このエディターでは、このチャネルタイプの上流検出に対応していません。高度なカスタムチャネルはサイトの管理画面でモデル一覧のルート設定が必要です。"
+    },
+    "doneHub": {
+      "allowExtraBody": {
+        "help": "extra_body など、クライアントの追加フィールドを上流へ転送します。",
+        "label": "追加フィールドを転送"
+      },
+      "compatibleResponse": {
+        "help": "有効にすると、DoneHub は Responses リクエストを Chat Completions に変換します。無効時は上流のネイティブ Responses を優先しますが、非対応の場合は互換モードに切り替わることがあります。",
+        "label": "Responses API 互換モード"
+      },
+      "customParameter": {
+        "help": "JSON オブジェクトを入力してください。通常は不足フィールドのみ追加します。overwrite: true で上書き、per_model: true でモデル別設定、pre_add: true でリクエスト入口に適用します。空欄で解除します。",
+        "invalid": "有効な JSON オブジェクトを入力してください。",
+        "label": "追加リクエストパラメーター",
+        "placeholder": "{\n  \"overwrite\": true,\n  \"temperature\": 0.7\n}"
+      },
+      "disabledStream": {
+        "help": "これらのモデルのストリーミング要求では、このチャネルをスキップします。非ストリーミングには変換しません。モデルの選択または名前の入力が可能です。一覧を空にすると通常のルーティングに戻ります。",
+        "label": "ストリーミング対象外のモデル"
+      },
+      "modelHeaders": {
+        "help": "上流に固定ヘッダーを追加します。値は文字列にしてください。認証ヘッダーはチャネル側で処理します。空欄または全行削除で解除します。",
+        "invalid": "空でない一意のキーと文字列の値を持つ JSON オブジェクトを入力してください。",
+        "label": "カスタムリクエストヘッダー",
+        "placeholder": "{\"X-Project\": \"example\"}"
+      },
+      "modelMapping": {
+        "addModels": "マッピング名をモデル一覧に追加",
+        "help": "キーは要求されたモデル名、値は上流のモデル名です。キーをチャネルのモデル一覧に追加してください。値の先頭に + を付けると、要求されたモデルで課金します。",
+        "invalid": "空でない一意のキーと文字列の値を持つ JSON オブジェクトを入力してください。",
+        "label": "モデルマッピング",
+        "placeholder": "{\"alias\": \"upstream-model\"}"
+      },
+      "proxy": {
+        "help": "DoneHub サーバーから上流への接続に使用します。HTTP と SOCKS5 に対応し、%s はチャネルキーからセッション ID を生成します。空欄でチャネル専用プロキシを解除します。",
+        "invalid": "有効な HTTP または SOCKS5 プロキシ URL を入力してください。",
+        "label": "プロキシ URL",
+        "placeholder": "socks5://127.0.0.1:1080"
+      },
+      "responsesPath": {
+        "help": "カスタムチャネルのネイティブ Responses 専用です。空欄は /v1/responses、disable はこのリクエストを無効にします。互換モードでは使用しません。",
+        "label": "Responses リクエストパス",
+        "placeholder": "/v1/responses"
+      },
+      "testModel": {
+        "help": "チャネルのチャットモデルを選択するか、名前を入力してください。空欄では DoneHub の速度テストを実行できません。最大 50 文字です。",
+        "invalid": "モデル名は 50 文字以内にしてください。",
+        "label": "速度テスト用モデル",
+        "placeholder": "gpt-4o-mini"
+      }
+    },
+    "fields": {
+      "autoSyncModelPattern": {
+        "help": "このパターンに一致するモデルだけを同期します。大文字と小文字を区別しない場合は先頭に (?i) を付け、すべて同期する場合は空欄にします。",
+        "invalid": "有効なモデルフィルターパターンを入力してください。",
+        "label": "モデルフィルターパターン",
+        "placeholder": "例: (?i)^model-example"
+      },
+      "autoSyncSupportedModels": {
+        "help": "AxonHub はシステム設定で指定された頻度で、プロバイダー API から有効なチャネルのモデル一覧を更新します。",
+        "label": "対応モデルを自動同期"
+      },
+      "channelStatusReason": {
+        "label": "無効化の理由"
+      },
+      "concurrency": {
+        "help": "このアカウントで同時に処理できるリクエストの最大数です。",
+        "label": "同時実行数"
+      },
+      "defaultTestModel": {
+        "help": "このチャネルの接続テストに使用します。対応モデルから選択してください。",
+        "label": "既定のテストモデル",
+        "placeholder": "設定済みモデルを選択"
+      },
+      "extraModelPrefix": {
+        "help": "モデル名に追加のプレフィックスを付けて、このチャネルにアクセスできるようにします。たとえばプレフィックスを 'deepseek' にすると、'deepseek/deepseek-chat' と 'deepseek-chat' の両方でこのチャネルにアクセスできます。",
+        "label": "追加モデルプレフィックス",
+        "placeholder": "例: deepseek"
+      },
+      "gptLoadBaseUrl": {
+        "help": "このチャンネルがリクエストを転送する上流アドレス。既知のプロバイダでは空欄にして、ゲートウェイにプロバイダの既定エンドポイントを使わせます。"
+      },
+      "gptLoadKey": {
+        "help": "このグループが使えるキー。ゲートウェイはグループごとにキープールを保持します。ここで行を追加するとキーをインポートし、削除すると破棄します。"
+      },
+      "gptLoadPriceMultiplier": {
+        "help": "チャンネルの報告コストに適用する倍率（例：1.5）。残高・レート制限の集計に使います。",
+        "label": "料金倍率"
+      },
+      "gptLoadProvider": {
+        "help": "このチャンネルが使う gpt-load ドライバ ID（例：openai、anthropic、gemini）。ロードボタンでこのゲートウェイが提供するドライバを読み込めます。"
+      },
+      "gptLoadWeight": {
+        "help": "手動ロードバランスの重み。大きいほど割り当てられるトラフィックが増えます。空欄ならゲートウェイの既定値を使います。",
+        "label": "重み"
+      },
+      "magpieAnthropic": {
+        "help": "Anthropic API のルート URL（ANTHROPIC_BASE_URL）を入力し、/v1/messages は付けないでください。",
+        "label": "Anthropic URL"
+      },
+      "magpieBalancePath": {
+        "help": "応答内の金額（例：data.balance、data.total / 500000）。空欄では Magpie の既定値を使用します。プリセットでは読み取り専用です。",
+        "label": "残高の式"
+      },
+      "magpieBalanceURL": {
+        "help": "Magpie が使う残高 API（任意）。URL 内の {key} に対応します。保存済みの残高用トークンは維持されます。プリセットでは読み取り専用です。",
+        "label": "残高 URL"
+      },
+      "magpieCatalog": {
+        "help": "モデル名と推論レベルに使う models.dev のプロバイダー ID をカンマ区切りで指定します。最初の一致を優先。プリセットでは読み取り専用です。",
+        "label": "モデルカタログ"
+      },
+      "magpieChat": {
+        "help": "Chat Completions のベース URL には /v1 を含め、/chat/completions は付けないでください。",
+        "label": "Chat Completions URL",
+        "required": "選択した API タイプのアドレスを入力してください。"
+      },
+      "magpieGemini": {
+        "help": "Gemini のベース URL には /v1beta を含め、モデル名や generateContent のパスは付けないでください。",
+        "label": "Gemini URL"
+      },
+      "magpieHeaders": {
+        "help": "ヘッダー名と値を行ごとに追加するか、JSON 編集に切り替えます。これらのヘッダーは上流プロバイダーに送信されます。",
+        "label": "カスタムヘッダー"
+      },
+      "magpieMaxConcurrency": {
+        "help": "キーまたはアカウントごとに 0～1000。空欄は Magpie の既定値、0 は無制限です。",
+        "label": "キーごとの同時リクエスト数"
+      },
+      "magpieMaxRPM": {
+        "help": "キーまたはアカウントごとに 0～10000。空欄または 0 は無制限です。",
+        "label": "キーごとの毎分リクエスト数"
+      },
+      "magpieModels": {
+        "help": "検出されたモデルを選択するか、モデルIDを入力して Enter で追加します。接続情報の入力後にモデルを取得できます。選択を空にすると MAGPIE の自動モデルカタログを使用します。"
+      },
+      "magpieModelsURL": {
+        "help": "現在のキーとヘッダーで取得する完全な URL（任意）。空欄ではプロトコルの URL を使用します。プリセットでは読み取り専用です。",
+        "label": "モデル一覧 URL"
+      },
+      "magpiePriceRate": {
+        "help": "表示価格に対する倍率（例：0.8）。0～1000、小数点以下 3 桁まで。空欄または 0 は表示価格を使用します。",
+        "label": "価格倍率"
+      },
+      "magpieProxy": {
+        "help": "空欄はグローバルプロキシを使います。direct は直接接続します。",
+        "label": "プロキシ"
+      },
+      "magpieResponses": {
+        "help": "Responses のベース URL は通常 /v1 で終わります。/responses は付けないでください。",
+        "label": "Responses URL"
+      },
+      "manualModels": {
+        "label": "手動モデル"
+      },
+      "notes": {
+        "help": "このアップストリームアカウントに関する任意のメモです。",
+        "label": "メモ",
+        "placeholder": "このアカウントのメモを追加..."
+      },
+      "omnirouteBaseUrl": {
+        "help": "空のままにすると選択した provider の既定エンドポイントを使います。入力すると、ゲートウェイはこのチャネルのリクエストをそのアドレスへ送ります。保存済みのアドレスは消去できないため、変更する場合は新しいアドレスを入力してください。"
+      },
+      "omnirouteDefaultModel": {
+        "help": "リクエストでモデルを指定しない場合に使われます。チャネルはモデル一覧を保存せず、モデルはゲートウェイの provider カタログと別名から決まります。",
+        "label": "既定モデル"
+      },
+      "omnirouteLastError": {
+        "label": "直近のエラー"
+      },
+      "omniroutePrefix": {
+        "help": "入力するとゲートウェイに provider node を作成し、「prefix/model」でアドレスします。空のままなら組み込み provider をそのまま使います。prefix を入力する場合はアドレスも必須です。",
+        "label": "独自のモデルプレフィックス"
+      },
+      "omniroutePriority": {
+        "help": "ゲートウェイはこの数字の昇順でチャネルを選ぶため、小さいほど先に使われます。新規接続はゲートウェイが最後に並べます。",
+        "label": "優先度"
+      },
+      "omnirouteProvider": {
+        "help": "ゲートウェイ組み込みの provider ID です。独自の中継は openai のままアドレスを上書きできます。読み込みボタンで、このゲートウェイが実際に扱う provider を取得できます。"
+      },
+      "omnirouteTestStatus": {
+        "label": "接続テスト"
+      },
+      "orderingWeight": {
+        "help": "AxonHub がチャネルを選択するときは値が大きいほど優先され、同じ値は同じ優先順位になります。",
+        "label": "並び順の重み"
+      },
+      "priority": {
+        "help": "値が小さいアカウントほど先にスケジュールされます。",
+        "label": "優先度"
+      },
+      "remark": {
+        "help": "参照用に、このチャネルについてのメモや備考を追加します。",
+        "label": "備考",
+        "placeholder": "このチャネルのメモや備考を入力..."
+      },
+      "sub2apiModels": {
+        "help": "任意です。空欄の場合は上流が対応するすべてのモデルを許可します。制限が必要な場合のみ指定してください。",
+        "label": "モデル許可リスト"
+      },
+      "sub2apiPlatform": {
+        "help": "上流プロトコルを選択します。アカウント作成後は変更できません。",
+        "label": "プラットフォーム"
+      },
+      "supportedModels": {
+        "help": "モデル名を入力または貼り付けます。ここで追加したモデルは自動同期でも保持されます。"
+      },
+      "tags": {
+        "help": "タグを追加してチャネルを分類、絞り込みできます。Enter キーでタグを追加します。カンマまたは改行区切りのタグを貼り付けて一括追加することもできます。",
+        "label": "タグ",
+        "placeholder": "タグを追加..."
+      }
+    },
+    "json": {
+      "addRow": "行を追加",
+      "editJson": "JSON を編集",
+      "editRows": "行で編集",
+      "format": "JSON を整形",
+      "key": "キー",
+      "keyAt": "{{field}}：{{index}} 行目のキー",
+      "removeAt": "{{field}}：{{index}} 行目を削除",
+      "value": "値",
+      "valueAt": "{{field}}：{{index}} 行目の値"
+    },
+    "multiKeyMode": {
+      "label": "キーの選択方式",
+      "polling": "ラウンドロビン",
+      "random": "ランダム"
+    },
+    "options": {
+      "channelType": {
+        "anthropic": "Anthropic",
+        "anthropicAws": "AWS の Anthropic",
+        "anthropicGcp": "Google Cloud の Anthropic",
+        "claudeCode": "Claude Code",
+        "deepseek": "DeepSeek",
+        "deepseekAnthropic": "DeepSeek Anthropic",
+        "gemini": "Gemini",
+        "geminiOpenai": "Gemini OpenAI",
+        "geminiVertex": "Gemini Vertex",
+        "githubCopilot": "GitHub Copilot",
+        "nanogpt": "NanoGPT",
+        "ollama": "Ollama",
+        "openai": "OpenAI",
+        "openaiResponses": "OpenAI Responses",
+        "openrouter": "OpenRouter",
+        "siliconflow": "SiliconFlow",
+        "unsupported": "未対応のチャネル種別",
+        "volcengine": "Volcengine",
+        "xai": "xAI"
+      },
+      "omnirouteTestStatus": {
+        "failed": "失敗",
+        "ok": "正常",
+        "pending": "未テスト",
+        "unsupported": "テスト非対応"
+      },
+      "status": {
+        "archived": "アーカイブ済み",
+        "disabled": "無効",
+        "enabled": "有効",
+        "unknown": "不明"
+      },
+      "unknown": "不明な選択肢"
+    },
+    "secret": {
+      "actions": {
+        "cancelLoad": "読み込みをキャンセル",
+        "clear": "保存済み API キーを削除",
+        "restore": "保存済み API キーを保持",
+        "retry": "再試行",
+        "view": "保存済み API キーを表示"
+      },
+      "createHint": "新しいチャネルで使用するアップストリーム API キーを入力してください。",
+      "keepExistingHint": "保存済み API キーを変更しない場合は、このフィールドを空欄のままにしてください。",
+      "loadableHint": "保存済み API キーはここには表示されません。変更しない場合は空欄のままにしてください。",
+      "loadError": "保存済み API キーを読み込めませんでした。",
+      "loading": "保存済み API キーを読み込んでいます…",
+      "partialReplacementHint": "一部のキーを置き換えると、既定ではリストの末尾に移動します。元の順序を保つには、先に保存済みキーを表示してください（認証が必要です）。",
+      "placeholder": "アップストリーム API キーを入力",
+      "replacementBlocked": {
+        "multipleCredentials": "このチャネルには複数の API キーがあります。キーは AxonHub で管理してください。"
+      },
+      "replacementDisabled": "この API キーはここでは置き換えられません。",
+      "replacePlaceholder": "保存済みキーを置き換える新しい API キーを入力",
+      "state": {
+        "available": "保存済み API キーがあります。",
+        "masked": "マスクされた API キーが保存されています。",
+        "permissionHidden": "保存済み API キーは権限により非表示です。",
+        "unavailable": "保存済み API キーはここでは表示できません。"
+      }
+    },
+    "sections": {
+      "advanced": "詳細設定",
+      "basic": "基本情報",
+      "basicConnection": "基本設定と接続",
+      "compatibility": "API 互換性",
+      "connection": "接続と認証情報",
+      "metadata": "メタデータ",
+      "models": "モデル",
+      "requests": "ネットワークとリクエスト",
+      "routing": "ルーティング",
+      "sync": "モデル同期"
+    },
+    "validation": {
+      "inconsistentValue": "この値は別の項目と矛盾しています。",
+      "invalidValue": "有効な値を入力してください。",
+      "outOfRange": "許可された範囲内の値を入力してください。",
+      "required": "この項目は必須です。",
+      "unsupportedOption": "この選択肢はサポートされていません。"
+    }
+  },
+  "filter": {
+    "statusLabel": "状態で絞り込む"
+  },
+  "filters": {
+    "actionOptions": {
+      "exclude": "一致したモデルを除外",
+      "include": "一致したモデルを含める"
+    },
+    "actions": {
+      "cancel": "キャンセル",
+      "moveDown": "フィルターを下へ移動",
+      "moveUp": "フィルターを上へ移動",
+      "save": "フィルターを保存"
+    },
+    "addPatternRule": "パターンルールを追加",
+    "addProbeRule": "プローブルールを追加",
+    "empty": {
+      "description": "必要に応じて正規表現を使った include / exclude ルールを追加し、同期モデルを制御します。",
+      "title": "まだフィルターがありません"
+    },
+    "hints": {
+      "probesAllPass": "選択したすべてのプローブに合格した場合だけ、このルールに一致します。プローブはチャネルのベース URL と解決済みチャネルキーを使用します。",
+      "regex": "正規表現ルールでは JavaScript 構文による高度な一致指定が可能です。",
+      "substring": "通常ルールではモデル名内の大文字小文字を区別する部分文字列に一致します。",
+      "unsupportedChannelType": "このチャネル種別は対応する検証 API にマッピングできないため、プローブルールを使用できません。"
+    },
+    "jsonEditor": {
+      "hint": "JSON はパターンルールまたはプローブルールのオブジェクト配列である必要があります。パターンルールは kind: 'pattern'、name、pattern を使います。プローブルールは kind: 'probe'、name、probeIds を使います。apiKey、key、baseUrl などの認証情報フィールドは無視されます。",
+      "label": "高度な JSON エディター",
+      "placeholder": "ここにフィルタールールオブジェクト配列を貼り付けるか編集して、同じ設定を複数チャネルで素早く再利用できます。"
+    },
+    "labels": {
+      "action": "動作",
+      "delete": "フィルターを削除",
+      "description": "説明",
+      "enabled": "有効",
+      "name": "フィルター名",
+      "pattern": "一致パターン",
+      "probes": "検証プローブ",
+      "regex": "正規表現モード",
+      "ruleType": "ルール種別"
+    },
+    "loading": "チャネルフィルターを読み込み中...",
+    "messages": {
+      "jsonArrayRequired": "JSON はフィルタールールの配列である必要があります。",
+      "jsonInvalid": "無効なフィルター JSON です: {{error}}",
+      "jsonItemNotObject": "インデックス {{index}} のフィルターはオブジェクトである必要があります。",
+      "loadFailed": "フィルターの読み込みに失敗しました: {{error}}",
+      "saved": "フィルターを保存しました",
+      "saveFailed": "フィルターの保存に失敗しました: {{error}}",
+      "validationName": "各フィルターに名前を入力してください。",
+      "validationPattern": "フィルターパターンは空にできません。",
+      "validationProbeIds": "各プローブルールで少なくとも 1 つの検証プローブを選択してください。",
+      "validationRegex": "無効な正規表現パターンです: {{error}}"
+    },
+    "modelSyncExclusionHelp": "保存後は、自動同期でも手動で「すべて実行」をクリックした場合でも、このチャネルをスキップします。「選択分を実行」や行内の「同期」では一度だけ同期できます。「キャンセル」はこのダイアログでの変更を破棄します。",
+    "placeholders": {
+      "description": "このルールに関する任意メモ",
+      "name": "例: GPT-4 を許可",
+      "pattern": "完全一致文字列または正規表現パターン",
+      "probes": "プローブを選択",
+      "probeSearch": "プローブを検索"
+    },
+    "probes": {
+      "empty": "プローブが見つかりません",
+      "options": {
+        "structured-output": "構造化出力",
+        "text-generation": "テキスト生成",
+        "tool-calling": "ツール呼び出し",
+        "web-search": "Web 検索"
+      }
+    },
+    "ruleTypeOptions": {
+      "pattern": "パターン",
+      "probe": "プローブ"
+    },
+    "subtitle": "{{channel}} のフィルタールールをカスタマイズ",
+    "title": "チャネルフィルター",
+    "viewMode": {
+      "json": "JSON 編集",
+      "label": "編集モード",
+      "visual": "ビジュアル編集"
+    }
+  },
+  "gatewayGuidance": {
+    "empty": {
+      "description": "このセルフホスト AI ゲートウェイにはまだチャネルがありません。アカウントキーまたは API キーを取り込むと、ゲートウェイを 1 つの AI API として外部クライアントから利用できます。",
+      "importFromAccountKey": "アカウントキーからチャネルを取り込む",
+      "importFromApiKeyLibrary": "API 認証情報庫からチャネルを取り込む",
+      "title": "セルフホスト AI ゲートウェイチャネルがまだありません"
+    },
+    "headerDescription": "自前の AI ゲートウェイのチャネルを管理し、複数の API 接続先を一つの窓口にまとめます。",
+    "openChannelConsole": "ゲートウェイのチャネル管理を開く",
+    "unconfiguredValueDescription": "設定後は、分散しているアカウントキーや API キーをゲートウェイチャネルとして取り込み、My API Box で直接確認・管理できます。"
+  },
+  "magpieKeys": {
+    "anyProtocol": "すべてのプロトコル",
+    "enabled": "有効",
+    "help": "キーを追加するか、改行・カンマ・空白で区切った複数のキーを貼り付けます。保存済みキーは主キーのみ表示できます。追加キーの交換は新しいキーを追加してから古いキーを削除してください。変更は保存後に反映されます。",
+    "invalid": "新しいキー、プロトコル、重み（0～1000）を確認し、有効なキーを1つ以上残してください。",
+    "name": "キー名",
+    "order": "順番（フェイルオーバー）",
+    "pace": "時間あたりの残り枠",
+    "primary": "プライマリ",
+    "primaryKey": "プライマリ API キー",
+    "protocol": "プロトコル",
+    "rotate": "ラウンドロビン",
+    "routing": "キールーティング",
+    "smart": "スマート（自動フェイルオーバー）",
+    "title": "キープール",
+    "usage": "使用量が少ない順",
+    "weighted": "重み付き",
+    "weightHelp": "0 または 1 は既定の重み。2～1000 は重み付きルーティングでの配分を変更します。"
+  },
+  "magpieProtocols": {
+    "checkOther": "別の設定済みタイプのアドレスが無効です。そのタイプに切り替えて確認してください。",
+    "configured": "設定済み",
+    "help": "タイプを選んで対応するアドレスを編集します。複数のプロトコルを使う場合は順に設定してください。各タイプのアドレスは個別に保持されます。",
+    "type": "API タイプ",
+    "unmanaged": "Magpie で管理"
+  },
+  "migration": {
+    "actions": {
+      "cancel": "キャンセル",
+      "close": "閉じる",
+      "refreshChannels": "チャネル一覧を更新",
+      "refreshPreview": "プレビューを再読み込み",
+      "running": "移行中...",
+      "start": "移行を開始"
+    },
+    "betaBadge": "Beta",
+    "blockedReasons": {
+      "sourceKeyExportRestricted": "移行元からのキーのエクスポートには、設定済みの Admin API Key では完了できないウェブ認証が必要です。移行元の管理画面でキーを取得し、このチャネルを手動で移行してください。",
+      "sourceKeyMissing": "元チャネルのキーが取得できないため、このチャネルはまだ移行できません。",
+      "sourceKeyResolutionFailed": "元チャネルのキーを読み込めませんでした。確認が完了した直後であれば、プレビューを更新して再試行してください。",
+      "sourceKeysChanged": "移行元の Key 数または有効状態が変わりました。プレビューを更新してから再度移行してください。",
+      "sourceMultiKeyUnsupported": "この移行元では複数 Key の完全なエクスポートにまだ対応していません。移行元を確認し、手動で移行してください。",
+      "sourceTypeUnsupported": "この移行では元チャネルの種類がサポートされていません。対応するチャネルを選ぶか、手動で移行してください。",
+      "targetDraftPreparationFailed": "移行先チャネルの下書きを準備できませんでした。チャネル情報を確認し、プレビューを更新して再試行してください。"
+    },
+    "confirm": {
+      "confirm": "移行を確認",
+      "description": "移行可能な項目（全 {{total}} 件中 {{ready}} 件）のチャネルを作成します。複数 Key のチャネルは複数の移行項目に分割される場合があります。",
+      "title": "チャネル移行を開始しますか？",
+      "warningTitle": "このフローは新しいチャネルを作成するだけで、同期・重複解消・ロールバックは行いません。"
+    },
+    "description": "現在の管理対象サイトから {{selectedCount}} 件のチャネルを別の構成済み管理対象サイトへコピーします。",
+    "generalWarnings": {
+      "compactSummary": "新規作成のみ。ホバーで詳細を確認できます。",
+      "createOnly": "この移行は移行先サイトで新しいチャネルを作成するだけで、元チャネルは変更しません。",
+      "noDedupeOrSync": "この移行では重複検出、既存チャネルの上書き、既存移行先チャネルとの同期は行いません。",
+      "noRollback": "このフローでは自動ロールバックを提供しません。結果一覧を見て必要な手動対応を行ってください。",
+      "targetRoutingDefaults": "優先度、重み、同時実行数の設定は移行されません。移行先の既定値が使用されます。移行後に移行先のエディターで調整できます。",
+      "title": "移行の制限"
+    },
+    "itemWarnings": {
+      "dropsAdvancedSettings": "高度なプロバイダー固有設定はそのまま移行できないため破棄されます。",
+      "dropsModelMapping": "モデルマッピング設定はコピーされません。",
+      "dropsMultiKeyState": "Key の有効状態は保持されますが、ローテーション設定、無効化の理由、実行履歴はコピーされません。",
+      "dropsStatusCodeMapping": "ステータスコードマッピング設定はコピーされません。",
+      "splitsKeys": "移行先では複数の Key とその状態を同じチャネルに保持できないため、Key ごとにチャネルを作成します。負荷分散が変わる場合があります。",
+      "sub2apiDefaultGroup": "移行元のグループはコピーされません。移行先ではプラットフォームのデフォルトグループが存在する場合に使用されます。移行後にグループの割り当てを確認してください。",
+      "targetForcesDefaultGroup": "移行先サイトではデフォルトグループに置き換えられます。",
+      "targetNormalizesBaseUrl": "移行先サイトは作成前にベース URL を正規化します。",
+      "targetRemapsChannelType": "移行先サイトはチャネル種別を最も近い対応種別へ再マッピングします。",
+      "targetSimplifiesStatus": "移行先サイトは元チャネルの状態を有効/無効へ単純化します。"
+    },
+    "keyCount": "Key 数",
+    "preview": {
+      "badges": {
+        "limitsLabel": "件の制限",
+        "warningsLabel": "件の警告"
+      },
+      "compare": {
+        "fieldLabel": "項目"
+      },
+      "loadFailed": "移行プレビューの読み込みに失敗しました: {{error}}",
+      "loading": "移行プレビューを構築中...",
+      "status": {
+        "blocked": "ブロック済み",
+        "ready": "移行可能"
+      },
+      "summary": "プレビュー：移行可能 {{ready}} 件、移行不可 {{blocked}} 件、移行項目は合計 {{total}} 件。"
+    },
+    "results": {
+      "refreshRequired": "作成結果が不明な項目があります。閉じる前にチャネル一覧を更新してください。",
+      "status": {
+        "failed": "失敗",
+        "skipped": "スキップ",
+        "success": "作成済み",
+        "uncertain": "状態不明"
+      },
+      "summary": "結果: {{created}}、{{failed}}、{{skipped}}、{{uncertain}}、{{total}}。",
+      "summaryMetrics": {
+        "created_one": "作成 {{count}} 件",
+        "created_other": "作成 {{count}} 件",
+        "failed_one": "失敗 {{count}} 件",
+        "failed_other": "失敗 {{count}} 件",
+        "skipped_one": "スキップ {{count}} 件",
+        "skipped_other": "スキップ {{count}} 件",
+        "total_one": "合計 {{count}} 件",
+        "total_other": "合計 {{count}} 件",
+        "uncertain_one": "状態不明 {{count}} 件",
+        "uncertain_other": "状態不明 {{count}} 件"
+      },
+      "title": "移行結果"
+    },
+    "sub2apiDefaultGroup": "プラットフォームのデフォルトグループ（存在する場合）",
+    "target": {
+      "destinationLabel": "移行先サイト",
+      "label": "移行先",
+      "placeholder": "管理対象サイトを選択",
+      "sourceLabel": "元サイト",
+      "unselected": "未選択"
+    },
+    "title": "チャネル移行"
+  },
+  "statusLabels": {
+    "autoDisabled": "自動無効",
+    "enabled": "有効",
+    "manualPause": "手動停止",
+    "unknown": "不明"
+  },
+  "table": {
+    "columns": {
+      "actions": "操作",
+      "group": "利用可能グループ",
+      "id": "ID",
+      "models": "モデル",
+      "name": "チャネル",
+      "priority": "優先度",
+      "status": "状態",
+      "type": "種別",
+      "weight": "重み"
+    },
+    "emptyFiltered": "一致するチャネルが見つかりません。検索語句またはフィルター条件を調整してください。",
+    "emptyNoChannels": "チャネルはまだありません。チャネルを追加するか、一覧を更新してください。",
+    "loading": "チャネルを読み込み中...",
+    "noEntries": "エントリがありません",
+    "paginationNext": "次のページ",
+    "paginationPrev": "前のページ",
+    "paginationSummary": "{{total}} 件中 {{start}} - {{end}}",
+    "rowActions": {
+      "delete": "削除",
+      "edit": "編集",
+      "filters": "チャネルのフィルタールールを編集",
+      "migrate": "別サイトへ移行",
+      "openSync": "モデル同期画面を開く",
+      "sync": "モデル一覧を今すぐ同期",
+      "syncing": "同期中...",
+      "view": "チャネルを表示"
+    },
+    "rowsPerPage": "1 ページあたりの行数",
+    "selectAll": "すべての行を選択",
+    "selectRow": "行を選択"
+  },
+  "title": "チャネル管理",
+  "toasts": {
+    "channelSaved": "チャネルを保存しました",
+    "channelsDeleted_other": "{{count}} 件のチャネルを削除しました",
+    "channelUpdated": "チャネルを更新しました",
+    "syncCompleted": "モデル同期が完了しました ({{success}}/{{total}})",
+    "syncCompletedRefreshFailed": "モデルは同期されました（{{success}}/{{total}}）が、チャネル一覧を更新できませんでした。更新してもう一度お試しください。",
+    "syncFailed": "モデル同期に失敗しました: {{error}}",
+    "syncFailedFallback": "チャネルを同期できませんでした",
+    "syncIncomplete": "モデル同期は一部またはすべて失敗しました（成功 {{success}}/{{total}}）。モデル同期画面で結果を確認し、失敗したチャネルを再試行してください。"
+  },
+  "toolbar": {
+    "addChannel": "チャネルを追加",
+    "cancelRefresh": "更新を停止",
+    "clearSearch": "検索をクリア",
+    "columns": "列",
+    "deleteSelected": "選択項目を削除",
+    "enterMigrationMode": "チャネル移行",
+    "exitMigrationMode": "移行モードを終了",
+    "migrateFiltered": "絞り込み中のチャネルをすべて移行",
+    "migrateSelected": "選択項目を移行",
+    "refresh": "更新",
+    "searchPlaceholder": "名前、URL、またはグループで検索",
+    "status": "状態",
+    "syncSelected": "選択チャネルのモデルを同期",
+    "toggleColumns": "列の表示切替"
+  }
+}

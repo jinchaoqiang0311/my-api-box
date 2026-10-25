@@ -1,0 +1,466 @@
+import type { TFunction } from "i18next"
+import {
+  BookmarkPlus,
+  CircleAlert,
+  CircleCheck,
+  FolderOpen,
+  ListChecks,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { ActionGroup } from "~/components/ui/ActionGroup"
+import { Alert } from "~/components/ui/Alert"
+import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
+import { Checkbox } from "~/components/ui/checkbox"
+import { Modal } from "~/components/ui/Dialog/Modal"
+import { cn } from "~/lib/utils"
+
+import type { BookmarkAccountImportFailureCategory } from "../../bookmarkImport/types"
+import {
+  useBookmarkAccountImportDialog,
+  type BookmarkAccountImportDialogRuntime,
+} from "../../bookmarkImport/useBookmarkAccountImportDialog"
+import { ACCOUNT_MANAGEMENT_TEST_IDS } from "../../testIds"
+import { BookmarkTreeSelector } from "./BookmarkTreeSelector"
+
+interface BookmarkAccountImportDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  runtime?: BookmarkAccountImportDialogRuntime
+  devNotice?: string
+}
+
+const errorMessageKeys = {
+  "permission-denied": "ui:dialog.bookmarkAccountImport.permissionDenied",
+  "api-unavailable": "ui:dialog.bookmarkAccountImport.apiUnavailable",
+  "read-failed": "ui:dialog.bookmarkAccountImport.readFailed",
+  empty: "ui:dialog.bookmarkAccountImport.empty",
+  "no-candidates": "ui:dialog.bookmarkAccountImport.noCandidates",
+  "import-failed": "ui:dialog.bookmarkAccountImport.importFailed",
+  "reload-failed": "ui:dialog.bookmarkAccountImport.reloadFailed",
+} as const
+
+/** Resolves the import action label with its selected count. */
+function translateImportCount(t: TFunction, count: number) {
+  return t("ui:dialog.bookmarkAccountImport.actions.importSelected", {
+    count,
+  })
+}
+
+/** Resolves the selected bookmark count shown before scanning. */
+function translateSelectedBookmarkCount(t: TFunction, count: number) {
+  return t("ui:dialog.bookmarkAccountImport.selectedBookmarkCount", {
+    count,
+  })
+}
+
+/** Resolves duplicate candidate status with the existing-account count. */
+function translateDuplicateStatus(t: TFunction, count: number) {
+  return t("ui:dialog.bookmarkAccountImport.status.duplicate", {
+    count,
+  })
+}
+
+/** Resolves a safe localized failure message for an import row. */
+function translateFailureCategory(
+  t: TFunction,
+  category: BookmarkAccountImportFailureCategory,
+) {
+  switch (category) {
+    case "detection":
+      return t("ui:dialog.bookmarkAccountImport.failures.detection")
+    case "login":
+      return t("ui:dialog.bookmarkAccountImport.failures.login")
+    case "verification":
+      return t("ui:dialog.bookmarkAccountImport.failures.verification")
+    case "save":
+      return t("ui:dialog.bookmarkAccountImport.failures.save")
+    case "unknown":
+      return t("ui:dialog.bookmarkAccountImport.failures.unknown")
+  }
+}
+
+/** Renders the review status for a bookmark import candidate. */
+function CandidateStatusBadge({
+  status,
+  count,
+}: {
+  status: "ready" | "duplicate"
+  count?: number
+}) {
+  const { t } = useTranslation()
+
+  if (status === "duplicate") {
+    return (
+      <Badge variant="warning">{translateDuplicateStatus(t, count ?? 1)}</Badge>
+    )
+  }
+
+  return (
+    <Badge variant="secondary">
+      {t("ui:dialog.bookmarkAccountImport.status.ready")}
+    </Badge>
+  )
+}
+
+/** Renders the account import workflow backed by native browser bookmarks. */
+export default function BookmarkAccountImportDialog({
+  isOpen,
+  onClose,
+  runtime,
+  devNotice,
+}: BookmarkAccountImportDialogProps) {
+  const { t } = useTranslation()
+  const dialog = useBookmarkAccountImportDialog(runtime)
+  const importCount = dialog.selectedCandidates.length
+  const batchImportSteps = [
+    {
+      icon: FolderOpen,
+      label: t("ui:dialog.bookmarkAccountImport.initialSteps.chooseScope"),
+    },
+    {
+      icon: ListChecks,
+      label: t("ui:dialog.bookmarkAccountImport.initialSteps.review"),
+    },
+    {
+      icon: ShieldCheck,
+      label: t("ui:dialog.bookmarkAccountImport.initialSteps.skipExisting"),
+    },
+  ]
+
+  const header = (
+    <div className="gap-y-density-3 flex min-w-0 items-start gap-x-3 pr-8">
+      <div className="bg-primary-soft text-primary-soft-foreground py-density-2 mt-0.5 rounded-lg px-2">
+        <BookmarkPlus className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <div className="space-y-density-1 min-w-0">
+        <h2 className="text-foreground text-base font-semibold">
+          {t("ui:dialog.bookmarkAccountImport.title")}
+        </h2>
+        <p className="dark:text-secondary-foreground text-muted-foreground text-sm leading-5">
+          {t("ui:dialog.bookmarkAccountImport.description")}
+        </p>
+      </div>
+    </div>
+  )
+
+  const footer =
+    dialog.stage === "review" ? (
+      <ActionGroup layout="stack-on-narrow" className="sm:justify-between">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={dialog.backToBookmarkScopeSelection}
+          data-testid={
+            ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportBackToScopeButton
+          }
+        >
+          {t("ui:dialog.bookmarkAccountImport.actions.backToScope")}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => void dialog.startImport()}
+          disabled={importCount === 0}
+          data-testid={ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportImportButton}
+        >
+          {translateImportCount(t, importCount)}
+        </Button>
+      </ActionGroup>
+    ) : dialog.stage === "results" && dialog.result.failureCount > 0 ? (
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => void dialog.startImport(true)}
+      >
+        {t("ui:dialog.bookmarkAccountImport.actions.retryFailed")}
+      </Button>
+    ) : null
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      panelTestId={ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportDialog}
+      showCloseButton={!dialog.isBusy}
+      closeOnEsc={!dialog.isBusy}
+      closeOnBackdropClick={!dialog.isBusy}
+      size={dialog.stage === "select-scope" ? "xl" : "lg"}
+      panelClassName={
+        dialog.stage === "select-scope" ? "h-[86vh] max-h-[86vh]" : undefined
+      }
+      header={header}
+      footer={footer}
+    >
+      {devNotice && <Alert compact variant="warning" description={devNotice} />}
+      {dialog.stage === "permission-needed" && (
+        <div className="space-y-density-4">
+          {dialog.error ? (
+            <Alert
+              compact
+              variant={
+                dialog.error === "empty" || dialog.error === "no-candidates"
+                  ? "warning"
+                  : "destructive"
+              }
+              description={t(errorMessageKeys[dialog.error])}
+            />
+          ) : (
+            <div className="space-y-density-3">
+              <p className="dark:text-secondary-foreground text-muted-foreground text-sm leading-6">
+                {t("ui:dialog.bookmarkAccountImport.initialValue")}
+              </p>
+              <div className="gap-y-density-2 grid gap-x-2 sm:grid-cols-3">
+                {batchImportSteps.map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className="dark:bg-card border-border bg-surface-subtle gap-y-density-2 py-density-3 flex items-center gap-x-2 rounded-lg border px-3 text-sm"
+                  >
+                    <Icon
+                      className="text-theme-600 dark:text-theme-300 size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span className="text-secondary-foreground">{label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-muted-foreground text-xs leading-5">
+                {t("ui:dialog.bookmarkAccountImport.permissionNeeded")}
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => void dialog.startScan()}
+              leftIcon={<BookmarkPlus className="h-4 w-4" />}
+              data-testid={
+                ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportAllowScanButton
+              }
+            >
+              {t("ui:dialog.bookmarkAccountImport.actions.allowAndScan")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {dialog.stage === "scanning" && (
+        <div className="border-primary-soft-border bg-primary-soft text-primary-soft-foreground gap-y-density-3 py-density-4 flex items-center gap-x-3 rounded-lg border px-4 text-sm">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          <span>{t("ui:dialog.bookmarkAccountImport.scanning")}</span>
+        </div>
+      )}
+
+      {dialog.stage === "select-scope" && (
+        <div className="gap-y-density-4 flex min-h-0 flex-1 flex-col gap-x-4">
+          {dialog.error === "no-candidates" && (
+            <Alert
+              compact
+              variant="warning"
+              description={t(errorMessageKeys["no-candidates"])}
+            />
+          )}
+          <Alert
+            compact
+            variant="default"
+            description={t("ui:dialog.bookmarkAccountImport.scopeHelp")}
+          />
+          <BookmarkTreeSelector
+            tree={dialog.bookmarkTree}
+            selectedNodeIds={dialog.selectedBookmarkNodeIds}
+            onToggleNode={dialog.toggleBookmarkNode}
+            onSetNodeSelection={dialog.setBookmarkNodeSelection}
+            className="min-h-0 flex-1"
+          />
+          <div className="gap-y-density-2 flex shrink-0 flex-col gap-x-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-foreground text-sm">
+              {translateSelectedBookmarkCount(
+                t,
+                dialog.selectedBookmarkUrlCount,
+              )}
+            </p>
+            <Button
+              type="button"
+              onClick={() => dialog.scanSelectedBookmarks()}
+              disabled={!dialog.canScanSelectedBookmarks}
+              data-testid={
+                ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportScanSelectedButton
+              }
+            >
+              {t("ui:dialog.bookmarkAccountImport.actions.scanSelected")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {dialog.stage === "review" && (
+        <div className="space-y-density-4">
+          <Alert
+            compact
+            variant="default"
+            description={t("ui:dialog.bookmarkAccountImport.bestEffortHelp")}
+          />
+          {dialog.error === "import-failed" && (
+            <Alert
+              compact
+              variant="destructive"
+              description={t(errorMessageKeys["import-failed"])}
+            />
+          )}
+          <label className="border-border gap-y-density-3 py-density-3 flex items-start gap-x-3 rounded-lg border px-3 text-sm">
+            <Checkbox
+              checked={dialog.includeExisting}
+              onCheckedChange={(checked) =>
+                dialog.toggleIncludeExisting(checked === true)
+              }
+              data-testid={
+                ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportIncludeExistingCheckbox
+              }
+            />
+            <span className="text-secondary-foreground leading-5">
+              {t("ui:dialog.bookmarkAccountImport.includeExisting")}
+            </span>
+          </label>
+
+          <div className="space-y-density-2">
+            {dialog.candidates.map((candidate) => {
+              const checked = dialog.selectedCandidateIds.has(candidate.id)
+              const disabled =
+                candidate.status === "duplicate" && !dialog.includeExisting
+
+              return (
+                <div
+                  key={candidate.id}
+                  data-testid={
+                    ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportCandidateRow
+                  }
+                  className={cn(
+                    "gap-y-density-3 py-density-3 flex items-start gap-x-3 rounded-lg border px-3",
+                    disabled
+                      ? "border-warning-border bg-warning-soft"
+                      : "border-border bg-card",
+                  )}
+                >
+                  <Checkbox
+                    checked={checked}
+                    disabled={disabled}
+                    onCheckedChange={() => dialog.toggleCandidate(candidate.id)}
+                    aria-label={candidate.url}
+                    className="mt-density-1"
+                  />
+                  <div className="space-y-density-2 min-w-0 flex-1">
+                    <div className="gap-y-density-2 flex min-w-0 flex-wrap items-center gap-x-2">
+                      <span className="text-foreground min-w-0 text-sm font-medium break-all">
+                        {candidate.url}
+                      </span>
+                      <CandidateStatusBadge
+                        status={candidate.status}
+                        count={candidate.existingAccountCount}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {dialog.stage === "importing" && (
+        <div className="border-primary-soft-border bg-primary-soft text-primary-soft-foreground gap-y-density-3 py-density-4 flex items-center gap-x-3 rounded-lg border px-4 text-sm">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          <span>
+            {t("ui:dialog.bookmarkAccountImport.importing", {
+              completed: dialog.progress.completedCount,
+              total: dialog.progress.totalCount,
+            })}
+          </span>
+        </div>
+      )}
+
+      {dialog.stage === "results" && (
+        <div className="space-y-density-4">
+          {dialog.error === "import-failed" && (
+            <Alert
+              compact
+              variant="warning"
+              description={t(errorMessageKeys["import-failed"])}
+            />
+          )}
+          {dialog.result.failureCount > 0 && (
+            <Alert
+              compact
+              variant="default"
+              description={t("ui:dialog.bookmarkAccountImport.recoveryHelp")}
+            />
+          )}
+          {dialog.error === "reload-failed" && (
+            <Alert
+              compact
+              variant="warning"
+              description={t(errorMessageKeys["reload-failed"])}
+            />
+          )}
+          <Alert
+            compact
+            variant={dialog.result.failureCount > 0 ? "warning" : "success"}
+            description={t("ui:dialog.bookmarkAccountImport.resultSummary", {
+              success: dialog.result.successCount,
+              failed: dialog.result.failureCount,
+              skipped: dialog.result.skippedCount,
+            })}
+          />
+          <div className="space-y-density-2">
+            {dialog.result.rows.map((row) => (
+              <div
+                key={row.candidateId}
+                className="border-border gap-y-density-3 py-density-3 flex items-start justify-between gap-x-3 rounded-lg border px-3"
+              >
+                <div className="space-y-density-1 min-w-0">
+                  <div className="gap-y-density-2 flex items-center gap-x-2">
+                    {row.status === "success" ? (
+                      <CircleCheck
+                        className="text-success-text h-4 w-4"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <CircleAlert
+                        className="text-warning-text h-4 w-4"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className="text-foreground text-sm font-medium break-all">
+                      {row.url}
+                    </span>
+                  </div>
+                  <p className="dark:text-secondary-foreground text-muted-foreground text-xs">
+                    {row.status === "success"
+                      ? t("ui:dialog.bookmarkAccountImport.status.imported")
+                      : translateFailureCategory(t, row.failureCategory)}
+                  </p>
+                </div>
+                {row.status === "failed" && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => dialog.openFailedAddAccount(row)}
+                    data-testid={
+                      ACCOUNT_MANAGEMENT_TEST_IDS.bookmarkImportOpenFailedAddAccountButton
+                    }
+                  >
+                    {t(
+                      "ui:dialog.bookmarkAccountImport.actions.openAddAccount",
+                    )}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}

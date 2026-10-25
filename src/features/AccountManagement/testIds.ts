@@ -1,0 +1,166 @@
+import type { AccountSiteType } from "~/constants/siteType"
+import type { SortField } from "~/types"
+
+export const ACCOUNT_MANAGEMENT_TEST_IDS = {
+  addAccountButton: "account-management-add-account-button",
+  emptyStateAddAccountButton:
+    "account-management-empty-state-add-account-button",
+  externalCheckInButton: "account-management-external-check-in-button",
+  headerActions: "account-management-header-actions",
+  accountListHeader: "account-management-account-list-header",
+  accountListSortControls: "account-management-account-list-sort-controls",
+  accountListSortMenuButton: "account-management-account-list-sort-menu-button",
+  accountListSortDirectionButton:
+    "account-management-account-list-sort-direction-button",
+  accountListUtilities: "account-management-account-list-utilities",
+  accountListClearSortButton:
+    "account-management-account-list-clear-sort-button",
+  accountListBulkManageButton:
+    "account-management-account-list-bulk-manage-button",
+  accountListReorderButton: "account-management-account-list-reorder-button",
+  siteCheckInStatusButton: "account-management-site-check-in-status-button",
+  customCheckInStatusButton: "account-management-custom-check-in-status-button",
+  accountDialog: "account-management-account-dialog",
+  accountForm: "account-management-account-form",
+  accountListView: "account-list-view",
+  siteUrlInput: "account-management-site-url-input",
+  authTypeTrigger: "account-management-auth-type-trigger",
+  autoDetectButton: "account-management-auto-detect-button",
+  autoDetectErrorMessage: "account-management-auto-detect-error-message",
+  manualAddButton: "account-management-manual-add-button",
+  autoConfigButton: "account-management-auto-config-button",
+  siteNameInput: "account-management-site-name-input",
+  siteTypeTrigger: "account-management-site-type-trigger",
+  usernameInput: "account-management-username-input",
+  userIdInput: "account-management-user-id-input",
+  accessTokenInput: "account-management-access-token-input",
+  accountFormSectionSiteInfo:
+    "account-management-account-form-section-site-info",
+  accountFormSectionLogin: "account-management-account-form-section-login",
+  accountFormSectionAuth: "account-management-account-form-section-auth",
+  accountFormSectionTagsNotes:
+    "account-management-account-form-section-tags-notes",
+  accountFormSectionCheckIn: "account-management-account-form-section-check-in",
+  accountFormSectionBalance: "account-management-account-form-section-balance",
+  sub2apiRefreshTokenSwitch: "account-management-sub2api-refresh-token-switch",
+  sub2apiImportSessionButton:
+    "account-management-sub2api-import-session-button",
+  sub2apiRefreshTokenInput: "account-management-sub2api-refresh-token-input",
+  cookiePermissionRecommendation:
+    "account-management-cookie-permission-recommendation",
+  cookiePermissionGrantButton:
+    "account-management-cookie-permission-grant-button",
+  confirmAddButton: "account-management-confirm-add-button",
+  rowOpenButton: "account-management-row-open-button",
+  rowLdohLookupButton: "account-management-row-ldoh-lookup-button",
+  rowCopyUrlButton: "account-management-row-copy-url-button",
+  rowCopyKeyButton: "account-management-row-copy-key-button",
+  copyKeyDialogRuntimeKeyItem:
+    "account-management-copy-key-dialog-runtime-key-item",
+  copyKeyDialogFooter: "account-management-copy-key-dialog-footer",
+  copyKeyDialogExportMenuButton:
+    "account-management-copy-key-dialog-export-menu-button",
+  copyKeyDialogImportToManagedSiteButton:
+    "account-management-copy-key-dialog-import-to-managed-site-button",
+  copyKeyDialogExportToCCSwitchButton:
+    "account-management-copy-key-dialog-export-to-cc-switch-button",
+  copyKeyDialogExportToAiToolboxButton:
+    "account-management-copy-key-dialog-export-to-ai-toolbox-button",
+  copyKeyDialogExportToCursorPlusButton:
+    "account-management-copy-key-dialog-export-to-cursor-plus-button",
+  rowEditButton: "account-management-row-edit-button",
+  rowMoreActionsButton: "account-management-row-more-actions-button",
+  rowCopyInviteLinkMenuItem:
+    "account-management-row-copy-invite-link-menu-item",
+  inviteLinkManualCopyDialog:
+    "account-management-invite-link-manual-copy-dialog",
+  inviteLinkManualCopyTextarea:
+    "account-management-invite-link-manual-copy-textarea",
+  rowKeyManagementMenuItem: "account-management-row-key-management-menu-item",
+  rowModelManagementMenuItem:
+    "account-management-row-model-management-menu-item",
+  rowUsageLogMenuItem: "account-management-row-usage-log-menu-item",
+  rowRedeemMenuItem: "account-management-row-redeem-menu-item",
+  rowPinToggleMenuItem: "account-management-row-pin-toggle-menu-item",
+  rowQuickCheckinMenuItem: "account-management-row-quick-checkin-menu-item",
+  rowRefreshMenuItem: "account-management-row-refresh-menu-item",
+  rowDisableToggleMenuItem: "account-management-row-disable-toggle-menu-item",
+  rowDeleteMenuItem: "account-management-row-delete-menu-item",
+  deleteConfirmButton: "account-management-delete-confirm-button",
+  dedupeScanButton: "account-management-dedupe-scan-button",
+  dedupePreviewDeleteButton: "account-management-dedupe-preview-delete-button",
+  dedupeConfirmDeleteButton: "account-management-dedupe-confirm-delete-button",
+  bookmarkImportButton: "account-management-bookmark-import-button",
+  bookmarkImportDialog: "account-management-bookmark-import-dialog",
+  bookmarkImportAllowScanButton:
+    "account-management-bookmark-import-allow-scan-button",
+  bookmarkImportScanSelectedButton:
+    "account-management-bookmark-import-scan-selected-button",
+  bookmarkImportBackToScopeButton:
+    "account-management-bookmark-import-back-to-scope-button",
+  bookmarkImportSelectAllButton:
+    "account-management-bookmark-import-select-all-button",
+  bookmarkImportScopeCheckbox:
+    "account-management-bookmark-import-scope-checkbox",
+  bookmarkImportScopeTree: "account-management-bookmark-import-scope-tree",
+  bookmarkImportImportButton:
+    "account-management-bookmark-import-import-button",
+  bookmarkImportIncludeExistingCheckbox:
+    "account-management-bookmark-import-include-existing-checkbox",
+  bookmarkImportCandidateRow:
+    "account-management-bookmark-import-candidate-row",
+  bookmarkImportOpenFailedAddAccountButton:
+    "account-management-bookmark-import-open-failed-add-account-button",
+  duplicateWarningContinueButton:
+    "account-management-duplicate-warning-continue-button",
+  sponsorRecommendations: "account-management-sponsor-recommendations",
+  sponsorRecommendationCard: "account-management-sponsor-recommendation-card",
+  sponsorPrimaryAction: "account-management-sponsor-primary-action",
+  sponsorContinueAddAccountAction:
+    "account-management-sponsor-continue-add-account-action",
+  sponsorPrimaryBookmarkAction:
+    "account-management-sponsor-primary-bookmark-action",
+  sponsorPrimaryApiCredentialProfilesAction:
+    "account-management-sponsor-primary-api-credential-profiles-action",
+  sponsorPostClickNote: "account-management-sponsor-post-click-note",
+  sponsorFallbackBookmarkAction:
+    "account-management-sponsor-fallback-bookmark-action",
+  sponsorFallbackApiCredentialProfilesAction:
+    "account-management-sponsor-fallback-api-credential-profiles-action",
+} as const
+
+export const ACCOUNT_MANAGEMENT_LIST_ITEM_TEST_ID_PREFIX =
+  "account-management-account-list-item-"
+
+/** Returns a stable test id for an account-list sort control. */
+export function getAccountManagementSortButtonTestId(field: SortField) {
+  return `account-management-account-list-sort-${field}-button`
+}
+
+/** Returns a stable test id for a site-type option in the account form. */
+export function getAccountManagementSiteTypeOptionTestId(
+  siteType: AccountSiteType,
+) {
+  return `account-management-site-type-option-${siteType}`
+}
+
+/**
+ * Returns a stable test id for a rendered account row.
+ */
+export function getAccountManagementListItemTestId(accountId: string) {
+  return `${ACCOUNT_MANAGEMENT_LIST_ITEM_TEST_ID_PREFIX}${accountId}`
+}
+
+/**
+ * Returns a stable test id for an account selection checkbox in bulk mode.
+ */
+export function getAccountManagementSelectionCheckboxTestId(accountId: string) {
+  return `account-management-account-selection-checkbox-${accountId}`
+}
+
+/**
+ * Returns a stable test id for a runtime key row inside the copy-key dialog.
+ */
+export function getCopyKeyDialogRuntimeKeyItemTestId(runtimeKeyId: string) {
+  return `${ACCOUNT_MANAGEMENT_TEST_IDS.copyKeyDialogRuntimeKeyItem}-${runtimeKeyId}`
+}

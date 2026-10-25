@@ -1,0 +1,307 @@
+import { Maximize2, PanelRightClose, RefreshCw, Settings } from "lucide-react"
+import { useCallback, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import iconImage from "~/assets/icon.png"
+import { FeedbackDropdownMenu } from "~/components/FeedbackDropdownMenu"
+import Tooltip from "~/components/Tooltip"
+import { BodySmall, IconButton } from "~/components/ui"
+import { VersionBadge } from "~/components/VersionBadge"
+import { COLORS } from "~/constants/designTokens"
+import { ProductAnalyticsScope } from "~/contexts/ProductAnalyticsScopeContext"
+import { useAccountDataContext } from "~/features/AccountManagement/data/AccountDataContext"
+import HeaderThemeSwitcher from "~/features/Appearance/HeaderThemeSwitcher"
+import { ProductAnnouncementButton } from "~/features/ProductAnnouncements/ProductAnnouncementButton"
+import toast from "~/lib/notify"
+import { startProductAnalyticsAction } from "~/services/productAnalytics/actions"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_MODE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SOURCE_KINDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { buildAccountRefreshDiagnostics } from "~/services/productAnalytics/facts/accountRefresh"
+import { isExtensionSidePanel } from "~/utils/browser"
+import { getSidePanelSupport } from "~/utils/browser/sidePanel"
+import { createLogger } from "~/utils/core/logger"
+import {
+  openApiCredentialProfilesPage,
+  openFullAccountManagerPage,
+  openFullBookmarkManagerPage,
+  openSettingsPage,
+} from "~/utils/navigation"
+import { openSidePanelPage } from "~/utils/navigation/sidepanel"
+
+import { getPopupOpenFullPageButtonTestId } from "../testIds"
+import { POPUP_VIEW_TYPES } from "../viewTypes"
+import type { PopupViewType } from "./PopupViewSwitchTabs"
+
+/**
+ * Unified logger scoped to the popup header component.
+ */
+const logger = createLogger("PopupHeaderSection")
+
+/**
+ * Popup header with app identity (including version), theme selection, and navigation controls.
+ * Provides refresh, open-full-page, settings, and side panel shortcuts, while
+ * hiding side-panel entry points on runtimes that report unsupported behavior.
+ */
+export default function HeaderSection({
+  showRefresh = true,
+  activeView = POPUP_VIEW_TYPES.Accounts,
+}: {
+  showRefresh?: boolean
+  activeView?: PopupViewType
+}) {
+  const { t, i18n } = useTranslation(["ui", "account", "common"])
+  const { isRefreshing, handleRefresh } = useAccountDataContext()
+  const [isManualRefreshPending, setIsManualRefreshPending] = useState(false)
+  const inSidePanel = isExtensionSidePanel()
+  const sidePanelSupported = getSidePanelSupport().supported
+  const entrypoint = inSidePanel
+    ? PRODUCT_ANALYTICS_ENTRYPOINTS.Sidepanel
+    : PRODUCT_ANALYTICS_ENTRYPOINTS.Popup
+  const headerSurface = inSidePanel
+    ? PRODUCT_ANALYTICS_SURFACE_IDS.SidepanelHeader
+    : PRODUCT_ANALYTICS_SURFACE_IDS.PopupHeader
+
+  const handleGlobalRefresh = useCallback(async () => {
+    if (isRefreshing || isManualRefreshPending) return
+
+    const tracker = startProductAnalyticsAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.RefreshPopupAccounts,
+      surfaceId: headerSurface,
+      entrypoint,
+    })
+    setIsManualRefreshPending(true)
+
+    try {
+      const result = await toast.promise(handleRefresh(true), {
+        loading: t("account:refresh.refreshingAll"),
+        success: (result) => {
+          if (result.failed > 0) {
+            return t("account:refresh.refreshComplete", {
+              success: result.success,
+              failed: result.failed,
+            })
+          }
+          return t("account:refresh.refreshSuccess")
+        },
+        error: t("account:refresh.refreshFailed"),
+      })
+      const refreshInsights = {
+        itemCount: result.success + result.failed,
+        successCount: result.success,
+        failureCount: result.failed,
+      }
+      const skippedCount = Math.max(
+        refreshInsights.itemCount - result.refreshedCount,
+        0,
+      )
+      const refreshDiagnostics = buildAccountRefreshDiagnostics({
+        sourceKind: PRODUCT_ANALYTICS_SOURCE_KINDS.Manual,
+        mode: PRODUCT_ANALYTICS_MODE_IDS.All,
+        itemCount: refreshInsights.itemCount,
+        successCount: result.success,
+        failureCount: result.failed,
+        skippedCount,
+      })
+      if (result.failed > 0) {
+        tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+          errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+          insights: refreshInsights,
+          diagnostics: refreshDiagnostics,
+        })
+        return
+      }
+
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Success, {
+        insights: refreshInsights,
+        diagnostics: refreshDiagnostics,
+      })
+    } catch (error) {
+      logger.error("Error during global refresh", error)
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+        diagnostics: buildAccountRefreshDiagnostics({
+          sourceKind: PRODUCT_ANALYTICS_SOURCE_KINDS.Manual,
+          mode: PRODUCT_ANALYTICS_MODE_IDS.All,
+          error,
+        }),
+      })
+    } finally {
+      setIsManualRefreshPending(false)
+    }
+  }, [
+    entrypoint,
+    handleRefresh,
+    headerSurface,
+    isManualRefreshPending,
+    isRefreshing,
+    t,
+  ])
+
+  const openFullPageLabel =
+    activeView === POPUP_VIEW_TYPES.Bookmarks
+      ? t("ui:navigation.bookmark")
+      : activeView === POPUP_VIEW_TYPES.ApiCredentialProfiles
+        ? t("ui:navigation.apiCredentialProfiles")
+        : t("ui:navigation.account")
+  const openFullPageFeatureId =
+    activeView === POPUP_VIEW_TYPES.Bookmarks
+      ? PRODUCT_ANALYTICS_FEATURE_IDS.BookmarkManagement
+      : activeView === POPUP_VIEW_TYPES.ApiCredentialProfiles
+        ? PRODUCT_ANALYTICS_FEATURE_IDS.ApiCredentialProfiles
+        : PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement
+  const openFullPageActionId =
+    activeView === POPUP_VIEW_TYPES.Bookmarks
+      ? PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupBookmarkManagementPage
+      : activeView === POPUP_VIEW_TYPES.ApiCredentialProfiles
+        ? PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupApiCredentialProfilesPage
+        : PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupAccountManagementPage
+  const openFullPageTestId = getPopupOpenFullPageButtonTestId(activeView)
+
+  const handleOpenFullPage = async () => {
+    if (activeView === POPUP_VIEW_TYPES.Bookmarks) {
+      await openFullBookmarkManagerPage()
+      return
+    }
+
+    if (activeView === POPUP_VIEW_TYPES.ApiCredentialProfiles) {
+      await openApiCredentialProfilesPage()
+      return
+    }
+
+    await openFullAccountManagerPage()
+  }
+
+  const handleOpenSetting = async () => {
+    await openSettingsPage()
+  }
+
+  const handleOpenSidePanel = async () => {
+    await openSidePanelPage()
+  }
+
+  return (
+    <header
+      className={`py-density-2 sm:py-density-3 flex items-center justify-between px-3 sm:px-5 ${COLORS.background.primary} ${COLORS.border.default} shrink-0 border-b`}
+    >
+      {/* Logo and Title Section */}
+      <div className="gap-y-density-2-5 sm:gap-y-density-3 @container flex min-w-7 flex-1 items-center gap-x-2.5 sm:min-w-8 sm:gap-x-3">
+        <img
+          src={iconImage}
+          alt={t("ui:app.name")}
+          title={t("ui:app.name")}
+          className="h-7 w-7 shrink-0 rounded-lg object-contain shadow-sm sm:h-8 sm:w-8"
+        />
+        <div className="hidden min-w-0 flex-1 @min-[8rem]:block">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <BodySmall weight="semibold" className="truncate leading-tight">
+              {t("ui:app.name")}
+            </BodySmall>
+            {/* Current extension version (links to the changelog). */}
+            <VersionBadge
+              size="sm"
+              className="[&>a]:gap-y-density-1 w-fit self-start px-1.5 py-0 text-[length:calc(0.65rem+var(--text-size-increment))] leading-tight [&>a]:gap-x-1 [&>a]:leading-tight [&>a>svg]:size-3"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons Section */}
+      <ProductAnalyticsScope entrypoint={entrypoint} surfaceId={headerSurface}>
+        <div className="gap-y-density-1 sm:gap-y-density-2 flex shrink-0 items-center gap-x-1 sm:gap-x-2">
+          {showRefresh && (
+            <div className="flex items-center gap-x-1 sm:gap-x-2">
+              <ProductAnalyticsScope
+                featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement}
+              >
+                <Tooltip content={t("common:actions.refresh")}>
+                  <IconButton
+                    onClick={handleGlobalRefresh}
+                    loading={isManualRefreshPending}
+                    disabled={isRefreshing}
+                    variant="outline"
+                    size="sm"
+                    aria-label={t("common:actions.refresh")}
+                    className="touch-manipulation"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </IconButton>
+                </Tooltip>
+              </ProductAnalyticsScope>
+            </div>
+          )}
+          <div className="border-border flex items-center gap-x-1 sm:gap-x-2 sm:border-s sm:ps-2">
+            <ProductAnnouncementButton surface="popup-header" onlyWhenRisk />
+            <FeedbackDropdownMenu language={i18n.language} />
+          </div>
+          <div className="border-border flex items-center gap-x-1 sm:gap-x-2 sm:border-s sm:ps-2">
+            <HeaderThemeSwitcher />
+            <ProductAnalyticsScope
+              featureId={PRODUCT_ANALYTICS_FEATURE_IDS.ProductAnalyticsSettings}
+            >
+              <Tooltip content={t("common:labels.settings")}>
+                <IconButton
+                  onClick={handleOpenSetting}
+                  variant="outline"
+                  size="sm"
+                  aria-label={t("common:labels.settings")}
+                  className="touch-manipulation"
+                  analyticsAction={
+                    PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupSettingsPage
+                  }
+                >
+                  <Settings className="h-4 w-4" />
+                </IconButton>
+              </Tooltip>
+            </ProductAnalyticsScope>
+          </div>
+          <div className="border-border flex items-center gap-x-1 sm:gap-x-2 sm:border-s sm:ps-2">
+            <ProductAnalyticsScope
+              featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement}
+            >
+              <ProductAnalyticsScope featureId={openFullPageFeatureId}>
+                <Tooltip content={openFullPageLabel}>
+                  <IconButton
+                    onClick={handleOpenFullPage}
+                    variant="outline"
+                    size="sm"
+                    aria-label={openFullPageLabel}
+                    data-testid={openFullPageTestId}
+                    className="touch-manipulation"
+                    analyticsAction={openFullPageActionId}
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </IconButton>
+                </Tooltip>
+              </ProductAnalyticsScope>
+
+              {!inSidePanel && sidePanelSupported && (
+                <Tooltip content={t("common:actions.openSidePanel")}>
+                  <IconButton
+                    aria-label={t("common:actions.openSidePanel")}
+                    size="sm"
+                    variant="outline"
+                    onClick={handleOpenSidePanel}
+                    analyticsAction={
+                      PRODUCT_ANALYTICS_ACTION_IDS.OpenSidepanelFromPopup
+                    }
+                  >
+                    <PanelRightClose className="h-4 w-4" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </ProductAnalyticsScope>
+          </div>
+        </div>
+      </ProductAnalyticsScope>
+    </header>
+  )
+}

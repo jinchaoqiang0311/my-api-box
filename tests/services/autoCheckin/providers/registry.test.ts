@@ -1,0 +1,529 @@
+import { describe, expect, it } from "vitest"
+
+import { AUTO_CHECKIN_METHOD_IDS } from "~/constants/checkIn"
+import { SITE_TYPES } from "~/constants/siteType"
+import { autoCheckinMethodRegistry } from "~/services/checkin/autoCheckin/providers"
+import { aiRouterProvider } from "~/services/checkin/autoCheckin/providers/aiRouter"
+import { anyrouterProvider } from "~/services/checkin/autoCheckin/providers/anyrouter"
+import { dayaProvider } from "~/services/checkin/autoCheckin/providers/daya"
+import { denxioProvider } from "~/services/checkin/autoCheckin/providers/denxio"
+import { newApiProvider } from "~/services/checkin/autoCheckin/providers/newApi"
+import { nexavlinksProvider } from "~/services/checkin/autoCheckin/providers/nexavlinks"
+import {
+  AUTO_CHECKIN_METHOD_DEFINITIONS,
+  AUTO_CHECKIN_METHOD_SOURCE_KINDS,
+  createAutoCheckinMethodMetadata,
+  createAutoCheckinMethodRegistry,
+  decodePersistedCheckInMethodId,
+  getAutoCheckinCandidateMethodIds,
+  getAutoCheckinMethodSource,
+  getLegacyAutoCheckinMethodIds,
+  getNewAccountCompatibilityMethodIds,
+  supportsCheckInStatusReadback,
+} from "~/services/checkin/autoCheckin/providers/registry"
+import type {
+  AutoCheckinMethodDefinition,
+  AutoCheckinMethodRegistration,
+} from "~/services/checkin/autoCheckin/providers/registry"
+import { relayForProvider } from "~/services/checkin/autoCheckin/providers/relayfor"
+import { sub2apiProProvider } from "~/services/checkin/autoCheckin/providers/sub2apiPro"
+import { veloeraProvider } from "~/services/checkin/autoCheckin/providers/veloera"
+import { voApiV2Provider } from "~/services/checkin/autoCheckin/providers/voapiV2"
+import { wongGongyiProvider } from "~/services/checkin/autoCheckin/providers/wong"
+import { xiaobaiCodeProvider } from "~/services/checkin/autoCheckin/providers/xiaobaiCode"
+import type { CheckInMethodId } from "~/types/checkIn"
+
+const OFFICIAL_METHOD_SOURCE = {
+  kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.Official,
+} as const
+
+const registrationFor = (
+  id: CheckInMethodId,
+): AutoCheckinMethodRegistration => {
+  const registration = autoCheckinMethodRegistry.resolveById(id)
+  if (!registration) {
+    throw new Error(`Missing test registration: ${id}`)
+  }
+  return registration
+}
+
+const getAnyrouterRegistration = () =>
+  registrationFor(AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn)
+
+describe("autoCheckinMethodRegistry", () => {
+  it("uses Xiaoen's own daily method with authoritative status readback", () => {
+    expect(getAutoCheckinCandidateMethodIds(SITE_TYPES.XIAOEN)).toEqual([
+      AUTO_CHECKIN_METHOD_IDS.XiaoenDailyCheckIn,
+    ])
+    expect(
+      supportsCheckInStatusReadback(AUTO_CHECKIN_METHOD_IDS.XiaoenDailyCheckIn),
+    ).toBe(true)
+    expect(getLegacyAutoCheckinMethodIds(SITE_TYPES.XIAOEN)).toEqual([])
+    expect(getNewAccountCompatibilityMethodIds(SITE_TYPES.XIAOEN)).toEqual([])
+  })
+  it("uses EMRank's own daily method with authoritative status readback", () => {
+    expect(getAutoCheckinCandidateMethodIds(SITE_TYPES.EMRANK)).toEqual([
+      AUTO_CHECKIN_METHOD_IDS.EmrankDailyCheckIn,
+    ])
+    expect(
+      supportsCheckInStatusReadback(AUTO_CHECKIN_METHOD_IDS.EmrankDailyCheckIn),
+    ).toBe(true)
+    expect(getLegacyAutoCheckinMethodIds(SITE_TYPES.EMRANK)).toEqual([])
+    expect(getNewAccountCompatibilityMethodIds(SITE_TYPES.EMRANK)).toEqual([])
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.EMRANK, "https://emrank.tech")
+        .map(({ id }) => id),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.EmrankDailyCheckIn])
+    // The site's status route is its own; a sibling deployment never inherits
+    // this method, and an unknown type never discovers it.
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.UNKNOWN)
+        .map(({ id }) => id),
+    ).not.toContain(AUTO_CHECKIN_METHOD_IDS.EmrankDailyCheckIn)
+  })
+  it("registers stable identities without changing legacy method mapping", () => {
+    const registrationContracts = autoCheckinMethodRegistry.registrations.map(
+      ({ id, siteTypes, provider }) => ({
+        id,
+        candidateSiteTypes: siteTypes,
+        provider,
+      }),
+    )
+
+    expect(registrationContracts).toHaveLength(22)
+    expect(registrationContracts).toEqual(
+      expect.arrayContaining([
+        {
+          id: "anyrouter:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.ANYROUTER],
+          provider: anyrouterProvider,
+        },
+        {
+          id: "veloera:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.VELOERA],
+          provider: veloeraProvider,
+        },
+        {
+          id: "wong-gongyi:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.WONG_GONGYI],
+          provider: wongGongyiProvider,
+        },
+        {
+          id: "new-api:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.NEW_API, SITE_TYPES.MODELFLARE],
+          provider: newApiProvider,
+        },
+        {
+          id: "voapi-v2:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.VO_API_V2],
+          provider: voApiV2Provider,
+        },
+        {
+          id: "sub2api-pro:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.SUB2API],
+          provider: sub2apiProProvider,
+        },
+        {
+          id: "denxio:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.SUB2API],
+          provider: denxioProvider,
+        },
+        {
+          id: "xiaobai-code:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.SUB2API],
+          provider: xiaobaiCodeProvider,
+        },
+        {
+          id: "ai-router:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.SUB2API],
+          provider: aiRouterProvider,
+        },
+        {
+          id: "nexavlinks:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.SUB2API],
+          provider: nexavlinksProvider,
+        },
+        {
+          id: "daya:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.DAYA],
+          provider: dayaProvider,
+        },
+        {
+          id: "relayfor:daily-checkin",
+          candidateSiteTypes: [SITE_TYPES.RELAYFOR],
+          provider: relayForProvider,
+        },
+      ]),
+    )
+
+    expect(getLegacyAutoCheckinMethodIds(SITE_TYPES.NEW_API)).toEqual([
+      AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn,
+    ])
+    expect(getLegacyAutoCheckinMethodIds(SITE_TYPES.ONE_API)).toEqual([])
+  })
+
+  it("exposes only safe read-only status operations", () => {
+    expect(anyrouterProvider.getStatus).toBeUndefined()
+    expect(anyrouterProvider.detect).toBeUndefined()
+    expect(newApiProvider.getStatus).toBeTypeOf("function")
+    expect(newApiProvider.detect).toBeTypeOf("function")
+    expect(veloeraProvider.getStatus).toBeTypeOf("function")
+    expect(veloeraProvider.detect).toBeTypeOf("function")
+    expect(wongGongyiProvider.getStatus).toBeTypeOf("function")
+    expect(wongGongyiProvider.detect).toBeTypeOf("function")
+    expect(voApiV2Provider.getStatus).toBeTypeOf("function")
+    expect(voApiV2Provider.detect).toBeTypeOf("function")
+    expect(sub2apiProProvider.getStatus).toBeTypeOf("function")
+    expect(sub2apiProProvider.detect).toBeTypeOf("function")
+    expect(denxioProvider.getStatus).toBeTypeOf("function")
+    expect(denxioProvider.detect).toBeTypeOf("function")
+  })
+
+  it("publishes readback metadata that matches the executable provider", () => {
+    for (const definition of Object.values(AUTO_CHECKIN_METHOD_DEFINITIONS)) {
+      const registration = autoCheckinMethodRegistry.resolveById(definition.id)
+      expect(registration).toBeTruthy()
+      expect(definition.supportsStatusReadback).toBe(
+        Boolean(registration?.provider.getStatus),
+      )
+      expect(supportsCheckInStatusReadback(definition.id)).toBe(
+        definition.supportsStatusReadback === true,
+      )
+    }
+    expect(supportsCheckInStatusReadback(undefined)).toBe(false)
+    expect(supportsCheckInStatusReadback("not-a-method")).toBe(false)
+  })
+
+  it("offers login check-in only on Agent Router without adding a site type", () => {
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.NEW_API, "https://agentrouter.org")
+        .map(({ id }) => id),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.AgentRouterLoginCheckIn])
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.NEW_API, "https://ps.air-outer.com")
+        .map(({ id }) => id),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.AgentRouterLoginCheckIn])
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.NEW_API, "https://normal.example")
+        .map(({ id }) => id),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn])
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.UNKNOWN, "https://agentrouter.org")
+        .map(({ id }) => id),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.AgentRouterLoginCheckIn])
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.UNKNOWN, "https://ps.air-outer.com")
+        .map(({ id }) => id),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.AgentRouterLoginCheckIn])
+    expect(getNewAccountCompatibilityMethodIds(SITE_TYPES.UNKNOWN)).toEqual([])
+  })
+
+  it("distinguishes official methods from third-party protocol methods", () => {
+    expect(
+      getAutoCheckinMethodSource(AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn),
+    ).toEqual(OFFICIAL_METHOD_SOURCE)
+    expect(
+      getAutoCheckinMethodSource(
+        AUTO_CHECKIN_METHOD_IDS.Sub2ApiProDailyCheckIn,
+      ),
+    ).toEqual({
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "Sub2API Pro",
+    })
+    expect(
+      getAutoCheckinMethodSource(AUTO_CHECKIN_METHOD_IDS.DenxioDailyCheckIn),
+    ).toEqual({
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "登仙公益站",
+    })
+  })
+
+  it("keeps newly introduced candidates outside legacy and new-account compatibility", () => {
+    const metadata = createAutoCheckinMethodMetadata([
+      {
+        id: AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+        siteTypes: [SITE_TYPES.NEW_API],
+        source: OFFICIAL_METHOD_SOURCE,
+        feedbackStatusRoutes: [],
+        legacy: true,
+        newAccountCompatibility: true,
+      },
+      {
+        id: AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+        siteTypes: [SITE_TYPES.NEW_API],
+        source: OFFICIAL_METHOD_SOURCE,
+        feedbackStatusRoutes: [],
+        legacy: false,
+        newAccountCompatibility: false,
+      },
+    ])
+
+    expect(metadata.candidateSiteTypes).toEqual({
+      [AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn]: [SITE_TYPES.NEW_API],
+      [AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn]: [SITE_TYPES.NEW_API],
+    })
+    expect(metadata.legacySiteTypes).toEqual({
+      [AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn]: [SITE_TYPES.NEW_API],
+    })
+    expect(metadata.newAccountCompatibilitySiteTypes).toEqual({
+      [AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn]: [SITE_TYPES.NEW_API],
+    })
+  })
+
+  it("enumerates every candidate in declaration order and resolves execution by ID", () => {
+    const anyrouterRegistration = getAnyrouterRegistration()
+    const veloeraRegistration = registrationFor(
+      AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+    )
+    const registry = createAutoCheckinMethodRegistry([
+      {
+        id: anyrouterRegistration.id,
+        siteTypes: [SITE_TYPES.NEW_API],
+        provider: anyrouterRegistration.provider,
+      },
+      {
+        id: veloeraRegistration.id,
+        siteTypes: [SITE_TYPES.NEW_API],
+        provider: veloeraRegistration.provider,
+      },
+    ])
+
+    expect(
+      registry
+        .getCandidates(SITE_TYPES.NEW_API)
+        .map((registration) => registration.id),
+    ).toEqual([
+      AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+    ])
+    expect(
+      registry.resolveById(AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn),
+    ).toMatchObject({ provider: veloeraProvider })
+  })
+
+  it("enumerates only pre-existing providers through the new-account compatibility bridge", () => {
+    expect(getNewAccountCompatibilityMethodIds(SITE_TYPES.ANYROUTER)).toEqual([
+      "anyrouter:daily-checkin",
+    ])
+    expect(getNewAccountCompatibilityMethodIds(SITE_TYPES.SUB2API)).toEqual([])
+  })
+
+  it("keeps deployment-specific Sub2API methods discovery-only", () => {
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.SUB2API)
+        .map(({ id }) => id),
+    ).toEqual([
+      AUTO_CHECKIN_METHOD_IDS.Sub2ApiProDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.GeniusProgrammerDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.ToolcodeDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.DenxioDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.HiyoDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.XiaobaiCodeDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.ClawhudDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.DaiguaDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.SidruneDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.FreeApiDailyCheckIn,
+      AUTO_CHECKIN_METHOD_IDS.NexaVlinksDailyCheckIn,
+    ])
+    expect(
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.SUB2API, "https://any-deployment.example")
+        .map(({ id }) => id),
+    ).toContain(AUTO_CHECKIN_METHOD_IDS.XiaobaiCodeDailyCheckIn)
+    expect(getLegacyAutoCheckinMethodIds(SITE_TYPES.SUB2API)).toEqual([])
+    expect(getNewAccountCompatibilityMethodIds(SITE_TYPES.SUB2API)).toEqual([])
+  })
+
+  it("gates the AI-ROUTER method on its registered deployment origins", () => {
+    const candidatesFor = (siteUrl?: string) =>
+      autoCheckinMethodRegistry
+        .getCandidates(SITE_TYPES.SUB2API, siteUrl)
+        .map(({ id }) => id)
+
+    expect(candidatesFor("https://ai-router.dev")).toContain(
+      AUTO_CHECKIN_METHOD_IDS.AiRouterDailyCheckIn,
+    )
+    expect(candidatesFor("https://www.ai-router.dev/dashboard")).toContain(
+      AUTO_CHECKIN_METHOD_IDS.AiRouterDailyCheckIn,
+    )
+    for (const siteUrl of [
+      "https://any-deployment.example",
+      "https://api.ai-router.dev",
+      "https://vip.ai-router.dev",
+      undefined,
+    ]) {
+      expect(candidatesFor(siteUrl)).not.toContain(
+        AUTO_CHECKIN_METHOD_IDS.AiRouterDailyCheckIn,
+      )
+    }
+  })
+
+  it("reports the third-party source of the custom-page method", () => {
+    expect(
+      getAutoCheckinMethodSource(
+        AUTO_CHECKIN_METHOD_IDS.XiaobaiCodeDailyCheckIn,
+      ),
+    ).toEqual({
+      kind: AUTO_CHECKIN_METHOD_SOURCE_KINDS.ThirdParty,
+      sourceName: "小白Code",
+    })
+    expect(
+      supportsCheckInStatusReadback(
+        AUTO_CHECKIN_METHOD_IDS.XiaobaiCodeDailyCheckIn,
+      ),
+    ).toBe(true)
+  })
+
+  it("rejects duplicate method IDs deterministically", () => {
+    const registration = getAnyrouterRegistration()
+
+    expect(() =>
+      createAutoCheckinMethodRegistry([registration, registration]),
+    ).toThrowError(
+      `Duplicate auto check-in method ID: ${AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn}`,
+    )
+  })
+
+  it("rejects registrations without candidate Account Site Types", () => {
+    const registration = getAnyrouterRegistration()
+
+    expect(() =>
+      createAutoCheckinMethodRegistry([
+        {
+          ...registration,
+          siteTypes: [],
+        },
+      ]),
+    ).toThrowError(
+      `Auto check-in method has no candidate site types: ${registration.id}`,
+    )
+  })
+
+  it("limits new-account compatibility metadata to legacy definitions", () => {
+    expect(() =>
+      createAutoCheckinMethodMetadata([
+        {
+          id: AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+          siteTypes: [SITE_TYPES.ANYROUTER],
+          legacy: false,
+          newAccountCompatibility: true,
+        } as unknown as AutoCheckinMethodDefinition,
+      ]),
+    ).toThrowError(
+      `New-account compatibility requires legacy method metadata: ${AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn}`,
+    )
+  })
+
+  it("reserves legacy metadata for the frozen pre-registry method set", () => {
+    expect(() =>
+      createAutoCheckinMethodMetadata(
+        [
+          {
+            id: AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+            siteTypes: [SITE_TYPES.ANYROUTER],
+            source: OFFICIAL_METHOD_SOURCE,
+            feedbackStatusRoutes: [],
+            legacy: true,
+            newAccountCompatibility: true,
+          },
+          {
+            id: AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+            siteTypes: [SITE_TYPES.VELOERA],
+            source: OFFICIAL_METHOD_SOURCE,
+            feedbackStatusRoutes: [],
+            legacy: true,
+            newAccountCompatibility: true,
+          },
+        ],
+        {
+          preRegistryMethodIds: [AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn],
+        },
+      ),
+    ).toThrowError(
+      `Legacy method metadata is reserved for pre-registry methods: ${AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn}`,
+    )
+  })
+
+  it("requires every frozen pre-registry method to keep legacy metadata", () => {
+    expect(() =>
+      createAutoCheckinMethodMetadata(
+        [
+          {
+            id: AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+            siteTypes: [SITE_TYPES.ANYROUTER],
+            source: OFFICIAL_METHOD_SOURCE,
+            feedbackStatusRoutes: [],
+            legacy: false,
+            newAccountCompatibility: false,
+          },
+        ],
+        {
+          preRegistryMethodIds: [AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn],
+        },
+      ),
+    ).toThrowError(
+      `Pre-registry auto check-in method is missing legacy metadata: ${AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn}`,
+    )
+  })
+
+  it("requires exactly one legacy method for each compatibility site type", () => {
+    expect(() =>
+      createAutoCheckinMethodMetadata([
+        {
+          id: AUTO_CHECKIN_METHOD_IDS.AnyrouterDailyCheckIn,
+          siteTypes: [SITE_TYPES.NEW_API],
+          source: OFFICIAL_METHOD_SOURCE,
+          feedbackStatusRoutes: [],
+          legacy: true,
+          newAccountCompatibility: true,
+        },
+        {
+          id: AUTO_CHECKIN_METHOD_IDS.VeloeraDailyCheckIn,
+          siteTypes: [SITE_TYPES.NEW_API],
+          source: OFFICIAL_METHOD_SOURCE,
+          feedbackStatusRoutes: [],
+          legacy: true,
+          newAccountCompatibility: true,
+        },
+      ]),
+    ).toThrowError(
+      `Expected exactly one legacy auto check-in method for site type: ${SITE_TYPES.NEW_API}; found 2`,
+    )
+  })
+
+  it("round-trips safe unknown persisted IDs without making them executable", () => {
+    const unknownId = decodePersistedCheckInMethodId(
+      "future-protocol:daily-checkin",
+    )
+
+    expect(unknownId).toBe("future-protocol:daily-checkin")
+    expect(autoCheckinMethodRegistry.resolveById(unknownId!)).toBeNull()
+    expect(
+      autoCheckinMethodRegistry.resolveById(
+        decodePersistedCheckInMethodId("new-api:daily-checkin")!,
+      )?.provider,
+    ).toBe(newApiProvider)
+    expect(decodePersistedCheckInMethodId("__proto__")).toBeNull()
+    expect(decodePersistedCheckInMethodId("not-namespaced")).toBeNull()
+    expect(decodePersistedCheckInMethodId("Future:daily-checkin")).toBeNull()
+    expect(
+      decodePersistedCheckInMethodId(`future:${"a".repeat(122)}`),
+    ).toBeNull()
+  })
+  it("does not offer origin-scoped login for a malformed site URL", () => {
+    expect(
+      getAutoCheckinCandidateMethodIds(SITE_TYPES.UNKNOWN, "not a URL"),
+    ).toEqual([])
+    expect(
+      getAutoCheckinCandidateMethodIds(SITE_TYPES.NEW_API, "not a URL"),
+    ).toEqual([AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn])
+  })
+})

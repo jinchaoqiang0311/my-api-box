@@ -1,0 +1,170 @@
+import {
+  render,
+  renderHook,
+  type RenderHookOptions,
+  type RenderOptions,
+} from "@testing-library/react"
+import type { ReactElement, ReactNode } from "react"
+import { I18nextProvider } from "react-i18next"
+
+import { DeviceProvider } from "~/contexts/DeviceContext"
+import { FeatureGuidanceProvider } from "~/contexts/FeatureGuidanceContext"
+import { ReleaseUpdateStatusProvider } from "~/contexts/ReleaseUpdateStatusContext"
+import { ThemeProvider } from "~/contexts/ThemeContext"
+import { UserPreferencesProvider } from "~/contexts/UserPreferencesContext"
+import { ChannelDialogProvider } from "~/features/ManagedSiteChannels/editor/ChannelDialog"
+import { testI18n } from "~~/tests/test-utils/i18n"
+
+interface AppProvidersProps {
+  children: ReactNode
+  withReleaseUpdateStatusProvider?: boolean
+  withUserPreferencesProvider?: boolean
+  withFeatureGuidanceProvider?: boolean
+  withThemeProvider?: boolean
+}
+
+function IdentityProvider({ children }: { children: ReactNode }) {
+  return <>{children}</>
+}
+
+const AppProviders = ({
+  children,
+  withReleaseUpdateStatusProvider = false,
+  withUserPreferencesProvider = true,
+  withFeatureGuidanceProvider = false,
+  withThemeProvider = true,
+}: AppProvidersProps) => {
+  const PreferencesProvider = withUserPreferencesProvider
+    ? UserPreferencesProvider
+    : IdentityProvider
+  const ActiveThemeProvider = withThemeProvider
+    ? ThemeProvider
+    : IdentityProvider
+  const ActiveFeatureGuidanceProvider = withFeatureGuidanceProvider
+    ? FeatureGuidanceProvider
+    : IdentityProvider
+  const ActiveReleaseUpdateStatusProvider = withReleaseUpdateStatusProvider
+    ? ReleaseUpdateStatusProvider
+    : IdentityProvider
+
+  return (
+    <I18nextProvider i18n={testI18n}>
+      <DeviceProvider>
+        <PreferencesProvider>
+          <ActiveFeatureGuidanceProvider>
+            <ActiveThemeProvider>
+              <ActiveReleaseUpdateStatusProvider>
+                <ChannelDialogProvider>{children}</ChannelDialogProvider>
+              </ActiveReleaseUpdateStatusProvider>
+            </ActiveThemeProvider>
+          </ActiveFeatureGuidanceProvider>
+        </PreferencesProvider>
+      </DeviceProvider>
+    </I18nextProvider>
+  )
+}
+
+interface AppRenderOptions extends Omit<RenderOptions, "wrapper"> {
+  withReleaseUpdateStatusProvider?: boolean
+  withUserPreferencesProvider?: boolean
+  withFeatureGuidanceProvider?: boolean
+  withThemeProvider?: boolean
+}
+
+interface AppRenderHookOptions<Props>
+  extends Omit<RenderHookOptions<Props>, "wrapper"> {
+  withReleaseUpdateStatusProvider?: boolean
+  withUserPreferencesProvider?: boolean
+  withFeatureGuidanceProvider?: boolean
+  withThemeProvider?: boolean
+}
+
+type ProviderToggleOptions = Pick<
+  AppProvidersProps,
+  | "withReleaseUpdateStatusProvider"
+  | "withUserPreferencesProvider"
+  | "withFeatureGuidanceProvider"
+  | "withThemeProvider"
+>
+
+function normalizeProviderOptions<T extends ProviderToggleOptions>(
+  options?: T,
+): {
+  providerOptions: Required<ProviderToggleOptions>
+  remainingOptions: Omit<T, keyof ProviderToggleOptions>
+} {
+  const {
+    withReleaseUpdateStatusProvider = false,
+    withUserPreferencesProvider = true,
+    withFeatureGuidanceProvider = false,
+    withThemeProvider = true,
+    ...remainingOptions
+  } = (options ?? {}) as T & ProviderToggleOptions
+
+  return {
+    providerOptions: {
+      withReleaseUpdateStatusProvider,
+      withUserPreferencesProvider,
+      withFeatureGuidanceProvider,
+      withThemeProvider,
+    },
+    remainingOptions: remainingOptions as Omit<T, keyof ProviderToggleOptions>,
+  }
+}
+
+const customRender = (ui: ReactElement, options?: AppRenderOptions) => {
+  const { providerOptions, remainingOptions } =
+    normalizeProviderOptions(options)
+  const {
+    withReleaseUpdateStatusProvider,
+    withUserPreferencesProvider,
+    withFeatureGuidanceProvider,
+    withThemeProvider,
+  } = providerOptions
+
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <AppProviders
+        withReleaseUpdateStatusProvider={withReleaseUpdateStatusProvider}
+        withUserPreferencesProvider={withUserPreferencesProvider}
+        withFeatureGuidanceProvider={withFeatureGuidanceProvider}
+        withThemeProvider={withThemeProvider}
+      >
+        {children}
+      </AppProviders>
+    ),
+    ...remainingOptions,
+  })
+}
+
+const customRenderHook = <Result, Props>(
+  callback: (initialProps: Props) => Result,
+  options?: AppRenderHookOptions<Props>,
+) => {
+  const { providerOptions, remainingOptions } =
+    normalizeProviderOptions(options)
+  const {
+    withReleaseUpdateStatusProvider,
+    withUserPreferencesProvider,
+    withFeatureGuidanceProvider,
+    withThemeProvider,
+  } = providerOptions
+
+  return renderHook<Result, Props>(callback, {
+    wrapper: ({ children }) => (
+      <AppProviders
+        withReleaseUpdateStatusProvider={withReleaseUpdateStatusProvider}
+        withUserPreferencesProvider={withUserPreferencesProvider}
+        withFeatureGuidanceProvider={withFeatureGuidanceProvider}
+        withThemeProvider={withThemeProvider}
+      >
+        {children}
+      </AppProviders>
+    ),
+    ...remainingOptions,
+  })
+}
+
+export * from "@testing-library/react"
+export { customRender as render }
+export { customRenderHook as renderHook }

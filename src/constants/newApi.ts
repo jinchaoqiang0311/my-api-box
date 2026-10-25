@@ -1,0 +1,203 @@
+/**
+ * Channel Type enumeration
+ * Based on https://github.com/QuantumNous/new-api/blob/f116414284162ad15d8925f7bca494c109b83e93/constant/channel.go
+ */
+export const ChannelType = {
+  Unknown: 0,
+  OpenAI: 1,
+  Midjourney: 2,
+  Azure: 3,
+  Ollama: 4,
+  MidjourneyPlus: 5,
+  OpenAIMax: 6,
+  OhMyGPT: 7,
+  Custom: 8,
+  AILS: 9,
+  AIProxy: 10,
+  PaLM: 11,
+  API2GPT: 12,
+  AIGC2D: 13,
+  Anthropic: 14,
+  Baidu: 15,
+  Zhipu: 16,
+  Ali: 17,
+  Xunfei: 18,
+  "360": 19,
+  OpenRouter: 20,
+  AIProxyLibrary: 21,
+  FastGPT: 22,
+  Tencent: 23,
+  Gemini: 24,
+  Moonshot: 25,
+  Zhipu_v4: 26,
+  Perplexity: 27,
+  LingYiWanWu: 31,
+  Aws: 33,
+  Cohere: 34,
+  MiniMax: 35,
+  SunoAPI: 36,
+  Dify: 37,
+  Jina: 38,
+  Cloudflare: 39,
+  SiliconFlow: 40,
+  VertexAi: 41,
+  Mistral: 42,
+  DeepSeek: 43,
+  MokaAI: 44,
+  VolcEngine: 45,
+  BaiduV2: 46,
+  Xinference: 47,
+  Xai: 48,
+  Coze: 49,
+  Kling: 50,
+  Jimeng: 51,
+  Vidu: 52,
+  Submodel: 53,
+  DoubaoVideo: 54,
+  Sora: 55,
+  Replicate: 56,
+  Codex: 57,
+  AdvancedCustom: 58,
+  Sub2API: 59,
+  NewAPI: 60,
+} as const
+
+export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType]
+
+/**
+ * Mapping of ChannelType enum to human-readable names
+ * @see https://github.com/QuantumNous/new-api/blob/f116414284162ad15d8925f7bca494c109b83e93/constant/channel.go
+ */
+export const ChannelTypeNames: Record<ChannelType, string> = {
+  [ChannelType.Unknown]: "Unknown",
+  [ChannelType.OpenAI]: "OpenAI",
+  [ChannelType.Midjourney]: "Midjourney",
+  [ChannelType.Azure]: "Azure",
+  [ChannelType.Ollama]: "Ollama",
+  [ChannelType.MidjourneyPlus]: "MidjourneyPlus",
+  [ChannelType.OpenAIMax]: "OpenAIMax",
+  [ChannelType.OhMyGPT]: "OhMyGPT",
+  [ChannelType.Custom]: "Custom",
+  [ChannelType.AILS]: "AILS",
+  [ChannelType.AIProxy]: "AIProxy",
+  [ChannelType.PaLM]: "PaLM",
+  [ChannelType.API2GPT]: "API2GPT",
+  [ChannelType.AIGC2D]: "AIGC2D",
+  [ChannelType.Anthropic]: "Anthropic",
+  [ChannelType.Baidu]: "Baidu",
+  [ChannelType.Zhipu]: "Zhipu",
+  [ChannelType.Ali]: "Ali",
+  [ChannelType.Xunfei]: "Xunfei",
+  [ChannelType["360"]]: "360",
+  [ChannelType.OpenRouter]: "OpenRouter",
+  [ChannelType.AIProxyLibrary]: "AIProxyLibrary",
+  [ChannelType.FastGPT]: "FastGPT",
+  [ChannelType.Tencent]: "Tencent",
+  [ChannelType.Gemini]: "Gemini",
+  [ChannelType.Moonshot]: "Moonshot",
+  [ChannelType.Zhipu_v4]: "ZhipuV4",
+  [ChannelType.Perplexity]: "Perplexity",
+  [ChannelType.LingYiWanWu]: "LingYiWanWu",
+  [ChannelType.Aws]: "AWS",
+  [ChannelType.Cohere]: "Cohere",
+  [ChannelType.MiniMax]: "MiniMax",
+  [ChannelType.SunoAPI]: "SunoAPI",
+  [ChannelType.Dify]: "Dify",
+  [ChannelType.Jina]: "Jina",
+  [ChannelType.Cloudflare]: "Cloudflare",
+  [ChannelType.SiliconFlow]: "SiliconFlow",
+  [ChannelType.VertexAi]: "VertexAI",
+  [ChannelType.Mistral]: "Mistral",
+  [ChannelType.DeepSeek]: "DeepSeek",
+  [ChannelType.MokaAI]: "MokaAI",
+  [ChannelType.VolcEngine]: "VolcEngine",
+  [ChannelType.BaiduV2]: "BaiduV2",
+  [ChannelType.Xinference]: "Xinference",
+  [ChannelType.Xai]: "xAI",
+  [ChannelType.Coze]: "Coze",
+  [ChannelType.Kling]: "Kling",
+  [ChannelType.Jimeng]: "Jimeng",
+  [ChannelType.Vidu]: "Vidu",
+  [ChannelType.Submodel]: "Submodel",
+  [ChannelType.DoubaoVideo]: "DoubaoVideo",
+  [ChannelType.Sora]: "Sora",
+  [ChannelType.Replicate]: "Replicate",
+  [ChannelType.Codex]: "ChatGPT Subscription (Codex)",
+  [ChannelType.AdvancedCustom]: "Advanced Custom",
+  [ChannelType.Sub2API]: "Sub2API",
+  [ChannelType.NewAPI]: "New API",
+}
+
+export const ChannelTypeOptions = Object.entries(ChannelTypeNames).map(
+  ([key, label]) => ({
+    value: Number(key) as ChannelType,
+    label,
+  }),
+)
+
+export const NEW_API_MANAGED_RESOURCE_FIELD_IDS = {
+  Id: "newApi.id",
+  Name: "newApi.name",
+  Type: "newApi.type",
+  Status: "newApi.status",
+  BaseUrl: "newApi.baseUrl",
+  Key: "newApi.key",
+  Models: "newApi.models",
+  ModelCount: "newApi.modelCount",
+  Groups: "newApi.groups",
+  Priority: "newApi.priority",
+  Weight: "newApi.weight",
+  /** `other_info.status_reason` the gateway writes when it disables a channel. */
+  StatusReason: "newApi.statusReason",
+  TestModel: "newApi.testModel",
+  AutoBan: "newApi.autoBan",
+  ModelMapping: "newApi.modelMapping",
+  Tag: "newApi.tag",
+  Remark: "newApi.remark",
+  Proxy: "newApi.proxy",
+  UpstreamCheck: "newApi.upstreamCheck",
+  UpstreamAutoSync: "newApi.upstreamAutoSync",
+  UpstreamIgnoredModels: "newApi.upstreamIgnoredModels",
+  UpstreamLastCheck: "newApi.upstreamLastCheck",
+  UpstreamDetectedModels: "newApi.upstreamDetectedModels",
+  UpstreamRemovedModels: "newApi.upstreamRemovedModels",
+} as const
+
+// Upstream channel model-list support; Advanced Custom (58) additionally needs
+// a route configuration that this editor does not yet own.
+// https://github.com/QuantumNous/new-api/blob/064ed943e1ac40e3eaca1b58ffb7fa5dacb3fde3/web/src/features/channels/constants.ts
+const NEW_API_MODEL_CHECK_TYPES = new Set([
+  1, 4, 14, 17, 20, 23, 24, 25, 26, 27, 31, 34, 35, 40, 42, 43, 47, 48, 57, 59,
+  60,
+])
+
+/** Whether the common channel editor can configure upstream model detection. */
+export const supportsNewApiUpstreamModelCheck = (type: unknown) =>
+  NEW_API_MODEL_CHECK_TYPES.has(Number(type))
+
+export const NEW_API_MANAGED_RESOURCE_TABLE_FIELD_IDS = [
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Id,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Name,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Type,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.BaseUrl,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.ModelCount,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Groups,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Status,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Priority,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Weight,
+] as const
+
+export const NEW_API_MANAGED_RESOURCE_DETAIL_FIELD_IDS = [
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Id,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Name,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Type,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Status,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.BaseUrl,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Key,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Models,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Groups,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Priority,
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.Weight,
+  // The gateway's own reason for disabling a channel; read-only.
+  NEW_API_MANAGED_RESOURCE_FIELD_IDS.StatusReason,
+] as const

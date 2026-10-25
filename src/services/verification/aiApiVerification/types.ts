@@ -1,0 +1,109 @@
+/**
+ * Canonical API verification types shared by services and UI.
+ */
+export const API_TYPES = {
+  OPENAI_COMPATIBLE: "openai-compatible",
+  OPENAI: "openai",
+  ANTHROPIC: "anthropic",
+  GOOGLE: "google",
+} as const
+
+export type ApiVerificationApiType = (typeof API_TYPES)[keyof typeof API_TYPES]
+
+export const API_VERIFICATION_MODES = {
+  Streaming: "streaming",
+  NonStreaming: "non-streaming",
+} as const
+
+export type ApiVerificationMode =
+  (typeof API_VERIFICATION_MODES)[keyof typeof API_VERIFICATION_MODES]
+
+/** Request identity is independent of the capability being verified. */
+export const API_VERIFICATION_REQUEST_PROFILES = {
+  Default: "default",
+  Codex: "codex",
+  Claude: "claude",
+  Gemini: "gemini",
+} as const
+
+export type ApiVerificationRequestProfile =
+  (typeof API_VERIFICATION_REQUEST_PROFILES)[keyof typeof API_VERIFICATION_REQUEST_PROFILES]
+
+export const API_VERIFICATION_PROBE_IDS = {
+  Models: "models",
+  TextGeneration: "text-generation",
+  ToolCalling: "tool-calling",
+  StructuredOutput: "structured-output",
+  WebSearch: "web-search",
+  Embedding: "embedding",
+  Rerank: "rerank",
+  ImageGeneration: "image-generation",
+  VideoGeneration: "video-generation",
+  Decision: "decision",
+} as const
+
+export type ApiVerificationProbeId =
+  (typeof API_VERIFICATION_PROBE_IDS)[keyof typeof API_VERIFICATION_PROBE_IDS]
+
+export const API_VERIFICATION_PROBE_STATUSES = {
+  Pass: "pass",
+  Fail: "fail",
+  Unsupported: "unsupported",
+} as const
+
+export type ApiVerificationProbeStatus =
+  (typeof API_VERIFICATION_PROBE_STATUSES)[keyof typeof API_VERIFICATION_PROBE_STATUSES]
+
+export const API_VERIFICATION_MEDIA_TYPES = {
+  Image: "image",
+  Video: "video",
+} as const
+
+export type ApiVerificationProbeResult = {
+  id: ApiVerificationProbeId
+  status: ApiVerificationProbeStatus
+  latencyMs: number
+  /**
+   * Generation mode selected for this probe. Absent for non-generation probes
+   * and historical results that did not record their mode.
+   */
+  mode?: ApiVerificationMode
+  requestProfile?: ApiVerificationRequestProfile
+  requestProfileEnhanced?: boolean
+  /**
+   * Human-readable summary of the probe result.
+   *
+   * Prefer {@link summaryKey} + {@link summaryParams} in UI-facing scenarios so the
+   * message can be translated. `summary` remains as a safe fallback for dynamic
+   * error messages and older callers.
+   */
+  summary: string
+  /**
+   * Optional i18n key for rendering {@link summary} in the UI.
+   *
+   * This is expected to be resolved by the caller's i18n namespace (e.g. the UI
+   * uses the `aiApiVerification` namespace).
+   */
+  summaryKey?: string
+  /**
+   * Optional interpolation params for {@link summaryKey}.
+   */
+  summaryParams?: Record<string, unknown>
+  /**
+   * Best-effort diagnostics about what the probe sent.
+   * Must never include secrets (e.g., apiKey).
+   */
+  input?: unknown
+  /**
+   * Best-effort diagnostics about what the probe received.
+   * Must never include secrets (e.g., apiKey).
+   */
+  output?: unknown
+  /** Transient media for previews. Kept out of diagnostic JSON and persisted history. */
+  media?: {
+    type: (typeof API_VERIFICATION_MEDIA_TYPES)[keyof typeof API_VERIFICATION_MEDIA_TYPES]
+    url: string
+    credentialed?: boolean
+  }
+  details?: Record<string, unknown>
+}

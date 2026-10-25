@@ -1,0 +1,518 @@
+import {
+  DATA_TYPE_BALANCE,
+  DATA_TYPE_CASHFLOW,
+  DATA_TYPE_CHECK_IN_REQUIREMENT,
+  DATA_TYPE_CONSUMPTION,
+  DATA_TYPE_CREATED_AT,
+  DATA_TYPE_CUSTOM_CHECK_IN_URL,
+  DATA_TYPE_CUSTOM_REDEEM_URL,
+  DATA_TYPE_HEALTH_STATUS,
+  DATA_TYPE_INCOME,
+  DATA_TYPE_NAME,
+} from "~/constants"
+import type { AccountSiteType } from "~/constants/siteType"
+import type { QuotaAsset } from "~/services/quotaAssets/quotaAsset"
+import type {
+  AccountMetricCoverage,
+  AccountTodayStatsAvailability,
+  AccountTodayStatsCoverage,
+} from "~/types/accountTodayStats"
+import type { AuthTypeEnum } from "~/types/auth"
+import type { CheckInConfig } from "~/types/checkIn"
+import { type TempWindowHealthStatusCode } from "~/types/tempWindow"
+
+export enum SiteHealthStatus {
+  Healthy = "healthy",
+  Warning = "warning",
+  Error = "error",
+  Unknown = "unknown",
+}
+
+export interface HealthStatus {
+  status: SiteHealthStatus
+  reason?: string
+  /**
+   * Optional machine-readable reason code for the current health state.
+   * Used by the UI to provide actionable shortcuts (e.g., jump to settings).
+   */
+  code?: HealthStatusCode
+}
+
+/**
+ * Subset of health status codes that the UI can act on (e.g., open Settings).
+ */
+export type HealthStatusCode = TempWindowHealthStatusCode
+
+export type AccountIdentity = string
+
+// 账号基础信息
+export interface AccountInfo {
+  id: AccountIdentity // 账号身份标识（站点内稳定字符串）
+  access_token: string
+  username: string
+  quota: number // 总余额点数
+  today_prompt_tokens: number // 今日 prompt_tokens
+  today_completion_tokens: number // 今日 completion_tokens
+  today_quota_consumption: number // 今日消耗 quota
+  today_requests_count: number // 今日请求次数
+  today_income: number // 今日收入 (recharge + check-in)
+  todayStatsAvailability?: AccountTodayStatsAvailability
+  usage?: AccountUsageSummary
+  subscription?: AccountSubscriptionSummary
+  nativeBalance?: AccountNativeBalance
+  recentUsageRecords?: AccountUsageRecord[]
+}
+
+export const ACCOUNT_USAGE_SUMMARY_SCOPES = [
+  "today",
+  "current_period",
+  "rolling_window",
+  "lifetime",
+  "unknown",
+] as const
+export type AccountUsageSummaryScope =
+  (typeof ACCOUNT_USAGE_SUMMARY_SCOPES)[number]
+
+export interface AccountUsageSummary {
+  scope: AccountUsageSummaryScope
+  totalRequests: number
+  totalTokens: number
+  totalCost: number
+  lastRequestTime?: string
+}
+
+export interface AccountSubscriptionSummary {
+  name?: string
+  billingType?: string
+  limit?: number
+  amountLimit?: number
+  usedAmount?: number
+  remainingAmount?: number
+  usedCount?: number
+  remainingCount?: number
+  /** Remaining token allowance, including provider-owned pool/key allocations. */
+  remainingTokens?: number
+  period?: string
+  periodResetTime?: string
+  expireTime?: string
+  isLongTerm?: boolean
+  isActive?: boolean
+}
+
+/** Native assets and scoped allowances; excluded from fungible monetary balance features. */
+export type AccountNativeBalance =
+  | {
+      unit: "credits" | "USD"
+      total: number
+      permanent: number
+      daily: number
+      components?: AccountBalanceComponent[]
+      timedDetails?: AccountBalanceComponent[]
+      timedDetailsUnavailable?: boolean
+    }
+  | {
+      unit: "quota"
+      asset: QuotaAsset
+      total: number
+    }
+
+export interface AccountBalanceComponent {
+  kind: "permanent" | "timed" | "subscription" | "group"
+  name?: string
+  amount: number
+  scope?: string
+  unlockedModels?: string[]
+  unlimited?: boolean
+  expiresAt?: string
+  resetAt?: string
+}
+
+export interface AccountUsageRecord {
+  requestTime?: string
+  model?: string
+  inputTokens?: number
+  outputTokens?: number
+  cacheCreationTokens?: number
+  cacheReadTokens?: number
+  cacheInputTokens?: number
+  reasoningTokens?: number
+  totalTokens?: number
+  responseTime?: number
+  firstByteTime?: number
+  cost?: number
+  errorMessage?: string
+  status?: string
+}
+
+export interface CookieAuthConfig {
+  /**
+   * Cookie header string used for cookie-auth multi-account requests.
+   * The extension will merge these with WAF cookies at request time.
+   */
+  sessionCookie: string
+}
+
+export interface KimiOpenPlatformAuthConfig {
+  /**
+   * Console refresh JWT. This is a long-lived secret included in exports.
+   */
+  refreshToken: string
+  /** Organization selected in the console. BFF calls are scoped to it. */
+  organizationId: string
+  /** Access-token expiry in milliseconds since epoch, when the JWT exposes exp. */
+  tokenExpiresAt?: number
+}
+
+export interface Sub2ApiAuthConfig {
+  /**
+   * Exportable refresh token used for extension-managed Sub2API sessions.
+   *
+   * Security: this is a long-lived secret and will be included in
+   * exports/WebDAV backups.
+   */
+  refreshToken: string
+  /**
+   * Access-token expiry timestamp in milliseconds since epoch (optional).
+   * Used for proactive refresh to avoid unnecessary 401 spikes.
+   */
+  tokenExpiresAt?: number
+}
+
+// 站点账号完整信息
+export interface SiteAccount {
+  login?: import("~/types/accountLogin").AccountLoginConfiguration
+  /** @deprecated Read-only migration compatibility; canonical writes use login.credentials. */
+  passwordAuth?: import("~/types/accountLogin").AccountPasswordCredentials
+  id: string // 此项 id
+  /**
+   * Emoji icon previously used for the account label in legacy UIs.
+   * @deprecated not used anymore
+   */
+  emoji?: string
+  site_name: string // 站点名称
+  site_url: string // 站点 url
+  health: HealthStatus
+  site_type: AccountSiteType // 账号站点类型
+  exchange_rate: number // 人民币与美元充值比例 (CNY per USD)
+  account_info: AccountInfo // 账号信息
+  last_sync_time: number // 最后同步时间 (timestamp)
+  updated_at: number // 更改时间 (timestamp)
+  user_updated_at: number // 用户意图更改时间 (timestamp)
+  created_at: number // 创建时间 (timestamp)
+  /**
+   * Free-form notes for this account.
+   *
+   * Canonical persisted shape: always present as a string; default: "".
+   * Older backups/storage may omit it, but read normalization guarantees the
+   * runtime shape is stable.
+   */
+  notes: string // 备注
+  /**
+   * Global tag ids associated with this account.
+   *
+   * Tag ids reference {@link Tag.id} entries stored in the global tag store.
+   * This enables global rename/delete operations without touching every account.
+   */
+  tagIds: string[]
+  /**
+   * Legacy tag names stored on the account record.
+   * @deprecated Replaced by {@link SiteAccount.tagIds}. Kept only for backward
+   * compatibility and migration of old backups/storage.
+   */
+  tags?: string[] // 标签（旧格式：按名称存储）
+  /**
+   * Whether this stored account is disabled in the extension.
+   *
+   * Disabled accounts:
+   * - Must not participate in background/automated services (refresh, auto check-in, redeem assist, etc.)
+   * - Must be excluded from aggregate stats computations
+   * - Must have all account actions blocked except re-enabling
+   *
+   * Canonical persisted shape: always present as a boolean; default: false.
+   */
+  disabled: boolean
+  /**
+   * Whether this stored account is excluded from the "Total Balance" aggregate.
+   *
+   * Unlike {@link SiteAccount.disabled}, excluded accounts remain enabled for refresh,
+   * check-in, and other background behaviors; they are only skipped when computing
+   * the Total Balance display value.
+   *
+   * Canonical persisted shape: always present as a boolean; default: false.
+   */
+  excludeFromTotalBalance: boolean
+  /**
+   * Whether this stored account is excluded from the "Today Income" aggregate.
+   *
+   * Unlike {@link SiteAccount.disabled}, excluded accounts remain enabled for refresh,
+   * check-in, and other background behaviors; they are only skipped when computing
+   * aggregate Today Income display values.
+   *
+   * Canonical persisted shape: always present as a boolean; default: false.
+   */
+  excludeFromTodayIncome: boolean
+  authType: AuthTypeEnum // 认证方式
+  /**
+   * Per-account cookie-auth session cookie bundle for multi-account isolation.
+   */
+  cookieAuth?: CookieAuthConfig
+  /**
+   * Optional Sub2API refresh-token configuration for extension-managed sessions.
+   *
+   * When configured, the extension can refresh and rotate Sub2API tokens per
+   * account, enabling multiple accounts on the same origin without relying on
+   * dashboard localStorage.
+   */
+  sub2apiAuth?: Sub2ApiAuthConfig
+  /**
+   * Kimi Open Platform console refresh session.
+   * Absent for API-key-only accounts that never opened the console.
+   */
+  kimiOpenPlatformAuth?: KimiOpenPlatformAuthConfig
+  /**
+   * 站点签到相关
+   */
+  checkIn: CheckInConfig
+  /**
+   * Manual balance override in USD, as entered by the user.
+   *
+   * Empty/undefined means the account should rely on auto-fetched quota/balance.
+   */
+  manualBalanceUsd?: string
+  /**
+   * Configuration version for migration tracking
+   * 1.0.0: Initial version (no version field = version 0)
+   * 1.1.0: Introduced `checkIn` object structure (configVersion = 1)
+   * 1.1.1: Split site vs custom check-in state (configVersion = 2)
+   * 1.2.0: Persist/normalize `disabled` flag (configVersion = 3)
+   * 1.2.1: Persist/normalize `excludeFromTotalBalance` flag (configVersion = 4)
+   * 1.2.2: Persist/normalize Sub2API refresh-token auth (configVersion = 5)
+   * 1.2.3: Persist/normalize `excludeFromTodayIncome` flag (configVersion = 6)
+   * @since 1.0.0
+   */
+  configVersion?: number
+}
+
+export type { CheckInConfig, CustomCheckInConfig } from "~/types/checkIn"
+
+/**
+ * Lightweight persisted bookmark entry for quickly opening a site URL.
+ *
+ * Bookmarks are stored in {@link AccountStorageConfig.bookmarks} and share the
+ * global tag system via {@link SiteBookmark.tagIds}.
+ */
+export interface SiteBookmark {
+  id: string
+  name: string
+  url: string
+  /**
+   * Global tag ids associated with this bookmark.
+   */
+  tagIds: string[]
+  /**
+   * Free-form notes for this bookmark.
+   *
+   * Always persisted as a string; default: "".
+   */
+  notes: string
+  created_at: number
+  updated_at: number
+}
+
+export const DELETED_ENTRY_KIND = {
+  ACCOUNT: "account",
+  BOOKMARK: "bookmark",
+} as const
+
+export const DELETED_ENTRY_KINDS = [
+  DELETED_ENTRY_KIND.ACCOUNT,
+  DELETED_ENTRY_KIND.BOOKMARK,
+] as const
+
+export type DeletedEntryKind = (typeof DELETED_ENTRY_KINDS)[number]
+
+export interface DeletedEntryRecord {
+  kind: DeletedEntryKind
+  deletedAt: number
+  entryUpdatedAt: number
+}
+
+/**
+ * Account and bookmark storage schema persisted in the extension's storage.
+ */
+export interface AccountStorageConfig {
+  accounts: SiteAccount[]
+  /**
+   * Persisted bookmarks stored alongside accounts.
+   *
+   * Always persisted as an array; default: [].
+   */
+  bookmarks: SiteBookmark[]
+  /**
+   * IDs of pinned entries (accounts and/or bookmarks), in order (newest pinned first).
+   */
+  pinnedAccountIds: string[]
+  /**
+   * Manual ordering of entries (full list of ids), newest change first.
+   */
+  orderedAccountIds: string[]
+  /**
+   * Best-effort deletion markers used by WebDAV merge sync to avoid restoring
+   * stale remote entries that were intentionally deleted on this device.
+   */
+  deletedEntryRecords?: Record<string, DeletedEntryRecord>
+  last_updated: number
+}
+
+/**
+ * A globally managed tag entity with a stable id.
+ *
+ * Tags are stored in a dedicated global tag store and referenced by accounts
+ * via {@link SiteAccount.tagIds}.
+ */
+export interface Tag {
+  id: string
+  name: string
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * Persisted global tag store payload.
+ */
+export interface TagStore {
+  version: number
+  tagsById: Record<string, Tag>
+}
+
+// 账号统计信息 (用于展示)
+export interface AccountStats {
+  total_quota: number
+  today_total_consumption: number
+  today_total_requests: number
+  today_total_prompt_tokens: number
+  today_total_completion_tokens: number
+  today_total_income: number // 今日总收入 (所有账号汇总)
+  todayStatsCoverage: AccountTodayStatsCoverage
+}
+
+// 用于排序的字段类型
+export const SORT_FIELDS = [
+  DATA_TYPE_NAME,
+  DATA_TYPE_CHECK_IN_REQUIREMENT,
+  DATA_TYPE_CUSTOM_CHECK_IN_URL,
+  DATA_TYPE_CUSTOM_REDEEM_URL,
+  DATA_TYPE_HEALTH_STATUS,
+  DATA_TYPE_CONSUMPTION,
+  DATA_TYPE_INCOME,
+  DATA_TYPE_BALANCE,
+  DATA_TYPE_CREATED_AT,
+] as const
+export type SortField = (typeof SORT_FIELDS)[number]
+export type ActiveSortField = SortField | null
+
+export const SORT_ORDERS = ["asc", "desc"] as const
+export type SortOrder = (typeof SORT_ORDERS)[number]
+
+// 货币类型
+export const CURRENCY_TYPES = ["USD", "CNY"] as const
+export type CurrencyType = (typeof CURRENCY_TYPES)[number]
+
+export type CurrencyAmount = { USD: number; CNY: number }
+
+export type CurrencyMetricTotal = {
+  amount: CurrencyAmount
+  coverage: AccountMetricCoverage
+}
+
+export type CurrencyAmountMap = { [id: string]: CurrencyAmount }
+
+export type TokenUsage = { upload: number; download: number }
+
+// 展示用的站点数据 (兼容当前 UI)
+export interface DisplaySiteData {
+  /** Configured recharge conversion, independent of the current balance. */
+  exchangeRate?: number
+  id: string
+  /**
+   * Icon URL or identifier used by older UI components for site branding.
+   * @deprecated not used anymore
+   */
+  icon?: string
+  name: string
+  baseName?: string
+  username: string
+  balance: CurrencyAmount
+  nativeBalance?: AccountNativeBalance
+  todayConsumption: CurrencyAmount
+  todayIncome: CurrencyAmount
+  estimatedTodayIncome?: CurrencyAmount | null
+  todayTokens: TokenUsage
+  todayStatsAvailability: AccountTodayStatsAvailability
+  usage?: AccountUsageSummary
+  subscription?: AccountSubscriptionSummary
+  recentUsageRecords?: AccountUsageRecord[]
+  health: HealthStatus
+  last_sync_time?: number
+  created_at?: number
+  siteType: AccountSiteType // 账号站点类型
+  baseUrl: string // 站点 URL，用于复制功能
+  token: string // 访问令牌，用于复制功能
+  userId: AccountIdentity // 站点内稳定账号身份标识
+  notes?: string
+  /**
+   * Tag ids associated with this account (stable identifiers).
+   *
+   * UI logic should prefer filtering by ids to stay consistent across renames.
+   */
+  tagIds?: string[]
+  /**
+   * Display tag labels resolved from {@link DisplaySiteData.tagIds}.
+   *
+   * This is a UI convenience field; persistence uses tag ids.
+   */
+  tags?: string[]
+  /**
+   * Disabled state projected from {@link SiteAccount.disabled}.
+   *
+   * UI can use this flag to grey-out accounts and restrict actions without
+   * re-querying storage.
+   */
+  disabled?: boolean
+  /**
+   * Effective total-balance exclusion, combining the saved preference with
+   * native balance eligibility.
+   *
+   * This affects only the Total Balance aggregate; it must not be interpreted as
+   * a disabled state for actions like refresh or check-in.
+   */
+  excludeFromTotalBalance?: boolean
+  /**
+   * "Exclude from Today Income" state projected from {@link SiteAccount.excludeFromTodayIncome}.
+   *
+   * This affects only aggregate Today Income values; per-account row income display
+   * and account behaviors like refresh/check-in remain unchanged.
+   */
+  excludeFromTodayIncome?: boolean
+  authType: AuthTypeEnum // 认证方式
+  /**
+   * Account id for per-request cookie isolation.
+   */
+  accountId?: string
+  /**
+   * Per-account cookie-auth session cookie header to merge with WAF cookies.
+   */
+  cookieAuthSessionCookie?: string
+  checkIn: CheckInConfig
+}
+
+export const DASHBOARD_TAB_TYPES = [
+  DATA_TYPE_CASHFLOW,
+  DATA_TYPE_BALANCE,
+] as const
+export type DashboardTabType = (typeof DASHBOARD_TAB_TYPES)[number]
+
+export { AuthTypeEnum } from "~/types/auth"
+export * from "~/types/accountTodayStats"
+export type { TempWindowHealthStatusCode } from "~/types/tempWindow"
+export { TEMP_WINDOW_HEALTH_STATUS_CODES } from "~/types/tempWindow"

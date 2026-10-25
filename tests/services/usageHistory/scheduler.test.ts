@@ -1,0 +1,585 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import {
+  resolveUsageHistoryPruneMessage,
+  resolveUsageHistorySyncNowMessage,
+  resolveUsageHistoryUpdateSettingsMessage,
+  usageHistoryScheduler,
+} from "~/services/history/usageHistory/scheduler"
+import { usageHistoryStorage } from "~/services/history/usageHistory/storage"
+import {
+  syncUsageHistoryForAccount,
+  USAGE_HISTORY_SYNC_TRIGGERS,
+} from "~/services/history/usageHistory/sync"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import {
+  TASK_NOTIFICATION_STATUSES,
+  TASK_NOTIFICATION_TASKS,
+} from "~/types/taskNotifications"
+import {
+  DEFAULT_USAGE_HISTORY_PREFERENCES,
+  USAGE_HISTORY_SCHEDULE_MODE,
+} from "~/types/usageHistory"
+import {
+  clearAlarm,
+  createAlarm,
+  getAlarm,
+  hasAlarmsAPI,
+  onAlarm,
+} from "~/utils/browser/alarms"
+import { createDeferred } from "~~/tests/test-utils/deferred"
+
+const registeredAlarmListeners: Array<
+  (alarm: { name: string }) => Promise<void> | void
+> = []
+const notifyTaskResultMock = vi.fn()
+
+vi.mock("~/services/accounts/accountStorage/accountQueries", () => ({
+  accountQueries: {
+    getAccountById: vi.fn(),
+    getEnabledAccounts: vi.fn(),
+  },
+}))
+
+vi.mock("~/services/history/usageHistory/storage", () => ({
+  usageHistoryStorage: {
+    pruneAllAccounts: vi.fn(),
+  },
+}))
+
+vi.mock("~/services/history/usageHistory/sync", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/history/usageHistory/sync")
+    >()
+  return {
+    ...actual,
+    syncUsageHistoryForAccount: vi.fn(),
+  }
+})
+
+vi.mock("~/services/preferences/userPreferences", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/preferences/userPreferences")
+    >()
+
+  return {
+    ...actual,
+    userPreferences: {
+      getPreferences: vi.fn(),
+      savePreferences: vi.fn(),
+    },
+  }
+})
+
+vi.mock("~/utils/browser/alarms", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/browser/alarms")>()
+
+  return {
+    ...actual,
+    clearAlarm: vi.fn(),
+    createAlarm: vi.fn(),
+    getAlarm: vi.fn(),
+    hasAlarmsAPI: vi.fn(),
+    onAlarm: vi.fn((listener) => {
+      registeredAlarmListeners.push(listener)
+    }),
+  }
+})
+
+vi.mock("~/services/notifications/taskNotificationService", () => ({
+  notifyTaskResult: (...args: unknown[]) => notifyTaskResultMock(...args),
+}))
+
+const createUsageHistoryConfig = (overrides = {}) => ({
+  ...DEFAULT_USAGE_HISTORY_PREFERENCES,
+  enabled: true,
+  scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+  syncIntervalMinutes: 45,
+  retentionDays: 30,
+  ...overrides,
+})
+
+describe("usageHistoryScheduler", () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it("saves longer retention and still honors the user's period", async () => {
+    await usageHistoryScheduler.updateSettings({ retentionDays: 730 })
+    expect(userPreferences.savePreferences).toHaveBeenCalledWith({
+      usageHistory: expect.objectContaining({ retentionDays: 730 }),
+    })
+    expect(usageHistoryStorage.pruneAllAccounts).toHaveBeenCalledWith(730)
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    registeredAlarmListeners.length = 0
+    ;(usageHistoryScheduler as any).isInitialized = false
+
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: createUsageHistoryConfig(),
+    })
+    vi.mocked(userPreferences.savePreferences).mockResolvedValue({
+      ok: true,
+      preferences: {
+        ...DEFAULT_PREFERENCES,
+        usageHistory: createUsageHistoryConfig(),
+      },
+    })
+    vi.mocked(hasAlarmsAPI).mockReturnValue(true)
+    vi.mocked(getAlarm).mockResolvedValue(undefined)
+    vi.mocked(accountQueries.getEnabledAccounts).mockResolvedValue([
+      { id: "account-1", disabled: false },
+      { id: "account-2", disabled: false },
+    ] as any)
+    vi.mocked(accountQueries.getAccountById).mockImplementation(async (id) => {
+      if (id === "missing") return null
+      if (id === "disabled") return { id, disabled: true } as any
+      return { id, disabled: false } as any
+    })
+    vi.mocked(syncUsageHistoryForAccount).mockImplementation(async (params) => {
+      return {
+        accountId: params.accountId,
+        status: "success",
+      } as any
+    })
+    vi.mocked(usageHistoryStorage.pruneAllAccounts).mockResolvedValue(true)
+    notifyTaskResultMock.mockReset()
+    notifyTaskResultMock.mockResolvedValue(true)
+  })
+
+  it("initializes once, schedules the alarm, and only syncs for the matching alarm name", async () => {
+    await usageHistoryScheduler.initialize()
+    await usageHistoryScheduler.initialize()
+
+    expect(onAlarm).toHaveBeenCalledTimes(1)
+    expect(clearAlarm).toHaveBeenCalledWith("usageHistorySync")
+    expect(createAlarm).toHaveBeenCalledWith("usageHistorySync", {
+      periodInMinutes: 45,
+      delayInMinutes: 1,
+    })
+
+    await registeredAlarmListeners[0]?.({ name: "other-alarm" })
+    expect(syncUsageHistoryForAccount).not.toHaveBeenCalled()
+
+    await registeredAlarmListeners[0]?.({ name: "usageHistorySync" })
+    expect(syncUsageHistoryForAccount).toHaveBeenCalledTimes(2)
+    expect(syncUsageHistoryForAccount).toHaveBeenNthCalledWith(1, {
+      accountId: "account-1",
+      trigger: "alarm",
+      force: undefined,
+      config: expect.objectContaining({
+        enabled: true,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+      }),
+    })
+    expect(syncUsageHistoryForAccount).toHaveBeenNthCalledWith(2, {
+      accountId: "account-2",
+      trigger: "alarm",
+      force: undefined,
+      config: expect.objectContaining({
+        enabled: true,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+      }),
+    })
+  })
+
+  it("preserves an existing matching alarm to avoid startup schedule drift", async () => {
+    vi.mocked(getAlarm).mockResolvedValue({
+      name: "usageHistorySync",
+      scheduledTime: Date.now() + 30 * 60_000,
+      periodInMinutes: 45,
+    } as browser.alarms.Alarm)
+
+    await usageHistoryScheduler.initialize()
+
+    expect(getAlarm).toHaveBeenCalledWith("usageHistorySync")
+    expect(clearAlarm).not.toHaveBeenCalled()
+    expect(createAlarm).not.toHaveBeenCalled()
+  })
+
+  it("falls back to after-refresh scheduling when alarms are unavailable", async () => {
+    vi.mocked(hasAlarmsAPI).mockReturnValue(false)
+
+    await usageHistoryScheduler.initialize()
+
+    expect(clearAlarm).toHaveBeenCalledWith("usageHistorySync")
+    expect(createAlarm).not.toHaveBeenCalled()
+    expect(userPreferences.savePreferences).toHaveBeenCalledWith({
+      usageHistory: expect.objectContaining({
+        enabled: true,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+        retentionDays: 30,
+        syncIntervalMinutes: 45,
+      }),
+    })
+  })
+
+  it("clears any existing alarm when preferences already use after-refresh scheduling", async () => {
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: createUsageHistoryConfig({
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+      }),
+    })
+
+    await usageHistoryScheduler.initialize()
+
+    expect(clearAlarm).toHaveBeenCalledWith("usageHistorySync")
+    expect(createAlarm).not.toHaveBeenCalled()
+  })
+
+  it("falls back to default usage-history preferences when stored config is missing", async () => {
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: undefined,
+    })
+
+    const result = await usageHistoryScheduler.updateSettings({
+      retentionDays: Number.NaN,
+      syncIntervalMinutes: Number.NaN,
+    })
+
+    expect(result).toEqual({ warning: undefined })
+    expect(userPreferences.savePreferences).toHaveBeenCalledWith({
+      usageHistory: expect.objectContaining({
+        enabled: DEFAULT_USAGE_HISTORY_PREFERENCES.enabled,
+        retentionDays: DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays,
+        scheduleMode: DEFAULT_USAGE_HISTORY_PREFERENCES.scheduleMode,
+        syncIntervalMinutes:
+          DEFAULT_USAGE_HISTORY_PREFERENCES.syncIntervalMinutes,
+      }),
+    })
+    expect(usageHistoryStorage.pruneAllAccounts).toHaveBeenCalledWith(
+      DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays,
+    )
+    expect(clearAlarm).toHaveBeenCalledWith("usageHistorySync")
+    expect(createAlarm).not.toHaveBeenCalled()
+  })
+
+  it("clamps settings updates and returns a warning when alarm scheduling is unsupported", async () => {
+    vi.mocked(hasAlarmsAPI).mockReturnValue(false)
+
+    const result = await usageHistoryScheduler.updateSettings({
+      enabled: true,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+      retentionDays: 9999,
+      syncIntervalMinutes: 0,
+    })
+
+    expect(result).toEqual({
+      warning:
+        "Alarms API not supported; falling back to after-refresh scheduling.",
+    })
+    expect(userPreferences.savePreferences).toHaveBeenCalledWith({
+      usageHistory: expect.objectContaining({
+        enabled: true,
+        retentionDays: 9999,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+        syncIntervalMinutes: 1,
+      }),
+    })
+    expect(usageHistoryStorage.pruneAllAccounts).toHaveBeenCalledWith(9999)
+    expect(clearAlarm).toHaveBeenCalledWith("usageHistorySync")
+  })
+
+  it("skips non-forced runs when the feature is disabled or scheduled for a different trigger", async () => {
+    vi.mocked(userPreferences.getPreferences)
+      .mockResolvedValueOnce({
+        ...DEFAULT_PREFERENCES,
+        usageHistory: createUsageHistoryConfig({ enabled: false }),
+      })
+      .mockResolvedValueOnce({
+        ...DEFAULT_PREFERENCES,
+        usageHistory: createUsageHistoryConfig({
+          scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+        }),
+      })
+
+    const disabledResult = await usageHistoryScheduler.runAfterRefreshSync()
+    const wrongScheduleResult =
+      await usageHistoryScheduler.runAfterRefreshSync()
+
+    expect(disabledResult).toEqual({
+      totals: { success: 0, skipped: 0, error: 0, unsupported: 0 },
+      perAccount: [],
+    })
+    expect(wrongScheduleResult).toEqual({
+      totals: { success: 0, skipped: 0, error: 0, unsupported: 0 },
+      perAccount: [],
+    })
+    expect(syncUsageHistoryForAccount).not.toHaveBeenCalled()
+  })
+
+  it("filters accounts when runAfterRefreshSync is called with specific accountIds", async () => {
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: createUsageHistoryConfig({
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+      }),
+    })
+    vi.mocked(accountQueries.getAccountById).mockResolvedValue({
+      id: "acc-1",
+      site_name: "Site 1",
+      disabled: false,
+    } as any)
+    vi.mocked(syncUsageHistoryForAccount).mockResolvedValue({
+      accountId: "acc-1",
+      status: "success",
+      ingestedCount: 5,
+      pagesFetched: 1,
+      itemsFetched: 5,
+      partial: false,
+    })
+
+    const result = await usageHistoryScheduler.runAfterRefreshSync(["acc-1"])
+    expect(accountQueries.getAccountById).toHaveBeenCalledWith("acc-1")
+    expect(accountQueries.getEnabledAccounts).not.toHaveBeenCalled()
+    expect(syncUsageHistoryForAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "acc-1",
+        trigger: USAGE_HISTORY_SYNC_TRIGGERS.AfterRefresh,
+      }),
+    )
+    expect(result?.totals.success).toBe(1)
+  })
+
+  it.each(["automatic", "manual"])(
+    "keeps refreshed accounts queued during an earlier %s sync",
+    async (kind) => {
+      vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+        ...DEFAULT_PREFERENCES,
+        usageHistory: createUsageHistoryConfig({
+          scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+        }),
+      })
+      const firstSync =
+        createDeferred<Awaited<ReturnType<typeof syncUsageHistoryForAccount>>>()
+      vi.mocked(syncUsageHistoryForAccount).mockReturnValueOnce(
+        firstSync.promise,
+      )
+
+      const first =
+        kind === "manual"
+          ? usageHistoryScheduler.runManualSync(["account-1"])
+          : usageHistoryScheduler.runAfterRefreshSync(["account-1"])
+      await vi.waitFor(() =>
+        expect(syncUsageHistoryForAccount).toHaveBeenCalledTimes(1),
+      )
+      const second = usageHistoryScheduler.runAfterRefreshSync(["account-2"])
+      const third = usageHistoryScheduler.runAfterRefreshSync(["account-3"])
+      firstSync.resolve({
+        accountId: "account-1",
+        status: "success",
+        ingestedCount: 0,
+        pagesFetched: 1,
+        itemsFetched: 0,
+        partial: false,
+      })
+
+      const results = await Promise.all([first, second, third])
+      expect(
+        results.map((result) =>
+          result?.perAccount.map((account) => account.accountId),
+        ),
+      ).toEqual([["account-1"], ["account-2"], ["account-3"]])
+      expect(syncUsageHistoryForAccount).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it("ignores alarm-triggered runs when preferences no longer use alarm scheduling", async () => {
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: createUsageHistoryConfig({
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+      }),
+    })
+
+    await usageHistoryScheduler.initialize()
+    await registeredAlarmListeners[0]?.({ name: "usageHistorySync" })
+
+    expect(syncUsageHistoryForAccount).not.toHaveBeenCalled()
+  })
+
+  it("notifies failures from alarm-triggered sync exceptions", async () => {
+    vi.mocked(syncUsageHistoryForAccount).mockRejectedValueOnce(
+      new Error("sync failed"),
+    )
+
+    await usageHistoryScheduler.initialize()
+    await registeredAlarmListeners[0]?.({ name: "usageHistorySync" })
+
+    expect(notifyTaskResultMock).toHaveBeenCalledWith({
+      task: TASK_NOTIFICATION_TASKS.UsageHistorySync,
+      status: TASK_NOTIFICATION_STATUSES.Failure,
+      message: "sync failed",
+    })
+  })
+
+  it("runs manual sync for explicit account ids, filtering missing and disabled accounts", async () => {
+    const result = await usageHistoryScheduler.runManualSync([
+      "account-1",
+      "missing",
+      "disabled",
+      "account-2",
+    ])
+
+    expect(accountQueries.getAccountById).toHaveBeenCalledTimes(4)
+    expect(syncUsageHistoryForAccount).toHaveBeenCalledTimes(2)
+    expect(syncUsageHistoryForAccount).toHaveBeenNthCalledWith(1, {
+      accountId: "account-1",
+      trigger: "manual",
+      force: true,
+      config: expect.objectContaining({
+        enabled: true,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+      }),
+    })
+    expect(syncUsageHistoryForAccount).toHaveBeenNthCalledWith(2, {
+      accountId: "account-2",
+      trigger: "manual",
+      force: true,
+      config: expect.objectContaining({
+        enabled: true,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+      }),
+    })
+    expect(result).toEqual({
+      totals: { success: 2, skipped: 0, error: 0, unsupported: 0 },
+      perAccount: [
+        { accountId: "account-1", status: "success" },
+        { accountId: "account-2", status: "success" },
+      ],
+    })
+  })
+
+  it("returns null when a run is already in progress and recovers from sync errors", async () => {
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: createUsageHistoryConfig({
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+      }),
+    })
+    const sync =
+      createDeferred<Awaited<ReturnType<typeof syncUsageHistoryForAccount>>>()
+    vi.mocked(syncUsageHistoryForAccount).mockReturnValueOnce(sync.promise)
+    const running = usageHistoryScheduler.runManualSync(["account-1"])
+    await vi.waitFor(() =>
+      expect(syncUsageHistoryForAccount).toHaveBeenCalledTimes(1),
+    )
+    await expect(usageHistoryScheduler.runManualSync()).resolves.toBeNull()
+    const queued = usageHistoryScheduler.runAfterRefreshSync(["account-2"])
+    sync.reject(new Error("sync exploded"))
+
+    await expect(running).resolves.toBeNull()
+    expect(
+      (await queued)?.perAccount.map((account) => account.accountId),
+    ).toEqual(["account-2"])
+  })
+})
+
+describe("handleUsageHistoryMessage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(userPreferences.getPreferences).mockResolvedValue({
+      ...DEFAULT_PREFERENCES,
+      usageHistory: createUsageHistoryConfig({ retentionDays: 14 }),
+    })
+  })
+
+  it("resolves update, manual sync, and prune typed messages", async () => {
+    vi.spyOn(usageHistoryScheduler, "updateSettings").mockResolvedValue({
+      warning: "warning",
+    })
+    vi.spyOn(usageHistoryScheduler, "runManualSync").mockResolvedValue({
+      totals: { success: 1, skipped: 0, error: 0, unsupported: 0 },
+      perAccount: [],
+    })
+    vi.mocked(usageHistoryStorage.pruneAllAccounts).mockResolvedValue(true)
+
+    const updateResponse = await resolveUsageHistoryUpdateSettingsMessage({
+      settings: { enabled: false },
+    })
+    expect(updateResponse).toEqual({
+      success: true,
+      data: { warning: "warning" },
+    })
+
+    const syncResponse = await resolveUsageHistorySyncNowMessage({
+      accountIds: ["account-1"],
+    })
+    expect(syncResponse).toEqual({
+      success: true,
+      data: {
+        totals: { success: 1, skipped: 0, error: 0, unsupported: 0 },
+        perAccount: [],
+      },
+    })
+
+    const pruneResponse = await resolveUsageHistoryPruneMessage()
+    expect(pruneResponse).toEqual({ success: true, data: undefined })
+    expect(usageHistoryStorage.pruneAllAccounts).toHaveBeenCalledWith(14)
+  })
+
+  it("passes omitted sync-now accountIds as a full manual sync request", async () => {
+    vi.spyOn(usageHistoryScheduler, "runManualSync").mockResolvedValue({
+      totals: { success: 2, skipped: 0, error: 0, unsupported: 0 },
+      perAccount: [],
+    })
+
+    const response = await resolveUsageHistorySyncNowMessage({})
+
+    expect(usageHistoryScheduler.runManualSync).toHaveBeenCalledWith(undefined)
+    expect(response).toEqual({
+      success: true,
+      data: {
+        totals: { success: 2, skipped: 0, error: 0, unsupported: 0 },
+        perAccount: [],
+      },
+    })
+  })
+
+  it("rejects malformed scoped sync payloads instead of syncing every account", async () => {
+    const runManualSyncSpy = vi.spyOn(usageHistoryScheduler, "runManualSync")
+
+    const response = await resolveUsageHistorySyncNowMessage({
+      accountIds: "not-an-array" as any,
+    })
+
+    expect(response).toEqual({
+      success: false,
+      error: "accountIds must be an array when provided",
+    })
+    expect(runManualSyncSpy).not.toHaveBeenCalled()
+  })
+
+  it("returns a failure response when a manual sync is already running", async () => {
+    vi.spyOn(usageHistoryScheduler, "runManualSync").mockResolvedValue(null)
+
+    const response = await resolveUsageHistorySyncNowMessage({})
+
+    expect(response).toEqual({
+      success: false,
+      error: "Usage-history sync is already running",
+    })
+  })
+
+  it("returns an error response when the scheduler throws", async () => {
+    vi.spyOn(usageHistoryScheduler, "updateSettings").mockRejectedValue(
+      new Error("scheduler exploded"),
+    )
+
+    const response = await resolveUsageHistoryUpdateSettingsMessage({
+      settings: {},
+    })
+
+    expect(response).toEqual({
+      success: false,
+      error: "scheduler exploded",
+    })
+  })
+})

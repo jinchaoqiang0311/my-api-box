@@ -1,0 +1,261 @@
+import { LayoutDashboard, TriangleAlert } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { PageHeader } from "~/components/PageHeader"
+import { Alert, Button, Spinner } from "~/components/ui"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { PermissionOnboardingDialog } from "~/features/OptionsOverview/permissions/PermissionOnboardingDialog"
+import { OptionsOverviewGrid } from "~/features/OptionsOverview/workspace/OptionsOverviewGrid"
+import { useOptionsOverviewData } from "~/features/OptionsOverview/workspace/useOptionsOverviewData"
+import { requestProductAnnouncementPopoverOpen } from "~/features/ProductAnnouncements/events"
+import { useProductAnnouncements } from "~/features/ProductAnnouncements/hooks/useProductAnnouncements"
+import { ProductAnnouncementBanner } from "~/features/ProductAnnouncements/ProductAnnouncementBanner"
+import { ProductTourInvitation } from "~/features/ProductTour"
+import { UNIFIED_API_GUIDANCE_STATUSES } from "~/features/UnifiedApiGuidance/model"
+import { useGatewayGuidancePresentation } from "~/features/UnifiedApiGuidance/useGatewayGuidancePresentation"
+import { setLastSeenOptionalPermissions } from "~/services/permissions/optionalPermissionState"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_EVENTS,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+  PRODUCT_ANALYTICS_TARGET_KINDS,
+} from "~/services/productAnalytics/contracts"
+import { trackProductAnalyticsEvent } from "~/services/productAnalytics/runtime/dispatch"
+import { PRODUCT_ANNOUNCEMENT_SEVERITIES } from "~/services/productAnnouncements/constants"
+import { pushWithinOptionsPage } from "~/utils/navigation/optionsPage"
+
+import { OPTIONS_OVERVIEW_TEST_IDS } from "./testIds"
+import type { OptionsOverviewNavigationIntent } from "./types"
+
+const overviewWidgetSurfaceIds = {
+  statusSummary: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewStatusSummary,
+  unifiedApiGuidance:
+    PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewUnifiedApiGuidance,
+  needsAttention: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewAttentionList,
+  automationOverview:
+    PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewAutomationOverview,
+  recentUsage: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewRecentUsage,
+  actionCenter: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewActionCenter,
+} as const
+
+/**
+ * Reads the Overview-owned permissions onboarding state from the current URL.
+ */
+export function getPermissionsOnboardingReasonFromUrl(): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  const url = new URL(window.location.href)
+  if (url.hash !== `#${MENU_ITEM_IDS.OVERVIEW}`) {
+    return null
+  }
+
+  return url.searchParams.get("onboarding") === "permissions"
+    ? url.searchParams.get("reason") ?? ""
+    : null
+}
+
+/**
+ * Options default overview workbench for local account, usage, and setup status.
+ */
+export default function OptionsOverview() {
+  const { t } = useTranslation(["optionsOverview", "common"])
+  const { isLoading, error, viewModel, reload } = useOptionsOverviewData()
+  const gatewayGuidanceComplete =
+    viewModel?.unifiedApiGuidance?.status ===
+    UNIFIED_API_GUIDANCE_STATUSES.HasGatewayChannels
+  const gatewayGuidance = useGatewayGuidancePresentation(
+    gatewayGuidanceComplete,
+    viewModel?.gatewayGuidanceStarted ?? false,
+    Boolean(viewModel?.unifiedApiGuidance),
+  )
+
+  const {
+    state: productAnnouncementState,
+    dismiss: dismissProductAnnouncement,
+  } = useProductAnnouncements()
+  const [permissionsOnboardingReason, setPermissionsOnboardingReason] =
+    useState<string | null>(() => getPermissionsOnboardingReasonFromUrl())
+  const showPermissionsOnboarding = permissionsOnboardingReason !== null
+  const primaryRiskNotice =
+    productAnnouncementState.view.primaryRiskNotice ?? null
+  const additionalRiskNoticeCount = primaryRiskNotice
+    ? productAnnouncementState.view.activeNotices.filter(
+        (notice) =>
+          notice.id !== primaryRiskNotice.id &&
+          !notice.dismissed &&
+          (notice.severity === PRODUCT_ANNOUNCEMENT_SEVERITIES.Critical ||
+            notice.severity === PRODUCT_ANNOUNCEMENT_SEVERITIES.Warning),
+      ).length
+    : 0
+
+  useEffect(() => {
+    const applyUrlState = () => {
+      setPermissionsOnboardingReason(getPermissionsOnboardingReasonFromUrl())
+    }
+
+    applyUrlState()
+    window.addEventListener("popstate", applyUrlState)
+    window.addEventListener("hashchange", applyUrlState)
+    return () => {
+      window.removeEventListener("popstate", applyUrlState)
+      window.removeEventListener("hashchange", applyUrlState)
+    }
+  }, [])
+
+  const handleClosePermissionsOnboarding = useCallback(() => {
+    setPermissionsOnboardingReason(null)
+    void setLastSeenOptionalPermissions()
+
+    const url = new URL(window.location.href)
+    url.searchParams.delete("onboarding")
+    url.searchParams.delete("reason")
+    window.history.replaceState(null, "", url.toString())
+  }, [])
+
+  const handleRetry = () => {
+    void trackProductAnalyticsEvent(
+      PRODUCT_ANALYTICS_EVENTS.FeatureActionCompleted,
+      {
+        feature_id: PRODUCT_ANALYTICS_FEATURE_IDS.OptionsOverview,
+        action_id: PRODUCT_ANALYTICS_ACTION_IDS.RefreshOptionsOverviewData,
+        surface_id: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsOverviewStatusSummary,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Success,
+      },
+    )
+    reload()
+  }
+
+  const handleNavigate = ({
+    target,
+    sourceWidgetId,
+  }: OptionsOverviewNavigationIntent) => {
+    void trackProductAnalyticsEvent(
+      PRODUCT_ANALYTICS_EVENTS.FeatureActionCompleted,
+      {
+        feature_id: PRODUCT_ANALYTICS_FEATURE_IDS.OptionsOverview,
+        action_id: PRODUCT_ANALYTICS_ACTION_IDS.OpenOptionsOverviewTarget,
+        surface_id: overviewWidgetSurfaceIds[sourceWidgetId],
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Success,
+        target_kind: PRODUCT_ANALYTICS_TARGET_KINDS.OptionsPage,
+        target_page_id: target.menuItemId,
+        route_params_present: Boolean(
+          target.params && Object.keys(target.params).length > 0,
+        ),
+      },
+    )
+    pushWithinOptionsPage(`#${target.menuItemId}`, target.params ?? {})
+  }
+
+  const handleNavigateWithoutTracking = (
+    target: OptionsOverviewNavigationIntent["target"],
+  ) => {
+    pushWithinOptionsPage(`#${target.menuItemId}`, target.params ?? {})
+  }
+
+  const handleViewAllProductAnnouncements = () => {
+    requestProductAnnouncementPopoverOpen("options-header")
+  }
+
+  return (
+    <div
+      className="space-y-density-6 py-density-4 sm:py-density-6 px-4 sm:px-6"
+      data-testid={OPTIONS_OVERVIEW_TEST_IDS.page}
+      data-options-page-pending={isLoading && !viewModel ? "" : undefined}
+    >
+      <div>
+        <PageHeader
+          icon={LayoutDashboard}
+          title={t("optionsOverview:title")}
+          description={t("optionsOverview:description")}
+          actions={
+            gatewayGuidanceComplete ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-expanded={gatewayGuidance.expanded}
+                onClick={gatewayGuidance.toggle}
+              >
+                {t("optionsOverview:unifiedApiGuidance.overview.reopen")}
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
+
+      {!showPermissionsOnboarding ? (
+        <div className="empty:hidden">
+          <ProductTourInvitation />
+        </div>
+      ) : null}
+
+      {isLoading && !viewModel ? (
+        <div className="dark:text-secondary-foreground text-muted-foreground gap-y-density-3 flex min-h-64 items-center justify-center gap-x-3 text-sm">
+          <Spinner size="default" aria-label={t("common:status.loading")} />
+          <span>{t("optionsOverview:states.loading")}</span>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div>
+          <Alert
+            variant="warning"
+            compact
+            title={t("optionsOverview:states.loadedWithError")}
+            showIcon
+          >
+            <div className="gap-y-density-3 flex flex-col gap-x-3 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm">{error}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                leftIcon={<TriangleAlert className="h-4 w-4" />}
+              >
+                {t("common:actions.retry")}
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      ) : null}
+
+      {viewModel ? (
+        <>
+          {primaryRiskNotice ? (
+            <div>
+              <ProductAnnouncementBanner
+                notice={primaryRiskNotice}
+                additionalCount={additionalRiskNoticeCount}
+                onViewAll={handleViewAllProductAnnouncements}
+                onDismiss={dismissProductAnnouncement}
+              />
+            </div>
+          ) : null}
+          <OptionsOverviewGrid
+            viewModel={viewModel}
+            gatewayGuidancePresentation={gatewayGuidance}
+            t={t}
+            onNavigate={handleNavigate}
+            onNavigateWithoutTracking={handleNavigateWithoutTracking}
+            isLoading={isLoading}
+            onRetry={handleRetry}
+          />
+        </>
+      ) : null}
+
+      <PermissionOnboardingDialog
+        open={showPermissionsOnboarding}
+        onClose={handleClosePermissionsOnboarding}
+        reason={permissionsOnboardingReason}
+      />
+    </div>
+  )
+}

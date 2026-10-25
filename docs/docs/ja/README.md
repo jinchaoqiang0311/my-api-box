@@ -1,0 +1,230 @@
+---
+home: true
+title: "ホーム"
+heroImage: "/512.png"
+heroText: "My API Box - あなたの万能 AI 資産マネージャー"
+tagline: "AI 中継サイトのアカウントと API 認証情報をまとめて管理するオープンソースのブラウザー拡張機能。CLIProxyAPI、New API、Sub2API などのセルフホスト型ゲートウェイの管理、残高確認、モデル価格比較、API 検証、暗号化 WebDAV バックアップに対応しています。"
+actions:
+  - text: "利用開始"
+    link: "./get-started.html"
+    type: "primary"
+    
+  - text: "Chrome ウェブストア"
+    link: "https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID"
+    type: "secondary"
+
+  - text: "Edge アドオン"
+    link: "https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID"
+    type: "secondary"
+
+  - text: "FireFox アドオン"
+    link: "https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}"
+    type: "secondary"
+    
+  - text: "Safari インストール"
+    link: "./safari-install.html"
+    type: "secondary"
+
+features:
+  - title: "📊 複数サイトの資産ダッシュボード"
+    details: "複数の AI 中継サイトの残高、利用量、傾向、アカウント状態を一画面で確認し、分散した管理を一つにまとめられます。"
+  - title: "🔑 API 認証情報ライブラリ"
+    details: "サイトアカウントを登録せず、共有されたものや日頃個別に収集した Base URL と API Key をまとめて保存し、情報の確認、テスト、エクスポートにすぐ使えます。"
+  - title: "💰 サイト間モデル価格比較"
+    details: "各サイトのモデル価格を実質価格に換算し、よりお得なモデルやグループをひと目で見つけられます。"
+  - title: "✅ 複数サイトの自動チェックイン"
+    details: "対応アカウントの毎日のチェックインをワンクリックまたはスケジュールで実行し、毎日のログインなしで特典を自動的に受け取れます。"
+  - title: "🧪 API・モデル・CLI 検証"
+    details: "API の接続状態、モデルの利用可否、CLI の接続状態をワンクリックでテストし、設定上の問題をすばやく切り分けられます。"
+  - title: "🔔 お知らせとタスク結果通知"
+    details: "登録済みサイトのお知らせを一か所で確認し、メンテナンス、モデル、価格などの更新に加えて、自動チェックイン、WebDAV 自動同期、モデル同期のバックグラウンドスケジュール結果もすぐに受け取れます。"
+  - title: "🚀 Web ページからの取り込みとワンクリックエクスポート"
+    details: "Web ページから Base URL や API Key をすばやく検出し、よく使う AI クライアントへワンクリックでエクスポートできます。"
+  - title: "🛠️ 主要 AI ゲートウェイ対応"
+    details: "CLIProxyAPI、New API、Sub2API、AxonHub、Claude Code Hub、Octopus、Veloera、DoneHub を一元管理し、保存済みのアカウントや API 認証情報からサイト設定をすばやく追加できます。対応サイトではモデル同期やリダイレクトも利用できます。"
+  - title: "🔐 ローカル優先と自動同期"
+    details: "データはデフォルトでブラウザ内に保存されます。暗号化 WebDAV 自動同期を有効にすると、複数デバイス間で安全に同期し、パソコンを替えてもそのまま使い続けられます。"
+
+footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
+---
+
+## 紹介
+
+AI の時代には、節約したり別のモデルを試したりするために、複数の中継サイトアカウントを持つことがよくあります。ただし、管理は面倒になりがちです。残高は分散し、価格は比較しづらく、毎日の手動チェックインも忘れやすくなります。
+
+**My API Box は、その問題を解決するためのツールです。** AI 資産を一元管理し、より簡単で見やすく、自動化された管理を実現します。
+
+## 🎯 使用シーン
+
+### 👤 一般の AI ユーザー（初心者向け）
+
+- **どう始めればよいですか？**：[拡張機能をダウンロードしてインストール](./get-started.md) -> [最初のアカウントを追加](./get-started.md#add-site)
+- **節約したい**：[自動チェックインでクレジットを獲得](./auto-checkin.md) -> [サイト間でモデル価格を比較](./model-list.md)
+- **もっと手間を減らしたい**：[資産の変化をひと目で確認](./balance-history.md) -> [アカウントを他の AI ツールに同期](./get-started.md#quick-export-sites) -> [バックグラウンドタスク通知を受信](./task-notifications.md)
+
+### 🛠️ 上級ユーザー（Key コレクター）
+
+- **キー管理**：[独立した URL+Key を API 認証情報庫に保存](./api-credential-profiles.md)
+- **可用性テスト**：[API と CLI の互換性を一括検証](./web-ai-api-check.md)
+- **デバイス間同期**：[暗号化 WebDAV バックアップを設定](./webdav-sync.md)
+
+### 👑 サイト管理者（運営者向け）
+
+- **効率化ツール**：[拡張機能内でチャネルを管理](./self-hosted-site-management.md) -> [モデルを一括同期](./managed-site-model-sync.md)
+- **設定の最適化**：[モデルリダイレクトを設定](./model-redirect.md)
+- **セキュリティ対策**：[2FA / OTP 検証を処理](./new-api-security-verification.md)
+
+## 🧩 サポートされているシステムアーキテクチャ
+
+どのアーキテクチャを使っていても、高い確率で対応しています：
+
+- **アカウントサイト互換アーキテクチャ**：New API, One API, Sub2API, One-Hub, Veloera, Done-Hub など。
+- **特色あるアカウントプラットフォームと互換実装**：[OpenRouter](https://openrouter.ai/)、[AnyRouter](https://anyrouter.top/register?aff=tDKX)、[AgentRouter](https://agentrouter.org/register?aff=TUX6)、[AIHubMix](https://aihubmix.com/?aff=W3DN)、Super-API、v-api、Neo-API など。
+- **セルフホスト型管理バックエンド**：CLIProxyAPI、New API、Sub2API、AxonHub、Claude Code Hub、Octopus、Veloera、DoneHub など。バックエンド管理に利用でき、対応サイトでは移行とモデル同期も行えます。
+
+> macOS で Safari を使う場合は、先に [Safari インストールガイド](./safari-install.md) を確認してください。
+> QQ / 360 / Brave / Vivaldi / Opera などのブラウザを使う場合は、[その他のブラウザへのインストールガイド](./other-browser-install.md) を確認してください。
+> ストア版が GitHub Releases より遅れる理由や、更新を手動で確認する方法を知りたい場合は、[インストール方法と更新について](./extension-update-install.md) を確認してください。
+
+<a id="community"></a>
+## 💬 コミュニティ交流
+
+問題の相談や便利なサイトの共有をしたい場合は、コミュニティに参加してください：
+
+- [GitHub Discussions](https://github.com/qixing-jk/all-api-hub/discussions)
+- [Discord コミュニティ](https://discord.gg/RmFXZ577ZQ)
+- [Telegram グループ](https://t.me/qixing_chat)
+- [QQ グループ](https://qm.qq.com/q/ebSCy31Phe)
+- **WeChat グループ**：下の QR コードをスキャンして中国語グループに参加してください。
+
+<img
+  src="../../../resources/wechat_group.png"
+  alt="My API Box WeChat グループ QR コード"
+  style="width: min(280px, 100%);"
+/>
+
+<a id="sponsors"></a>
+## ❤️ 協賛スポンサー
+
+スポンサーの皆様による本プロジェクトへのご支援は、長期的な機能開発とメンテナンスを支えています。また、My API Box を利用し、フィードバック、テスト、共有、改善に協力してくださるすべてのユーザー、コントリビューター、コミュニティの皆様にも感謝します。
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://s.qiniu.com/qE3eai">
+      <img src="../../../resources/partners/qiniu.png" alt="Qiniu Cloud AI">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    Qiniu Cloud AI は Qiniu Cloud のエンタープライズ向け MaaS プラットフォームで、世界の主要 150 以上のモデルへワンストップでアクセスでき、主要モデルプロバイダーのプロトコルと互換性があります。テキスト、画像、音声、動画、ファイル処理までフルモーダル処理に対応します。エンタープライズユーザーは <a href="https://s.qiniu.com/qE3eai">こちらのリンク</a> から 1,200 万 Token を無料で受け取れ、紹介特典では最大で百億 Token 規模の報酬を獲得できます。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://api.fenno.ai/s/DCGC">
+      <img src="../../../resources/partners/fennoai.jpg" alt="FennoAI">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    FennoAI は、Codex 中継サービスを中心に提供する安定性と効率性に優れた API 中継サービスプロバイダーです。OpenAI と Anthropic のプロトコルに対応し、Codex、Claude Code、OpenCode などの主要なコーディングツールへ柔軟に接続できます。1 日あたり 1,000 億 Token 規模の企業利用を安定して支え、中国国内および海外法人との企業間決済と請求書発行にも対応しています。My API Box ユーザー向け特典として、<a href="https://api.fenno.ai/s/DCGC">専用リンク</a>からわずか 1.99 ドルで、50 ドル相当の Coding Plan クレジットを購入できます。友人の購入に対して最大 20% の紹介報酬を受け取ることができ、紹介人数に応じて報酬も増えます（<a href="./service-guides/fenno.md">設定ガイド</a>）。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://www.packyapi.ai/register?aff=all-api-hub">
+      <img src="../../../resources/partners/packycode.png" alt="PackyCode">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    PackyCode は、Claude Code、Codex、Gemini など、多数の中継サービスを提供する、信頼性と効率性に優れた API 中継サービスプロバイダーです。PackyCode
+    は、当ソフトウェアのユーザーに特別割引を提供しています。<a href="https://www.packyapi.ai/register?aff=all-api-hub">こちらのリンク</a>から登録し、初回チャージ時に "all-api-hub" プロモコードを入力すると、10% オフになります（<a href="./sponsor-guides/packycode.md">設定ガイド</a>）。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://ai.centos.hk">
+      <img class="readme-sponsor-logo-small" src="../../../resources/partners/xingchen.png" alt="Xingchen AI">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    Xingchen AI は、Claude Code、Codex、Gemini などに対応した安定性と効率性の高い API 中継サービスプロバイダーです。1:1 のチャージ比率に対応し、請求書も発行でき、Claude は通常価格の 40% 程度から利用できます。詳細と利用開始は <a href="https://ai.centos.hk">こちらのリンク</a>をご覧ください（<a href="./sponsor-guides/xingchen.md">設定ガイド</a>）。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">
+      <img src="../../../resources/partners/aicodemirror.png" alt="AICodeMirror">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    AICodeMirror は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。My API Box ユーザー向け特典として、<a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">こちらのリンク</a>から登録すると初回チャージが 20% オフになり、エンタープライズ顧客は最大 25% オフを受けられます。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://sui-xiang.com/">
+      <img src="../../../resources/partners/suixiang.jpg" alt="Suixiang AI Relay">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    Suixiang AI Relay は、Claude、Codex、Gemini などの中継サービスを提供する、信頼性と効率性に優れた API 中継サービスプロバイダーです。プライバシー、透明性、迅速なサポートを重視し、データ転売やモデル品質の水増しを行いません。新規アカウントは毎日のチェックインで ¥0.5 のテストクレジットを受け取れ、1:1 チャージ、従量課金、複数回線冗長、リージョン間 DR、自動フェイルオーバー、長時間 SSE 接続の維持、99.9% の可用性に対応します。詳しくは <a href="https://sui-xiang.com/">こちらのリンク</a> をご覧ください（<a href="./service-guides/suixiang.md">設定ガイド</a>）。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://go.apimart.ai/gh-all-api-hub">
+      <img src="../../../resources/partners/apimart.png" alt="APIMart">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    <strong>APIMart</strong> は AI 画像・動画生成に特化した低価格 API プラットフォームです。GPT-Image-2 は <strong>1 枚 $0.006</strong> から、1 ドルで 160 枚以上の画像を生成できます。画像と動画をひとつの非同期 API でカバーし、タスクを送信して ID を取得、ポーリングまたはコールバックで結果を取得できます。数万枚のバッチ処理もタイムアウトなしで実行でき、モデルを切り替えてもコードの変更は不要です。従量課金・月額料金なし。<a href="https://go.apimart.ai/gh-all-api-hub">こちらのリンク</a>から登録して利用を始められます。
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor">
+  <div class="readme-sponsor-logo">
+    <a href="https://88api.ai/register?aff=XcTj">
+      <img src="../../../resources/partners/88api.jpg" alt="88API Token集約プラットフォーム">
+    </a>
+  </div>
+  <p class="readme-sponsor-copy">
+    <strong>88API Token集約プラットフォーム</strong> 香港企業が運営する、開発者・クリエイター・AI アプリユーザー向けのマルチモデル API プラットフォームです。統一 API でテキスト・画像・音声・動画モデルに接続し、AI コーディング、翻訳、コンテンツ制作、ナレーション、画像生成、動画生成に対応します。CC Switch で直接 Provider を追加・切り替えでき、主要な国際決済、請求書発行、安定した企業向けサービスにも対応します。 <a href="https://88api.ai/register?aff=XcTj">専用リンクから登録すると、特典クレジットを受け取れます！</a>
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">
+
+<div class="readme-sponsor readme-sponsor-featured">
+  <p class="readme-sponsor-banner">
+    <a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">
+      <img src="../../../resources/partners/volcengine_en.jpg" alt="Dola Seed on BytePlus ModelArk">
+    </a>
+  </p>
+  <p class="readme-sponsor-copy">
+    Dola Seed 2.0 は ByteDance がグローバル市場向けに独自開発したフルモーダル汎用大規模モデルです。統一されたマルチモーダルアーキテクチャを基盤に、テキスト、画像、音声、動画の理解と生成を横断的にサポートします。エージェント協調をネイティブに実現し、推論、長時間タスク実行、ツール連携、コーディング能力に優れています。スマートコックピット、パーソナルアシスタント、教育、カスタマーサポート、マーケティング、小売など幅広いシナリオに適用できます。マルチモーダル認識、エンドツーエンドの複雑タスク実行、安定した対話、データセキュリティに強みがあり、ModelArk プラットフォームからすぐにアクセス、デプロイできます。<a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">こちらのリンク</a>から登録すると、各モデルにつき 500,000 トークン分の無料推論枠を受け取れます。<a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html"> >>中国大陆地区的开发者请点击这里</a>
+  </p>
+</div>
+
+<hr class="readme-sponsor-divider">

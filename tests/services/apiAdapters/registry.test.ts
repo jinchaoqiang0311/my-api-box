@@ -1,0 +1,475 @@
+import { describe, expect, it } from "vitest"
+
+import {
+  ACCOUNT_SITE_ADAPTER_FAMILIES,
+  ACCOUNT_SITE_TYPES,
+  MANAGED_SITE_TYPES,
+  SITE_TYPES,
+  type SiteType,
+} from "~/constants/siteType"
+import { getAccountSiteDefinition } from "~/services/accountSiteDefinitions"
+import { INVENTORY_SECRET_AVAILABILITIES } from "~/services/apiAdapters/contracts/inventorySecret"
+import {
+  getManagedSiteCapabilities,
+  getSiteTypeCapabilities,
+} from "~/services/apiAdapters/registry"
+
+const expectTokenProvisioningCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(
+    capabilities.account?.keyResourceManagement?.defaultCreation,
+  ).toBeTypeOf("string")
+}
+
+const expectAccountDataCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.data).toEqual({
+    fetchData: expect.any(Function),
+  })
+}
+
+const expectAccountBootstrapCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.bootstrap).toEqual(
+    expect.objectContaining({
+      loadBootstrapFacts: expect.any(Function),
+      fetchUserInfo: expect.any(Function),
+      resolveRoutePath: expect.any(Function),
+    }),
+  )
+}
+
+const expectAccountCompletionCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.completion).toEqual({
+    complete: expect.any(Function),
+  })
+}
+
+const expectInviteLinkCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.inviteLink).toEqual({
+    fetchInviteLink: expect.any(Function),
+  })
+}
+
+const expectKeyManagementCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.keyResourceManagement).toMatchObject({
+    open: expect.any(Function),
+  })
+}
+
+const expectAccountRefreshCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.refresh).toEqual({
+    fetchCheckInSupport: expect.any(Function),
+    refreshAccount: expect.any(Function),
+  })
+}
+
+const expectModelPricingCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.modelPricing).toEqual({
+    fetchPricing: expect.any(Function),
+  })
+}
+
+const expectRedemptionCapability = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.account?.redemption).toEqual({
+    redeem: expect.any(Function),
+  })
+}
+
+const expectManagedSiteCapabilities = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.managedSites?.matching?.search).toBeTypeOf("function")
+  expect(capabilities.managedSites?.config).toEqual({
+    checkValid: expect.any(Function),
+    get: expect.any(Function),
+  })
+  expect(capabilities.managedSites?.channelDrafts).toEqual({
+    prepareFormData: expect.any(Function),
+  })
+  expect(capabilities.managedSites).not.toHaveProperty("channels")
+  expect(capabilities.managedSites).not.toHaveProperty("imports")
+}
+
+const expectManagedSiteQueries = (
+  capabilities: ReturnType<typeof getSiteTypeCapabilities>,
+) => {
+  expect(capabilities.managedSites?.queries).toEqual({
+    siteUserGroups: { fetch: expect.any(Function) },
+    accountAvailableModels: { fetch: expect.any(Function) },
+  })
+}
+
+describe("apiAdapters registry", () => {
+  it.each([
+    SITE_TYPES.NEW_API,
+    SITE_TYPES.SUB2API,
+    SITE_TYPES.VO_API_V2,
+    SITE_TYPES.AIHUBMIX,
+  ])("retains native inventory for migrated %s key management", (siteType) => {
+    expect(
+      getSiteTypeCapabilities(siteType).account?.keyResourceManagement,
+    ).toBeDefined()
+  })
+
+  it("shares the managed-site registration across capability lookup paths", () => {
+    for (const siteType of MANAGED_SITE_TYPES) {
+      const managedSite = getManagedSiteCapabilities(siteType)
+
+      expect(managedSite.siteType).toBe(siteType)
+      expect(getSiteTypeCapabilities(siteType).managedSites).toBe(managedSite)
+    }
+  })
+
+  it("registers both AccountData producer paths for every account site type", () => {
+    for (const siteType of ACCOUNT_SITE_TYPES) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+
+      expect(capabilities.account?.data?.fetchData).toBeTypeOf("function")
+      expect(capabilities.account?.refresh?.refreshAccount).toBeTypeOf(
+        "function",
+      )
+    }
+  })
+
+  it("routes account sites through the definition adapter-family projection", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.V_API)
+
+    expect(getAccountSiteDefinition(SITE_TYPES.V_API)?.adapterFamily).toBe(
+      ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily,
+    )
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.V_API,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily,
+    })
+  })
+
+  it("exposes the definition adapter family for every account site type", () => {
+    for (const siteType of ACCOUNT_SITE_TYPES) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+      expect(capabilities.siteType).toBe(siteType)
+      expect(capabilities.family).toBe(
+        getAccountSiteDefinition(siteType)?.adapterFamily,
+      )
+    }
+  })
+
+  it("returns grouped New API family capabilities for compatible account sites", () => {
+    for (const siteType of [
+      SITE_TYPES.ONE_API,
+      SITE_TYPES.NEW_API,
+      SITE_TYPES.MODELFLARE,
+      SITE_TYPES.ANYROUTER,
+      SITE_TYPES.VELOERA,
+      SITE_TYPES.ONE_HUB,
+      SITE_TYPES.DONE_HUB,
+      SITE_TYPES.V_API,
+      SITE_TYPES.VO_API,
+      SITE_TYPES.SUPER_API,
+      SITE_TYPES.RIX_API,
+      SITE_TYPES.NEO_API,
+      SITE_TYPES.WONG_GONGYI,
+      SITE_TYPES.UNKNOWN,
+    ]) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+
+      expect(capabilities).toMatchObject({
+        siteType,
+        family: ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily,
+      })
+      expect(capabilities.site?.notice).toEqual({
+        fetch: expect.any(Function),
+      })
+      expect(capabilities.site?.announcements).toEqual({
+        fetch: expect.any(Function),
+      })
+      expectAccountDataCapability(capabilities)
+      expectAccountBootstrapCapability(capabilities)
+      expectAccountCompletionCapability(capabilities)
+      expectInviteLinkCapability(capabilities)
+      expectKeyManagementCapability(capabilities)
+      expectTokenProvisioningCapability(capabilities)
+      expectAccountRefreshCapability(capabilities)
+      expectModelPricingCapability(capabilities)
+      expectRedemptionCapability(capabilities)
+      expect("accountData" in capabilities).toBe(false)
+      expect("siteNotice" in capabilities).toBe(false)
+      expect("tokenProvisioning" in capabilities).toBe(false)
+    }
+  })
+
+  it("returns grouped Sub2API capabilities without site notice", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.SUB2API)
+
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.SUB2API,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.Sub2Api,
+    })
+    expect(capabilities.account?.announcements).toEqual({
+      fetch: expect.any(Function),
+      markRead: expect.any(Function),
+    })
+    expect(capabilities.account?.modelCatalog).toEqual({
+      enrichPricing: expect.any(Function),
+      fetchModels: expect.any(Function),
+    })
+    expectInviteLinkCapability(capabilities)
+    expectManagedSiteCapabilities(capabilities)
+    expect(capabilities.managedSites?.queries).toBeUndefined()
+    expect(capabilities.site?.notice).toBeUndefined()
+  })
+
+  it("returns dedicated VoAPI v2 account capabilities while old VoAPI stays New API-family", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.VO_API_V2)
+
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.VO_API_V2,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.VoApiV2,
+    })
+    expectAccountDataCapability(capabilities)
+    expectAccountBootstrapCapability(capabilities)
+    expectAccountCompletionCapability(capabilities)
+    expectInviteLinkCapability(capabilities)
+    expectKeyManagementCapability(capabilities)
+    expectTokenProvisioningCapability(capabilities)
+    expectAccountRefreshCapability(capabilities)
+    expect(capabilities.account?.modelPricing).toBeUndefined()
+    expect(capabilities.managedSites).toBeUndefined()
+
+    expect(getSiteTypeCapabilities(SITE_TYPES.VO_API)).toMatchObject({
+      siteType: SITE_TYPES.VO_API,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily,
+    })
+  })
+
+  it("returns AIHubMix account capabilities without managed-site capabilities", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.AIHUBMIX)
+
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.AIHUBMIX,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.Aihubmix,
+    })
+    expectAccountDataCapability(capabilities)
+    expectAccountBootstrapCapability(capabilities)
+    expectAccountCompletionCapability(capabilities)
+    expectKeyManagementCapability(capabilities)
+    expectTokenProvisioningCapability(capabilities)
+    expectAccountRefreshCapability(capabilities)
+    expect(capabilities.account?.modelPricing).toEqual({
+      fetchPricing: expect.any(Function),
+      invalidateCache: expect.any(Function),
+      runtimeKeyFallback: "account-pricing",
+    })
+    expectInviteLinkCapability(capabilities)
+    expect(capabilities.account?.announcements).toBeUndefined()
+    expect(capabilities.account?.modelCatalog).toBeUndefined()
+    expect(capabilities.account?.redemption).toBeUndefined()
+    expect(capabilities.site?.notice).toBeUndefined()
+    expect(capabilities.managedSites).toBeUndefined()
+  })
+
+  it("returns RelayFor account capabilities without managed-site capabilities", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.RELAYFOR)
+
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.RELAYFOR,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.RelayFor,
+    })
+    expectAccountDataCapability(capabilities)
+    expectAccountBootstrapCapability(capabilities)
+    expectAccountCompletionCapability(capabilities)
+    expectKeyManagementCapability(capabilities)
+    expectTokenProvisioningCapability(capabilities)
+    expectAccountRefreshCapability(capabilities)
+    expect(capabilities.account?.modelPricing).toEqual(
+      expect.objectContaining({
+        fetchPricing: expect.any(Function),
+        updateGroup: expect.any(Function),
+        runtimeKeyFallback: "account-pricing",
+      }),
+    )
+    expect(capabilities.account?.inviteLink).toBeUndefined()
+    expect(capabilities.account?.redemption).toEqual({
+      redeem: expect.any(Function),
+    })
+    expect(capabilities.account?.usageHistory).toEqual({
+      fetchPage: expect.any(Function),
+    })
+    expect(capabilities.site?.announcements).toEqual({
+      fetch: expect.any(Function),
+    })
+    expect(capabilities.managedSites).toBeUndefined()
+  })
+
+  it("keeps OpenRouter provisioning outside generic account capabilities", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.OPENROUTER)
+
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.OPENROUTER,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.OpenRouter,
+    })
+    expect(Object.keys(capabilities.account ?? {}).sort()).toEqual([
+      "data",
+      "keyResourceManagement",
+      "persistence",
+      "providerModelCatalog",
+      "refresh",
+    ])
+    expect(capabilities.account?.persistence).toMatchObject({
+      prepareIdentity: expect.any(Function),
+      getCredentialKey: expect.any(Function),
+      getValidationFailureMessage: expect.any(Function),
+      getHealthFailureReason: expect.any(Function),
+      getOperationLogDetails: expect.any(Function),
+    })
+    expect(capabilities.account?.bootstrap).toBeUndefined()
+    expect(capabilities.account?.completion).toBeUndefined()
+    expect(capabilities.account).not.toHaveProperty("credential")
+    expect(capabilities.account?.data?.fetchData).toBeTypeOf("function")
+    expect(capabilities.account?.refresh?.refreshAccount).toBeTypeOf("function")
+    expect(capabilities.account?.keyResourceManagement).toMatchObject({
+      inventorySecretAvailability:
+        INVENTORY_SECRET_AVAILABILITIES.CreateResponseOnly,
+      open: expect.any(Function),
+    })
+    expect(capabilities.account?.providerModelCatalog).toMatchObject({
+      source: {
+        provider: SITE_TYPES.OPENROUTER,
+      },
+      fetchPricing: expect.any(Function),
+    })
+    expect(
+      capabilities.account?.providerModelCatalog?.source.cacheTtlMs,
+    ).toBeGreaterThan(0)
+    expect(capabilities.managedSites).toBeUndefined()
+  })
+
+  it("returns SharedChat account data and service credential capabilities without token CRUD", () => {
+    const capabilities = getSiteTypeCapabilities(SITE_TYPES.SHAREDCHAT)
+
+    expect(capabilities).toMatchObject({
+      siteType: SITE_TYPES.SHAREDCHAT,
+      family: ACCOUNT_SITE_ADAPTER_FAMILIES.SharedChat,
+    })
+    expectAccountDataCapability(capabilities)
+    expect(capabilities.account?.refresh).toEqual({
+      refreshAccount: expect.any(Function),
+    })
+    expect(capabilities.account?.serviceCredential).toEqual({
+      fetch: expect.any(Function),
+      rotate: expect.any(Function),
+    })
+    expect(capabilities.account?.modelCatalog).toEqual({
+      fetchModels: expect.any(Function),
+    })
+    expectInviteLinkCapability(capabilities)
+    expect(capabilities.account?.keyResourceManagement).toBeUndefined()
+    expect(capabilities.account?.modelPricing).toBeUndefined()
+    expect(capabilities.managedSites).toBeUndefined()
+  })
+
+  it("returns managed-site capabilities for New API family managed sites", () => {
+    for (const siteType of [
+      SITE_TYPES.NEW_API,
+      SITE_TYPES.VELOERA,
+      SITE_TYPES.DONE_HUB,
+    ] satisfies SiteType[]) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+
+      expect(capabilities.siteType).toBe(siteType)
+      expectManagedSiteCapabilities(capabilities)
+      expectManagedSiteQueries(capabilities)
+    }
+  })
+
+  it("keeps ModelFlare account-only despite sharing the New API family", () => {
+    expect(
+      getSiteTypeCapabilities(SITE_TYPES.MODELFLARE).managedSites,
+    ).toBeUndefined()
+  })
+
+  it("returns managed-only capabilities without account capabilities", () => {
+    for (const siteType of [SITE_TYPES.OCTOPUS] satisfies SiteType[]) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+
+      expect(capabilities.siteType).toBe(siteType)
+      expectManagedSiteCapabilities(capabilities)
+      expectManagedSiteQueries(capabilities)
+      expect(capabilities.account).toBeUndefined()
+    }
+
+    for (const siteType of [
+      SITE_TYPES.AXON_HUB,
+      SITE_TYPES.CLAUDE_CODE_HUB,
+    ] satisfies SiteType[]) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+
+      expect(capabilities.siteType).toBe(siteType)
+      expectManagedSiteCapabilities(capabilities)
+      expect(capabilities.managedSites?.queries).toBeUndefined()
+      expect(capabilities.account).toBeUndefined()
+    }
+  })
+
+  it("does not expose managed-site model sync methods for AxonHub or Claude Code Hub", () => {
+    for (const siteType of [
+      SITE_TYPES.AXON_HUB,
+      SITE_TYPES.CLAUDE_CODE_HUB,
+    ] satisfies SiteType[]) {
+      const capabilities = getSiteTypeCapabilities(siteType)
+
+      expect(capabilities.managedSites?.models?.fetchModels).toBeUndefined()
+      expect(capabilities.managedSites?.models?.updateModels).toBeUndefined()
+      expect(
+        capabilities.managedSites?.models?.updateModelMapping,
+      ).toBeUndefined()
+    }
+  })
+
+  it("returns only the site type for unsupported non-account site types", () => {
+    const capabilities = getSiteTypeCapabilities("__unsupported__" as SiteType)
+
+    expect(capabilities).toEqual({
+      siteType: "__unsupported__",
+    })
+  })
+})
+
+describe("model mapping policies", () => {
+  it("registers chained targets only for New API", () => {
+    for (const siteType of MANAGED_SITE_TYPES) {
+      expect(
+        Boolean(
+          getManagedSiteCapabilities(siteType).models?.modelMappingPolicy
+            ?.supportsChaining,
+        ),
+      ).toBe(siteType === SITE_TYPES.NEW_API)
+    }
+  })
+
+  it("keeps DoneHub billing prefixes out of availability comparisons", () => {
+    const policy = getManagedSiteCapabilities(SITE_TYPES.DONE_HUB).models
+      ?.modelMappingPolicy
+    expect(policy?.normalizeTargetForAvailability?.("+ gpt-4o")).toBe("gpt-4o")
+    expect(policy?.normalizeTargetForAvailability?.("gpt-4o")).toBe("gpt-4o")
+    expect(
+      getManagedSiteCapabilities(SITE_TYPES.NEW_API).models?.modelMappingPolicy
+        ?.normalizeTargetForAvailability,
+    ).toBeUndefined()
+  })
+})

@@ -1,0 +1,204 @@
+import type { ComponentProps } from "react"
+import { useTranslation } from "react-i18next"
+
+import { WorkflowTransitionIcon } from "~/components/icons/WorkflowTransitionIcon"
+import { Badge, Button } from "~/components/ui"
+import { Spinner } from "~/components/ui/spinner"
+import { cn } from "~/lib/utils"
+import { PRODUCT_ANNOUNCEMENT_CTA_KINDS } from "~/services/productAnnouncements/constants"
+import type { ProductAnnouncement } from "~/services/productAnnouncements/types"
+import { getExtensionURL } from "~/utils/browser/runtime"
+
+import {
+  getProductAnnouncementSeverityLabel,
+  PRODUCT_ANNOUNCEMENT_SEVERITY_STYLES,
+} from "./presentation"
+import {
+  getProductAnnouncementDismissButtonTestId,
+  getProductAnnouncementRestoreButtonTestId,
+} from "./testIds"
+
+interface ProductAnnouncementListProps {
+  notices: ProductAnnouncement[]
+  emptyMessage: string
+  isLoading?: boolean
+  testId: string
+  onDismiss: (id: string, revision: number) => void
+  onRestore: (id: string) => void | Promise<void>
+  onOpenCta?: (notice: ProductAnnouncement) => void
+}
+
+type BadgeVariant = ComponentProps<typeof Badge>["variant"]
+
+const SEVERITY_BADGE_VARIANTS: Record<
+  ProductAnnouncement["severity"],
+  BadgeVariant
+> = {
+  critical: "danger",
+  warning: "warning",
+  info: "info",
+}
+
+/** Keeps external CTA rendering limited to safe HTTPS navigation. */
+function isHttpsUrl(url: string) {
+  try {
+    return new URL(url).protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+/** Resolves a normalized CTA into the concrete link used by this extension runtime. */
+function resolveCtaHref(cta: NonNullable<ProductAnnouncement["cta"]>) {
+  if (cta.kind === PRODUCT_ANNOUNCEMENT_CTA_KINDS.External) {
+    return isHttpsUrl(cta.url) ? cta.url : null
+  }
+
+  if (cta.kind === PRODUCT_ANNOUNCEMENT_CTA_KINDS.Extension) {
+    return getExtensionURL(cta.url)
+  }
+
+  return null
+}
+
+/**
+ * Renders a compact scrollable announcement list for the header popover.
+ */
+export function ProductAnnouncementList({
+  notices,
+  emptyMessage,
+  isLoading = false,
+  testId,
+  onDismiss,
+  onRestore,
+  onOpenCta,
+}: ProductAnnouncementListProps) {
+  const { t } = useTranslation("productAnnouncements")
+
+  if (isLoading && notices.length === 0) {
+    return (
+      <div
+        data-testid={testId}
+        className="py-density-6 flex justify-center"
+        aria-busy="true"
+      >
+        <Spinner aria-label={t("loading")} />
+      </div>
+    )
+  }
+
+  if (notices.length === 0) {
+    return (
+      <div
+        data-testid={testId}
+        className="text-muted-foreground py-density-6 text-center text-sm"
+      >
+        {emptyMessage}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      data-testid={testId}
+      aria-busy={isLoading}
+      className="space-y-density-3 min-h-0 flex-1 overflow-y-auto pr-1"
+    >
+      {notices.map((notice) => {
+        const cta = notice.cta
+        const ctaHref = cta ? resolveCtaHref(cta) : null
+        const dismissLabel = t("actions.dismissFor", { title: notice.title })
+        const dismissAriaLabel =
+          dismissLabel === "productAnnouncements:actions.dismissFor"
+            ? `${t("actions.dismiss")} ${notice.title}`
+            : dismissLabel
+        const restoreLabel = t("actions.restoreFor", { title: notice.title })
+        const restoreAriaLabel =
+          restoreLabel === "productAnnouncements:actions.restoreFor"
+            ? `${t("actions.restore")} ${notice.title}`
+            : restoreLabel
+
+        return (
+          <article
+            key={`${notice.id}:${notice.revision}`}
+            className={cn(
+              "bg-card/95 shadow-border/40 dark:shadow-shadow/20 py-density-3 relative overflow-hidden rounded-md border px-3 shadow-sm transition-colors",
+              notice.seen
+                ? "border-border/80 dark:border-foreground/10"
+                : "border-border-strong/80 dark:border-foreground/20",
+            )}
+          >
+            <div className="gap-density-2 flex min-w-0 items-start justify-between">
+              <h3 className="text-foreground min-w-0 flex-1 text-sm leading-5 font-medium break-words">
+                {!notice.seen ? (
+                  <>
+                    <span
+                      className="bg-theme-500 dark:bg-theme-300 mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">{t("labels.unread")} </span>
+                  </>
+                ) : null}
+                <Badge
+                  variant={SEVERITY_BADGE_VARIANTS[notice.severity]}
+                  size="sm"
+                  className={cn(
+                    "text-3xs mr-1.5 px-1.5 py-0 align-[0.0625rem] leading-4 font-medium",
+                    PRODUCT_ANNOUNCEMENT_SEVERITY_STYLES[notice.severity].badge,
+                  )}
+                >
+                  {getProductAnnouncementSeverityLabel(notice.severity, t)}
+                </Badge>
+                {notice.title}
+              </h3>
+              {notice.dismissed ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-(--density-control-xs) shrink-0 px-2 text-xs leading-none"
+                  aria-label={restoreAriaLabel}
+                  onClick={() => onRestore(notice.id)}
+                  data-testid={getProductAnnouncementRestoreButtonTestId(
+                    notice.id,
+                  )}
+                >
+                  {t("actions.restore")}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-(--density-control-xs) shrink-0 px-2 text-xs leading-none"
+                  aria-label={dismissAriaLabel}
+                  onClick={() => onDismiss(notice.id, notice.revision)}
+                  data-testid={getProductAnnouncementDismissButtonTestId(
+                    notice.id,
+                  )}
+                >
+                  {t("actions.dismiss")}
+                </Button>
+              )}
+            </div>
+            <p className="dark:text-secondary-foreground text-muted-foreground mt-density-2 text-xs leading-5 break-words whitespace-pre-wrap">
+              {notice.message}
+            </p>
+            {cta && ctaHref ? (
+              <a
+                href={ctaHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-theme-600 dark:text-theme-300 gap-density-1 mt-density-2 inline-flex max-w-full items-center text-xs font-medium underline-offset-4 hover:underline"
+                onClick={() => onOpenCta?.(notice)}
+              >
+                <span className="min-w-0 break-words">{cta.label}</span>
+                <WorkflowTransitionIcon className="h-3 w-3 shrink-0" />
+              </a>
+            ) : null}
+          </article>
+        )
+      })}
+    </div>
+  )
+}

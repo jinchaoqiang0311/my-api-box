@@ -1,0 +1,414 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { ANTHROPIC_VERSION } from "~/services/aiApi/anthropic/auth"
+
+const mocks = vi.hoisted(() => ({
+  fetchApi: vi.fn(),
+  anthropicLogger: {
+    error: vi.fn(),
+  },
+  googleLogger: {
+    error: vi.fn(),
+  },
+}))
+
+vi.mock("~/services/apiTransport/request", () => ({
+  fetchApi: mocks.fetchApi,
+}))
+
+vi.mock("~/utils/core/logger", () => ({
+  createLogger: (scope: string) =>
+    scope === "AiApi.Anthropic" ? mocks.anthropicLogger : mocks.googleLogger,
+}))
+
+describe("AI API model fetchers", () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+  })
+
+  describe("fetchAnthropicModelIds", () => {
+    it("paginates, de-duplicates ids, and stops when pagination metadata ends", async () => {
+      mocks.fetchApi
+        .mockResolvedValueOnce({
+          data: [{ id: "claude-3-5-sonnet" }, { id: "claude-3-5-sonnet" }],
+          has_more: true,
+          last_id: "cursor-1",
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: "claude-3-7-sonnet" }, { id: 123 }, {}],
+          has_more: false,
+          last_id: "cursor-2",
+        })
+
+      const { fetchAnthropicModelIds } = await import(
+        "~/services/aiApi/anthropic"
+      )
+
+      await expect(
+        fetchAnthropicModelIds({
+          baseUrl: "https://anthropic.example.test",
+          apiKey: "synthetic-anthropic-key",
+        }),
+      ).resolves.toEqual(["claude-3-5-sonnet", "claude-3-7-sonnet"])
+
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        1,
+        {
+          baseUrl: "https://anthropic.example.test/v1",
+          auth: { authType: "none" },
+        },
+        expect.objectContaining({
+          endpoint: "models?limit=200",
+          errorResponseDecoder: expect.any(Function),
+          options: {
+            headers: {
+              "x-api-key": "synthetic-anthropic-key",
+              "anthropic-version": ANTHROPIC_VERSION,
+            },
+          },
+        }),
+        true,
+      )
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          endpoint: "models?limit=200&after_id=cursor-1",
+        }),
+        true,
+      )
+    })
+
+    it("stops when the next cursor repeats to avoid an infinite loop", async () => {
+      mocks.fetchApi.mockResolvedValueOnce({
+        data: [{ id: "claude-3-opus" }],
+        has_more: true,
+        last_id: "",
+      })
+
+      const { fetchAnthropicModelIds } = await import(
+        "~/services/aiApi/anthropic"
+      )
+
+      await expect(
+        fetchAnthropicModelIds({
+          baseUrl: "https://anthropic.example.test",
+          apiKey: "synthetic-anthropic-key",
+        }),
+      ).resolves.toEqual(["claude-3-opus"])
+
+      expect(mocks.fetchApi).toHaveBeenCalledTimes(1)
+    })
+
+    it("logs and rethrows API failures", async () => {
+      const failure = Object.assign(
+        new Error("anthropic forbidden private-value"),
+        {
+          statusCode: 403,
+        },
+      )
+      mocks.fetchApi.mockRejectedValueOnce(failure)
+
+      const { fetchAnthropicModelIds } = await import(
+        "~/services/aiApi/anthropic"
+      )
+
+      await expect(
+        fetchAnthropicModelIds({
+          baseUrl: "https://anthropic.example.test",
+          apiKey: "synthetic-anthropic-key",
+          requestHeaders: { "x-client-secret": "private-value" },
+        }),
+      ).rejects.toThrow("anthropic forbidden")
+
+      expect(mocks.fetchApi).toHaveBeenCalledTimes(1)
+
+      expect(mocks.anthropicLogger.error).toHaveBeenCalledWith(
+        "Failed to fetch anthropic model list",
+        expect.objectContaining({
+          endpoint: "models?limit=200",
+          error: "anthropic forbidden [REDACTED]",
+        }),
+      )
+    })
+
+    it("retries a 401 with Bearer auth and keeps it for later pages", async () => {
+      const unauthorized = Object.assign(new Error("unauthorized"), {
+        statusCode: 401,
+      })
+      mocks.fetchApi
+        .mockRejectedValueOnce(unauthorized)
+        .mockResolvedValueOnce({
+          data: [{ id: "claude-page-1" }],
+          has_more: true,
+          last_id: "cursor-1",
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: "claude-page-2" }],
+          has_more: false,
+        })
+
+      const { fetchAnthropicModelIds } = await import(
+        "~/services/aiApi/anthropic"
+      )
+
+      await expect(
+        fetchAnthropicModelIds({
+          baseUrl: "https://bearer-anthropic.example.invalid/proxy",
+          apiKey: "synthetic-anthropic-key",
+        }),
+      ).resolves.toEqual(["claude-page-1", "claude-page-2"])
+
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          options: expect.objectContaining({
+            headers: {
+              "x-api-key": "synthetic-anthropic-key",
+              "anthropic-version": ANTHROPIC_VERSION,
+            },
+          }),
+        }),
+        true,
+      )
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          options: expect.objectContaining({
+            headers: {
+              Authorization: "Bearer synthetic-anthropic-key",
+              "anthropic-version": ANTHROPIC_VERSION,
+            },
+          }),
+        }),
+        true,
+      )
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        3,
+        expect.anything(),
+        expect.objectContaining({
+          endpoint: "models?limit=200&after_id=cursor-1",
+          options: expect.objectContaining({
+            headers: {
+              Authorization: "Bearer synthetic-anthropic-key",
+              "anthropic-version": ANTHROPIC_VERSION,
+            },
+          }),
+        }),
+        true,
+      )
+    })
+
+    it("caps anthropic pagination once the model limit is reached", async () => {
+      mocks.fetchApi.mockResolvedValueOnce({
+        data: Array.from({ length: 2000 }, (_, index) => ({
+          id: `claude-${index}`,
+        })),
+        has_more: true,
+        last_id: "cursor-2000",
+      })
+
+      const { fetchAnthropicModelIds } = await import(
+        "~/services/aiApi/anthropic"
+      )
+
+      const result = await fetchAnthropicModelIds({
+        baseUrl: "https://anthropic.example.test",
+        apiKey: "synthetic-anthropic-key",
+      })
+
+      expect(result).toHaveLength(2000)
+      expect(result[0]).toBe("claude-0")
+      expect(result[1999]).toBe("claude-1999")
+      expect(mocks.fetchApi).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe("fetchGoogleModelIds", () => {
+    it("normalizes models/* names, de-duplicates results, and follows page tokens", async () => {
+      mocks.fetchApi
+        .mockResolvedValueOnce({
+          models: [
+            { name: "models/gemini-2.5-pro" },
+            { name: "models/gemini-2.5-pro" },
+            { name: "gemini-1.5-flash" },
+          ],
+          nextPageToken: "page-2",
+        })
+        .mockResolvedValueOnce({
+          models: [{ name: "models/gemini-2.5-flash" }, { name: null }],
+          nextPageToken: "",
+        })
+
+      const { fetchGoogleModelIds } = await import("~/services/aiApi/google")
+
+      await expect(
+        fetchGoogleModelIds({
+          baseUrl: "https://google.example.test",
+          apiKey: "synthetic-google-key",
+        }),
+      ).resolves.toEqual([
+        "gemini-2.5-pro",
+        "gemini-1.5-flash",
+        "gemini-2.5-flash",
+      ])
+
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        1,
+        {
+          baseUrl: "https://google.example.test/v1beta",
+          auth: { authType: "none" },
+        },
+        expect.objectContaining({
+          endpoint: "models",
+          errorResponseDecoder: expect.any(Function),
+          options: {
+            headers: {
+              "x-goog-api-key": "synthetic-google-key",
+            },
+          },
+        }),
+        true,
+      )
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          endpoint: "models?pageToken=page-2",
+        }),
+        true,
+      )
+    })
+
+    it("retries a 401 with Bearer auth and keeps it for later pages", async () => {
+      const unauthorized = Object.assign(new Error("unauthorized"), {
+        statusCode: 401,
+      })
+      mocks.fetchApi
+        .mockRejectedValueOnce(unauthorized)
+        .mockResolvedValueOnce({
+          models: [{ name: "models/gemini-page-1" }],
+          nextPageToken: "page-2",
+        })
+        .mockResolvedValueOnce({
+          models: [{ name: "models/gemini-page-2" }],
+        })
+
+      const { fetchGoogleModelIds } = await import("~/services/aiApi/google")
+
+      await expect(
+        fetchGoogleModelIds({
+          baseUrl: "https://bearer-google.example.invalid/proxy",
+          apiKey: "synthetic-google-key",
+        }),
+      ).resolves.toEqual(["gemini-page-1", "gemini-page-2"])
+
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          options: expect.objectContaining({
+            headers: {
+              "x-goog-api-key": "synthetic-google-key",
+            },
+          }),
+        }),
+        true,
+      )
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          options: expect.objectContaining({
+            headers: {
+              Authorization: "Bearer synthetic-google-key",
+            },
+          }),
+        }),
+        true,
+      )
+      expect(mocks.fetchApi).toHaveBeenNthCalledWith(
+        3,
+        expect.anything(),
+        expect.objectContaining({
+          endpoint: "models?pageToken=page-2",
+          options: expect.objectContaining({
+            headers: {
+              Authorization: "Bearer synthetic-google-key",
+            },
+          }),
+        }),
+        true,
+      )
+    })
+
+    it("stops when the next page token repeats", async () => {
+      mocks.fetchApi
+        .mockResolvedValueOnce({
+          models: [{ name: "models/gemini-2.0-flash" }],
+          nextPageToken: "same-token",
+        })
+        .mockResolvedValueOnce({
+          models: [{ name: "models/gemini-2.0-flash" }],
+          nextPageToken: "same-token",
+        })
+
+      const { fetchGoogleModelIds } = await import("~/services/aiApi/google")
+
+      await expect(
+        fetchGoogleModelIds({
+          baseUrl: "https://google.example.test",
+          apiKey: "synthetic-google-key",
+        }),
+      ).resolves.toEqual(["gemini-2.0-flash"])
+
+      expect(mocks.fetchApi).toHaveBeenCalledTimes(2)
+    })
+
+    it("logs and rethrows Google API failures", async () => {
+      const failure = new Error("google down")
+      mocks.fetchApi.mockRejectedValueOnce(failure)
+
+      const { fetchGoogleModelIds } = await import("~/services/aiApi/google")
+
+      await expect(
+        fetchGoogleModelIds({
+          baseUrl: "https://google.example.test",
+          apiKey: "synthetic-google-key",
+        }),
+      ).rejects.toThrow("google down")
+
+      expect(mocks.googleLogger.error).toHaveBeenCalledWith(
+        "Failed to fetch google model list",
+        expect.objectContaining({
+          endpoint: "models",
+          error: "google down",
+        }),
+      )
+    })
+
+    it("caps Google pagination once the model limit is reached", async () => {
+      mocks.fetchApi.mockResolvedValueOnce({
+        models: Array.from({ length: 2000 }, (_, index) => ({
+          name: `models/gemini-${index}`,
+        })),
+        nextPageToken: "page-2",
+      })
+
+      const { fetchGoogleModelIds } = await import("~/services/aiApi/google")
+
+      const result = await fetchGoogleModelIds({
+        baseUrl: "https://google.example.test",
+        apiKey: "synthetic-google-key",
+      })
+
+      expect(result).toHaveLength(2000)
+      expect(result[0]).toBe("gemini-0")
+      expect(result[1999]).toBe("gemini-1999")
+      expect(mocks.fetchApi).toHaveBeenCalledTimes(1)
+    })
+  })
+})

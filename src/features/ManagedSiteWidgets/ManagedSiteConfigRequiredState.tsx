@@ -1,0 +1,70 @@
+import { TriangleAlert } from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { WorkflowTransitionIcon } from "~/components/icons/WorkflowTransitionIcon"
+import { EmptyState } from "~/components/ui"
+import { openSettingsTab } from "~/utils/navigation"
+
+interface ManagedSiteConfigRequiredStateProps {
+  description: string
+  className?: string
+  settingsTarget?: {
+    tabId: "managedSite"
+    anchor?: string
+  }
+  onConfigure?: () => void
+  onRetry?: () => void
+  isRetrying?: boolean
+}
+
+/**
+ * Shared empty state shown when a managed-site page is available but the
+ * currently selected managed-site backend has not been configured yet.
+ */
+export default function ManagedSiteConfigRequiredState({
+  description,
+  className,
+  settingsTarget = { tabId: "managedSite" },
+  onConfigure,
+  onRetry,
+  isRetrying = false,
+}: ManagedSiteConfigRequiredStateProps) {
+  const { t } = useTranslation("common")
+
+  return (
+    <EmptyState
+      className={className}
+      icon={<TriangleAlert className="text-warning-indicator h-12 w-12" />}
+      title={t("status.configurationRequired")}
+      description={description}
+      actions={[
+        ...(onRetry
+          ? [
+              {
+                label: t("actions.retry"),
+                loadingLabel: t("status.retrying"),
+                onClick: onRetry,
+                loading: isRetrying,
+                disabled: isRetrying,
+              },
+            ]
+          : []),
+        {
+          label: t("actions.goToSettings"),
+          variant: onConfigure ? ("default" as const) : ("outline" as const),
+          rightIcon: <WorkflowTransitionIcon className="h-4 w-4" aria-hidden />,
+          onClick:
+            onConfigure ??
+            (() => {
+              void openSettingsTab(settingsTarget.tabId, {
+                ...(settingsTarget.anchor
+                  ? { anchor: settingsTarget.anchor }
+                  : {}),
+                preserveHistory: true,
+              })
+            }),
+        },
+      ]}
+    />
+  )
+}

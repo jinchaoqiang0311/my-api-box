@@ -1,0 +1,23 @@
+import bundledProductAnnouncementFeed from "~~/public/product-announcements.json"
+
+export { PRODUCT_ANNOUNCEMENT_REMOTE_URL } from "./remoteFeed"
+
+export const PRODUCT_ANNOUNCEMENT_SCHEMA_VERSION =
+  bundledProductAnnouncementFeed.schemaVersion
+
+export const PRODUCT_ANNOUNCEMENT_REFRESH_ALARM = "productAnnouncementsRefresh"
+
+export const PRODUCT_ANNOUNCEMENT_REFRESH_INTERVAL_MINUTES = 12 * 60
+
+export const PRODUCT_ANNOUNCEMENT_LOCALE_FALLBACKS = ["zh-CN", "en"] as const
+
+export const PRODUCT_ANNOUNCEMENT_SEVERITIES = {
+  Critical: "critical",
+  Warning: "warning",
+  Info: "info",
+} as const
+
+export const PRODUCT_ANNOUNCEMENT_CTA_KINDS = {
+  External: "external",
+  Extension: "extension",
+} as const

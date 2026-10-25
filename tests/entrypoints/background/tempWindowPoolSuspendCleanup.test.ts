@@ -1,0 +1,256 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { RuntimeActionIds } from "~/constants/runtimeActions"
+
+const originalBrowser = (globalThis as any).browser
+
+describe("cleanupTempContextsOnSuspend", () => {
+  let createTabMock: ReturnType<typeof vi.fn>
+  let removeTabMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    createTabMock = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 101 })
+      .mockResolvedValueOnce({ id: 202 })
+    removeTabMock = vi.fn().mockResolvedValue(undefined)
+
+    vi.useFakeTimers()
+    vi.resetModules()
+    ;(globalThis as any).browser = {
+      storage: originalBrowser.storage,
+      runtime: {
+        getURL: vi.fn((path: string) => `chrome-extension://test/${path}`),
+      },
+      tabs: {
+        get: vi.fn().mockResolvedValue({ status: "complete" }),
+        update: vi.fn().mockResolvedValue(undefined),
+        sendMessage: vi.fn(
+          async (_tabId: number, message: { action: string }) => {
+            switch (message.action) {
+              case RuntimeActionIds.ContentShowShieldBypassUi:
+                return undefined
+              case RuntimeActionIds.ContentCheckCapGuard:
+              case RuntimeActionIds.ContentCheckCloudflareGuard:
+                return { success: true, passed: true }
+              case RuntimeActionIds.ContentGetRenderedTitle:
+                return { success: true, title: "Example title" }
+              default:
+                throw new Error(`Unexpected action: ${message.action}`)
+            }
+          },
+        ),
+      },
+    }
+
+    vi.doMock("~/utils/browser/tabs", async (importOriginal) => {
+      const actual =
+        await importOriginal<typeof import("~/utils/browser/tabs")>()
+      return {
+        ...actual,
+        createTab: createTabMock,
+        onTabRemoved: vi.fn(() => () => {}),
+        removeTab: removeTabMock,
+      }
+    })
+    vi.doMock("~/utils/browser/windows", async (importOriginal) => {
+      const actual =
+        await importOriginal<typeof import("~/utils/browser/windows")>()
+      return {
+        ...actual,
+        createWindow: vi.fn(),
+        hasWindowsAPI: vi.fn(() => false),
+        onWindowRemoved: vi.fn(() => () => {}),
+      }
+    })
+    vi.doMock("~/utils/browser/runtime", async (importOriginal) => {
+      const actual =
+        await importOriginal<typeof import("~/utils/browser/runtime")>()
+      return {
+        ...actual,
+        isAllowedIncognitoAccess: vi.fn().mockResolvedValue(true),
+      }
+    })
+    vi.doMock("~/services/preferences/userPreferences", () => ({
+      DEFAULT_PREFERENCES: {
+        tempWindowFallback: {
+          tempContextMode: "tab",
+        },
+      },
+      userPreferences: {
+        getPreferences: vi.fn().mockResolvedValue({
+          tempWindowFallback: {
+            tempContextMode: "tab",
+          },
+        }),
+      },
+    }))
+    vi.doMock("~/utils/i18n/core", () => ({
+      t: vi.fn((key: string) => key),
+    }))
+  })
+
+  afterEach(() => {
+    ;(globalThis as any).browser = originalBrowser
+
+    vi.useRealTimers()
+    vi.doUnmock("~/utils/browser/extensionStorage")
+    vi.doUnmock("~/utils/browser/tabs")
+    vi.doUnmock("~/utils/browser/windows")
+    vi.doUnmock("~/utils/browser/runtimeMessages")
+    vi.doUnmock("~/utils/browser/runtime")
+    vi.doUnmock("~/utils/browser/bookmarks")
+    vi.doUnmock("~/utils/browser/storage")
+    vi.doUnmock("~/utils/browser/sidePanel")
+    vi.doUnmock("~/utils/browser/alarms")
+    vi.doUnmock("~/utils/browser/notifications")
+    vi.doUnmock("~/utils/browser/contextMenus")
+    vi.doUnmock("~/utils/browser/cookies")
+    vi.doUnmock("~/utils/browser/action")
+    vi.doUnmock("~/utils/browser/permissions")
+    vi.doUnmock("~/services/preferences/userPreferences")
+    vi.doUnmock("~/utils/i18n/core")
+    vi.resetModules()
+    vi.restoreAllMocks()
+  })
+
+  it("destroys tracked temp contexts on suspend and clears request mappings", async () => {
+    const {
+      cleanupTempContextsOnSuspend,
+      handleCloseTempWindow,
+      handleTempWindowGetRenderedTitle,
+    } = await import(
+      "~~/tests/entrypoints/background/tempWindowPoolTestAdapter"
+    )
+
+    const firstResponse = vi.fn()
+    const firstRequest = handleTempWindowGetRenderedTitle(
+      {
+        originUrl: "https://example.com/protected",
+        requestId: "req-1",
+      },
+      firstResponse,
+    )
+
+    await vi.advanceTimersByTimeAsync(500)
+    await firstRequest
+
+    expect(firstResponse).toHaveBeenCalledWith({
+      success: true,
+      title: "Example title",
+    })
+    expect(createTabMock).toHaveBeenCalledTimes(1)
+
+    await cleanupTempContextsOnSuspend()
+
+    expect(removeTabMock).toHaveBeenCalledWith(101)
+
+    const closeResponse = vi.fn()
+    await handleCloseTempWindow({ requestId: "req-1" }, closeResponse)
+
+    expect(closeResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false }),
+    )
+
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(removeTabMock).toHaveBeenCalledTimes(1)
+
+    const secondResponse = vi.fn()
+    const secondRequest = handleTempWindowGetRenderedTitle(
+      {
+        originUrl: "https://example.com/protected/again",
+        requestId: "req-2",
+      },
+      secondResponse,
+    )
+
+    await vi.advanceTimersByTimeAsync(500)
+    await secondRequest
+
+    expect(secondResponse).toHaveBeenCalledWith({
+      success: true,
+      title: "Example title",
+    })
+    expect(createTabMock).toHaveBeenCalledTimes(2)
+
+    await cleanupTempContextsOnSuspend()
+    await vi.advanceTimersByTimeAsync(2000)
+
+    expect(removeTabMock).toHaveBeenCalledTimes(2)
+    expect(removeTabMock).toHaveBeenLastCalledWith(202)
+  })
+
+  it("resolves without closing anything when no temp contexts are tracked", async () => {
+    const { cleanupTempContextsOnSuspend } = await import(
+      "~~/tests/entrypoints/background/tempWindowPoolTestAdapter"
+    )
+
+    await expect(cleanupTempContextsOnSuspend()).resolves.toBeUndefined()
+    expect(removeTabMock).not.toHaveBeenCalled()
+  })
+
+  it("automatically destroys idle tab context when idle timeout expires", async () => {
+    const { handleTempWindowGetRenderedTitle } = await import(
+      "~~/tests/entrypoints/background/tempWindowPoolTestAdapter"
+    )
+
+    const response = vi.fn()
+    const request = handleTempWindowGetRenderedTitle(
+      {
+        originUrl: "https://example.com/protected/idle",
+        requestId: "req-idle-1",
+      },
+      response,
+    )
+
+    await vi.advanceTimersByTimeAsync(500)
+    await request
+
+    expect(response).toHaveBeenCalledWith({
+      success: true,
+      title: "Example title",
+    })
+    expect(createTabMock).toHaveBeenCalledTimes(1)
+    expect(removeTabMock).not.toHaveBeenCalled()
+
+    // Advance beyond TEMP_CONTEXT_IDLE_TIMEOUT (10 seconds)
+    await vi.advanceTimersByTimeAsync(15_000)
+
+    expect(removeTabMock).toHaveBeenCalledWith(101)
+  })
+
+  it("handles suspend cleanup failure when destroyOriginPool encounters an error", async () => {
+    const { cleanupTempContextsOnSuspend, handleTempWindowGetRenderedTitle } =
+      await import("~~/tests/entrypoints/background/tempWindowPoolTestAdapter")
+
+    const response = vi.fn()
+    const request = handleTempWindowGetRenderedTitle(
+      {
+        originUrl: "https://example.com/protected/error",
+        requestId: "req-err-1",
+      },
+      response,
+    )
+
+    await vi.advanceTimersByTimeAsync(500)
+    await request
+
+    removeTabMock.mockRejectedValue(new Error("Tab cannot be removed"))
+
+    await expect(cleanupTempContextsOnSuspend()).resolves.toBeUndefined()
+  })
+
+  it("handles error in handleCloseTempWindow gracefully", async () => {
+    const { handleCloseTempWindow } = await import(
+      "~~/tests/entrypoints/background/tempWindowPoolTestAdapter"
+    )
+
+    const sendResponse = vi.fn()
+    // Null request triggers catch block in handleCloseTempWindow
+    await handleCloseTempWindow(null as any, sendResponse)
+
+    expect(sendResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false }),
+    )
+  })
+})

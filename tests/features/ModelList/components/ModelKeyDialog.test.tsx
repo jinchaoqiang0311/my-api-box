@@ -1,0 +1,177 @@
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import ModelKeyDialog from "~/features/ModelList/keySelection"
+import { MODEL_LIST_TEST_IDS } from "~/features/ModelList/testIds"
+import { AuthTypeEnum } from "~/types"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+import { render, screen, waitFor } from "~~/tests/test-utils/render"
+
+const serviceCredentialFetchMock = vi.fn()
+
+vi.mock("~/services/apiAdapters/registry", () => ({
+  getSiteTypeCapabilities: () => ({
+    siteType: SITE_TYPES.SHAREDCHAT,
+    account: {
+      serviceCredential: {
+        fetch: serviceCredentialFetchMock,
+      },
+    },
+  }),
+}))
+
+vi.mock("~/features/TokenProvisioning/creation/AddTokenDialog", () => ({
+  default: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div data-testid="add-token-dialog" /> : null,
+}))
+
+const ACCOUNT = {
+  id: "service-credential-account",
+  name: "Service Credential Account",
+  username: "tester",
+  siteType: SITE_TYPES.SHAREDCHAT,
+  baseUrl: "https://example.invalid",
+  token: "access-token",
+  userId: "1",
+  authType: AuthTypeEnum.AccessToken,
+  checkIn: buildCheckInConfig(),
+} as any
+
+describe("ModelKeyDialog", () => {
+  beforeEach(() => {
+    serviceCredentialFetchMock.mockReset()
+    serviceCredentialFetchMock.mockResolvedValue({
+      kind: "singleton_service_key",
+      service: "codex",
+      label: "Codex",
+      key: "sk-sharedchat-codex",
+      isAuthenticated: true,
+    })
+  })
+
+  it("disables token creation for service-credential-only accounts", async () => {
+    const user = userEvent.setup()
+
+    render(
+      <ModelKeyDialog
+        isOpen={true}
+        onClose={() => {}}
+        account={ACCOUNT}
+        modelId="gpt-4o"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(serviceCredentialFetchMock).toHaveBeenCalled()
+    })
+
+    const createCustomButton = await screen.findByTestId(
+      MODEL_LIST_TEST_IDS.createCustomKeyButton,
+    )
+    expect(createCustomButton).toBeDisabled()
+    expect(
+      screen.getByText("modelList:keyDialog.createDisabledTitle"),
+    ).toBeInTheDocument()
+
+    await user.click(createCustomButton)
+    expect(screen.queryByTestId("add-token-dialog")).toBeNull()
+  })
+
+  it("preserves an explicit empty group scope and hides every creation path", async () => {
+    serviceCredentialFetchMock.mockResolvedValue({
+      kind: "singleton_service_key",
+      service: "codex",
+      label: "Codex",
+      key: "",
+      isAuthenticated: false,
+    })
+
+    render(
+      <ModelKeyDialog
+        isOpen={true}
+        onClose={() => {}}
+        account={ACCOUNT}
+        modelId="gpt-4o"
+        modelEnableGroups={[]}
+      />,
+    )
+
+    expect(
+      await screen.findByText("modelList:noUsableGroupsForModel"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("modelList:keyDialog.createDisabledTitle"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("modelList:keyDialog.createGroupLabel"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "modelList:keyDialog.createKey" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByTestId(MODEL_LIST_TEST_IDS.createCustomKeyButton),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText("default")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("add-token-dialog")).not.toBeInTheDocument()
+  })
+
+  it("retains the legacy default-group fallback when group scope is undefined", async () => {
+    serviceCredentialFetchMock.mockResolvedValue({
+      kind: "singleton_service_key",
+      service: "codex",
+      label: "Codex",
+      key: "",
+      isAuthenticated: false,
+    })
+
+    render(
+      <ModelKeyDialog
+        isOpen={true}
+        onClose={() => {}}
+        account={ACCOUNT}
+        modelId="gpt-4o"
+      />,
+    )
+
+    expect(await screen.findByText("default")).toBeInTheDocument()
+    expect(
+      screen.getByText("modelList:keyDialog.createGroupLabel"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "modelList:keyDialog.createKey" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(MODEL_LIST_TEST_IDS.createCustomKeyButton),
+    ).toBeInTheDocument()
+  })
+
+  it("normalizes and preserves an explicit nonempty group choice", async () => {
+    serviceCredentialFetchMock.mockResolvedValue({
+      kind: "singleton_service_key",
+      service: "codex",
+      label: "Codex",
+      key: "",
+      isAuthenticated: false,
+    })
+
+    render(
+      <ModelKeyDialog
+        isOpen={true}
+        onClose={() => {}}
+        account={ACCOUNT}
+        modelId="gpt-4o"
+        modelEnableGroups={[" vip ", "vip"]}
+      />,
+    )
+
+    expect(await screen.findByText("vip")).toBeInTheDocument()
+    expect(screen.queryByText("default")).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "modelList:keyDialog.createKey" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(MODEL_LIST_TEST_IDS.createCustomKeyButton),
+    ).toBeInTheDocument()
+  })
+})

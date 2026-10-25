@@ -1,0 +1,2248 @@
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest"
+
+import { RuntimeActionIds } from "~/constants/runtimeActions"
+import {
+  addActionClickListener,
+  getActionApi,
+  setActionPopup,
+} from "~/utils/browser/action"
+import {
+  clearAlarm,
+  createAlarm,
+  getAlarm,
+  hasAlarmsAPI,
+  onAlarm,
+} from "~/utils/browser/alarms"
+import { getBrowserBookmarkTree } from "~/utils/browser/bookmarks"
+import {
+  createContextMenu,
+  hasContextMenusAPI,
+  onContextMenuClicked,
+  removeContextMenu,
+} from "~/utils/browser/contextMenus"
+import { getAllCookieStores, hasCookieStoresAPI } from "~/utils/browser/cookies"
+import {
+  clearNotification,
+  createNotification,
+  getNotificationPermissionLevel,
+  hasNotificationsAPI,
+  onNotificationClicked,
+} from "~/utils/browser/notifications"
+import {
+  checkPermissionViaMessage,
+  containsPermissions,
+  onPermissionsAdded,
+  onPermissionsRemoved,
+  PERMISSION_OPERATION_FAILURE_REASONS,
+  removePermissionsDetailed,
+  requestPermissionsDetailed,
+} from "~/utils/browser/permissions"
+import {
+  getBrowserApiCapabilities,
+  getBrowserI18nMessage,
+  getExtensionURL,
+  getExtensionVersion,
+  getManagementSelf,
+  getManifest,
+  getRuntimeId,
+  isAllowedIncognitoAccess,
+  onInstalled,
+  onStartup,
+  onSuspend,
+  openRuntimeOptionsPage,
+  reloadRuntime,
+  setUninstallUrl,
+} from "~/utils/browser/runtime"
+import {
+  isMessageReceiverUnavailableError,
+  onRuntimeMessage,
+  sendRuntimeActionMessage,
+  sendTabMessageWithRetry,
+} from "~/utils/browser/runtimeMessages"
+import { requestRuntimeUpdateCheck } from "~/utils/browser/runtimeUpdateCheck"
+import {
+  NATIVE_SIDE_PANEL_ACTION_CLICK_RESULTS,
+  setNativeSidePanelActionClick,
+} from "~/utils/browser/sidePanel"
+import {
+  getSessionStorageValues,
+  hasSessionStorageArea,
+  hasStorageChangedListener,
+  onStorageChanged,
+  removeSessionStorageValues,
+  setSessionStorageValues,
+} from "~/utils/browser/storage"
+import {
+  createTab,
+  focusTab,
+  getActiveOrAllTabs,
+  getActiveTab,
+  getActiveTabs,
+  getAllTabs,
+  getTab,
+  onTabActivated,
+  onTabRemoved,
+  onTabUpdated,
+  reloadTab,
+  removeTab,
+} from "~/utils/browser/tabs"
+import {
+  classifyRecoverableWindowCreationFailure,
+  createWindow,
+  getWindow,
+  onWindowRemoved,
+  removeWindow,
+  updateWindow,
+  WINDOW_CREATION_FAILURE_REASONS,
+} from "~/utils/browser/windows"
+
+const { loggerMock } = vi.hoisted(() => ({
+  loggerMock: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}))
+
+vi.mock("~/utils/core/logger", () => ({
+  createLogger: () => loggerMock,
+}))
+
+const originalBrowser = (globalThis as any).browser
+const originalChrome = (globalThis as any).chrome
+
+describe("browserApi callback-only Chromium compatibility", () => {
+  afterEach(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  function installNativeChrome(api: Record<string, unknown>) {
+    const nativeChrome = { runtime: {}, ...api }
+    ;(globalThis as any).browser = nativeChrome
+    ;(globalThis as any).chrome = nativeChrome
+    return nativeChrome
+  }
+
+  it("waits for callback-only menu removal before allowing recreation", async () => {
+    let complete: (() => void) | undefined
+    installNativeChrome({
+      contextMenus: {
+        remove: vi.fn((_id, callback) => {
+          complete = callback
+        }),
+      },
+    })
+    let settled = false
+    const pending = removeContextMenu("owned-menu").then(() => {
+      settled = true
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    expect(complete).toBeTypeOf("function")
+    complete!()
+    await pending
+    expect(settled).toBe(true)
+  })
+
+  it("reads callback-only notification permission", async () => {
+    installNativeChrome({
+      notifications: {
+        getPermissionLevel: vi.fn((callback) =>
+          queueMicrotask(() => callback("denied")),
+        ),
+      },
+    })
+    await expect(getNotificationPermissionLevel()).resolves.toBe("denied")
+  })
+
+  it("returns null when getPermissionLevel is unavailable or throws", async () => {
+    ;(globalThis as any).browser.notifications = {}
+    await expect(getNotificationPermissionLevel()).resolves.toBeNull()
+    ;(globalThis as any).browser.notifications = {
+      getPermissionLevel: vi.fn(() => Promise.reject(new Error("Failed"))),
+    }
+    await expect(getNotificationPermissionLevel()).resolves.toBeNull()
+  })
+
+  it("returns callback-only notification creation and clearing results", async () => {
+    installNativeChrome({
+      notifications: {
+        create: vi.fn((_id, _options, callback) => {
+          queueMicrotask(() => callback?.("created-notification"))
+        }),
+        clear: vi.fn((_id, callback) => {
+          queueMicrotask(() => callback?.(true))
+        }),
+      },
+    })
+    await expect(
+      createNotification("test", {
+        type: "basic",
+        iconUrl: "icon.png",
+        title: "Test",
+        message: "Test message",
+      }),
+    ).resolves.toBe("created-notification")
+    await expect(clearNotification("test")).resolves.toBe(true)
+  })
+
+  it("returns false when callback-only clearing finds no notification", async () => {
+    const clear = vi.fn((_id, callback) => {
+      queueMicrotask(() => callback(false))
+    })
+    installNativeChrome({ notifications: { clear } })
+
+    await expect(clearNotification("missing")).resolves.toBe(false)
+    expect(clear).toHaveBeenCalledExactlyOnceWith(
+      "missing",
+      expect.any(Function),
+    )
+  })
+
+  it("accepts Promise-returning adapters in the native Chrome namespace", async () => {
+    installNativeChrome({
+      notifications: {
+        create: vi.fn().mockResolvedValue("test"),
+        clear: vi.fn().mockResolvedValue(true),
+      },
+    })
+    await expect(
+      createNotification("test", {
+        type: "basic",
+        title: "Test",
+        message: "Test",
+        iconUrl: "icon.png",
+      }),
+    ).resolves.toBe("test")
+    await expect(clearNotification("test")).resolves.toBe(true)
+  }, 1000)
+
+  it("preserves callback errors during context menu removal", async () => {
+    const nativeChrome = installNativeChrome({
+      contextMenus: {
+        remove: vi.fn((_id, callback) => {
+          queueMicrotask(() => {
+            Object.assign(nativeChrome.runtime, {
+              lastError: { message: "Cannot find menu item" },
+            })
+            callback?.()
+            delete (nativeChrome.runtime as any).lastError
+          })
+        }),
+      },
+    })
+    await expect(removeContextMenu("missing")).rejects.toThrow(
+      "Cannot find menu item",
+    )
+  })
+
+  it("reports callback notification errors through the existing safe results", async () => {
+    const nativeChrome = installNativeChrome({
+      notifications: {
+        create: vi.fn((_id, _options, callback) => {
+          Object.assign(nativeChrome.runtime, {
+            lastError: { message: "Permission denied" },
+          })
+          callback(undefined)
+          delete (nativeChrome.runtime as any).lastError
+        }),
+        clear: vi.fn((_id, callback) => {
+          Object.assign(nativeChrome.runtime, {
+            lastError: { message: "Permission denied" },
+          })
+          callback(false)
+          delete (nativeChrome.runtime as any).lastError
+        }),
+      },
+    })
+    await expect(
+      createNotification("test", {
+        type: "basic",
+        title: "Test",
+        message: "Test",
+        iconUrl: "icon.png",
+      }),
+    ).resolves.toBeNull()
+    await expect(clearNotification("test")).resolves.toBe(false)
+  })
+
+  it("rejects callback update-check failures instead of accepting an empty status", async () => {
+    const nativeChrome = installNativeChrome({
+      runtime: {
+        requestUpdateCheck: vi.fn((callback) => {
+          Object.assign(nativeChrome.runtime, {
+            lastError: { message: "Update check unavailable" },
+          })
+          callback(undefined)
+          delete (nativeChrome.runtime as any).lastError
+        }),
+      },
+    })
+    await expect(requestRuntimeUpdateCheck()).rejects.toThrow(
+      "Update check unavailable",
+    )
+  })
+
+  it("returns unknown when an asynchronous incognito permission read fails", async () => {
+    installNativeChrome({
+      extension: {
+        isAllowedIncognitoAccess: vi
+          .fn()
+          .mockRejectedValue(new Error("Unavailable")),
+      },
+    })
+    await expect(isAllowedIncognitoAccess()).resolves.toBeNull()
+  })
+
+  it("restores notification clicks after optional permission grants and re-grants", () => {
+    let grant: ((permissions: { permissions: string[] }) => void) | undefined
+    let revoke: ((permissions: { permissions: string[] }) => void) | undefined
+    const added = {
+      addListener: vi.fn((listener) => {
+        grant = listener
+      }),
+      removeListener: vi.fn(),
+    }
+    const removed = {
+      addListener: vi.fn((listener) => {
+        revoke = listener
+      }),
+      removeListener: vi.fn(),
+    }
+    const nativeChrome = installNativeChrome({
+      permissions: { onAdded: added, onRemoved: removed },
+    }) as any
+    const listener = vi.fn()
+    const cleanup = onNotificationClicked(listener)
+    const first = { addListener: vi.fn(), removeListener: vi.fn() }
+    nativeChrome.notifications = { onClicked: first }
+    expect(grant).toBeTypeOf("function")
+    grant!({ permissions: ["notifications"] })
+    grant!({ permissions: ["notifications"] })
+    expect(first.addListener).toHaveBeenCalledExactlyOnceWith(listener)
+    revoke!({ permissions: ["notifications"] })
+    expect(first.removeListener).toHaveBeenCalledExactlyOnceWith(listener)
+    const second = { addListener: vi.fn(), removeListener: vi.fn() }
+    nativeChrome.notifications = { onClicked: second }
+    grant!({ permissions: ["notifications"] })
+    expect(second.addListener).toHaveBeenCalledExactlyOnceWith(listener)
+    cleanup()
+    expect(second.removeListener).toHaveBeenCalledExactlyOnceWith(listener)
+    expect(added.removeListener).toHaveBeenCalledWith(grant)
+    expect(removed.removeListener).toHaveBeenCalledWith(revoke)
+  })
+})
+
+// Note: these helpers now use the unified logger, so tests avoid asserting on `console.*` output.
+describe("browserApi alarms helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = undefined
+  })
+
+  it("hasAlarmsAPI should return false when browser.alarms is missing", () => {
+    ;(globalThis as any).browser = {}
+
+    expect(hasAlarmsAPI()).toBe(false)
+  })
+
+  it("hasAlarmsAPI should return true when browser.alarms exists", () => {
+    ;(globalThis as any).browser = { alarms: {} }
+
+    expect(hasAlarmsAPI()).toBe(true)
+  })
+
+  it("createAlarm should warn and not throw when alarms API is not supported", async () => {
+    ;(globalThis as any).browser = {}
+
+    await expect(
+      createAlarm("test", { when: Date.now() }),
+    ).resolves.toBeUndefined()
+  })
+
+  it("createAlarm should delegate to browser.alarms.create when supported", async () => {
+    const createMock = vi.fn()
+    ;(globalThis as any).browser = {
+      alarms: {
+        create: createMock,
+      },
+    }
+
+    const when = Date.now()
+    await createAlarm("test-alarm", { when })
+
+    expect(createMock).toHaveBeenCalledWith("test-alarm", { when })
+  })
+
+  it("clearAlarm should return false and warn when alarms API is not supported", async () => {
+    ;(globalThis as any).browser = {}
+
+    const result = await clearAlarm("missing")
+
+    expect(result).toBe(false)
+  })
+
+  it("clearAlarm should delegate to browser.alarms.clear when supported", async () => {
+    const clearMock = vi.fn().mockResolvedValue(true)
+    ;(globalThis as any).browser = {
+      alarms: {
+        clear: clearMock,
+      },
+    }
+
+    const result = await clearAlarm("alarm-1")
+
+    expect(clearMock).toHaveBeenCalledWith("alarm-1")
+    expect(result).toBe(true)
+  })
+
+  it("getAlarm should return undefined and warn when alarms API is not supported", async () => {
+    ;(globalThis as any).browser = {}
+
+    const result = await getAlarm("alarm-x")
+
+    expect(result).toBeUndefined()
+  })
+
+  it("getAlarm should delegate to browser.alarms.get when supported", async () => {
+    const alarm = { name: "alarm-x" }
+    const getMock = vi.fn().mockResolvedValue(alarm)
+    ;(globalThis as any).browser = {
+      alarms: {
+        get: getMock,
+      },
+    }
+
+    const result = await getAlarm("alarm-x")
+
+    expect(getMock).toHaveBeenCalledWith("alarm-x")
+    expect(result).toBe(alarm)
+  })
+
+  it("onAlarm should warn and return no-op when alarms API is not supported", () => {
+    ;(globalThis as any).browser = {}
+
+    const callback = vi.fn()
+    const cleanup = onAlarm(callback)
+
+    expect(typeof cleanup).toBe("function")
+
+    // call cleanup to ensure it is safe
+    cleanup()
+  })
+
+  it("onAlarm should register and unregister listener when supported", () => {
+    const addListenerMock = vi.fn()
+    const removeListenerMock = vi.fn()
+
+    ;(globalThis as any).browser = {
+      // hasAlarmsAPI relies on browser.alarms truthiness
+      alarms: {
+        onAlarm: {
+          addListener: addListenerMock,
+          removeListener: removeListenerMock,
+        },
+      },
+    }
+
+    const callback = vi.fn()
+    const cleanup = onAlarm(callback)
+
+    expect(addListenerMock).toHaveBeenCalledWith(callback)
+
+    cleanup()
+    expect(removeListenerMock).toHaveBeenCalledWith(callback)
+  })
+
+  // restore original browser after all tests
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+})
+
+describe("browserApi session storage helpers", () => {
+  let previousBrowser: unknown
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    previousBrowser = (globalThis as any).browser
+    ;(globalThis as any).browser = {}
+  })
+
+  afterEach(() => {
+    ;(globalThis as any).browser = previousBrowser
+  })
+
+  it("returns compatibility fallbacks when storage.session is unavailable", async () => {
+    const removeLocal = vi.fn()
+    ;(globalThis as any).browser = {
+      storage: { local: { remove: removeLocal } },
+    }
+    expect(hasSessionStorageArea()).toBe(false)
+    await expect(getSessionStorageValues("key")).resolves.toEqual({})
+    await expect(setSessionStorageValues({ key: "value" })).resolves.toBe(false)
+    await expect(removeSessionStorageValues("key")).resolves.toBeUndefined()
+    expect(removeLocal).not.toHaveBeenCalled()
+  })
+
+  it("reads, writes, and removes ephemeral data only through storage.session", async () => {
+    const get = vi.fn().mockResolvedValue({ key: "value" })
+    const set = vi.fn().mockResolvedValue(undefined)
+    const remove = vi.fn().mockResolvedValue(undefined)
+    const removeLocal = vi.fn()
+    ;(globalThis as any).browser = {
+      storage: {
+        session: { get, set, remove },
+        local: { remove: removeLocal },
+      },
+    }
+
+    expect(hasSessionStorageArea()).toBe(true)
+    await expect(getSessionStorageValues("key")).resolves.toEqual({
+      key: "value",
+    })
+    await expect(setSessionStorageValues({ key: "next" })).resolves.toBe(true)
+    await expect(removeSessionStorageValues(["key"])).resolves.toBeUndefined()
+    expect(get).toHaveBeenCalledWith("key")
+    expect(set).toHaveBeenCalledWith({ key: "next" })
+    expect(remove).toHaveBeenCalledWith(["key"])
+    expect(removeLocal).not.toHaveBeenCalled()
+  })
+
+  it("returns false when storage.session rejects a write", async () => {
+    const set = vi.fn().mockRejectedValue(new Error("session quota exceeded"))
+    ;(globalThis as any).browser = {
+      storage: { session: { get: vi.fn(), set } },
+    }
+
+    await expect(setSessionStorageValues({ key: "next" })).resolves.toBe(false)
+  })
+})
+
+describe("browserApi notification helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = undefined
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("reports notification API support from browser.notifications", () => {
+    ;(globalThis as any).browser = {}
+    expect(hasNotificationsAPI()).toBe(false)
+    ;(globalThis as any).browser = { notifications: {} }
+    expect(hasNotificationsAPI()).toBe(true)
+  })
+
+  it("returns null or false when notifications are unavailable", async () => {
+    ;(globalThis as any).browser = {}
+
+    await expect(
+      createNotification("test", {
+        type: "basic",
+        title: "Title",
+        message: "Message",
+        iconUrl: "icon.png",
+      }),
+    ).resolves.toBeNull()
+    await expect(clearNotification("test")).resolves.toBe(false)
+  })
+
+  it("returns a safe no-op cleanup when notification click events are unavailable", () => {
+    ;(globalThis as any).browser = {}
+
+    const cleanup = onNotificationClicked(vi.fn())
+
+    expect(typeof cleanup).toBe("function")
+    cleanup()
+  })
+
+  it("creates, clears, and subscribes to notification clicks when supported", async () => {
+    const addListener = vi.fn()
+    const removeListener = vi.fn()
+    ;(globalThis as any).browser = {
+      notifications: {
+        create: vi.fn().mockResolvedValue("test"),
+        clear: vi.fn().mockResolvedValue(true),
+        onClicked: {
+          addListener,
+          removeListener,
+        },
+      },
+    }
+
+    const options = {
+      type: "basic" as const,
+      title: "Title",
+      message: "Message",
+      iconUrl: "icon.png",
+    }
+    const callback = vi.fn()
+    const cleanup = onNotificationClicked(callback)
+
+    await expect(createNotification("test", options)).resolves.toBe("test")
+    await expect(clearNotification("test")).resolves.toBe(true)
+    expect(
+      (globalThis as any).browser.notifications.create,
+    ).toHaveBeenCalledWith("test", options)
+    expect(
+      (globalThis as any).browser.notifications.clear,
+    ).toHaveBeenCalledWith("test")
+    expect(addListener).toHaveBeenCalledWith(callback)
+
+    cleanup()
+    expect(removeListener).toHaveBeenCalledWith(callback)
+  })
+
+  it("swallows notification create and clear failures", async () => {
+    ;(globalThis as any).browser = {
+      notifications: {
+        create: vi.fn().mockRejectedValue(new Error("create failed")),
+        clear: vi.fn().mockRejectedValue(new Error("clear failed")),
+      },
+    }
+
+    await expect(
+      createNotification("test", {
+        type: "basic",
+        title: "Title",
+        message: "Message",
+        iconUrl: "icon.png",
+      }),
+    ).resolves.toBeNull()
+    await expect(clearNotification("test")).resolves.toBe(false)
+  })
+})
+
+describe("browserApi onSuspend", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = undefined
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("returns a no-op cleanup when runtime.onSuspend is unavailable", () => {
+    ;(globalThis as any).browser = {
+      runtime: {},
+    }
+
+    const cleanup = onSuspend(vi.fn())
+
+    expect(typeof cleanup).toBe("function")
+    cleanup()
+  })
+
+  it("registers and unregisters runtime.onSuspend when supported", () => {
+    const addListenerMock = vi.fn()
+    const removeListenerMock = vi.fn()
+    const callback = vi.fn()
+
+    ;(globalThis as any).browser = {
+      runtime: {
+        onSuspend: {
+          addListener: addListenerMock,
+          removeListener: removeListenerMock,
+        },
+      },
+    }
+
+    const cleanup = onSuspend(callback)
+
+    expect(addListenerMock).toHaveBeenCalledWith(callback)
+
+    cleanup()
+    expect(removeListenerMock).toHaveBeenCalledWith(callback)
+  })
+})
+
+describe("browserApi sendRuntimeActionMessage", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = undefined
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("forwards payload to browser.runtime.sendMessage unchanged", async () => {
+    const sendMessageMock = vi.fn().mockResolvedValue({ ok: true })
+    ;(globalThis as any).browser = { runtime: { sendMessage: sendMessageMock } }
+
+    const message = {
+      action: RuntimeActionIds.PermissionsCheck,
+      permissions: {},
+    }
+    const response = await sendRuntimeActionMessage(message)
+
+    expect(response).toEqual({ ok: true })
+    expect(sendMessageMock).toHaveBeenCalledTimes(1)
+    expect(sendMessageMock.mock.calls[0]?.[0]).toBe(message)
+  })
+
+  it("forwards retry options to sendMessageWithRetry behavior", async () => {
+    const recoverableError = new Error("Receiving end does not exist")
+    const message = {
+      action: RuntimeActionIds.PermissionsCheck,
+      permissions: {},
+    }
+
+    await expect(
+      (async () => {
+        const sendMessageMockNoRetry = vi
+          .fn()
+          .mockRejectedValue(recoverableError)
+        ;(globalThis as any).browser = {
+          runtime: { sendMessage: sendMessageMockNoRetry },
+        }
+        try {
+          await sendRuntimeActionMessage(message, {
+            maxAttempts: 1,
+            delayMs: 0,
+          })
+          throw new Error("Expected sendRuntimeActionMessage to reject")
+        } catch (error) {
+          expect(sendMessageMockNoRetry).toHaveBeenCalledTimes(1)
+          throw error
+        }
+      })(),
+    ).rejects.toThrow("Receiving end does not exist")
+
+    await expect(
+      (async () => {
+        const sendMessageMockRetry = vi
+          .fn()
+          .mockRejectedValueOnce(recoverableError)
+          .mockResolvedValueOnce({ ok: true })
+        ;(globalThis as any).browser = {
+          runtime: { sendMessage: sendMessageMockRetry },
+        }
+        const result = await sendRuntimeActionMessage(message, {
+          maxAttempts: 2,
+          delayMs: 0,
+        })
+        expect(sendMessageMockRetry).toHaveBeenCalledTimes(2)
+        return result
+      })(),
+    ).resolves.toEqual({ ok: true })
+  })
+})
+
+describe("browserApi isMessageReceiverUnavailableError", () => {
+  it("matches receiver-missing messaging errors", () => {
+    expect(
+      isMessageReceiverUnavailableError(
+        new Error(
+          "Could not establish connection. Receiving end does not exist.",
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  it("returns false for unrelated errors", () => {
+    expect(
+      isMessageReceiverUnavailableError(new Error("Network timeout")),
+    ).toBe(false)
+  })
+})
+
+describe("browserApi sendTabMessageWithRetry", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = undefined
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("forwards payload to browser.tabs.sendMessage unchanged", async () => {
+    const sendMessageMock = vi.fn().mockResolvedValue({ ok: true })
+    ;(globalThis as any).browser = { tabs: { sendMessage: sendMessageMock } }
+
+    const message = {
+      action: RuntimeActionIds.PermissionsCheck,
+      payload: { ok: true },
+    }
+    const response = await sendTabMessageWithRetry(123, message)
+
+    expect(response).toEqual({ ok: true })
+    expect(sendMessageMock).toHaveBeenCalledTimes(1)
+    expect(sendMessageMock).toHaveBeenCalledWith(123, message)
+  })
+
+  it("forwards retry options to sendTabMessageWithRetry behavior", async () => {
+    const recoverableError = new Error("Receiving end does not exist")
+    const message = {
+      action: RuntimeActionIds.PermissionsCheck,
+      payload: { ok: true },
+    }
+
+    await expect(
+      (async () => {
+        const sendMessageMockNoRetry = vi
+          .fn()
+          .mockRejectedValue(recoverableError)
+        ;(globalThis as any).browser = {
+          tabs: { sendMessage: sendMessageMockNoRetry },
+        }
+        try {
+          await sendTabMessageWithRetry(123, message, {
+            maxAttempts: 1,
+            delayMs: 0,
+          })
+          throw new Error("Expected sendTabMessageWithRetry to reject")
+        } catch (error) {
+          expect(sendMessageMockNoRetry).toHaveBeenCalledTimes(1)
+          throw error
+        }
+      })(),
+    ).rejects.toThrow("Receiving end does not exist")
+
+    await expect(
+      (async () => {
+        const sendMessageMockRetry = vi
+          .fn()
+          .mockRejectedValueOnce(recoverableError)
+          .mockResolvedValueOnce({ ok: true })
+        ;(globalThis as any).browser = {
+          tabs: { sendMessage: sendMessageMockRetry },
+        }
+        const result = await sendTabMessageWithRetry(123, message, {
+          maxAttempts: 2,
+          delayMs: 0,
+        })
+        expect(sendMessageMockRetry).toHaveBeenCalledTimes(2)
+        return result
+      })(),
+    ).resolves.toEqual({ ok: true })
+  })
+
+  it("forwards tab message targeting options", async () => {
+    const sendMessageMock = vi.fn().mockResolvedValue({ ok: true })
+    ;(globalThis as any).browser = { tabs: { sendMessage: sendMessageMock } }
+    const message = {
+      action: RuntimeActionIds.PermissionsCheck,
+      payload: { ok: true },
+    }
+
+    await expect(
+      sendTabMessageWithRetry(123, message, {
+        frameId: 7,
+        documentId: "document-1",
+      }),
+    ).resolves.toEqual({ ok: true })
+
+    expect(sendMessageMock).toHaveBeenCalledWith(123, message, {
+      frameId: 7,
+      documentId: "document-1",
+    })
+  })
+})
+
+describe("browserApi direct adapter helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = {
+      runtime: {
+        id: "runtime-1",
+        sendMessage: vi.fn().mockResolvedValue({ ok: true }),
+      },
+      tabs: {
+        query: vi.fn().mockResolvedValue([]),
+        get: vi.fn().mockResolvedValue({ id: 3 }),
+        reload: vi.fn().mockResolvedValue(undefined),
+        sendMessage: vi.fn().mockResolvedValue({ received: true }),
+      },
+      windows: {
+        create: vi.fn().mockResolvedValue({ id: 5 }),
+        get: vi.fn().mockResolvedValue({ id: 5 }),
+        update: vi.fn().mockResolvedValue({ id: 5, focused: true }),
+      },
+      storage: {
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      contextMenus: {
+        create: vi.fn(() => "menu-1"),
+        remove: vi.fn().mockResolvedValue(undefined),
+        onClicked: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      i18n: {
+        getMessage: vi.fn(() => "Localized title"),
+      },
+      cookies: {
+        getAllCookieStores: vi.fn().mockResolvedValue([{ id: "default" }]),
+      },
+    }
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("delegates tab operations to the exposed browser APIs", async () => {
+    const message = { action: "test" }
+
+    await expect(getTab(3)).resolves.toEqual({ id: 3 })
+    await expect(reloadTab(3)).resolves.toBeUndefined()
+    await expect(sendTabMessageWithRetry(3, message)).resolves.toEqual({
+      received: true,
+    })
+
+    expect((globalThis as any).browser.tabs.get).toHaveBeenCalledWith(3)
+    expect((globalThis as any).browser.tabs.reload).toHaveBeenCalledWith(3)
+    expect((globalThis as any).browser.tabs.sendMessage).toHaveBeenCalledWith(
+      3,
+      message,
+    )
+  })
+
+  it("reports runtime id and high-level API capabilities", () => {
+    expect(getRuntimeId()).toBe("runtime-1")
+    expect(getBrowserApiCapabilities()).toEqual({
+      hasWindows: true,
+      hasTabs: true,
+      hasBackgroundMessaging: true,
+    })
+  })
+
+  it("reports browser API capabilities only when required methods are callable", () => {
+    ;(globalThis as any).browser = {
+      windows: {},
+      tabs: {},
+      runtime: {},
+    }
+
+    expect(getBrowserApiCapabilities()).toEqual({
+      hasWindows: false,
+      hasTabs: false,
+      hasBackgroundMessaging: false,
+    })
+  })
+
+  it("reads management self info when the management API is available", async () => {
+    ;(globalThis as any).browser.management = {
+      getSelf: vi.fn().mockResolvedValue({ installType: "development" }),
+    }
+
+    await expect(getManagementSelf()).resolves.toEqual({
+      installType: "development",
+    })
+    expect((globalThis as any).browser.management.getSelf).toHaveBeenCalled()
+  })
+
+  it("returns null when management self info is unavailable", async () => {
+    ;(globalThis as any).browser.management = {}
+
+    await expect(getManagementSelf()).resolves.toBeNull()
+  })
+
+  it("returns undefined runtime id and false capabilities when browser is missing", () => {
+    ;(globalThis as any).browser = undefined
+
+    expect(getRuntimeId()).toBeUndefined()
+    expect(getBrowserApiCapabilities()).toEqual({
+      hasWindows: false,
+      hasTabs: false,
+      hasBackgroundMessaging: false,
+    })
+  })
+
+  it("delegates guarded window helpers and falls back when windows are unavailable", async () => {
+    await expect(getWindow(5)).resolves.toEqual({ id: 5 })
+    await expect(updateWindow(5, { focused: true })).resolves.toEqual({
+      id: 5,
+      focused: true,
+    })
+
+    expect((globalThis as any).browser.windows.get).toHaveBeenCalledWith(5)
+    expect((globalThis as any).browser.windows.update).toHaveBeenCalledWith(5, {
+      focused: true,
+    })
+    ;(globalThis as any).browser.windows = undefined
+    await expect(getWindow(5)).resolves.toBeNull()
+    await expect(updateWindow(5, { focused: true })).resolves.toBeNull()
+  })
+
+  it("subscribes to storage changes and returns no-op cleanup when unavailable", () => {
+    const listener = vi.fn()
+    const cleanup = onStorageChanged(listener)
+
+    expect(hasStorageChangedListener()).toBe(true)
+    expect(
+      (globalThis as any).browser.storage.onChanged.addListener,
+    ).toHaveBeenCalledWith(listener)
+
+    cleanup()
+    expect(
+      (globalThis as any).browser.storage.onChanged.removeListener,
+    ).toHaveBeenCalledWith(listener)
+    ;(globalThis as any).browser.storage = {}
+    expect(hasStorageChangedListener()).toBe(false)
+    expect(() => onStorageChanged(listener)()).not.toThrow()
+  })
+
+  it("wraps context menu availability, creation, removal, and click listeners", async () => {
+    const listener = vi.fn()
+
+    expect(hasContextMenusAPI()).toBe(true)
+    expect(createContextMenu({ id: "menu-1", title: "Menu" })).toBe("menu-1")
+    await expect(removeContextMenu("menu-1")).resolves.toBeUndefined()
+
+    const cleanup = onContextMenuClicked(listener)
+    expect(
+      (globalThis as any).browser.contextMenus.onClicked.addListener,
+    ).toHaveBeenCalledWith(listener)
+    cleanup()
+    expect(
+      (globalThis as any).browser.contextMenus.onClicked.removeListener,
+    ).toHaveBeenCalledWith(listener)
+    ;(globalThis as any).browser.contextMenus = undefined
+    expect(hasContextMenusAPI()).toBe(false)
+    expect(createContextMenu({ id: "menu-2", title: "Menu" })).toBeUndefined()
+    await expect(removeContextMenu("menu-2")).resolves.toBeUndefined()
+    expect(() => onContextMenuClicked(listener)()).not.toThrow()
+  })
+
+  it("guards context menu helpers by method availability", async () => {
+    ;(globalThis as any).browser.contextMenus = {
+      onClicked: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      },
+    }
+
+    expect(hasContextMenusAPI()).toBe(false)
+    expect(createContextMenu({ id: "menu-3", title: "Menu" })).toBeUndefined()
+    await expect(removeContextMenu("menu-3")).resolves.toBeUndefined()
+    ;(globalThis as any).browser.contextMenus = {
+      create: vi.fn(() => "menu-4"),
+    }
+
+    expect(hasContextMenusAPI()).toBe(false)
+    expect(createContextMenu({ id: "menu-4", title: "Menu" })).toBe("menu-4")
+    await expect(removeContextMenu("menu-4")).resolves.toBeUndefined()
+  })
+
+  it("wraps browser i18n messages and cookie-store enumeration", async () => {
+    expect(getBrowserI18nMessage("context_menu", ["name"])).toBe(
+      "Localized title",
+    )
+    expect((globalThis as any).browser.i18n.getMessage).toHaveBeenCalledWith(
+      "context_menu",
+      ["name"],
+    )
+
+    expect(hasCookieStoresAPI()).toBe(true)
+    await expect(getAllCookieStores()).resolves.toEqual([{ id: "default" }])
+    ;(globalThis as any).browser.i18n = {}
+    ;(globalThis as any).browser.cookies = {}
+    expect(getBrowserI18nMessage("missing")).toBe("")
+    expect(hasCookieStoresAPI()).toBe(false)
+    await expect(getAllCookieStores()).resolves.toEqual([])
+  })
+})
+
+describe("browserApi classifyRecoverableWindowCreationFailure", () => {
+  it("returns null instead of throwing when the error message is undefined", () => {
+    expect(
+      classifyRecoverableWindowCreationFailure({
+        error: undefined,
+        windowsApiAvailable: true,
+      }),
+    ).toBeNull()
+  })
+
+  it("classifies blocked popup errors as recoverable window creation failures", () => {
+    expect(
+      classifyRecoverableWindowCreationFailure({
+        error: new Error("Popup blocked by user settings"),
+        windowsApiAvailable: true,
+      }),
+    ).toBe(WINDOW_CREATION_FAILURE_REASONS.WINDOW_CREATION_UNAVAILABLE)
+  })
+
+  it("classifies unavailable popup errors as recoverable window creation failures", () => {
+    expect(
+      classifyRecoverableWindowCreationFailure({
+        error: new Error("Popup window unavailable on this runtime"),
+        windowsApiAvailable: true,
+      }),
+    ).toBe(WINDOW_CREATION_FAILURE_REASONS.WINDOW_CREATION_UNAVAILABLE)
+  })
+})
+
+describe("browserApi getSidePanelSupport", () => {
+  const mockUserAgent = (userAgent: string) =>
+    vi.spyOn(window.navigator, "userAgent", "get").mockReturnValue(userAgent)
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.resetModules()
+    ;(globalThis as any).browser = undefined
+    ;(globalThis as any).chrome = undefined
+    mockUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("treats browser.sidebarAction.open as Firefox side panel support", async () => {
+    ;(globalThis as any).browser = {
+      sidebarAction: {
+        open: vi.fn(),
+      },
+    }
+    ;(globalThis as any).chrome = {}
+
+    const { getSidePanelSupport } = await import("~/utils/browser/sidePanel")
+    expect(getSidePanelSupport()).toEqual({
+      supported: true,
+      kind: "firefox-sidebar-action",
+    })
+  })
+
+  it("treats chrome.sidePanel.open as Chromium side panel support", async () => {
+    ;(globalThis as any).browser = {}
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open: vi.fn(),
+      },
+    }
+
+    const { getSidePanelSupport } = await import("~/utils/browser/sidePanel")
+    expect(getSidePanelSupport()).toEqual({
+      supported: true,
+      kind: "chromium-side-panel",
+    })
+  })
+
+  it("treats exposed side panel APIs as unsupported on known mobile runtimes", async () => {
+    mockUserAgent(
+      "Mozilla/5.0 (Android 14; Mobile; rv:136.0) Gecko/136.0 Firefox/136.0",
+    )
+    ;(globalThis as any).browser = {
+      sidebarAction: {
+        open: vi.fn(),
+      },
+    }
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open: vi.fn(),
+      },
+    }
+
+    const { getSidePanelSupport } = await import("~/utils/browser/sidePanel")
+    const result = getSidePanelSupport()
+
+    expect(result.supported).toBe(false)
+    expect(result.kind).toBe("unsupported")
+    if (result.supported) {
+      throw new Error("Expected getSidePanelSupport to return unsupported")
+    }
+    expect(result.reason).toContain("mobile runtime")
+  })
+
+  it("treats exposed side panel APIs as unsupported on touch-tablet runtimes", async () => {
+    vi.doMock("~/utils/browser/device", async (importOriginal) => {
+      const actual =
+        await importOriginal<typeof import("~/utils/browser/device")>()
+      return {
+        ...actual,
+        getDeviceTypeInfo: vi.fn(() => ({
+          type: "tablet",
+          isMobile: false,
+          isTablet: true,
+          isDesktop: false,
+          isTouchDevice: true,
+        })),
+      }
+    })
+    ;(globalThis as any).browser = {
+      sidebarAction: {
+        open: vi.fn(),
+      },
+    }
+    ;(globalThis as any).chrome = {}
+
+    const { getSidePanelSupport } = await import("~/utils/browser/sidePanel")
+    const result = getSidePanelSupport()
+
+    expect(result.supported).toBe(false)
+    expect(result.kind).toBe("unsupported")
+    if (result.supported) {
+      throw new Error("Expected getSidePanelSupport to return unsupported")
+    }
+    expect(result.reason).toContain("mobile runtime")
+
+    vi.doUnmock("~/utils/browser/device")
+  })
+
+  it("keeps side panel capability available after a transient open failure and allows retry", async () => {
+    const open = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("user gesture expired"))
+      .mockResolvedValueOnce(undefined)
+    ;(globalThis as any).browser = { sidebarAction: { open } }
+    ;(globalThis as any).chrome = {}
+    const { getSidePanelSupport, openSidePanel } = await import(
+      "~/utils/browser/sidePanel"
+    )
+    await expect(openSidePanel()).rejects.toThrow("user gesture expired")
+    expect(getSidePanelSupport().supported).toBe(true)
+    await expect(openSidePanel()).resolves.toBeUndefined()
+    expect(open).toHaveBeenCalledTimes(2)
+  })
+
+  it("returns unsupported when neither side panel API is available", async () => {
+    ;(globalThis as any).browser = {}
+    ;(globalThis as any).chrome = {}
+
+    const { getSidePanelSupport, openSidePanel } = await import(
+      "~/utils/browser/sidePanel"
+    )
+    const result = getSidePanelSupport()
+
+    expect(result.supported).toBe(false)
+    expect(result.kind).toBe("unsupported")
+    if (result.supported) {
+      throw new Error("Expected getSidePanelSupport to return unsupported")
+    }
+    expect(result.reason).toContain("browser.sidebarAction.open missing")
+    expect(result.reason).toContain("chrome.sidePanel.open missing")
+    await expect(openSidePanel()).rejects.toThrow("Side panel is not supported")
+  })
+
+  it("recomputes support on each call", async () => {
+    ;(globalThis as any).browser = {
+      sidebarAction: {
+        open: vi.fn(),
+      },
+    }
+    ;(globalThis as any).chrome = {}
+
+    const { getSidePanelSupport } = await import("~/utils/browser/sidePanel")
+
+    expect(getSidePanelSupport()).toEqual({
+      supported: true,
+      kind: "firefox-sidebar-action",
+    })
+    ;(globalThis as any).browser = {}
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open: vi.fn(),
+      },
+    }
+
+    expect(getSidePanelSupport()).toEqual({
+      supported: true,
+      kind: "chromium-side-panel",
+    })
+  })
+
+  it("uses specific reasons when APIs exist but are unusable", async () => {
+    ;(globalThis as any).browser = {
+      sidebarAction: {
+        open: {},
+      },
+    }
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open: {},
+      },
+    }
+
+    const { getSidePanelSupport } = await import("~/utils/browser/sidePanel")
+    const result = getSidePanelSupport()
+
+    expect(result.supported).toBe(false)
+    expect(result.kind).toBe("unsupported")
+    if (result.supported) {
+      throw new Error("Expected getSidePanelSupport to return unsupported")
+    }
+    expect(result.reason).toBe(
+      "browser.sidebarAction.open missing; chrome.sidePanel.open missing",
+    )
+  })
+
+  it("uses the provided Chromium tab context before querying the active tab", async () => {
+    const queryTabs = vi.fn().mockRejectedValue(new Error("should not query"))
+    const open = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser = {
+      tabs: {
+        query: queryTabs,
+      },
+    }
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open,
+      },
+    }
+
+    const { openSidePanel } = await import("~/utils/browser/sidePanel")
+
+    await openSidePanel({ id: 7, windowId: 9 } as browser.tabs.Tab)
+
+    expect(open).toHaveBeenCalledWith({ windowId: 9 })
+    expect(queryTabs).not.toHaveBeenCalled()
+  })
+
+  it("opens the Chromium side panel by tab id when no window id is available", async () => {
+    const queryTabs = vi.fn().mockRejectedValue(new Error("should not query"))
+    const open = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser = {
+      tabs: {
+        query: queryTabs,
+      },
+    }
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open,
+      },
+    }
+
+    const { openSidePanel } = await import("~/utils/browser/sidePanel")
+
+    await openSidePanel({ id: 7 } as browser.tabs.Tab)
+
+    expect(open).toHaveBeenCalledWith({ tabId: 7 })
+    expect(queryTabs).not.toHaveBeenCalled()
+  })
+
+  it("looks up the active tab and falls back from windowId to tabId when Chromium rejects the first open attempt", async () => {
+    const queryTabs = vi.fn().mockResolvedValue([{ id: 11, windowId: 12 }])
+    const open = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("window open failed"))
+      .mockResolvedValueOnce(undefined)
+    ;(globalThis as any).browser = {
+      tabs: {
+        query: queryTabs,
+      },
+    }
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open,
+      },
+    }
+
+    const { openSidePanel } = await import("~/utils/browser/sidePanel")
+
+    await expect(openSidePanel()).resolves.toBeUndefined()
+
+    expect(queryTabs).toHaveBeenCalled()
+    expect(open).toHaveBeenNthCalledWith(1, { windowId: 12 })
+    expect(open).toHaveBeenNthCalledWith(2, { tabId: 11 })
+  })
+
+  it("throws when Chromium cannot resolve an active tab or window id", async () => {
+    ;(globalThis as any).browser = {
+      tabs: {
+        query: vi.fn().mockResolvedValue([{}]),
+      },
+    }
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        open: vi.fn(),
+      },
+    }
+
+    const { openSidePanel, getSidePanelSupport } = await import(
+      "~/utils/browser/sidePanel"
+    )
+
+    await expect(openSidePanel()).rejects.toThrow(
+      "Side panel open failed: active tab/window not found",
+    )
+
+    const support = getSidePanelSupport()
+    expect(support.supported).toBe(true)
+  })
+
+  it("propagates a window-only opening failure without disabling capability", async () => {
+    const failure = new Error("window opening rejected")
+    const open = vi.fn().mockRejectedValue(failure)
+    ;(globalThis as any).browser = {}
+    ;(globalThis as any).chrome = { sidePanel: { open } }
+    const { openSidePanel, getSidePanelSupport } = await import(
+      "~/utils/browser/sidePanel"
+    )
+    await expect(
+      openSidePanel({ windowId: 9 } as browser.tabs.Tab),
+    ).rejects.toBe(failure)
+    expect(open).toHaveBeenCalledExactlyOnceWith({ windowId: 9 })
+    expect(getSidePanelSupport().supported).toBe(true)
+  })
+
+  it("opens the Firefox sidebar action directly", async () => {
+    const open = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser = {
+      sidebarAction: {
+        open,
+      },
+    }
+    ;(globalThis as any).chrome = {}
+
+    const { openSidePanel } = await import("~/utils/browser/sidePanel")
+
+    await expect(openSidePanel()).resolves.toBeUndefined()
+    expect(open).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("browserApi tab helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = {
+      tabs: {
+        query: vi.fn(),
+      },
+    }
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("prefers currentWindow when querying active tabs succeeds", async () => {
+    const queryMock = vi
+      .fn()
+      .mockResolvedValueOnce([{ id: 1 }])
+      .mockResolvedValueOnce([{ id: 2 }])
+    ;(globalThis as any).browser.tabs.query = queryMock
+
+    await expect(getActiveTabs()).resolves.toEqual([{ id: 1 }])
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    expect(queryMock).toHaveBeenCalledWith({
+      active: true,
+      currentWindow: true,
+    })
+  })
+
+  it("creates a tab in the requested Firefox cookie store", async () => {
+    const createMock = vi.fn().mockResolvedValue({
+      id: 12,
+      cookieStoreId: "firefox-container-1",
+    })
+    ;(globalThis as any).browser.tabs.create = createMock
+
+    await expect(
+      createTab("about:blank", false, {
+        cookieStoreId: "firefox-container-1",
+      }),
+    ).resolves.toMatchObject({ cookieStoreId: "firefox-container-1" })
+    expect(createMock).toHaveBeenCalledWith({
+      url: "about:blank",
+      active: false,
+      windowId: undefined,
+      cookieStoreId: "firefox-container-1",
+    })
+  })
+
+  it("falls back to active-only queries when currentWindow is unsupported", async () => {
+    const queryMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("currentWindow unsupported"))
+      .mockResolvedValueOnce([{ id: 9 }])
+    ;(globalThis as any).browser.tabs.query = queryMock
+
+    await expect(getActiveTabs()).resolves.toEqual([{ id: 9 }])
+    expect(queryMock).toHaveBeenNthCalledWith(1, {
+      active: true,
+      currentWindow: true,
+    })
+    expect(queryMock).toHaveBeenNthCalledWith(2, { active: true })
+  })
+
+  it("falls back to all tabs when there is no active tab", async () => {
+    const queryMock = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 2 }, { id: 3 }])
+    ;(globalThis as any).browser.tabs.query = queryMock
+
+    await expect(getActiveOrAllTabs()).resolves.toEqual([{ id: 2 }, { id: 3 }])
+    expect(queryMock).toHaveBeenNthCalledWith(1, {
+      active: true,
+      currentWindow: true,
+    })
+    expect(queryMock).toHaveBeenNthCalledWith(2, { active: true })
+    expect(queryMock).toHaveBeenNthCalledWith(3, {})
+  })
+
+  it("returns null when no active tab is available", async () => {
+    ;(globalThis as any).browser.tabs.query = vi.fn().mockResolvedValue([])
+
+    await expect(getActiveTab()).resolves.toBeNull()
+  })
+
+  it("normalizes nullish all-tabs results to an empty array", async () => {
+    ;(globalThis as any).browser.tabs.query = vi.fn().mockResolvedValue(null)
+
+    await expect(getAllTabs()).resolves.toEqual([])
+  })
+
+  it("returns an empty array when both active-tab queries fail", async () => {
+    const queryMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockRejectedValueOnce(new Error("still boom"))
+    ;(globalThis as any).browser.tabs.query = queryMock
+
+    await expect(getActiveTabs()).resolves.toEqual([])
+  })
+})
+
+describe("browserApi window and manifest helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = {
+      runtime: {
+        getURL: vi.fn((path: string) => `chrome-extension://test/${path}`),
+        getManifest: vi.fn(() => ({
+          manifest_version: 3,
+          name: "Test",
+          version: "1.2.3",
+          optional_permissions: ["tabs"],
+        })),
+      },
+      tabs: {
+        remove: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+      windows: {
+        create: vi.fn().mockResolvedValue({ id: 1 }),
+        remove: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn().mockResolvedValue(undefined),
+        onRemoved: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      extension: {
+        isAllowedIncognitoAccess: vi.fn().mockResolvedValue(true),
+      },
+    }
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("removes a known tab without probing the windows API", async () => {
+    const removeTabMock = vi.fn().mockResolvedValue(undefined)
+    const removeWindowMock = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser.tabs.remove = removeTabMock
+    ;(globalThis as any).browser.windows.remove = removeWindowMock
+
+    await removeTab(43)
+
+    expect(removeTabMock).toHaveBeenCalledWith(43)
+    expect(removeWindowMock).not.toHaveBeenCalled()
+    expect(loggerMock.warn).not.toHaveBeenCalled()
+  })
+
+  it("removes a known window without probing the tabs API", async () => {
+    const removeTabMock = vi.fn().mockResolvedValue(undefined)
+    const removeWindowMock = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser.tabs.remove = removeTabMock
+    ;(globalThis as any).browser.windows.remove = removeWindowMock
+
+    await removeWindow(44)
+
+    expect(removeWindowMock).toHaveBeenCalledWith(44)
+    expect(removeTabMock).not.toHaveBeenCalled()
+  })
+
+  it("rejects known-window removal when the windows API is unavailable", async () => {
+    ;(globalThis as any).browser.windows = undefined
+
+    await expect(removeWindow(45)).rejects.toThrow(
+      "browser.windows.remove is unavailable",
+    )
+  })
+
+  it("returns null from createWindow when the windows API is unavailable", async () => {
+    ;(globalThis as any).browser.windows = undefined
+
+    await expect(
+      createWindow({ url: "https://example.com" } as any),
+    ).resolves.toBeNull()
+  })
+
+  it("delegates createWindow to browser.windows.create when supported", async () => {
+    const createWindowMock = vi.fn().mockResolvedValue({ id: 23 })
+    ;(globalThis as any).browser.windows.create = createWindowMock
+
+    await expect(
+      createWindow({ url: "https://example.com" } as any),
+    ).resolves.toEqual({ id: 23 })
+
+    expect(createWindowMock).toHaveBeenCalledWith({
+      url: "https://example.com",
+    })
+  })
+
+  it("focuses the tab window before activating the tab", async () => {
+    const updateWindowMock = vi.fn().mockResolvedValue(undefined)
+    const updateTabMock = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser.windows.update = updateWindowMock
+    ;(globalThis as any).browser.tabs.update = updateTabMock
+
+    await focusTab({ id: 7, windowId: 8 } as browser.tabs.Tab)
+
+    expect(updateWindowMock).toHaveBeenCalledWith(8, { focused: true })
+    expect(updateTabMock).toHaveBeenCalledWith(7, { active: true })
+  })
+
+  it("still activates the tab when focusing the window fails", async () => {
+    const updateTabMock = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser.windows.update = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("unsupported"))
+    ;(globalThis as any).browser.tabs.update = updateTabMock
+
+    await focusTab({ id: 77, windowId: 88 } as browser.tabs.Tab)
+
+    expect(updateTabMock).toHaveBeenCalledWith(77, { active: true })
+  })
+
+  it("returns extension URLs through browser.runtime.getURL", () => {
+    expect(getExtensionURL("popup.html")).toBe(
+      "chrome-extension://test/popup.html",
+    )
+  })
+
+  it("falls back to a minimal manifest when runtime.getManifest throws", () => {
+    ;(globalThis as any).browser.runtime.getManifest = vi
+      .fn()
+      .mockImplementation(() => {
+        throw new Error("manifest unavailable")
+      })
+
+    expect(getManifest()).toMatchObject({
+      manifest_version: 3,
+      version: "0.0.0",
+      optional_permissions: [],
+    })
+  })
+
+  it("returns the trimmed runtime extension version", () => {
+    ;(globalThis as any).browser.runtime.getManifest = vi.fn(() => ({
+      manifest_version: 3,
+      name: "Test",
+      version: " 1.2.3 ",
+      optional_permissions: [],
+    }))
+
+    expect(getExtensionVersion()).toBe("1.2.3")
+  })
+
+  it("returns a custom extension version fallback when the runtime version is blank", () => {
+    ;(globalThis as any).browser.runtime.getManifest = vi.fn(() => ({
+      manifest_version: 3,
+      name: "Test",
+      version: " ",
+      optional_permissions: [],
+    }))
+
+    expect(getExtensionVersion("unknown")).toBe("unknown")
+  })
+
+  it("delegates extension reload to browser.runtime.reload when available", () => {
+    const reload = vi.fn()
+    ;(globalThis as any).browser.runtime.reload = reload
+
+    reloadRuntime()
+
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not throw when runtime reload is unavailable", () => {
+    delete (globalThis as any).browser.runtime.reload
+
+    expect(() => reloadRuntime()).not.toThrow()
+  })
+
+  it("swallows runtime reload failures", () => {
+    ;(globalThis as any).browser.runtime.reload = vi.fn(() => {
+      throw new Error("reload unavailable")
+    })
+
+    expect(() => reloadRuntime()).not.toThrow()
+  })
+
+  it("sets the uninstall URL through the runtime API", async () => {
+    // Native browser API methods require their own receiver; calling a
+    // detached reference throws "Illegal invocation" in Chromium.
+    const setUninstallURL = vi.fn(function (this: unknown) {
+      expect(this).toBe((globalThis as any).browser.runtime)
+      return Promise.resolve()
+    })
+    ;(globalThis as any).browser.runtime.setUninstallURL = setUninstallURL
+
+    await expect(
+      setUninstallUrl("https://example.test/uninstall.html"),
+    ).resolves.toBe(true)
+
+    expect(setUninstallURL).toHaveBeenCalledWith(
+      "https://example.test/uninstall.html",
+    )
+  })
+
+  it("reports failure when the browser exposes no uninstall URL API", async () => {
+    delete (globalThis as any).browser.runtime.setUninstallURL
+
+    await expect(
+      setUninstallUrl("https://example.test/uninstall.html"),
+    ).resolves.toBe(false)
+  })
+
+  it("reports failure instead of throwing when the browser rejects the URL", async () => {
+    ;(globalThis as any).browser.runtime.setUninstallURL = vi
+      .fn()
+      .mockRejectedValue(new Error("invalid url"))
+
+    await expect(setUninstallUrl("not a url")).resolves.toBe(false)
+  })
+
+  it("opens the standard runtime options page", async () => {
+    const openOptionsPage = vi.fn().mockResolvedValue(undefined)
+    ;(globalThis as any).browser.runtime.openOptionsPage = openOptionsPage
+
+    await openRuntimeOptionsPage()
+
+    expect(openOptionsPage).toHaveBeenCalledTimes(1)
+  })
+
+  it("normalizes promise-based runtime update checks", async () => {
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = vi
+      .fn()
+      .mockResolvedValue({ status: "update_available", version: "3.48.0" })
+
+    await expect(requestRuntimeUpdateCheck()).resolves.toEqual({
+      status: "update_available",
+      version: "3.48.0",
+    })
+  })
+
+  it("uses chrome runtime update checks when browser namespace lacks the API", async () => {
+    const requestUpdateCheck = vi.fn((callback) => {
+      callback("no_update")
+    })
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = undefined
+    ;(globalThis as any).chrome = {
+      runtime: {
+        requestUpdateCheck,
+      },
+    }
+
+    await expect(requestRuntimeUpdateCheck()).resolves.toEqual({
+      status: "no_update",
+    })
+    expect(requestUpdateCheck).toHaveBeenCalledTimes(1)
+  })
+
+  it("returns null when runtime update checks are unavailable", async () => {
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = undefined
+    ;(globalThis as any).chrome = undefined
+
+    await expect(requestRuntimeUpdateCheck()).resolves.toBeNull()
+  })
+
+  it("normalizes string results from promise-based runtime update checks", async () => {
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = vi
+      .fn()
+      .mockResolvedValue("no_update")
+
+    await expect(requestRuntimeUpdateCheck()).resolves.toEqual({
+      status: "no_update",
+    })
+  })
+
+  it("rejects runtime update check errors from the promise API", async () => {
+    const error = new Error("update check unavailable")
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = vi
+      .fn()
+      .mockRejectedValue(error)
+
+    await expect(requestRuntimeUpdateCheck()).rejects.toThrow(
+      "update check unavailable",
+    )
+  })
+
+  it("rejects synchronous runtime update check errors", async () => {
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = vi.fn(() => {
+      throw new Error("update check threw")
+    })
+
+    await expect(requestRuntimeUpdateCheck()).rejects.toThrow(
+      "update check threw",
+    )
+  })
+
+  it("uses the first runtime update check result when both API styles respond", async () => {
+    ;(globalThis as any).browser.runtime.requestUpdateCheck = vi.fn(
+      (callback) => {
+        callback("update_available", { version: "3.48.0" })
+        return Promise.resolve({ status: "no_update" })
+      },
+    )
+
+    await expect(requestRuntimeUpdateCheck()).resolves.toEqual({
+      status: "update_available",
+      version: "3.48.0",
+    })
+  })
+
+  it("returns incognito access as null when the browser API throws", async () => {
+    ;(globalThis as any).browser.extension.isAllowedIncognitoAccess = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error("unsupported")
+      })
+
+    await expect(isAllowedIncognitoAccess()).resolves.toBeNull()
+  })
+
+  it("registers and unregisters window removal listeners when supported", () => {
+    const addListenerMock = vi.fn()
+    const removeListenerMock = vi.fn()
+    ;(globalThis as any).browser.windows.onRemoved = {
+      addListener: addListenerMock,
+      removeListener: removeListenerMock,
+    }
+
+    const callback = vi.fn()
+    const cleanup = onWindowRemoved(callback)
+
+    expect(addListenerMock).toHaveBeenCalledWith(callback)
+    cleanup()
+    expect(removeListenerMock).toHaveBeenCalledWith(callback)
+  })
+
+  it("returns safe window removal cleanup when window APIs are unavailable", () => {
+    ;(globalThis as any).browser.windows = undefined
+    const callback = vi.fn()
+    const cleanup = onWindowRemoved(callback)
+
+    expect(cleanup).toBeTypeOf("function")
+    expect(() => cleanup()).not.toThrow()
+    expect(callback).not.toHaveBeenCalled()
+  })
+})
+
+describe("browserApi event subscriptions", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = {
+      runtime: {
+        onMessage: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+        onStartup: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+        onInstalled: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        onActivated: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+        onUpdated: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+        onRemoved: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+    }
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("registers and unregisters runtime, tab, startup, and install listeners", () => {
+    const runtimeListener = vi.fn()
+    const activatedListener = vi.fn()
+    const updatedListener = vi.fn()
+    const removedListener = vi.fn()
+    const startupListener = vi.fn()
+    const installedListener = vi.fn()
+
+    const cleanupRuntime = onRuntimeMessage(runtimeListener)
+    const cleanupActivated = onTabActivated(activatedListener)
+    const cleanupUpdated = onTabUpdated(updatedListener)
+    const cleanupRemoved = onTabRemoved(removedListener)
+    const cleanupStartup = onStartup(startupListener)
+    const cleanupInstalled = onInstalled(installedListener)
+
+    expect(
+      (globalThis as any).browser.runtime.onMessage.addListener,
+    ).toHaveBeenCalledWith(runtimeListener)
+    expect(
+      (globalThis as any).browser.tabs.onActivated.addListener,
+    ).toHaveBeenCalledWith(activatedListener)
+    expect(
+      (globalThis as any).browser.tabs.onUpdated.addListener,
+    ).toHaveBeenCalledWith(updatedListener)
+    expect(
+      (globalThis as any).browser.tabs.onRemoved.addListener,
+    ).toHaveBeenCalledWith(removedListener)
+    expect(
+      (globalThis as any).browser.runtime.onStartup.addListener,
+    ).toHaveBeenCalledWith(startupListener)
+    expect(
+      (globalThis as any).browser.runtime.onInstalled.addListener,
+    ).toHaveBeenCalledWith(installedListener)
+
+    cleanupRuntime()
+    cleanupActivated()
+    cleanupUpdated()
+    cleanupRemoved()
+    cleanupStartup()
+    cleanupInstalled()
+
+    expect(
+      (globalThis as any).browser.runtime.onMessage.removeListener,
+    ).toHaveBeenCalledWith(runtimeListener)
+    expect(
+      (globalThis as any).browser.tabs.onActivated.removeListener,
+    ).toHaveBeenCalledWith(activatedListener)
+    expect(
+      (globalThis as any).browser.tabs.onUpdated.removeListener,
+    ).toHaveBeenCalledWith(updatedListener)
+    expect(
+      (globalThis as any).browser.tabs.onRemoved.removeListener,
+    ).toHaveBeenCalledWith(removedListener)
+    expect(
+      (globalThis as any).browser.runtime.onStartup.removeListener,
+    ).toHaveBeenCalledWith(startupListener)
+    expect(
+      (globalThis as any).browser.runtime.onInstalled.removeListener,
+    ).toHaveBeenCalledWith(installedListener)
+  })
+})
+
+describe("browserApi action and permissions helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    const onClicked = {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      hasListener: vi.fn().mockReturnValue(false),
+    }
+    ;(globalThis as any).browser = {
+      action: {
+        setPopup: vi.fn().mockResolvedValue(undefined),
+        onClicked,
+      },
+      runtime: {
+        sendMessage: vi.fn(),
+      },
+      permissions: {
+        contains: vi.fn().mockResolvedValue(true),
+        request: vi.fn().mockResolvedValue(true),
+        remove: vi.fn().mockResolvedValue(true),
+        onAdded: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+        onRemoved: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+    }
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("prefers browser.action and falls back to browser.browserAction", () => {
+    expect(getActionApi()).toBe((globalThis as any).browser.action)
+    ;(globalThis as any).browser = {
+      browserAction: {
+        setPopup: vi.fn(),
+        onClicked: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          hasListener: vi.fn().mockReturnValue(false),
+        },
+      },
+    }
+
+    expect(getActionApi()).toBe((globalThis as any).browser.browserAction)
+  })
+
+  it("throws when neither action API is available", () => {
+    ;(globalThis as any).browser = {}
+
+    expect(() => getActionApi()).toThrow(
+      "Action API is not available in this environment",
+    )
+  })
+
+  it("sets action popup and adds then removes click listeners safely", async () => {
+    const actionApi = (globalThis as any).browser.action
+    const listener = vi.fn()
+
+    await setActionPopup("popup.html")
+    expect(actionApi.setPopup).toHaveBeenCalledWith({ popup: "popup.html" })
+
+    const cleanup = addActionClickListener(listener)
+    expect(actionApi.onClicked.addListener).toHaveBeenCalledWith(listener)
+
+    actionApi.onClicked.hasListener.mockReturnValue(true)
+    cleanup()
+    expect(actionApi.onClicked.removeListener).toHaveBeenCalledWith(listener)
+  })
+
+  it("does not add duplicate action listeners and skips removals when absent", () => {
+    const actionApi = (globalThis as any).browser.action
+    const listener = vi.fn()
+    actionApi.onClicked.hasListener.mockReturnValue(true)
+
+    const cleanup = addActionClickListener(listener)
+    expect(actionApi.onClicked.addListener).not.toHaveBeenCalled()
+
+    actionApi.onClicked.hasListener.mockReturnValue(false)
+    cleanup()
+    expect(actionApi.onClicked.removeListener).not.toHaveBeenCalled()
+  })
+
+  it.each([true, false])(
+    "sets native Chromium side-panel action clicks to %s when supported",
+    async (enabled) => {
+      const setPanelBehavior = vi.fn().mockResolvedValue(undefined)
+      ;(globalThis as any).chrome = { sidePanel: { setPanelBehavior } }
+
+      await expect(setNativeSidePanelActionClick(enabled)).resolves.toBe(
+        NATIVE_SIDE_PANEL_ACTION_CLICK_RESULTS.Applied,
+      )
+      expect(setPanelBehavior).toHaveBeenCalledWith({
+        openPanelOnActionClick: enabled,
+      })
+    },
+  )
+
+  it("reports unavailable native Chromium side-panel action behavior", async () => {
+    ;(globalThis as any).chrome = { sidePanel: {} }
+
+    await expect(setNativeSidePanelActionClick(true)).resolves.toBe(
+      NATIVE_SIDE_PANEL_ACTION_CLICK_RESULTS.Unavailable,
+    )
+  })
+
+  it("reports rejected native Chromium side-panel action behavior", async () => {
+    ;(globalThis as any).chrome = {
+      sidePanel: {
+        setPanelBehavior: vi.fn().mockRejectedValue(new Error("unsupported")),
+      },
+    }
+
+    await expect(setNativeSidePanelActionClick(true)).resolves.toBe(
+      NATIVE_SIDE_PANEL_ACTION_CLICK_RESULTS.Rejected,
+    )
+    expect(loggerMock.warn).toHaveBeenCalled()
+  })
+
+  it("returns permission helper fallbacks when runtime or permissions APIs fail", async () => {
+    ;(globalThis as any).browser.runtime.sendMessage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+    ;(globalThis as any).browser.permissions.contains = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("contains failed"))
+    ;(globalThis as any).browser.permissions.request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("request failed"))
+    ;(globalThis as any).browser.permissions.remove = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("remove failed"))
+
+    await expect(
+      checkPermissionViaMessage({ permissions: ["tabs"] }),
+    ).resolves.toBe(false)
+    await expect(containsPermissions({ permissions: ["tabs"] })).resolves.toBe(
+      false,
+    )
+    await expect(
+      requestPermissionsDetailed({ permissions: ["tabs"] }),
+    ).resolves.toEqual({
+      success: false,
+      failureReason: PERMISSION_OPERATION_FAILURE_REASONS.ApiException,
+    })
+    await expect(
+      removePermissionsDetailed({ permissions: ["tabs"] }),
+    ).resolves.toEqual({
+      success: false,
+      failureReason: PERMISSION_OPERATION_FAILURE_REASONS.ApiException,
+    })
+  })
+
+  it("returns permission results and manages permission event listeners", async () => {
+    ;(globalThis as any).browser.runtime.sendMessage = vi
+      .fn()
+      .mockResolvedValueOnce({ hasPermission: true })
+
+    await expect(
+      checkPermissionViaMessage({ permissions: ["tabs"] }),
+    ).resolves.toBe(true)
+    await expect(containsPermissions({ permissions: ["tabs"] })).resolves.toBe(
+      true,
+    )
+    await expect(
+      requestPermissionsDetailed({ permissions: ["tabs"] }),
+    ).resolves.toEqual({ success: true })
+    await expect(
+      removePermissionsDetailed({ permissions: ["tabs"] }),
+    ).resolves.toEqual({ success: true })
+
+    const added = vi.fn()
+    const removed = vi.fn()
+    const cleanupAdded = onPermissionsAdded(added)
+    const cleanupRemoved = onPermissionsRemoved(removed)
+
+    expect(
+      (globalThis as any).browser.permissions.onAdded.addListener,
+    ).toHaveBeenCalledWith(added)
+    expect(
+      (globalThis as any).browser.permissions.onRemoved.addListener,
+    ).toHaveBeenCalledWith(removed)
+
+    cleanupAdded()
+    cleanupRemoved()
+
+    expect(
+      (globalThis as any).browser.permissions.onAdded.removeListener,
+    ).toHaveBeenCalledWith(added)
+    expect(
+      (globalThis as any).browser.permissions.onRemoved.removeListener,
+    ).toHaveBeenCalledWith(removed)
+  })
+
+  it("returns safe cleanup functions when permission event listeners are unsupported", () => {
+    ;(globalThis as any).browser.permissions.onAdded.addListener = vi.fn(() => {
+      throw new Error("not implemented")
+    })
+    ;(globalThis as any).browser.permissions.onRemoved.addListener = vi.fn(
+      () => {
+        throw new Error("not implemented")
+      },
+    )
+
+    const cleanupAdded = onPermissionsAdded(vi.fn())
+    const cleanupRemoved = onPermissionsRemoved(vi.fn())
+
+    expect(typeof cleanupAdded).toBe("function")
+    expect(typeof cleanupRemoved).toBe("function")
+    expect(() => cleanupAdded()).not.toThrow()
+    expect(() => cleanupRemoved()).not.toThrow()
+  })
+})
+
+describe("browserApi bookmark helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ;(globalThis as any).browser = undefined
+  })
+
+  afterAll(() => {
+    ;(globalThis as any).browser = originalBrowser
+    ;(globalThis as any).chrome = originalChrome
+  })
+
+  it("reads the browser bookmark tree when supported", async () => {
+    const tree = [
+      {
+        id: "root",
+        title: "Bookmarks",
+        children: [
+          {
+            id: "node-1",
+            title: "Example",
+            url: "https://one.example.invalid",
+          },
+        ],
+      },
+    ]
+    ;(globalThis as any).browser = {
+      bookmarks: {
+        getTree: vi.fn().mockResolvedValue(tree),
+      },
+    }
+
+    await expect(getBrowserBookmarkTree()).resolves.toEqual({
+      success: true,
+      tree,
+    })
+  })
+
+  it("classifies missing bookmarks API and getTree failures without throwing", async () => {
+    ;(globalThis as any).browser = {}
+
+    await expect(getBrowserBookmarkTree()).resolves.toEqual({
+      success: false,
+      reason: "unavailable",
+    })
+    ;(globalThis as any).browser = {
+      bookmarks: {
+        getTree: vi.fn().mockRejectedValue(new Error("native read failed")),
+      },
+    }
+
+    await expect(getBrowserBookmarkTree()).resolves.toEqual({
+      success: false,
+      reason: "read_failed",
+    })
+    expect(loggerMock.warn).toHaveBeenCalledWith("bookmarks.getTree failed", {
+      error: "native read failed",
+    })
+  })
+})

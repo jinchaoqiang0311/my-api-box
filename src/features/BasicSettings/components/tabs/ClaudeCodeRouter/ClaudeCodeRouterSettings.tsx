@@ -1,0 +1,134 @@
+import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
+
+import { Card, CardItem, CardList, Input } from "~/components/ui"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { createPreferenceDraftReset } from "~/features/BasicSettings/components/shared/createPreferenceDraftReset"
+import { PreferenceSettingSection as SettingSection } from "~/features/BasicSettings/components/shared/PreferenceSettingSection"
+import { blurInputOnEnter } from "~/hooks/preferences/useDeferredPreferenceField"
+import { usePreferenceDraft } from "~/hooks/preferences/usePreferenceDraft"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { runPreferenceUpdateWithToast } from "~/utils/feedback/preferenceFeedback"
+
+/**
+ * Settings section for configuring Claude Code Router admin API connection.
+ * Stores `baseUrl` and optional `apiKey` in user preferences.
+ */
+export default function ClaudeCodeRouterSettings() {
+  const { t } = useTranslation(["settings", "keyManagement"])
+  const {
+    preferences,
+    claudeCodeRouterBaseUrl,
+    claudeCodeRouterApiKey,
+    updateClaudeCodeRouterBaseUrl,
+    updateClaudeCodeRouterApiKey,
+    resetClaudeCodeRouterConfig,
+  } = useUserPreferencesContext()
+
+  const savedConfig = useMemo(
+    () => ({
+      baseUrl: claudeCodeRouterBaseUrl,
+      apiKey: claudeCodeRouterApiKey,
+    }),
+    [claudeCodeRouterApiKey, claudeCodeRouterBaseUrl],
+  )
+  const {
+    draft: localConfig,
+    setDraft: setLocalConfig,
+    expectedLastUpdated,
+  } = usePreferenceDraft({
+    savedValue: savedConfig,
+    savedVersion: preferences.lastUpdated,
+  })
+  const localBaseUrl = localConfig.baseUrl
+  const localKey = localConfig.apiKey
+
+  const handleBaseUrlChange = async (url: string) => {
+    if (url === claudeCodeRouterBaseUrl) return
+    await runPreferenceUpdateWithToast({
+      expectedLastUpdated,
+      setting: t("settings:claudeCodeRouter.baseUrlLabel"),
+      update: (options) => updateClaudeCodeRouterBaseUrl(url, options),
+    })
+  }
+
+  const handleKeyChange = async (key: string) => {
+    if (key === claudeCodeRouterApiKey) return
+    await runPreferenceUpdateWithToast({
+      expectedLastUpdated,
+      setting: t("settings:claudeCodeRouter.apiKeyLabel"),
+      update: (options) => updateClaudeCodeRouterApiKey(key, options),
+    })
+  }
+
+  return (
+    <SettingSection
+      id="claude-code-router"
+      title={t("settings:claudeCodeRouter.title")}
+      description={t("settings:claudeCodeRouter.description")}
+      {...createPreferenceDraftReset({
+        draft: localConfig,
+        storedValue: preferences?.claudeCodeRouter,
+        savedValue: savedConfig,
+        defaults: DEFAULT_PREFERENCES.claudeCodeRouter,
+        reset: resetClaudeCodeRouterConfig,
+        setDraft: setLocalConfig,
+      })}
+      resetRequiresConfirmation
+      resetDescription={t("settings:messages.resetConnectionConfirmDesc")}
+    >
+      <Card padding="none">
+        <CardList>
+          <CardItem
+            id="claude-code-router-base-url"
+            title={t("settings:claudeCodeRouter.baseUrlLabel")}
+            description={t("settings:claudeCodeRouter.urlDesc")}
+            rightContent={
+              <Input
+                type="text"
+                value={localBaseUrl}
+                onChange={(e) =>
+                  setLocalConfig((prev) => ({
+                    ...prev,
+                    baseUrl: e.target.value,
+                  }))
+                }
+                onBlur={(e) => handleBaseUrlChange(e.target.value)}
+                onKeyDown={blurInputOnEnter}
+                placeholder={t("settings:claudeCodeRouter.baseUrlPlaceholder")}
+              />
+            }
+          />
+
+          <CardItem
+            id="claude-code-router-api-key"
+            title={t("settings:claudeCodeRouter.apiKeyLabel")}
+            description={t("settings:claudeCodeRouter.keyDesc")}
+            rightContent={
+              <div className="relative">
+                <Input
+                  type="password"
+                  revealable
+                  revealLabels={{
+                    show: t("keyManagement:actions.showKey"),
+                    hide: t("keyManagement:actions.hideKey"),
+                  }}
+                  value={localKey}
+                  onChange={(e) =>
+                    setLocalConfig((prev) => ({
+                      ...prev,
+                      apiKey: e.target.value,
+                    }))
+                  }
+                  onBlur={(e) => handleKeyChange(e.target.value)}
+                  onKeyDown={blurInputOnEnter}
+                  placeholder={t("settings:claudeCodeRouter.apiKeyPlaceholder")}
+                />
+              </div>
+            }
+          />
+        </CardList>
+      </Card>
+    </SettingSection>
+  )
+}

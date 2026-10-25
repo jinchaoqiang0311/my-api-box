@@ -1,0 +1,105 @@
+import { autoRefreshService } from "~/services/accounts/refresh/autoRefreshService"
+import { autoCheckinScheduler } from "~/services/checkin/autoCheckin/scheduling/schedulerCore"
+import { dailyBalanceHistoryScheduler } from "~/services/history/dailyBalanceHistory/scheduler"
+import { usageHistoryScheduler } from "~/services/history/usageHistory/scheduler"
+import { legacyChannelConfigMigration } from "~/services/managedSites/configuration/legacyChannelConfigMigration"
+import { newApiOwnedSessionLifecycle } from "~/services/managedSites/newApiOwnedSession/background"
+import { modelMetadataService } from "~/services/models/modelMetadata"
+import { modelSyncScheduler } from "~/services/models/modelSync"
+import { initializeTaskNotificationService } from "~/services/notifications/taskNotificationService"
+import { productAnnouncementService } from "~/services/productAnnouncements/service"
+import { redemptionAssistService } from "~/services/redemption/redemptionAssist"
+import { siteAnnouncementScheduler } from "~/services/siteAnnouncements/scheduler"
+import { releaseUpdateService } from "~/services/updates/releaseUpdateService"
+import { webdavAutoSyncService } from "~/services/webdav/autoSync/webdavAutoSyncService"
+import { createLogger } from "~/utils/core/logger"
+import { initBackgroundI18n } from "~/utils/i18n/background"
+
+/**
+ * Unified logger scoped to background service initialization.
+ */
+const logger = createLogger("BackgroundServicesInit")
+
+let servicesInitialized = false
+let initializingPromise: Promise<void> | null = null
+
+/**
+ * Initialize all long-lived background services used by the extension.
+ *
+ * Sequence notes:
+ * - Guarded to avoid duplicate initialization; concurrent callers await one promise.
+ * - Alarm listeners must be registered before the first await so MV3 service worker wake-up
+ *   events (e.g. `chrome.alarms`) are not missed during async initialization.
+ * - i18n should still be initialized early so downstream user-facing messages are localized.
+ * - Each service handles its own retries; failures are logged but do not block others.
+ */
+export async function initializeServices() {
+  // 若已初始化，跳过
+  if (servicesInitialized) {
+    logger.debug("各项服务已初始化，跳过")
+    return
+  }
+
+  // 正在初始化则等待已有 Promise
+  if (initializingPromise) {
+    logger.debug("各项服务正在初始化，等待中...")
+    await initializingPromise
+    return
+  }
+
+  // 标记为正在初始化（防止并发）
+  initializingPromise = (async () => {
+    logger.info("初始化服务")
+
+    try {
+      // Start alarm-based schedulers first so their listeners are registered synchronously
+      // during service worker startup (before any awaited work yields control).
+      const alarmSchedulersInit = Promise.allSettled([
+        autoRefreshService.initialize(),
+        usageHistoryScheduler.initialize(),
+        webdavAutoSyncService.initialize(),
+        modelSyncScheduler.initialize(),
+        autoCheckinScheduler.initialize(),
+        dailyBalanceHistoryScheduler.initialize(),
+        siteAnnouncementScheduler.initialize(),
+        productAnnouncementService.initialize(),
+        releaseUpdateService.initialize(),
+        newApiOwnedSessionLifecycle.initialize(),
+      ])
+      initializeTaskNotificationService()
+
+      await initBackgroundI18n().catch((error) => {
+        logger.warn("Background i18n initialization failed", error)
+      })
+
+      const alarmResults = await alarmSchedulersInit
+      const rejected = alarmResults.filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      )
+      if (rejected.length > 0) {
+        logger.warn("Some alarm-based schedulers failed to initialize", {
+          rejectedCount: rejected.length,
+        })
+      }
+
+      // Scoped-only consumers wait on demand; startup must not wait for the
+      // per-site network inventory used by the opportunistic legacy migration.
+      void legacyChannelConfigMigration.initialize().catch((error) => {
+        logger.warn("Legacy channel config migration failed", error)
+      })
+
+      await modelMetadataService.initialize().catch((error) => {
+        logger.warn("Model metadata initialization failed", error)
+      })
+
+      await redemptionAssistService.initialize()
+
+      servicesInitialized = true
+    } finally {
+      initializingPromise = null
+    }
+  })()
+
+  await initializingPromise
+}

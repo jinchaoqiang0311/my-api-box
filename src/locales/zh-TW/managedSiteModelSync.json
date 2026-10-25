@@ -1,0 +1,167 @@
+{
+  "description": "更新閘道渠道的模型清單，查看同步結果與失敗原因。",
+  "execution": {
+    "actions": {
+      "refresh": "重新整理結果",
+      "retryFailed": "僅重試失敗項",
+      "retryingFailed": "失敗項重試中...",
+      "runAll": "執行全部",
+      "runningAll": "全部執行中...",
+      "runningSelected": "所選項執行中...",
+      "runSelected": "執行所選"
+    },
+    "empty": {
+      "noData": "暫無執行記錄",
+      "noDataDesc": "點擊\"執行全部\"開始同步所有渠道",
+      "noResults": "沒有匹配的結果",
+      "noResultsDesc": "嘗試修改篩選條件或搜尋關鍵字"
+    },
+    "errors": {
+      "channelTimeout_other": "單個渠道處理超過 {{count}} 秒"
+    },
+    "exclusions": {
+      "autoSave": "修改後立即儲存",
+      "description": "略過的渠道不參與自動同步和「執行全部」；仍可透過「執行所選」或「同步此渠道」臨時同步。",
+      "excludedLabel": "已設定略過",
+      "loadFailed": "無法讀取略過設定，請重試。",
+      "savedExcluded": "已儲存：自動同步和「執行全部」將略過此渠道。",
+      "savedIncluded": "已儲存：此渠道會參與自動同步和「執行全部」。",
+      "saveFailed": "略過設定儲存失敗，請重試。",
+      "showOnly": "僅看略過渠道",
+      "skippedReason": "執行時已為此渠道開啟略過設定，本次未取得或更新模型。",
+      "title": "略過自動同步和「執行全部」",
+      "toggle": "在自動同步和「執行全部」時略過 {{name}}"
+    },
+    "filters": {
+      "all": "全部",
+      "failed": "失敗",
+      "searchPlaceholder": "按渠道名稱、ID 或錯誤資訊搜尋...",
+      "skipped": "已略過",
+      "success": "成功"
+    },
+    "lastExecution": "上一次執行",
+    "manual": {
+      "empty": {
+        "description": "請重新整理列表或調整篩選條件後再試。",
+        "title": "暫無可用渠道"
+      },
+      "loading": "正在載入渠道...",
+      "refresh": "重新整理渠道",
+      "reload": "重新載入渠道",
+      "searchPlaceholder": "按渠道名稱或ID搜尋..."
+    },
+    "overview": {
+      "autoSync": "自動同步",
+      "disabled": "已禁用",
+      "disabledHint": "目前只會在你手動執行時同步模型列表。啟用自動同步後，擴充套件會按照設定間隔自動執行。",
+      "enableAutoSync": "啟用自動同步",
+      "enabled": "已啟用",
+      "everyHours_other": "每 {{count}} 小時",
+      "everyMinutes_other": "每 {{count}} 分鐘",
+      "lastRun": "上次執行",
+      "never": "從未"
+    },
+    "progress": {
+      "running": "同步進行中... {{completed}}/{{total}}",
+      "skipped": "已略過：{{skipped}}"
+    },
+    "statistics": {
+      "duration": "耗時",
+      "endTime": "結束時間",
+      "failed": "失敗數量",
+      "nextRun": "下次計劃時間",
+      "notScheduled": "未計劃",
+      "skipped": "已略過",
+      "startTime": "開始時間",
+      "success": "成功數量",
+      "total": "已執行渠道"
+    },
+    "status": {
+      "failed": "失敗",
+      "running": "執行中...",
+      "skipped": "已略過",
+      "success": "成功"
+    },
+    "table": {
+      "actions": "操作",
+      "attempts": "嘗試次數",
+      "channelId": "渠道 ID",
+      "channelName": "渠道名稱",
+      "finishedAt": "完成時間",
+      "manageChannel": "管理渠道",
+      "message": "錯誤資訊",
+      "resourceUnavailable": "此記錄無法關聯目前站點，請從手動同步清單重新選擇渠道。",
+      "selectAllChannels": "選擇所有渠道",
+      "selectChannel": "選擇渠道 {{name}}",
+      "status": "狀態",
+      "syncChannel": "同步此渠道"
+    },
+    "tabs": {
+      "history": "執行記錄",
+      "manual": "手動執行"
+    },
+    "title": "模型列表同步執行",
+    "unsupported": {
+      "title": "目前站點暫不支援模型同步"
+    }
+  },
+  "messages": {
+    "error": {
+      "invalidSettingValue": "請輸入 {{min}} 到 {{max}} 之間的值。",
+      "loadFailed": "資料載入失敗：{{error}}",
+      "noSelection": "請至少選擇一個渠道",
+      "syncFailed": "同步失敗：{{error}}"
+    },
+    "info": {
+      "allSkipped": "本次全部略過（{{skipped}} 個渠道），未取得或更新模型。可在「已略過」中查看詳情。"
+    },
+    "notification": {
+      "allSkippedBody": "已按設定略過所有渠道，本次未取得或更新模型。",
+      "allSkippedTitle": "模型同步：全部略過"
+    },
+    "skippedSummary": "已略過：{{skipped}}。",
+    "success": {
+      "settingsSaved": "設定儲存成功",
+      "syncCompleted": "同步完成：{{success}}/{{total}} 成功"
+    },
+    "warning": {
+      "syncCompletedWithFailures": "同步已完成，但仍有 {{failed}} 個渠道失敗（成功：{{success}}/{{total}}）。你可以直接重試失敗項。"
+    }
+  },
+  "optionalGuidance": {
+    "description": "模型同步可自動更新閘道模型列表、映射或路由，減少手動維護；它是渠道建立後的增強功能，不影響已有渠道作為統一 AI API 使用。"
+  },
+  "settings": {
+    "allowedModels": "允許的模型列表",
+    "allowedModelsDesc": "可選的白名單。留空則同步所有上游模型。",
+    "allowedModelsHint": "同步時僅會將此處列出的模型寫入渠道。",
+    "allowedModelsLoadFailed": "載入模型後設資料失敗：{{error}}",
+    "allowedModelsLoading": "正在載入模型後設資料...",
+    "allowedModelsPlaceholder": "搜尋並選擇模型，也可直接輸入新增",
+    "burst": "突發請求上限",
+    "burstDesc": "令牌桶容量：允許短時間內的突發請求數",
+    "channelProcessingTimeout": "單渠道最大處理時長",
+    "channelProcessingTimeoutDesc": "單個渠道處理超過該時長後標記為失敗並繼續後續任務。填 0 表示不限制。",
+    "channelProcessingTimeoutUnit": "秒",
+    "concurrency": "併發數量",
+    "concurrencyDesc": "同時處理的渠道任務數（建議1-3，避免觸發速率限制）",
+    "enable": "啟用自動同步",
+    "enableDesc": "按照設定間隔自動執行模型列表同步",
+    "globalChannelModelFilters": "全域性過濾規則",
+    "globalChannelModelFiltersButton": "編輯全域性規則",
+    "globalChannelModelFiltersDesc": "在所有渠道的本地規則之前應用的包含/排除規則。",
+    "globalChannelModelFiltersDialogSubtitle": "此處配置的規則會在每個渠道自己的過濾規則之前生效並應用於所有渠道。",
+    "globalChannelModelFiltersDialogTitle": "全域性模型過濾規則",
+    "interval": "執行間隔",
+    "intervalDesc": "自動同步的時間間隔",
+    "intervalUnit": "小時",
+    "maxRetries": "最大重試次數",
+    "maxRetriesDesc": "失敗時自動重試的最大次數",
+    "requestsPerMinute": "每分鐘請求數",
+    "requestsPerMinuteDesc": "速率限制：每分鐘最多請求數（建議10-30）",
+    "title": "模型列表同步設定",
+    "viewExecution": "檢視執行與結果",
+    "viewExecutionButton": "開啟",
+    "viewExecutionDesc": "檢視詳細執行結果並手動觸發同步"
+  }
+}

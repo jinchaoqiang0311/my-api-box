@@ -1,0 +1,128 @@
+import { TriangleAlert } from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { ActionGroup, Button } from "~/components/ui"
+import { Modal } from "~/components/ui/Dialog/Modal"
+
+interface FirefoxWarningDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void | Promise<void>
+  sidePanelSupported: boolean
+}
+
+/**
+ * Firefox-specific warning dialog guiding users to open the sidebar for adding accounts.
+ * Provides limitation explanation plus CTA to open the sidebar.
+ */
+export default function FirefoxAddAccountWarningDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  sidePanelSupported,
+}: FirefoxWarningDialogProps) {
+  const { t } = useTranslation("ui")
+  const [isOpening, setIsOpening] = useState(false)
+  const [openFailed, setOpenFailed] = useState(false)
+  const handleConfirm = async () => {
+    setIsOpening(true)
+    setOpenFailed(false)
+    try {
+      await onConfirm()
+    } catch {
+      setOpenFailed(true)
+    } finally {
+      setIsOpening(false)
+    }
+  }
+
+  const header = (
+    <div className="flex items-center space-x-3">
+      <TriangleAlert className="text-warning-text h-5 w-5" />
+      <div className="text-foreground text-lg font-semibold">
+        {t("dialog.firefox.warningTitle")}
+      </div>
+    </div>
+  )
+
+  const footer = (
+    <div className="space-y-density-4">
+      <div className="text-center">
+        <TriangleAlert className="text-warning-text mx-auto h-12 w-12" />
+        <div className="mt-density-3">
+          <h3 className="text-foreground text-base font-medium">
+            {t("dialog.firefox.limitation")}
+          </h3>
+          <div className="mt-density-2">
+            <p className="dark:text-secondary-foreground text-muted-foreground text-sm">
+              {t("dialog.firefox.popupLimitation")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-warning-border bg-warning-soft py-density-3 rounded-lg border px-3">
+        <div className="flex">
+          <div className="shrink-0">
+            <TriangleAlert className="text-warning-text h-5 w-5" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-warning-text text-xs font-medium">
+              {sidePanelSupported
+                ? t("dialog.firefox.howOpenSidebar")
+                : t("dialog.firefox.howOpenOptions")}
+            </h3>
+            <div className="text-warning-text mt-density-1 text-xs">
+              <p>
+                {sidePanelSupported
+                  ? t("dialog.firefox.sidebarInstruction")
+                  : t("dialog.firefox.optionsInstruction")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {openFailed && <p role="alert">{t("dialog.firefox.openFailed")}</p>}
+
+      {/* 按钮组 */}
+      <ActionGroup
+        layout="stack-on-narrow"
+        className="gap-y-density-3 pt-density-2 gap-x-3"
+      >
+        <Button
+          type="button"
+          variant="secondary"
+          className="flex-1"
+          onClick={onClose}
+          disabled={isOpening}
+          aria-label={t("dialog.firefox.confirm")}
+        >
+          {t("dialog.firefox.confirm")}
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          className="flex-1"
+          onClick={handleConfirm}
+          loading={isOpening}
+          aria-label={
+            sidePanelSupported
+              ? t("dialog.firefox.openSidebar")
+              : t("dialog.firefox.openOptions")
+          }
+        >
+          {sidePanelSupported
+            ? t("dialog.firefox.openSidebar")
+            : t("dialog.firefox.openOptions")}
+        </Button>
+      </ActionGroup>
+    </div>
+  )
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} header={header} footer={footer}>
+      {/* empty: header/footer contain the content */}
+    </Modal>
+  )
+}

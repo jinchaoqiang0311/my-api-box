@@ -1,0 +1,57 @@
+import { type ReactNode } from "react"
+
+import "~/styles/style.css"
+
+import { ChangelogOnUpdateUiOpenHandler } from "~/components/ChangelogOnUpdateUiOpenHandler"
+import { ThemeAwareToaster } from "~/components/ThemeAwareToaster"
+import { ToasterPortalProvider } from "~/components/toast/ToasterPortal"
+import { DeviceProvider } from "~/contexts/DeviceContext"
+import { FeatureGuidanceProvider } from "~/contexts/FeatureGuidanceContext"
+import { ReleaseUpdateStatusProvider } from "~/contexts/ReleaseUpdateStatusContext"
+import { ThemeProvider } from "~/contexts/ThemeContext"
+import { UserPreferencesProvider } from "~/contexts/UserPreferencesContext"
+import { AutoCheckinUiOpenPretrigger } from "~/features/AutoCheckin/pretrigger/AutoCheckinUiOpenPretrigger"
+import {
+  ChannelDialogContainer,
+  ChannelDialogProvider,
+  DuplicateChannelWarningDialogContainer,
+} from "~/features/ManagedSiteChannels/editor/ChannelDialog"
+import {
+  UpdateLogDialogContainer,
+  UpdateLogDialogProvider,
+} from "~/features/UpdateLog"
+
+interface AppLayoutProps {
+  children: ReactNode
+}
+
+/**
+ * AppLayout wires global providers and renders the Channel dialog container plus toasts.
+ */
+export function AppLayout({ children }: AppLayoutProps) {
+  return (
+    <DeviceProvider>
+      <UserPreferencesProvider>
+        <FeatureGuidanceProvider>
+          <ThemeProvider>
+            <ToasterPortalProvider>
+              <ReleaseUpdateStatusProvider>
+                <ChannelDialogProvider>
+                  <UpdateLogDialogProvider>
+                    <ChangelogOnUpdateUiOpenHandler />
+                    <AutoCheckinUiOpenPretrigger />
+                    <UpdateLogDialogContainer />
+                    {children}
+                    <ChannelDialogContainer />
+                    <DuplicateChannelWarningDialogContainer />
+                  </UpdateLogDialogProvider>
+                </ChannelDialogProvider>
+              </ReleaseUpdateStatusProvider>
+              <ThemeAwareToaster reverseOrder={false} />
+            </ToasterPortalProvider>
+          </ThemeProvider>
+        </FeatureGuidanceProvider>
+      </UserPreferencesProvider>
+    </DeviceProvider>
+  )
+}

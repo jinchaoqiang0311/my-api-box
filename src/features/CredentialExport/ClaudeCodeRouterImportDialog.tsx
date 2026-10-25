@@ -1,0 +1,332 @@
+import { useEffect, useId, useState, type FormEvent } from "react"
+import { useTranslation } from "react-i18next"
+
+import {
+  ActionGroup,
+  Button,
+  Checkbox,
+  CompactMultiSelect,
+  FormField,
+  Input,
+  Modal,
+} from "~/components/ui"
+import { fetchOpenAICompatibleModels } from "~/services/aiApi/openaiCompatible"
+import { sanitizeHeaderOverrideError } from "~/services/apiTransport/headerOverrides"
+import { importToClaudeCodeRouter } from "~/services/integrations/claudeCodeRouterService"
+import type { CredentialExportSource } from "~/services/integrations/credentialExport"
+import {
+  startProductAnalyticsAction,
+  type ProductAnalyticsActionContext,
+} from "~/services/productAnalytics/actions"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { isTestMode } from "~/utils/core/environment"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+import { showResultToast } from "~/utils/feedback/operationFeedback"
+
+interface ClaudeCodeRouterImportDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  source: CredentialExportSource
+  routerBaseUrl: string
+  routerApiKey?: string
+  analyticsContext?: ProductAnalyticsActionContext
+}
+
+/**
+ * Unified logger scoped to the Claude Code Router import dialog.
+ */
+const logger = createLogger("ClaudeCodeRouterImportDialog")
+
+// Preserve the real debounce in dev/prod so endpoint edits do not spam
+// model-list requests, but skip the wall-clock delay in Vitest (mirrors
+// CCSwitchExportDialog).
+export const UPSTREAM_MODEL_FETCH_DEBOUNCE_MS = isTestMode() ? 0 : 300
+
+/**
+ * Build the default Claude Code Router `api_base_url` for a provider.
+ * Claude Code Router expects a full OpenAI-compatible endpoint (typically ending in
+ * `/v1/chat/completions`).
+ */
+function buildDefaultProviderApiBaseUrlFromBaseUrl(baseUrl: string) {
+  const raw = (baseUrl || "").trim()
+  if (!raw) return ""
+  if (raw.includes("/v1/chat/completions")) return raw
+  return raw.replace(/\/+$/, "") + "/v1/chat/completions"
+}
+
+/**
+ * Derive an upstream base URL (used for `/v1/models`) from a provider API base URL.
+ *
+ * Example:
+ * - https://example.com/v1/chat/completions -> https://example.com
+ * - https://example.com/openai/v1/chat/completions -> https://example.com/openai
+ */
+function buildUpstreamBaseUrlFromProviderApiBaseUrl(
+  providerApiBaseUrl: string,
+) {
+  const raw = (providerApiBaseUrl || "").trim()
+  if (!raw) return ""
+  return raw.replace(/\/v1\/chat\/completions\/?$/, "")
+}
+
+/**
+ * Modal dialog for importing a credential into Claude Code Router.
+ *
+ * The dialog collects provider name, provider endpoint (`api_base_url`) and models,
+ * then writes the provider into Claude Code Router via `POST /api/config`.
+ */
+export function ClaudeCodeRouterImportDialog(
+  props: ClaudeCodeRouterImportDialogProps,
+) {
+  const { isOpen, onClose, source, routerBaseUrl, routerApiKey } = props
+  const { analyticsContext } = props
+
+  const { t } = useTranslation(["ui", "common"])
+
+  const [providerName, setProviderName] = useState("")
+  const [providerApiBaseUrl, setProviderApiBaseUrl] = useState("")
+  const [restartAfterSave, setRestartAfterSave] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const formId = useId()
+  const providerNameInputId = `${formId}-provider-name`
+  const providerApiBaseUrlInputId = `${formId}-provider-api-base-url`
+
+  useEffect(() => {
+    if (!isOpen) return
+    setProviderName(source.providerName || source.baseUrl)
+    setProviderApiBaseUrl(
+      buildDefaultProviderApiBaseUrlFromBaseUrl(source.baseUrl),
+    )
+    setRestartAfterSave(true)
+  }, [isOpen, source.providerName, source.baseUrl])
+
+  const [selectedModels, setSelectedModels] = useState<string[]>([])
+
+  const [upstreamModelOptions, setUpstreamModelOptions] = useState<
+    { value: string; label: string }[]
+  >([])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    setSelectedModels([])
+    setUpstreamModelOptions([])
+  }, [isOpen, source.cacheKey])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const upstreamBaseUrl =
+      buildUpstreamBaseUrlFromProviderApiBaseUrl(providerApiBaseUrl)
+    if (!upstreamBaseUrl) {
+      setUpstreamModelOptions([])
+      return
+    }
+
+    let isMounted = true
+    const handle = setTimeout(() => {
+      void (async () => {
+        try {
+          setIsLoadingModels(true)
+          const apiKey = await source.resolveApiKey()
+          const models = await fetchOpenAICompatibleModels({
+            baseUrl: upstreamBaseUrl,
+            requestHeaders: source.requestHeaders,
+            apiKey,
+          })
+          const options = (models || [])
+            .map((item) => item?.id)
+            .filter(
+              (id): id is string => typeof id === "string" && id.length > 0,
+            )
+            .sort((a, b) => a.localeCompare(b))
+            .map((id) => ({ value: id, label: id }))
+
+          if (isMounted) {
+            setUpstreamModelOptions(options)
+          }
+        } catch (error) {
+          logger.error(
+            "Failed to fetch upstream models",
+            sanitizeHeaderOverrideError(error, source.requestHeaders),
+          )
+          if (isMounted) {
+            setUpstreamModelOptions([])
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoadingModels(false)
+          }
+        }
+      })()
+    }, UPSTREAM_MODEL_FETCH_DEBOUNCE_MS)
+
+    return () => {
+      isMounted = false
+      clearTimeout(handle)
+    }
+  }, [source, isOpen, providerApiBaseUrl])
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const providerModels = selectedModels
+
+    void (async () => {
+      const tracker = startProductAnalyticsAction(
+        analyticsContext ?? {
+          featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ImportExport,
+          actionId:
+            PRODUCT_ANALYTICS_ACTION_IDS.ExportAccountTokenToClaudeCodeRouter,
+          surfaceId:
+            PRODUCT_ANALYTICS_SURFACE_IDS.AccountTokenThirdPartyExportDialog,
+          entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        },
+      )
+
+      try {
+        setIsSubmitting(true)
+        const providerApiKey = await source.resolveApiKey()
+        const result = await importToClaudeCodeRouter({
+          providerApiKey,
+          routerBaseUrl,
+          routerApiKey,
+          providerName: providerName.trim(),
+          providerApiBaseUrl: providerApiBaseUrl.trim(),
+          providerModels,
+          restartAfterSave,
+        })
+        showResultToast(result)
+        if (result.success) {
+          tracker.complete(PRODUCT_ANALYTICS_RESULTS.Success)
+          onClose()
+        } else if ("skipped" in result && result.skipped === true) {
+          tracker.complete(PRODUCT_ANALYTICS_RESULTS.Skipped)
+        } else {
+          tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure)
+        }
+      } catch (error) {
+        tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+          errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+        })
+        showResultToast({
+          success: false,
+          message: t("messages:errors.operation.failed", {
+            error: getErrorMessage(error, t("messages:errors.unknown")),
+          }),
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+    })()
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      header={
+        <div className="pr-8">
+          <div className="text-foreground text-base font-semibold">
+            {t("ui:dialog.claudeCodeRouter.title")}
+          </div>
+          <p className="dark:text-secondary-foreground text-muted-foreground text-sm">
+            {t("ui:dialog.claudeCodeRouter.description")}
+          </p>
+        </div>
+      }
+      footer={
+        <ActionGroup>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            {t("common:actions.cancel")}
+          </Button>
+          <Button type="submit" form={formId} loading={isSubmitting}>
+            {isSubmitting
+              ? t("common:status.importing")
+              : t("common:actions.import")}
+          </Button>
+        </ActionGroup>
+      }
+    >
+      <form className="space-y-density-4" id={formId} onSubmit={handleSubmit}>
+        <div className="gap-y-density-4 grid grid-cols-1 gap-x-4 md:grid-cols-2">
+          <FormField
+            label={t("ui:dialog.claudeCodeRouter.fields.providerName")}
+            htmlFor={providerNameInputId}
+          >
+            <Input
+              id={providerNameInputId}
+              value={providerName}
+              onChange={(e) => setProviderName(e.target.value)}
+              placeholder={t(
+                "ui:dialog.claudeCodeRouter.placeholders.providerName",
+              )}
+            />
+          </FormField>
+
+          <FormField
+            label={t("ui:dialog.claudeCodeRouter.fields.providerApiBaseUrl")}
+            htmlFor={providerApiBaseUrlInputId}
+            description={t(
+              "ui:dialog.claudeCodeRouter.descriptions.providerApiBaseUrl",
+            )}
+          >
+            <Input
+              id={providerApiBaseUrlInputId}
+              value={providerApiBaseUrl}
+              onChange={(e) => setProviderApiBaseUrl(e.target.value)}
+              placeholder={t(
+                "ui:dialog.claudeCodeRouter.placeholders.providerApiBaseUrl",
+              )}
+            />
+          </FormField>
+        </div>
+
+        <FormField
+          label={t("ui:dialog.claudeCodeRouter.fields.models")}
+          description={t("ui:dialog.claudeCodeRouter.descriptions.models")}
+        >
+          <CompactMultiSelect
+            options={upstreamModelOptions}
+            selected={selectedModels}
+            onChange={setSelectedModels}
+            size="default"
+            placeholder={t(
+              "ui:dialog.claudeCodeRouter.placeholders.modelsPicker",
+            )}
+            loading={isLoadingModels}
+            disabled={isLoadingModels}
+            allowCustom
+            parseCommaStrings
+            clearable
+          />
+        </FormField>
+
+        <div className="gap-y-density-3 flex items-start gap-x-3">
+          <Checkbox
+            checked={restartAfterSave}
+            onCheckedChange={(checked) => setRestartAfterSave(!!checked)}
+          />
+          <div className="space-y-density-1">
+            <div className="text-foreground text-sm font-medium">
+              {t("ui:dialog.claudeCodeRouter.fields.restartAfterSave")}
+            </div>
+            <p className="dark:text-secondary-foreground text-muted-foreground text-xs">
+              {t("ui:dialog.claudeCodeRouter.descriptions.restartAfterSave")}
+            </p>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  )
+}

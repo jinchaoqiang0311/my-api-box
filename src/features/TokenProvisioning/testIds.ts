@@ -1,0 +1,11 @@
+export const TOKEN_PROVISIONING_TEST_IDS = {
+  addTokenDialog: "key-management-add-token-dialog",
+  addTokenSubmitButton: "key-management-add-token-submit-button",
+  oneTimeKeyCloseButton: "key-management-one-time-key-close-button",
+  oneTimeKeyConfirmCloseButton:
+    "key-management-one-time-key-confirm-close-button",
+  oneTimeKeyInput: "key-management-one-time-key-input",
+  oneTimeKeyCopyButton: "key-management-one-time-key-copy-button",
+  oneTimeKeySaveButton: "key-management-one-time-key-save-button",
+  openApiProfilesToastButton: "key-management-open-api-profiles-toast-button",
+} as const

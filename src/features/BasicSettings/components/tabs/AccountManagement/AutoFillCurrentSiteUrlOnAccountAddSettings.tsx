@@ -1,0 +1,65 @@
+import { Globe2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { Card, CardItem, CardList, Switch } from "~/components/ui"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { PreferenceSettingSection as SettingSection } from "~/features/BasicSettings/components/shared/PreferenceSettingSection"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { showUpdateToast } from "~/utils/feedback/preferenceFeedback"
+
+/**
+ * Settings section controlling whether the add-account dialog prefills the
+ * site URL from the current browser tab.
+ */
+export default function AutoFillCurrentSiteUrlOnAccountAddSettings() {
+  const { t } = useTranslation("settings")
+  const {
+    autoFillCurrentSiteUrlOnAccountAdd,
+    updateAutoFillCurrentSiteUrlOnAccountAdd,
+  } = useUserPreferencesContext()
+
+  const handleToggle = async (enabled: boolean) => {
+    const writeResult = await updateAutoFillCurrentSiteUrlOnAccountAdd(enabled)
+    showUpdateToast(
+      writeResult,
+      t("autoFillCurrentSiteUrlOnAccountAdd.toggleLabel"),
+    )
+  }
+
+  return (
+    <SettingSection
+      onReset={() =>
+        updateAutoFillCurrentSiteUrlOnAccountAdd(
+          DEFAULT_PREFERENCES.autoFillCurrentSiteUrlOnAccountAdd!,
+        )
+      }
+      resetDisabled={
+        autoFillCurrentSiteUrlOnAccountAdd ===
+        DEFAULT_PREFERENCES.autoFillCurrentSiteUrlOnAccountAdd
+      }
+      resetRequiresConfirmation={false}
+      id="auto-fill-current-site-url-on-account-add"
+      title={t("autoFillCurrentSiteUrlOnAccountAdd.title")}
+      description={t("autoFillCurrentSiteUrlOnAccountAdd.description")}
+    >
+      <Card padding="none">
+        <CardList>
+          <CardItem
+            id="auto-fill-current-site-url-toggle"
+            icon={
+              <Globe2 className="text-theme-600 dark:text-theme-400 h-5 w-5" />
+            }
+            title={t("autoFillCurrentSiteUrlOnAccountAdd.toggleLabel")}
+            description={t("autoFillCurrentSiteUrlOnAccountAdd.toggleDesc")}
+            rightContent={
+              <Switch
+                checked={autoFillCurrentSiteUrlOnAccountAdd}
+                onChange={handleToggle}
+              />
+            }
+          />
+        </CardList>
+      </Card>
+    </SettingSection>
+  )
+}

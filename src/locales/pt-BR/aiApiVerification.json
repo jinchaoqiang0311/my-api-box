@@ -1,0 +1,139 @@
+{
+  "verifyDialog": {
+    "actions": {
+      "close": "Fechar",
+      "manageModelKey": "Abrir configuração da chave de modelo",
+      "retry": "Tentar novamente",
+      "run": "Executar",
+      "running": "Executando...",
+      "runOne": "Executar",
+      "stop": "Parar",
+      "stopProbe": "Interromper {{probe}}"
+    },
+    "apiTypes": {
+      "anthropic": "Anthropic",
+      "google": "Google/Gemini",
+      "openai": "OpenAI",
+      "openaiCompatible": "Compatível com OpenAI"
+    },
+    "details": {
+      "input": "Entrada",
+      "output": "Saída"
+    },
+    "errors": {
+      "unexpected": "Erro inesperado"
+    },
+    "generatedImagePreview": "Prévia da imagem gerada",
+    "generatedVideoPreview": "Prévia do vídeo gerado",
+    "history": {
+      "clear": "Limpar histórico",
+      "lastVerified": "Última verificação"
+    },
+    "idleHint": "Selecione uma chave para iniciar a verificação. O ID do modelo é obrigatório para testes que dependem de um modelo.",
+    "loadingRuntimeKeysHint": "Carregando chaves...",
+    "mediaPreviewUnavailable": "Não foi possível carregar a prévia.",
+    "meta": {
+      "apiType": "Tipo de API",
+      "apiTypePlaceholder": "Selecione o tipo de API",
+      "mode": "Modo de teste",
+      "model": "Modelo",
+      "modelPlaceholder": "Insira o ID do modelo",
+      "requestProfile": "Simulação de cliente",
+      "runtimeKey": "Chave",
+      "runtimeKeyIncompatible": "Indisponível para este modelo",
+      "runtimeKeyPlaceholder": "Selecione uma chave"
+    },
+    "modalityNotice": {
+      "image": "Este é um modelo de geração de imagem; chamadas de teste consomem cota por requisição.",
+      "quotaCost": "Por chamada",
+      "video": "Cria um vídeo e aguarda até dois minutos para reproduzi-lo. Parar interrompe apenas a espera local; a tarefa no servidor pode continuar e gerar cobranças."
+    },
+    "modes": {
+      "nonStreaming": "Sem streaming",
+      "streaming": "Com streaming"
+    },
+    "noCompatibleRuntimeKeyHint": "Nenhuma chave está disponível para o grupo deste modelo. Crie ou escolha uma chave de um grupo habilitado no Gerenciamento de Chaves.",
+    "notRunYet": "Ainda não executado",
+    "openGeneratedMedia": "Abrir mídia gerada",
+    "probes": {
+      "decision": "Modelo de decisão",
+      "embedding": "Embedding",
+      "image-generation": "Geração de imagens",
+      "models": "Lista de modelos",
+      "rerank": "Reclassificador",
+      "structured-output": "Saída estruturada (esquema JSON)",
+      "text-generation": "Geração de texto",
+      "tool-calling": "Chamada de ferramenta/função",
+      "video-generation": "Tarefa de vídeo",
+      "web-search": "Pesquisa na web / grounding"
+    },
+    "requestProfiles": {
+      "claude": "Claude Code",
+      "codex": "Codex CLI",
+      "default": "Nenhuma (solicitação normal)",
+      "enhancedBadge": "Aprimorada",
+      "enhancedHint": "Adiciona prompts de identidade, cabeçalhos SDK e recursos de cache e sessão conhecidos. Pode aumentar o uso de entrada; a aceitação depende do site.",
+      "enhancedLabel": "Simulação CLI aprimorada",
+      "gemini": "Gemini CLI",
+      "hint": "Simula as solicitações do cliente e muda para o protocolo de API correspondente. Mantém o teste selecionado."
+    },
+    "requiresModelId": "Insira um ID de modelo para executar este teste.",
+    "selectedRuntimeKeyIncompatibleHint": "A chave selecionada não está disponível para o grupo deste modelo. Escolha uma chave compatível antes de executar a verificação.",
+    "status": {
+      "fail": "Falha",
+      "pass": "Aprovado",
+      "pending": "Pendente",
+      "unsupported": "Não compatível",
+      "unverified": "Não verificado"
+    },
+    "summaries": {
+      "decisionSucceeded": "A verificação de decisão foi bem-sucedida.",
+      "decisionUnexpectedResponse": "Resposta inesperada da interface de decisão.",
+      "embeddingSucceeded": "Embedding gerado com sucesso (dimensão: {{dimension}}).",
+      "embeddingUnexpectedResponse": "Resposta inesperada de embedding.",
+      "embeddingUnsupportedAnthropic": "O Anthropic não oferece modelos nativos de embedding.",
+      "endpointNotFound": "Endpoint não encontrado (404): esta API pode não ser compatível",
+      "forbidden": "Proibido (403): acesso negado",
+      "httpError": "Erro HTTP ({{status}})",
+      "imageGenerationNoData": "Nenhum dado de imagem retornado.",
+      "imageGenerationSucceeded": "Geração de imagem bem-sucedida.",
+      "modelsFetched": "{{count}} modelos obtidos.",
+      "modelsFetched_one": "{{count}} modelo obtido.",
+      "modelsFetched_other": "{{count}} modelos obtidos.",
+      "modelsProbeUnsupportedForApiType": "O teste de modelos não é compatível com este tipo de API.",
+      "noModelAvailableToRunProbes": "Nenhum modelo disponível para executar os testes.",
+      "noModelIdProvided": "Nenhum ID de modelo informado.",
+      "noModelIdProvidedToRunProbe": "Nenhum ID de modelo informado para executar o teste.",
+      "noModelIdProvidedToRunProbes": "Nenhum ID de modelo informado para executar os testes.",
+      "noModelsReturned": "Nenhum modelo retornado.",
+      "noToolCallDetected": "Nenhuma chamada de ferramenta detectada (o modelo pode não ser compatível com ferramentas).",
+      "probeRequiresOpenAiProtocol": "Este teste requer um endpoint de API compatível com OpenAI. Selecione esse protocolo apenas se o serviço oferecer suporte.",
+      "requestProfileIncompatible": "Esta simulação de cliente não oferece suporte ao protocolo de API ou teste selecionado.",
+      "rerankSucceeded": "Reclassificação bem-sucedida.",
+      "rerankUnexpectedResponse": "Resposta inesperada de reclassificação.",
+      "stopped": "Interrompido pelo usuário.",
+      "structuredOutputInvalid": "Saída inválida.",
+      "structuredOutputSucceeded": "Saída estruturada concluída com sucesso.",
+      "textGenerationSucceeded": "Geração de texto concluída com sucesso.",
+      "textGenerationUnexpectedResponse": "Texto de resposta inesperado.",
+      "toolCallSucceeded": "Chamada de ferramenta concluída com sucesso.",
+      "unauthorized": "Não autorizado (401): chave inválida ou autenticação ausente",
+      "videoGenerationSucceeded": "Vídeo gerado com sucesso.",
+      "videoGenerationTimedOut": "O vídeo não terminou em dois minutos. A tarefa no servidor pode continuar em execução.",
+      "videoNoPlayableResult": "A tarefa de vídeo terminou sem uma URL reproduzível.",
+      "videoNoTaskReturned": "Nenhum ID de tarefa de vídeo retornado.",
+      "videoTaskAccepted": "Tarefa de vídeo aceita.",
+      "videoUnexpectedResponse": "A tarefa de vídeo falhou ou retornou uma resposta inválida.",
+      "webSearchGroundingNoResults": "Nenhum resultado de pesquisa na web/grounding.",
+      "webSearchGroundingSucceeded": "Pesquisa na web/grounding concluída com sucesso.",
+      "webSearchNoResults": "Nenhum resultado de pesquisa na web.",
+      "webSearchRequiresExplicitSupport": "O teste de pesquisa na web exige suporte explícito do tipo de API.",
+      "webSearchSucceeded": "Pesquisa na web concluída com sucesso.",
+      "webSearchUnsupportedAnthropic": "O teste de pesquisa na web não é compatível com endpoints da Anthropic.",
+      "webSearchUnsupportedForApiType": "O teste de pesquisa na web não é compatível com este tipo de API."
+    },
+    "title": "Verificação de API",
+    "unsupportedProbeForApiType": "O teste {{probe}} não é compatível com este tipo de API.",
+    "warning": "Quando o suporte é detectado, é muito provável que ele seja real. Quando não é detectado, ainda pode existir. Os resultados servem apenas como referência; confirme pelo uso real da ferramenta."
+  }
+}

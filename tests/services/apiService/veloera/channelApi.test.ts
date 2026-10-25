@@ -1,0 +1,869 @@
+// Initialize provider registrations before measuring the shared snapshot queries.
+import "~/services/checkin/autoCheckin/providers"
+
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { fetchAccountDataWithCheckInStatus } from "~/services/accounts/refresh/fetchAccountData"
+import { fetchSupportCheckIn } from "~/services/apiService/newApiFamily/variants/veloera"
+import {
+  createChannel,
+  deleteChannel,
+  fetchAccountData,
+  fetchChannel,
+  fetchChannelModels,
+  fetchDraftChannelModels,
+  listAllChannels,
+  refreshAccountData,
+  updateChannel,
+  updateChannelModelMapping,
+  updateChannelModels,
+} from "~/services/apiService/veloera"
+import { API_ERROR_CODES, ApiError } from "~/services/apiTransport/errors"
+import { getSelectedCheckInStatus } from "~/services/checkin/autoCheckin/discovery/inspection"
+import { AuthTypeEnum, SiteHealthStatus } from "~/types"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+import { createCheckInConfig } from "../../apiAdapters/checkInFixtures"
+
+const {
+  mockDetermineHealthStatus,
+  mockFetchAccountQuota,
+  mockFetchTodayIncome,
+  mockFetchTodayUsage,
+} = vi.hoisted(() => ({
+  mockDetermineHealthStatus: vi.fn(),
+  mockFetchAccountQuota: vi.fn(),
+  mockFetchTodayIncome: vi.fn(),
+  mockFetchTodayUsage: vi.fn(),
+}))
+
+const { mockFetchApiData } = vi.hoisted(() => ({
+  mockFetchApiData: vi.fn(),
+}))
+
+const { mockFetchSiteStatus } = vi.hoisted(() => ({
+  mockFetchSiteStatus: vi.fn(),
+}))
+
+const { mockFetchApi, mockLoggerError } = vi.hoisted(() => ({
+  mockFetchApi: vi.fn(),
+  mockLoggerError: vi.fn(),
+}))
+
+vi.mock("~/utils/core/logger", () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    error: mockLoggerError,
+    info: vi.fn(),
+    warn: vi.fn(),
+  }),
+}))
+
+vi.mock("~/services/apiService/veloera/request", () => ({
+  veloeraRequests: {
+    data: mockFetchApiData,
+    envelope: mockFetchApi,
+  },
+}))
+
+vi.mock("~/services/apiService/newApiFamily/request", () => ({
+  newApiFamilyRequests: {
+    data: mockFetchApiData,
+    envelope: mockFetchApi,
+  },
+}))
+
+vi.mock(
+  "~/services/apiService/newApiFamily/default/accountBootstrap",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("~/services/apiService/newApiFamily/default/accountBootstrap")
+    >()),
+    fetchSiteStatus: mockFetchSiteStatus,
+  }),
+)
+
+vi.mock("~/services/accounts/accountHealth", () => ({
+  determineHealthStatus: (...args: unknown[]) =>
+    mockDetermineHealthStatus(...args),
+}))
+
+vi.mock("~/services/apiService/newApiFamily/default/accountData", () => ({
+  fetchAccountQuota: (...args: unknown[]) => mockFetchAccountQuota(...args),
+  fetchTodayIncome: (...args: unknown[]) => mockFetchTodayIncome(...args),
+  fetchTodayUsage: (...args: unknown[]) => mockFetchTodayUsage(...args),
+}))
+
+/**
+ * Veloera channel API adapters.
+ *
+ * These tests preserve Veloera-native request and response fields.
+ */
+describe("apiService veloera channel APIs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockFetchApiData.mockReset()
+    mockFetchApi.mockReset()
+    mockFetchSiteStatus.mockReset()
+    mockFetchAccountQuota.mockResolvedValue(100)
+    mockFetchTodayUsage.mockResolvedValue({
+      today_prompt_tokens: 11,
+      today_completion_tokens: 22,
+      today_quota_consumption: 33,
+      today_requests_count: 44,
+    })
+    mockFetchTodayIncome.mockResolvedValue({
+      today_income: 55,
+    })
+  })
+
+  it("preserves Veloera-native fields when reading channel detail", async () => {
+    mockFetchApiData.mockResolvedValueOnce({
+      id: 42,
+      type: 1,
+      name: "Native channel",
+      provider_extension: { routing: "native" },
+      model_prefix: "prefix/",
+      system_prompt: "Custom prompt",
+    })
+
+    const result = await fetchChannel(
+      {
+        baseUrl: "http://managed.internal",
+        auth: {
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "test-key",
+          userId: "1",
+        },
+      },
+      42,
+    )
+
+    expect(result).toMatchObject({
+      id: 42,
+      provider_extension: { routing: "native" },
+      model_prefix: "prefix/",
+      system_prompt: "Custom prompt",
+    })
+    expect(result).not.toHaveProperty("channel_info")
+    expect(result).not.toHaveProperty("settings")
+  })
+
+  it("accepts a native Veloera create payload directly", async () => {
+    mockFetchApi.mockResolvedValueOnce({ success: true, data: null })
+    const payload = {
+      name: "Native channel",
+      type: 1,
+      key: "test-key",
+      base_url: "http://upstream.internal",
+      models: "model-a",
+      group: "default",
+      status: 1,
+      priority: 0,
+      weight: 0,
+    }
+
+    await createChannel(
+      {
+        baseUrl: "http://managed.internal",
+        auth: {
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "admin-key",
+          userId: "1",
+        },
+      },
+      payload as any,
+    )
+
+    expect(
+      JSON.parse(atIndex(mockFetchApi.mock.calls, 0)[1].options.body),
+    ).toEqual(payload)
+  })
+
+  it("listAllChannels should paginate from p=0 and return the provider inventory", async () => {
+    const baseUrl = "https://example.com"
+    const token = "token"
+    const userId = 1
+    const request = {
+      baseUrl,
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: token,
+        userId,
+      },
+    }
+
+    mockFetchApiData
+      .mockResolvedValueOnce([
+        { id: 1, type: 1, name: "c1" },
+        { id: 2, type: 2, name: "c2" },
+      ])
+      .mockResolvedValueOnce([{ id: 3, type: 1, name: "c3" }])
+
+    const result = await listAllChannels(request as any, {
+      pageSize: 2,
+    })
+
+    expect(mockFetchApiData).toHaveBeenCalledTimes(2)
+
+    const firstCallEndpoint = atIndex(mockFetchApiData.mock.calls, 0)[1]
+      .endpoint as string
+    const secondCallEndpoint = atIndex(mockFetchApiData.mock.calls, 1)[1]
+      .endpoint as string
+
+    expect(firstCallEndpoint).toContain("/api/channel/?")
+    expect(firstCallEndpoint).toContain("p=0")
+    expect(firstCallEndpoint).toContain("page_size=2")
+
+    expect(secondCallEndpoint).toContain("/api/channel/?")
+    expect(secondCallEndpoint).toContain("p=1")
+    expect(secondCallEndpoint).toContain("page_size=2")
+
+    expect(result.items).toHaveLength(3)
+    expect(result.total).toBe(3)
+    expect(result.type_counts).toEqual({ "1": 2, "2": 1 })
+  })
+
+  it("fetchChannel should call the detail endpoint and normalize the payload", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApiData.mockResolvedValueOnce({
+      id: 9,
+      type: 1,
+      name: "detail-channel",
+      key: "sk-veloera-detail-key",
+      base_url: "https://upstream.example.com",
+      models: "gpt-4o",
+      model_prefix: "tenant-",
+      system_prompt: "Use the tenant policy.",
+    })
+
+    const result = await fetchChannel(request as any, 9)
+
+    expect(mockFetchApiData).toHaveBeenCalledWith(request, {
+      endpoint: "/api/channel/9",
+    })
+    expect(result).toMatchObject({
+      id: 9,
+      name: "detail-channel",
+      key: "sk-veloera-detail-key",
+      base_url: "https://upstream.example.com",
+      models: "gpt-4o",
+      model_prefix: "tenant-",
+      system_prompt: "Use the tenant policy.",
+    })
+  })
+
+  it("normalizes consumed Veloera fields and preserves additional provider data", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApiData.mockResolvedValueOnce({
+      id: "12",
+      type: 2,
+      name: "coerced-channel",
+      key: null,
+      status: "bad",
+      priority: "7",
+      balance: "bad",
+      tag: undefined,
+      setting: "legacy-setting",
+    })
+
+    const result = await fetchChannel(request as any, 12)
+
+    expect(result).toMatchObject({
+      id: 12,
+      key: "",
+      status: 0,
+      priority: 7,
+      balance: "bad",
+      tag: undefined,
+      setting: "legacy-setting",
+    })
+    expect(result).not.toHaveProperty("settings")
+    expect(result).not.toHaveProperty("channel_info")
+  })
+
+  it("fetchChannelModels should call the Veloera fetch_models endpoint", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+    const signal = new AbortController().signal
+
+    mockFetchApi.mockResolvedValueOnce({
+      success: true,
+      data: ["gpt-4o", "claude-3"],
+    })
+
+    await expect(
+      fetchChannelModels(request as any, 9, { signal }),
+    ).resolves.toEqual(["gpt-4o", "claude-3"])
+    expect(mockFetchApi).toHaveBeenCalledWith(request, {
+      endpoint: "/api/channel/fetch_models/9",
+      options: { signal },
+    })
+  })
+
+  it("fetchDraftChannelModels should probe an unsaved Veloera channel", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+    const signal = new AbortController().signal
+    mockFetchApi.mockResolvedValueOnce({
+      success: true,
+      data: ["model-example-a", "model-example-b"],
+    })
+
+    await expect(
+      fetchDraftChannelModels(
+        request as never,
+        {
+          type: 49,
+          baseUrl: "https://upstream.example.invalid",
+          key: "credential-placeholder",
+        },
+        { signal },
+      ),
+    ).resolves.toEqual(["model-example-a", "model-example-b"])
+    expect(mockFetchApi).toHaveBeenCalledWith(request, {
+      endpoint: "/api/channel/fetch_models",
+      options: {
+        method: "POST",
+        body: JSON.stringify({
+          type: 49,
+          base_url: "https://upstream.example.invalid",
+          key: "credential-placeholder",
+        }),
+        signal,
+      },
+    })
+  })
+
+  it("fetchDraftChannelModels should reject unsupported payloads", async () => {
+    const request = {
+      baseUrl: "https://example.invalid",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+    mockFetchApi.mockResolvedValueOnce({
+      success: false,
+      data: { models: ["model-example"] },
+      message: "draft probe failed",
+    })
+
+    await expect(
+      fetchDraftChannelModels(request as never, {
+        type: 49,
+        baseUrl: "https://upstream.example.invalid",
+        key: "credential-placeholder",
+      }),
+    ).rejects.toMatchObject({
+      message: "draft probe failed",
+      endpoint: "/api/channel/fetch_models",
+    })
+  })
+
+  it("fetchChannelModels should reject unsupported payloads", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({
+      success: true,
+      data: { models: ["gpt-4o"] },
+    })
+
+    await expect(fetchChannelModels(request as any, 9)).rejects.toMatchObject({
+      message: "Failed to fetch models",
+    })
+  })
+
+  it("updateChannelModels should write the models field", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+    const signal = new AbortController().signal
+
+    mockFetchApi.mockResolvedValueOnce({ success: true })
+
+    await updateChannelModels(request as any, 9, "gpt-4o,claude-3", {
+      signal,
+    })
+
+    expect(mockFetchApi).toHaveBeenCalledWith(request, {
+      endpoint: "/api/channel",
+      options: {
+        method: "PUT",
+        body: JSON.stringify({
+          id: 9,
+          models: "gpt-4o,claude-3",
+        }),
+        signal,
+      },
+    })
+  })
+
+  it("updateChannelModels should reject failed Veloera responses", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({
+      success: false,
+      message: "",
+    })
+
+    await expect(
+      updateChannelModels(request as any, 9, "gpt-4o"),
+    ).rejects.toMatchObject({
+      message: "Failed to update channel",
+      endpoint: "/api/channel",
+    })
+  })
+
+  it("updateChannelModelMapping should write models and model_mapping", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({ success: true })
+
+    await updateChannelModelMapping(
+      request as any,
+      9,
+      "gpt-4o,claude-3",
+      JSON.stringify({ "gpt-4o": "gpt-4o" }),
+    )
+
+    expect(mockFetchApi).toHaveBeenCalledWith(request, {
+      endpoint: "/api/channel",
+      options: {
+        method: "PUT",
+        body: JSON.stringify({
+          id: 9,
+          models: "gpt-4o,claude-3",
+          model_mapping: JSON.stringify({ "gpt-4o": "gpt-4o" }),
+        }),
+      },
+    })
+  })
+
+  it("updateChannelModelMapping should reject failed Veloera responses", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({
+      success: false,
+      message: "mapping failed",
+    })
+
+    await expect(
+      updateChannelModelMapping(request as any, 9, "gpt-4o", "{}"),
+    ).rejects.toMatchObject({
+      message: "mapping failed",
+      endpoint: "/api/channel",
+    })
+  })
+
+  it("createChannel should post flat payload with group string", async () => {
+    const baseUrl = "https://example.com"
+    const token = "token"
+    const userId = 1
+    const request = {
+      baseUrl,
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: token,
+        userId,
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({ success: true, message: "ok" })
+
+    await createChannel(request as any, {
+      name: "n",
+      type: 1 as any,
+      key: "k",
+      base_url: "https://upstream.example.com",
+      models: "gpt-4",
+      group: "default",
+      priority: 0,
+      weight: 0,
+      status: 1 as any,
+    })
+
+    expect(mockFetchApi).toHaveBeenCalledTimes(1)
+    const callRequest = atIndex(mockFetchApi.mock.calls, 0)[0]
+    const callOptions = atIndex(mockFetchApi.mock.calls, 0)[1]
+    expect(callRequest.baseUrl).toBe(baseUrl)
+    expect(callOptions.endpoint).toBe("/api/channel")
+    expect(callRequest.auth.accessToken).toBe(token)
+    expect(callRequest.auth.userId).toBe(userId)
+    expect(callOptions.options?.method).toBe("POST")
+
+    const body = JSON.parse(callOptions.options?.body as string)
+    expect(body).toMatchObject({
+      name: "n",
+      type: 1,
+      key: "k",
+      base_url: "https://upstream.example.com",
+      models: "gpt-4",
+      priority: 0,
+      weight: 0,
+      status: 1,
+      group: "default",
+    })
+    expect(body.groups).toBeUndefined()
+  })
+
+  it("updateChannel should put flat payload with group string", async () => {
+    const baseUrl = "https://example.com"
+    const token = "token"
+    const userId = 1
+    const request = {
+      baseUrl,
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: token,
+        userId,
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({ success: true, message: "ok" })
+
+    await updateChannel(request as any, {
+      id: 1,
+      name: "Updated Channel",
+      key: "k",
+      base_url: "https://upstream.example.com",
+      models: "gpt-4",
+      group: "default",
+      priority: 0,
+    })
+
+    expect(mockFetchApi).toHaveBeenCalledTimes(1)
+    const callRequest = atIndex(mockFetchApi.mock.calls, 0)[0]
+    const callOptions = atIndex(mockFetchApi.mock.calls, 0)[1]
+    expect(callRequest.baseUrl).toBe(baseUrl)
+    expect(callOptions.endpoint).toBe("/api/channel")
+    expect(callRequest.auth.accessToken).toBe(token)
+    expect(callRequest.auth.userId).toBe(userId)
+    expect(callOptions.options?.method).toBe("PUT")
+
+    const body = JSON.parse(callOptions.options?.body as string)
+    expect(body).toMatchObject({
+      id: 1,
+      name: "Updated Channel",
+      key: "k",
+      base_url: "https://upstream.example.com",
+      models: "gpt-4",
+      priority: 0,
+      group: "default",
+    })
+    expect(body.groups).toBeUndefined()
+  })
+
+  it("deleteChannel should issue a DELETE request", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApi.mockResolvedValueOnce({ success: true, message: "ok" })
+
+    await deleteChannel(request as any, 9)
+
+    expect(mockFetchApi).toHaveBeenCalledWith(request, {
+      endpoint: "/api/channel/9",
+      options: {
+        method: "DELETE",
+      },
+    })
+  })
+
+  it("deleteChannel should report Veloera delete failures", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+    }
+
+    mockFetchApi.mockRejectedValueOnce(new Error("delete failed"))
+
+    await expect(deleteChannel(request as any, 9)).rejects.toThrow(
+      "delete failed",
+    )
+  })
+
+  it.each([
+    {
+      operation: "create",
+      invoke: (request: any) =>
+        createChannel(request, { groups: ["default"] } as any),
+    },
+    {
+      operation: "update",
+      invoke: (request: any) =>
+        updateChannel(request, { id: 1, name: "Updated", group: "default" }),
+    },
+    {
+      operation: "delete",
+      invoke: (request: any) => deleteChannel(request, 1),
+    },
+  ])(
+    "$operation mutation preserves ApiError details as cause without logging it",
+    async ({ invoke }) => {
+      const request = {
+        baseUrl: "https://example.com",
+        auth: {
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          userId: "1",
+        },
+      }
+      const cause = new ApiError(
+        "upstream denied",
+        502,
+        "/api/channel",
+        API_ERROR_CODES.HTTP_OTHER,
+        "provider_limit",
+      )
+      mockFetchApi.mockRejectedValueOnce(cause)
+
+      const error = await invoke(request).catch((caught) => caught)
+
+      expect(error).toMatchObject({
+        message: "upstream denied",
+        statusCode: 502,
+        endpoint: "/api/channel",
+        code: API_ERROR_CODES.HTTP_OTHER,
+        upstreamCode: "provider_limit",
+        cause,
+      })
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.any(String))
+      expect(mockLoggerError.mock.calls.flat()).not.toContain(cause)
+    },
+  )
+
+  it.each([
+    {
+      operation: "create",
+      message: "创建渠道失败，请检查网络或 Veloera 配置",
+      invoke: (request: any) =>
+        createChannel(request, { groups: ["default"] } as any),
+    },
+    {
+      operation: "update",
+      message: "更新渠道失败，请检查网络或 Veloera 配置",
+      invoke: (request: any) =>
+        updateChannel(request, { id: 1, name: "Updated", group: "default" }),
+    },
+    {
+      operation: "delete",
+      message: "删除渠道失败，请检查网络或 Veloera 配置",
+      invoke: (request: any) => deleteChannel(request, 1),
+    },
+  ])(
+    "$operation mutation uses fixed copy when the thrown message is blank",
+    async ({ invoke, message }) => {
+      const request = {
+        baseUrl: "https://example.com",
+        auth: {
+          authType: AuthTypeEnum.AccessToken,
+          accessToken: "token",
+          userId: "1",
+        },
+      }
+      mockFetchApi.mockRejectedValueOnce(new Error("   "))
+
+      await expect(invoke(request)).rejects.toThrow(message)
+    },
+  )
+
+  it("reads Veloera check-in support from its public status field", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: { authType: AuthTypeEnum.AccessToken },
+    }
+    mockFetchSiteStatus
+      .mockResolvedValueOnce({ check_in_enabled: false })
+      .mockResolvedValueOnce({ check_in_enabled: true })
+      .mockResolvedValueOnce({ checkin_enabled: true })
+
+    await expect(fetchSupportCheckIn(request as any)).resolves.toBe(false)
+    await expect(fetchSupportCheckIn(request as any)).resolves.toBe(true)
+    await expect(fetchSupportCheckIn(request as any)).resolves.toBeUndefined()
+  })
+
+  it("aggregates quota, usage, income, and detected check-in state for account refreshes", async () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(123456)
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+      siteType: SITE_TYPES.VELOERA,
+      checkIn: createCheckInConfig(SITE_TYPES.VELOERA, {
+        isCheckedInToday: false,
+        observedAt: 5,
+      }),
+    }
+
+    mockFetchApiData.mockResolvedValueOnce({ can_check_in: false })
+
+    const result = await fetchAccountDataWithCheckInStatus(
+      { fetchData: fetchAccountData },
+      request as any,
+    )
+
+    expect(result).toMatchObject({
+      quota: 100,
+      today_prompt_tokens: 11,
+      today_completion_tokens: 22,
+      today_quota_consumption: 33,
+      today_requests_count: 44,
+      today_income: 55,
+      checkIn: expect.any(Object),
+    })
+    expect(
+      getSelectedCheckInStatus({
+        config: result.checkIn,
+        siteType: SITE_TYPES.VELOERA,
+      }),
+    ).toEqual({
+      outcome: "known",
+      today: "checked",
+      evidence: { source: "probe", observedAt: 123456 },
+    })
+
+    nowSpy.mockRestore()
+  })
+
+  it("preserves the last known check-in status when detection is disabled", async () => {
+    const request = {
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+      siteType: SITE_TYPES.VELOERA,
+      checkIn: createCheckInConfig(SITE_TYPES.VELOERA, { matched: false }),
+    }
+
+    const result = await fetchAccountData(request as any)
+
+    expect(mockFetchApiData).not.toHaveBeenCalled()
+    expect(result.checkIn.selection).not.toHaveProperty("methodId")
+  })
+
+  it("returns a healthy refresh result when account aggregation succeeds", async () => {
+    mockFetchApiData.mockResolvedValueOnce({ can_check_in: true })
+
+    const result = await refreshAccountData({
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+      checkIn: buildCheckInConfig({ automaticExecutionEnabled: true }),
+    } as any)
+
+    expect(result.success).toBe(true)
+    expect(result.data?.quota).toBe(100)
+    expect(result.healthStatus.status).toBe(SiteHealthStatus.Healthy)
+  })
+
+  it("delegates refresh failures to determineHealthStatus", async () => {
+    const failure = new Error("quota failed")
+    mockFetchAccountQuota.mockRejectedValueOnce(failure)
+    mockDetermineHealthStatus.mockReturnValueOnce({
+      status: 2,
+      message: "degraded",
+    })
+
+    const result = await refreshAccountData({
+      baseUrl: "https://example.com",
+      auth: {
+        authType: AuthTypeEnum.AccessToken,
+        accessToken: "token",
+        userId: "1",
+      },
+      checkIn: buildCheckInConfig(),
+    } as any)
+
+    expect(mockDetermineHealthStatus).toHaveBeenCalledWith(failure)
+    expect(result).toEqual({
+      success: false,
+      healthStatus: {
+        status: 2,
+        message: "degraded",
+      },
+    })
+  })
+})

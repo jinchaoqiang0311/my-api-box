@@ -1,0 +1,691 @@
+{
+  "app": {
+    "name": "My API Box"
+  },
+  "billing": {
+    "notProvided": "未提供",
+    "perCall": "コール課金",
+    "tokenBased": "トークン課金"
+  },
+  "dialog": {
+    "aiToolbox": {
+      "actions": {
+        "export": "エクスポート"
+      },
+      "appOptions": {
+        "claude": "Claude Code",
+        "claudedesktop": "Claude Desktop",
+        "codex": "Codex",
+        "dsh": "DeepSeek Harness",
+        "gemini": "Gemini CLI",
+        "grok": "Grok CLI",
+        "hermes": "Hermes",
+        "kimi": "Kimi Code",
+        "omp": "Oh My Pi",
+        "openclaw": "OpenClaw",
+        "opencode": "OpenCode",
+        "pi": "Pi"
+      },
+      "description": "このプロバイダー設定をディープリンク経由で AI Toolbox に直接送信します",
+      "descriptions": {
+        "apiFormat": "AI Toolbox は対象アプリ向けにプロバイダーを再構築します。このプロバイダーがアプリの既定プロトコルを使用しない場合のみ指定してください。",
+        "model": "利用可能な場合、/v1/models からモデルを読み込んで選択できます。カスタムモデル ID を直接入力することも可能です。",
+        "modelDiscoveryFailed": "上流のモデル一覧を取得できませんでした。モデル ID を手動で入力するか、再試行してください。"
+      },
+      "fields": {
+        "apiFormat": "API プロトコル",
+        "app": "対象アプリ",
+        "baseUrl": "API ベース URL",
+        "homepage": "ホームページ URL",
+        "model": "既定モデル（任意）",
+        "name": "プロバイダー名",
+        "notes": "メモ（任意）"
+      },
+      "formatOptions": {
+        "anthropicMessages": "Anthropic Messages",
+        "automatic": "自動（アプリの既定）",
+        "geminiNative": "Gemini Native",
+        "openAIChat": "OpenAI Chat Completions",
+        "openAIResponses": "OpenAI Responses"
+      },
+      "modelOptions": {
+        "none": "既定モデルなし"
+      },
+      "placeholders": {
+        "baseUrl": "https://example.com",
+        "homepage": "https://example.com",
+        "model": "例: claude-3-opus",
+        "name": "例: Acme Relay",
+        "notes": "インポートメモを追加"
+      },
+      "title": "AI Toolbox にエクスポート"
+    },
+    "bookmarkAccountImport": {
+      "actions": {
+        "allowAndScan": "ブックマークを選んで一括インポートを開始",
+        "backToScope": "ブックマーク選択に戻る",
+        "clearSearch": "ブックマーク検索をクリア",
+        "clearSelected": "選択を解除",
+        "collapseAll": "すべて折りたたむ",
+        "collapseFolder": "フォルダーを折りたたむ",
+        "expandAll": "すべて展開",
+        "expandFolder": "フォルダーを展開",
+        "importSelected_other": "選択した項目を追加（{{count}}）",
+        "invertSelected": "選択を反転",
+        "openAddAccount": "手動で完了",
+        "retryFailed": "未完了の項目を再試行",
+        "scanSelected": "選択範囲をスキャン",
+        "selectAll": "すべて選択"
+      },
+      "apiUnavailable": "このブラウザは拡張機能にネイティブブックマークを公開していません。",
+      "bestEffortHelp": "できるだけ自動で追加します。一部のサイトでは、ログイン、認証、情報の補足が必要になる場合があります。",
+      "bookmarkCount_one": "{{count}} 件のブックマーク",
+      "bookmarkCount_other": "{{count}} 件のブックマーク",
+      "description": "ブックマークしたサイトのアカウントをまとめて追加できます。",
+      "empty": "ブラウザのブックマークは返されませんでした。",
+      "failures": {
+        "detection": "追加のアカウント情報が必要です。再試行するか、手動で補足してください。",
+        "login": "このサイトにログインしてから、追加を再試行してください。",
+        "save": "アカウント情報を確認・補足してから追加してください。",
+        "unknown": "追加はまだ完了していません。再試行するか、手動で完了してください。",
+        "verification": "このサイトでは認証が必要です。「手動で完了」から続けてください。"
+      },
+      "folderCount_one": "{{count}} 件のフォルダー",
+      "folderCount_other": "{{count}} 件のフォルダー",
+      "importFailed": "インポートを完了できませんでした。もう一度お試しください。",
+      "importing": "選択したサイトをインポート中: {{completed}} / {{total}}...",
+      "includeExisting": "保存済みアカウントがあるサイトも含める",
+      "initialSteps": {
+        "chooseScope": "ブックマークフォルダーを選択",
+        "review": "追加するサイトを確認",
+        "skipExisting": "既存アカウントは既定でスキップ"
+      },
+      "initialValue": "中継サイトのブックマークを選び、一覧を確認してまとめて追加できます。既存のアカウントは既定でスキップされます。",
+      "noCandidates": "インポート可能な Web ブックマーク URL は見つかりませんでした。",
+      "permissionDenied": "ブックマーク権限が許可されませんでした。このダイアログを閉じずに再試行できます。",
+      "permissionNeeded": "ブックマークアクセスは任意権限で、この一括インポート時にのみ要求されます。",
+      "readFailed": "ブラウザのブックマークツリーを読み取れませんでした。",
+      "recoveryHelp": "残りのアカウントはログイン後に再試行するか、「手動で完了」から追加を続けてください。",
+      "reloadFailed": "インポートは完了しましたが、アカウントデータを再読み込みできませんでした。新しいアカウントが表示されない場合は、アカウント一覧を更新して再試行してください。",
+      "resultSummary": "追加済み {{success}} 件、未完了 {{failed}} 件、スキップ {{skipped}} 件。",
+      "scanning": "ブラウザのブックマークをスキャン中...",
+      "scopeHelp": "スキャンは候補のプレビューを作るだけです。インポート前にここへ戻って選択を調整できます。",
+      "searchEmpty": "一致するブックマーク範囲はありません",
+      "searchLabel": "ブックマーク範囲を検索",
+      "searchPlaceholder": "ブックマークを検索...",
+      "selectedBookmarkCount_one": "{{count}} 件のブックマークを選択中",
+      "selectedBookmarkCount_other": "{{count}} 件のブックマークを選択中",
+      "status": {
+        "duplicate_other": "既定ではスキップされます。保存済みアカウント一致数: {{count}}",
+        "imported": "インポート済み",
+        "ready": "追加予定"
+      },
+      "title": "ブックマークからアカウントをインポート",
+      "untitledFolder": "無題のフォルダー"
+    },
+    "ccswitch": {
+      "actions": {
+        "export": "エクスポート"
+      },
+      "appOptions": {
+        "claude": "Claude",
+        "codex": "Codex",
+        "gemini": "Gemini",
+        "grokbuild": "Grok CLI",
+        "hermes": "Hermes",
+        "openclaw": "OpenClaw",
+        "opencode": "OpenCode"
+      },
+      "description": "このプロバイダー設定をディープリンク経由で CC Switch に直接送信します",
+      "descriptions": {
+        "model": "利用可能な場合、/v1/models からモデルを読み込んで選択できます。カスタムモデル ID を直接入力することも可能です。"
+      },
+      "fields": {
+        "app": "対象アプリ",
+        "endpoint": "API エンドポイント",
+        "homepage": "ホームページ URL",
+        "model": "既定モデル（任意）",
+        "name": "プロバイダー名",
+        "notes": "メモ（任意）"
+      },
+      "modelOptions": {
+        "none": "既定モデルなし"
+      },
+      "notices": {
+        "hermes": "CC Switch は Hermes を Chat Completions プロトコルとしてインポートします。エクスポート時に、プロバイダー名は小文字、数字、ハイフンのみの有効な識別子に変換されます。Anthropic Messages や Codex Responses など別の形式を使用する場合は、インポート後に CC Switch 側で調整してください。",
+        "openclaw": "CC Switch は現在、外部インポート経由で OpenClaw AI サービス API 形式を設定できません。必要に応じて、インポート後に CC Switch 側で調整してください。",
+        "opencode": "CC Switch は現在、外部インポート経由で OpenCode AI サービス API 形式を設定できません。必要に応じて、インポート後に CC Switch 側で調整してください。"
+      },
+      "placeholders": {
+        "endpoint": "https://example.com",
+        "homepage": "https://example.com",
+        "model": "例: claude-3-opus",
+        "name": "例: Acme Relay",
+        "notes": "インポートメモを追加"
+      },
+      "title": "CC Switch にエクスポート"
+    },
+    "claudeCodeRouter": {
+      "description": "Claude Code Router にプロバイダーを作成または更新します。モデルは必須です。",
+      "descriptions": {
+        "models": "モデルは 1 行に 1 つ、またはカンマ区切りで入力してください。",
+        "providerApiBaseUrl": "完全な /v1/chat/completions エンドポイントである必要があります。",
+        "restartAfterSave": "設定変更を反映するには Router の再起動が必要な場合があります。"
+      },
+      "fields": {
+        "models": "モデル",
+        "providerApiBaseUrl": "プロバイダー API エンドポイント",
+        "providerName": "プロバイダー名",
+        "restartAfterSave": "保存後に再起動"
+      },
+      "placeholders": {
+        "modelsPicker": "入力してモデルを追加",
+        "providerApiBaseUrl": "https://example.com/v1/chat/completions",
+        "providerName": "例: My Relay"
+      },
+      "title": "Claude Code Router にインポート"
+    },
+    "collapse": "折りたたむ",
+    "copyKey": {
+      "copied": "コピー済み",
+      "copy": "コピー",
+      "copyFailedManual": "コピーに失敗しました。手動でコピーしてください",
+      "createCustomKey": "カスタムキーを作成",
+      "createFailed": "キーの作成に失敗しました: {{error}}",
+      "createKey": "既定キーを作成",
+      "createNotSupported": "このアカウントでは、このダイアログからキーを作成できません。",
+      "createSuccess": "キーを作成しました",
+      "creatingKey": "既定キーを作成中...",
+      "defaultGroup": "既定グループ",
+      "disabled": "無効",
+      "enabled": "有効",
+      "getFailed": "取得に失敗しました",
+      "keyCopied": "キーをクリップボードにコピーしました",
+      "loadFailed": "キー一覧の読み込みに失敗しました: {{error}}",
+      "loading": "キー一覧を読み込み中...",
+      "noKeyFoundAfterCreate": "作成後にキーが見つかりませんでした。再試行してください。",
+      "noKeys": "まだキーデータがありません",
+      "noKeysDescription": "既定キーをすばやく作成するか、詳細設定付きのカスタムキーを作成してください。",
+      "retry": "再試行",
+      "title": "キー一覧",
+      "totalKeys_other": "合計 {{count}} キー"
+    },
+    "cursorPlus": {
+      "actions": {
+        "copy": "プロバイダー設定をコピー",
+        "retry": "モデル検出を再試行"
+      },
+      "description": "この OpenAI 互換キーから Cursor++ プロバイダーを作成し、含めるモデルを選択します。",
+      "guidance": {
+        "description": "Cursor++ でプロバイダー設定を開き、コピーしたオブジェクトを ~/.ccursor/providers.json の providers 配列に追加してください。",
+        "title": "手動設定"
+      },
+      "labels": {
+        "baseUrl": "プロバイダーのベース URL",
+        "baseUrlDescription": "既定ではこのアカウントの OpenAI 互換エンドポイントを使用します。選択したネイティブプロトコルのパスが異なる場合は調整してください。",
+        "models": "モデル",
+        "modelsDescription": "検出されたモデルは既定で選択されます。検索、削除、複数のモデル ID の追加ができます。",
+        "protocol": "API プロトコル",
+        "protocolDescription": "Cursor++ がプロバイダーを呼び出す方式を変更します。モデル検出には引き続きアカウントの OpenAI 互換エンドポイントを使用します。",
+        "providerName": "プロバイダー名"
+      },
+      "messages": {
+        "copyFailed": "プロバイダー設定をコピーできませんでした: {{error}}",
+        "copySuccess": "Cursor++ のプロバイダー設定をコピーしました",
+        "invalidBaseUrl": "有効な HTTP または HTTPS のベース URL を入力してください。"
+      },
+      "placeholders": {
+        "models": "モデル ID を入力",
+        "searchModels": "モデルを検索または追加"
+      },
+      "protocols": {
+        "anthropic": "Anthropic Messages",
+        "gemini": "Gemini",
+        "openAIChat": "OpenAI Chat Completions",
+        "openAIResponses": "OpenAI Responses"
+      },
+      "status": {
+        "empty": "モデルが返されませんでした",
+        "error": "モデルを読み込めませんでした",
+        "loaded_one": "{{count}} 件のモデルが見つかりました",
+        "loaded_other": "{{count}} 件のモデルが見つかりました",
+        "loading": "利用可能なモデルを読み込み中...",
+        "manualRecovery": "下に 1 つ以上のモデル ID を追加するか、検出を再試行してください。"
+      },
+      "title": "Cursor++ にエクスポート",
+      "warning": {
+        "description": "コピーされる JSON には API キーが平文で含まれます。安全に保管してください。",
+        "title": "機密設定"
+      }
+    },
+    "dedupeAccounts": {
+      "confirm": {
+        "confirmDelete": "削除",
+        "description": "{{groups}} 組の重複セットにまたがる {{deleteCount}} 件のアカウントを削除します。",
+        "title": "重複アカウントを削除",
+        "warningOrder": "手動並び順は調整されます。",
+        "warningPinned_other": "{{count}} 件のピン留めアカウントが削除されます。"
+      },
+      "delete": "削除",
+      "deleting": "重複アカウントを削除中...",
+      "description": "完全な重複とドメインをまたぐ重複候補を検出し、確認してから処理します。",
+      "details": {
+        "accountId": "アカウント ID",
+        "authType": "認証方式",
+        "autoCheckin": "自動チェックイン",
+        "checkinDetection": "チェックイン検出",
+        "createdAt": "作成日時",
+        "customCheckinUrl": "カスタムチェックイン URL",
+        "excludeFromTotalBalance": "総残高から除外",
+        "health": "健全性",
+        "healthReason": "理由",
+        "lastSync": "前回同期",
+        "notes": "メモ",
+        "quota": "クォータ",
+        "siteType": "サイト種別",
+        "todayConsumption": "本日の消費",
+        "todayRequests": "本日のリクエスト数",
+        "todayTokens": "本日のトークン数",
+        "updatedAt": "更新日時",
+        "userId": "ユーザー ID"
+      },
+      "detailsToggle": {
+        "hide": "情報を隠す",
+        "show": "詳細情報"
+      },
+      "duplicateCount_other": "{{count}} アカウント",
+      "empty": "完全に重複するアカウントは見つかりませんでした。",
+      "exactTitle": "完全な重複",
+      "keep": "保持",
+      "manualPickHint": "各セットで保持するアカウントを手動で選べます。手動選択は保持戦略より優先されます。",
+      "previewDelete": "削除をプレビュー",
+      "recommended": "推奨",
+      "sameCredential": "同じ管理キー",
+      "strategy": {
+        "keepEnabled": "有効なものを保持（存在する場合）",
+        "keepMostRecentlyUpdated": "最後に更新されたものを保持",
+        "keepPinned": "ピン留めされたものを保持（存在する場合）"
+      },
+      "strategyLabel": "保持戦略",
+      "summary": "{{groups}} 組の重複セット · 削除対象 {{deleteCount}} アカウント",
+      "suspected": {
+        "deleteAccount": "{{name}} を削除",
+        "description": "ユーザー ID とサイト名またはルートドメインが一致しています。ドメインが変更された可能性があります。候補は一括削除の対象外です。確認してから個別に編集または削除してください。",
+        "review": "確認・編集",
+        "reviewAccount": "{{name}} を確認・編集",
+        "sameDomain": "同じルートドメイン：{{domain}}",
+        "sameName": "同じサイト名：{{name}}",
+        "title": "重複の可能性があるアカウント"
+      },
+      "title": "重複アカウントの検出",
+      "unscannableHint_other": "{{count}} 件のアカウントはスキャンできず、スキップされました。",
+      "userId": "ユーザー ID: {{userId}}"
+    },
+    "delete": {
+      "confirmDelete": "削除を確認",
+      "confirmDeletion": "削除確認",
+      "deleteFailed": "削除に失敗しました: {{error}}",
+      "deleteSuccess": "アカウント {{name}} を正常に削除しました",
+      "deleting": "アカウント {{name}} を削除中...",
+      "noResponse": "削除操作が正常に完了しませんでした",
+      "siteName": "サイト名",
+      "siteUrl": "サイト URL",
+      "title": "アカウントを削除",
+      "username": "ユーザー名",
+      "warning": "アカウント {{accountName}} を削除しようとしています。削除前に必ず内容を確認してください"
+    },
+    "expand": "展開",
+    "firefox": {
+      "confirm": "確認",
+      "howOpenOptions": "全画面ページで続行",
+      "howOpenSidebar": "サイドバーの開き方",
+      "limitation": "Firefox ブラウザの機能制限",
+      "openFailed": "サイドパネルまたは全画面ページを開けません。もう一度お試しください。",
+      "openOptions": "全画面ページで続行",
+      "openSidebar": "サイドバーを開く",
+      "optionsInstruction": "下のボタンで拡張機能のアカウント管理ページを開きます。",
+      "popupLimitation": "Firefox のポップアップは別のページを開くと閉じることがあります。サイドパネルまたは全画面ページでアカウントを追加してください。",
+      "sidebarInstruction": "下のボタンでサイドパネルに移動します。開けない場合は全画面ページを使用します。",
+      "warningTitle": "機能制限のお知らせ"
+    },
+    "kelivo": {
+      "actions": {
+        "copy": "モバイル用インポートコードをコピー"
+      },
+      "baseUrlDescription": "このアドレスがそのままインポートコードに含まれます。",
+      "description": "プロバイダー項目を確認し、Kelivo モバイル版でスキャンするかインポートコードをコピーします。",
+      "desktopNotice": {
+        "description": "Kelivo デスクトップ版には現在プロバイダーのインポート機能がありません。上の項目を使って手動で追加してください。",
+        "title": "Kelivo デスクトップ版は手動設定が必要です"
+      },
+      "googleBaseUrlDescription": "Kelivo の Google プロバイダーでは、Google 公式 API アドレスが使用されます。",
+      "googleNotice": {
+        "description": "Kelivo の Google プロバイダーではカスタム Base URL を使用できません。他のプロトコルに戻すと、以前入力した Base URL が復元されます。",
+        "title": "Google は固定の API アドレスを使用します"
+      },
+      "mobileQrCode": {
+        "description": "Kelivo モバイル版でプロバイダーのインポートを開き、この QR コードをスキャンします。",
+        "title": "Kelivo モバイル版でスキャン"
+      },
+      "mobileQrCodeLabel": "Kelivo モバイル版プロバイダーインポート用 QR コード",
+      "protocolDescription": "Kelivo のインポートコードには OpenAI Responses の設定を含められません。OpenAI Compatible としてインポートし、必要に応じて Kelivo で Responses を有効にしてください。",
+      "securityNotice": {
+        "description": "QR コードとコピーしたインポートコードには API キーが含まれます。チャット、Issue、ログ、リポジトリで共有しないでください。",
+        "title": "モバイル用インポートには API キーが含まれます"
+      },
+      "title": "Kelivo モバイル版にエクスポート"
+    },
+    "kiloCode": {
+      "actions": {
+        "copyKiloV7Provider": "プロバイダー設定をコピー",
+        "copyLegacyApiConfigs": "旧形式の apiConfigs をコピー",
+        "createDefaultToken": "既定トークンを作成",
+        "downloadKiloV7Settings": "Kilo 7.x 設定をダウンロード",
+        "downloadLegacySettings": "旧形式の設定をダウンロード",
+        "removeManualModel": "手動モデルを削除",
+        "retryModels": "モデル検出を再試行"
+      },
+      "description": "選択したサイトとトークンから Kilo Code / Roo Code のプロバイダープロファイルを生成します。",
+      "descriptions": {
+        "currentApiConfigName": "{{filename}} 内の providerProfiles.currentApiConfigName として使用されます。",
+        "modelId": "API キーごとの推奨値です（Kilo Code では通常モデル ID が必要です）。既定では、この API キーの上流モデル一覧の最初のモデルを使用します。",
+        "selectedSites": "選択したサイト: {{sites}}、選択したキー: {{keys}}。"
+      },
+      "help": {
+        "kiloV7ApiKeyEditorNote": "インポート後、Kilo Code の provider 編集画面で API キーフィールドが空に見える場合があります。これは既知の制限です。インポートされたインラインキーと編集画面の認証状態は別に保存されるため、実行時にはそのキーを引き続き使用できます。",
+        "kiloV7CatalogInstructions": "選択した API キーごとに、読みやすい名前の provider を出力します。API から検出して正規化したすべてのモデル ID と、その provider に手動で入力したモデル ID が含まれます。含まれていても、すべてのモデルがあらゆるワークフローで動作するとは限りません。既定の model を選択し、複数の provider をエクスポートする場合は既定の provider も選択してください。",
+        "kiloV7CopyInstructions": "「プロバイダー設定をコピー」をクリックすると、provider と model を含む、マージ可能なトップレベルの断片をコピーできます。両方のフィールドを設定 JSON にマージしてください。コピーした断片だけでは完全なインポートファイルになりません。",
+        "kiloV7DownloadInstructions": "「Kilo 7.x 設定をダウンロード」をクリックし、Kilo Code の設定 → About Kilo Code → Import から、ダウンロードした kilo-settings.json をインポートします。インポート内容を確認して保存してください。",
+        "legacyCopyInstructions": "「旧形式の apiConfigs をコピー」をクリックし、内容を Roo Code または Kilo Code 5.x の設定にある providerProfiles.apiConfigs へ貼り付けます。",
+        "legacyDownloadInstructions": "完全な設定ファイルが必要な場合は、「旧形式の設定をダウンロード」をクリックして kilo-code-settings.json を取得し、該当バージョンの設定インポート機能からインポートします。",
+        "legacySingleModelInstructions": "旧形式の Roo Code と Kilo Code 5.x へのエクスポートでは、プロファイルごとに 1 つのモデルを使用します。コピーまたはダウンロードする前に使用するモデルを選択してください。",
+        "perSiteDescription": "サイトを選択してトークンを自動読み込みします。最初のトークンが事前選択され、サイトごとに複数トークンを選択できます。",
+        "perSiteTitle": "サイト別エクスポート",
+        "usageTitle": "エクスポートの使用方法"
+      },
+      "labels": {
+        "currentApiConfigName": "現在のプロファイル",
+        "defaultModel": "既定のモデル",
+        "defaultProvider": "既定のプロバイダー",
+        "exportTarget": "エクスポート先",
+        "legacyModelId": "モデル ID",
+        "modelId": "モデル ID",
+        "providerProtocol": "API プロトコル",
+        "selectedSites": "選択したサイト",
+        "selectedTokens": "選択したトークン"
+      },
+      "messages": {
+        "accountNotFound": "アカウントが見つかりません。",
+        "copiedExportConfig": "エクスポート設定をクリップボードにコピーしました",
+        "copyFailed": "コピーに失敗しました",
+        "createTokenFailed": "トークンの作成に失敗しました。",
+        "downloadedSettings": "設定ファイルをダウンロードしました",
+        "downloadFailed": "設定ファイルのダウンロードに失敗しました",
+        "invalidProfile": "このプロファイルのベース URL が無効か、API キーがありません。エクスポートする前にプロファイルを更新してください。",
+        "loadingTokens": "トークン一覧を読み込み中…",
+        "loadModelsFailed": "この API キーの上流モデル読み込みに失敗しました。",
+        "loadTokensFailed": "このサイトのトークン読み込みに失敗しました。",
+        "modelIdRequiredDescription_other": "エクスポートを有効にするには、選択したすべての API キーにモデル ID を選択または入力してください（不足: {{count}}）。",
+        "modelIdRequiredTitle": "モデル ID が必要です",
+        "modelSearchLimited": "{{count}} 件中、最初の {{visible}} 件を表示しています。入力を続けて絞り込んでください。",
+        "noModelsDescription": "この API キーでは上流モデルが返されませんでした。Kilo Code では通常モデル ID が必要なため、手動入力してください。",
+        "noModelsTitle": "モデルがありません",
+        "nothingToExportDescription": "コピー / ダウンロードを有効にするには、エクスポート可能なトークンまたはサイトを少なくとも 1 つ選択してください。",
+        "nothingToExportTitle": "エクスポート対象がありません",
+        "noTokensDescription": "トークンが作成されるまで、このサイトはスキップされます。",
+        "noTokensTitle": "利用可能なトークンがありません",
+        "settingsFileTooLargeMultiple": "このファイルは Kilo Code のインポート上限を超えています。プロバイダーを減らすか、設定をコピーして手動で統合してください。",
+        "settingsFileTooLargeSingle": "このファイルは Kilo Code のインポート上限を超えています。設定をコピーして手動で統合してください。",
+        "tokenCreated": "トークンを作成しました",
+        "v7ProviderModelsRequired": "モデル ID を入力するか、モデル検出を再試行するか、このプロバイダーの選択を解除してください。"
+      },
+      "placeholders": {
+        "currentApiConfigName": "現在のプロファイルを選択",
+        "modelId": "モデル ID を検索または入力",
+        "selectSites": "サイトを選択",
+        "selectTokens": "トークンを選択"
+      },
+      "protocols": {
+        "anthropicMessages": "Anthropic Messages",
+        "openAICompatible": "OpenAI Compatible",
+        "openAIResponses": "OpenAI Responses"
+      },
+      "targets": {
+        "kiloV7": "Kilo Code 7.x",
+        "legacy": "Roo Code / Kilo Code 5.x（旧形式）"
+      },
+      "title": "Kilo Code JSON をエクスポート",
+      "warning": {
+        "description": "エクスポートされた JSON には API キーが平文で含まれます。安全に保管し、共有しないでください。",
+        "title": "平文 API キー"
+      }
+    },
+    "tempWindowFallbackReminder": {
+      "actions": {
+        "neverRemind": "今後表示しない",
+        "notNow": "今はしない",
+        "openSettings": "設定を開く"
+      },
+      "descriptionDisabledTempWindowOnly": "{{accountName}} の自動更新でサイト認証が必要になりましたが、自動タスクによる一時ページの表示は現在許可されていません。設定 > データ更新 で有効にしてください。",
+      "descriptionDisabledWithCookieInterceptor": "{{accountName}} の自動更新でサイト認証が必要になりましたが、自動タスクによる一時ページの表示は現在許可されていません。設定 > データ更新 で有効にしてください。",
+      "descriptionPermissionTempWindowOnly": "{{accountName}} の自動更新では、サイト認証用の一時ページを開く必要があります。設定 > 権限 で必要な権限を許可してください。",
+      "descriptionPermissionWithCookieInterceptor": "{{accountName}} の自動更新でサイト認証を行うには、Cookies、Web Request、Web Request Blocking の各権限が必要です。設定 > 権限 で許可してください。",
+      "titleTempWindowOnly": "自動更新にはサイト認証が必要です",
+      "titleWithCookieInterceptor": "自動更新にはサイト認証が必要です"
+    },
+    "updateLog": {
+      "autoOpenSetting": "更新ログの自動表示",
+      "disableAutoOpen": "更新後に表示しない",
+      "enableAutoOpen": "更新後の自動表示を再有効化",
+      "loading": "更新ログを読み込み中…",
+      "missingSection": "v{{version}} の更新ログプレビューを読み込めませんでした。完全版の更新ログを開けます。",
+      "openFullChangelog": "完全な更新ログを開く",
+      "starPrompt": "My API Box が役に立ったら、GitHub で Star を付けて最新動向をフォローしましょう",
+      "title": "新着情報",
+      "updatedTo": "v{{version}} に更新しました"
+    }
+  },
+  "feedback": {
+    "bugReport": "不具合を報告",
+    "clickAnywhereToClose": "何もない場所をクリックして閉じる",
+    "community": "コミュニティグループ",
+    "communityUnavailable": "コミュニティリンクを読み込めませんでした。最新の招待方法はコミュニティページをご確認ください。",
+    "discussion": "ディスカッションを開始",
+    "featureRequest": "機能要望を送る",
+    "languageRequest": "新しい言語をリクエスト",
+    "openCommunityPage": "コミュニティページを開く",
+    "siteSupportRequest": "サイト対応を依頼",
+    "sponsor": "スポンサー",
+    "sponsorTitle": "スポンサーと支援を確認",
+    "starOnGithub": "GitHub で Star を付ける",
+    "trigger": "フィードバック",
+    "triggerTooltip": "フィードバックショートカットを開く",
+    "wechat": "WeChat グループ",
+    "wechatHelp": "グループ招待の期限切れや満員の場合は、画像内の個人 QR コードから友だち追加して招待を依頼するか、コミュニティページをご確認ください。",
+    "wechatUnavailable": "QR コードを読み込めませんでした。"
+  },
+  "modelListInput": {
+    "actions": {
+      "add": "モデルを追加",
+      "remove": "モデルを削除",
+      "reorder": "モデルを並び替え"
+    },
+    "description": "例: gpt-4o-mini または moonshotai/kimi-k2:free, kimi-k2",
+    "placeholders": {
+      "alias": "モデル別名（任意）",
+      "name": "モデル名。例: claude"
+    },
+    "title": "モデル一覧（1 行に 1 つ、name[, alias] 形式）:"
+  },
+  "multiSelect": {
+    "cancelSelected": "選択をキャンセル",
+    "chipCopied": "コピーしました: {{value}}",
+    "clearInput": "入力をクリア",
+    "clearSelected": "選択済みの値をすべてクリア",
+    "copyChipValue": "{{value}} をコピー",
+    "copyError": "コピーに失敗しました。再試行してください",
+    "copySelectedValues": "選択した値をコピー",
+    "copySuccess": "選択した値をコピーしました",
+    "deselect": "選択解除",
+    "deselectMatches": "一致項目の選択を解除",
+    "emptyWithQueryAllowCustom": "Enter を押して「{{value}}」を追加",
+    "filteredMatchCount_one": "{{count}}件一致",
+    "filteredMatchCount_other": "{{count}}件一致",
+    "filteredResultsScope": "以下の操作は現在の絞り込み結果にのみ適用されます",
+    "filteredSelectedCount_one": "{{count}}件選択済み",
+    "filteredSelectedCount_other": "{{count}}件選択済み",
+    "invert": "反転",
+    "invertMatches": "一致項目の選択を反転",
+    "noOptions": "利用可能なオプションがありません",
+    "noOptionsAllowCustom": "利用可能なオプションがありません。入力して作成してください",
+    "placeholder": "選択...",
+    "removeValue": "{{value}} を削除",
+    "selectAll": "すべて選択",
+    "selectAllMatches": "一致項目をすべて選択",
+    "selected": "選択済み"
+  },
+  "navigation": {
+    "about": "この拡張機能について",
+    "account": "アカウント管理",
+    "apiCredentialProfiles": "API 認証情報庫",
+    "autoCheckin": "自動チェックイン",
+    "autoCheckinRunNow": "クイックチェックイン",
+    "balanceHistory": "残高履歴",
+    "basic": "設定",
+    "batchCheckin": "一括チェックイン",
+    "bookmark": "ブックマーク管理",
+    "browserApiLab": "ブラウザ API ラボ（開発用）",
+    "categories": {
+      "api": "API",
+      "automation": "自動化",
+      "general": "一般",
+      "insights": "インサイト",
+      "siteManagement": "サイト管理",
+      "system": "システム"
+    },
+    "collapseSidebar": "サイドバーを折りたたむ",
+    "expandSidebar": "サイドバーを展開",
+    "externalCheckinAll": "すべての外部チェックインを開く",
+    "externalCheckinAllHint": "未開封の外部チェックインを開きます。Ctrl/Cmd: すべて開く。Shift: 新しいウィンドウで開く。Ctrl/Cmd+Shift: すべてを新しいウィンドウで開く。",
+    "importExport": "インポート / エクスポート",
+    "keys": "キー管理",
+    "managedSiteChannels": "チャネル管理",
+    "managedSiteModelSync": "モデル同期",
+    "meshGradientLab": "Mesh Gradient Lab（開発用）",
+    "models": "モデル一覧",
+    "overview": "概要",
+    "settings": "設定",
+    "settingsOptions": "設定オプション",
+    "sidebarCollapsedHint": "サイドバーは折りたたまれており、アイコンのみ表示されています",
+    "siteAnnouncements": "サイトのお知らせ",
+    "starPromotionPreview": "Star プロモーションプレビュー (Dev)",
+    "toggleMenu": "メニューを切り替え",
+    "unifiedApiGuidancePreview": "統一 API ガイダンスプレビュー（開発用）",
+    "usageAnalytics": "利用分析"
+  },
+  "optionsSearch": {
+    "dialogDescription": "ページ、設定タブ、設定項目を検索します",
+    "dialogTitle": "設定を検索",
+    "emptyDescription": "別のタイトル、キーワード、または技術エイリアスを試してください。",
+    "emptyTitle": "一致する設定が見つかりません",
+    "groups": {
+      "control": "設定項目",
+      "page": "ページ",
+      "recent": "最近使った項目",
+      "section": "セクション",
+      "tab": "設定タブ"
+    },
+    "idleDescription": "設定名、キーワード、または技術エイリアスを入力して検索を開始してください。",
+    "idleTitle": "設定を横断検索",
+    "open": "設定検索を開く",
+    "placeholder": "設定を検索..."
+  },
+  "pageTitle": {
+    "app": "My API Box",
+    "options": "設定",
+    "popup": "ポップアップ",
+    "sidepanel": "サイドバー",
+    "template": "{{page}} | {{app}}"
+  },
+  "popupInterruption": {
+    "actions": {
+      "keepPopup": "ポップアップを使い続ける",
+      "useOptions": "全画面ページで続行",
+      "useSidepanel": "サイドパネルで続行"
+    },
+    "description": "アカウントの自動検出中にポップアップが閉じました。サイドパネルで追加を続けてください。開けない場合は全画面ページを使用します。",
+    "openFailed": "サイドパネルまたは全画面ページを開けません。もう一度お試しください。",
+    "optionsDescription": "アカウントの自動検出中にポップアップが閉じました。全画面ページで追加を続けてください。",
+    "title": "自動検出が中断された可能性があります"
+  },
+  "repeatableInput": {
+    "actions": {
+      "add": "追加",
+      "remove": "削除",
+      "reorder": "ドラッグして並び替え"
+    }
+  },
+  "resourceEditor": {
+    "configured": "設定済み",
+    "items_other": "{{count}} 件",
+    "optional": "任意"
+  },
+  "searchableSelect": {
+    "empty": "結果が見つかりません",
+    "noOptions": "利用可能なオプションがありません",
+    "noOptionsAllowCustom": "利用可能なオプションがありません。入力して作成してください",
+    "searchPlaceholder": "検索...",
+    "useValue": "「{{value}}」を使用"
+  },
+  "secretList": {
+    "add": "キーを追加",
+    "clearedState": "保存済みのキーを削除します",
+    "collapse": "API Key {{number}} を折りたたむ",
+    "configured": "設定済み",
+    "enableKey": "このキーを有効にする",
+    "expand": "API Key {{number}} を展開",
+    "hide": "キーを隠す",
+    "keepPlaceholder": "空欄で保存済みキーを保持",
+    "loadFailed": "キーを読み込めませんでした。再試行してください。",
+    "maskedOnly": "この保存済みキーはマスク表示のみで、元の値は取得できません。",
+    "newPlaceholder": "API キーを入力",
+    "newState": "新規・未保存",
+    "previousDisableReason": "前回無効になった理由：{{reason}}",
+    "remove": "キーを削除",
+    "replacementState": "キーを置き換えます",
+    "restore": "保存済みキーを保持",
+    "retainedState": "保存済みキーを保持",
+    "row": "API キー {{number}}",
+    "shortRow": "キー {{number}}",
+    "show": "キーを表示",
+    "title": "API キー"
+  },
+  "sidebarFooter": {
+    "community": "コミュニティ",
+    "docs": "ドキュメント",
+    "github": "GitHub",
+    "sponsor": "スポンサー"
+  },
+  "starPromotion": {
+    "actions": {
+      "alreadyStarred": "すでに Star 済みです",
+      "defer": "閉じる",
+      "later": "後で",
+      "star": "Star を付ける"
+    },
+    "cardDescription": "My API Box は完全オープンソースで、対応サイトを増やしながら使い心地も磨き続けています。Star を付けると、継続的なメンテナンスを支えられ、必要としている人にも見つけてもらいやすくなります。",
+    "cardTitle": "使い心地はいかがですか？"
+  },
+  "textEntries": {
+    "add": "行を追加",
+    "editRows": "行ごとに編集",
+    "editText": "テキストで一括編集",
+    "headerName": "ヘッダー名",
+    "headerValue": "値",
+    "modelAlias": "エイリアス（任意）",
+    "modelAliasPlaceholder": "元のモデル名を使用",
+    "modelHelp": "空欄の場合は元のモデル名を使用します。一括入力は各行に モデル名 = エイリアス の形式で指定します。",
+    "modelName": "元のモデル",
+    "remove": "{{number}} 行目を削除"
+  }
+}

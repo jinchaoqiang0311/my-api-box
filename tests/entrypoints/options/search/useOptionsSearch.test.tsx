@@ -1,0 +1,252 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import type { OptionsSearchContext } from "~/features/OptionsSearch/types"
+import {
+  useOptionsSearch,
+  useOptionsSearchContext,
+} from "~/features/OptionsSearch/useOptionsSearch"
+import * as browserApi from "~/utils/browser/sidePanel"
+import { renderHook } from "~~/tests/test-utils/render"
+
+const context: OptionsSearchContext = {
+  autoCheckinEnabled: true,
+  hasOptionalPermissions: true,
+  managedSiteType: "new-api",
+  modelRedirectEnabled: true,
+  showTodayCashflow: true,
+  sidePanelSupported: true,
+  webdavAutoSyncEnabled: true,
+}
+
+describe("useOptionsSearch", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("returns all visible items when the query is empty", () => {
+    const { result } = renderHook(() => useOptionsSearch(context, ""), {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+
+    expect(result.current.results).toBe(result.current.items)
+    expect(result.current.items.length).toBeGreaterThan(0)
+  })
+
+  it("prioritizes exact title matches above weaker matches", () => {
+    const { result } = renderHook(
+      () => useOptionsSearch(context, "ui:navigation.bookmark"),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(result.current.results[0]?.title).toBe("ui:navigation.bookmark")
+  })
+
+  it("includes the overview page in settings search", () => {
+    const { result } = renderHook(
+      () => useOptionsSearch(context, "ui:navigation.overview"),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(result.current.results[0]).toMatchObject({
+      id: "page:overview",
+      pageId: MENU_ITEM_IDS.OVERVIEW,
+      kind: "page",
+    })
+  })
+
+  it("keeps the auto-checkin page searchable when automatic runs are disabled", () => {
+    const { result } = renderHook(
+      () =>
+        useOptionsSearch(
+          { ...context, autoCheckinEnabled: false },
+          "ui:navigation.batchCheckin",
+        ),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(result.current.results[0]).toMatchObject({
+      id: "page:autoCheckin",
+      pageId: MENU_ITEM_IDS.AUTO_CHECKIN,
+      kind: "page",
+      title: "ui:navigation.batchCheckin",
+    })
+  })
+
+  it("matches breadcrumb-only queries", () => {
+    const { result } = renderHook(
+      () => useOptionsSearch(context, "settings:tabs.permissions"),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(
+      result.current.results.some((item) => item.tabId === "permissions"),
+    ).toBe(true)
+  })
+
+  it("matches localized keyword keys independently from the description", () => {
+    const { result } = renderHook(
+      () => useOptionsSearch(context, "settings:refresh.shieldMethodHintAuto"),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(result.current.results[0]?.id).toBe("control:shield-method")
+  })
+
+  it("hides controls whose runtime targets are not rendered", () => {
+    const { result } = renderHook(
+      () =>
+        useOptionsSearch(
+          {
+            ...context,
+            modelRedirectEnabled: false,
+            webdavAutoSyncEnabled: false,
+          },
+          "",
+        ),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(result.current.items.map((item) => item.id)).not.toContain(
+      "control:managed-site-model-redirect-standard-models",
+    )
+    expect(result.current.items.map((item) => item.id)).not.toContain(
+      "control:webdav-auto-sync-interval",
+    )
+    expect(result.current.items.map((item) => item.id)).not.toContain(
+      "control:webdav-auto-sync-interval-data-backup",
+    )
+  })
+
+  it("finds notification credentials and managed-site compatibility aliases", () => {
+    const notification = renderHook(
+      () => useOptionsSearch(context, "chat id"),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+    expect(notification.result.current.results[0]?.id).toBe(
+      "control:task-notifications-telegram-chat-id",
+    )
+
+    const compatibility = renderHook(() => useOptionsSearch(context, "voapi"), {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+    expect(compatibility.result.current.results[0]?.id).toBe(
+      "control:managed-site-type",
+    )
+
+    const cliProxyAlias = renderHook(
+      () => useOptionsSearch(context, "cliproxyapi"),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+    expect(cliProxyAlias.result.current.results[0]?.id).toBe(
+      "control:managed-site-type",
+    )
+
+    const cpaAlias = renderHook(() => useOptionsSearch(context, "cpa"), {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+    expect(cpaAlias.result.current.results[0]?.id).toBe(
+      "control:managed-site-type",
+    )
+
+    for (const alias of ["cliproxyapi", "cpa"]) {
+      const cliProxyActive = renderHook(
+        () =>
+          useOptionsSearch(
+            { ...context, managedSiteType: "cli-proxy-api" },
+            alias,
+          ),
+        {
+          withReleaseUpdateStatusProvider: false,
+          withThemeProvider: false,
+          withUserPreferencesProvider: false,
+        },
+      )
+      expect(
+        cliProxyActive.result.current.results.map((item) => item.id),
+      ).toEqual(
+        expect.arrayContaining([
+          "section:cli-proxy",
+          "control:cli-proxy-base-url",
+          "control:cli-proxy-management-key",
+          "control:cli-proxy-check-connection",
+        ]),
+      )
+    }
+  })
+})
+
+describe("useOptionsSearchContext", () => {
+  it("adds the detected side-panel capability to the base context", () => {
+    vi.spyOn(browserApi, "getSidePanelSupport").mockReturnValue({
+      supported: false,
+      kind: "unsupported",
+      reason: "unsupported",
+    })
+
+    const { result } = renderHook(
+      () =>
+        useOptionsSearchContext({
+          autoCheckinEnabled: true,
+          hasOptionalPermissions: true,
+          managedSiteType: "new-api",
+          modelRedirectEnabled: false,
+          showTodayCashflow: false,
+          webdavAutoSyncEnabled: false,
+        }),
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+
+    expect(result.current).toEqual({
+      autoCheckinEnabled: true,
+      hasOptionalPermissions: true,
+      managedSiteType: "new-api",
+      modelRedirectEnabled: false,
+      showTodayCashflow: false,
+      sidePanelSupported: false,
+      webdavAutoSyncEnabled: false,
+    })
+  })
+})

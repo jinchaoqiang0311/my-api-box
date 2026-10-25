@@ -1,0 +1,1338 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { resolveAccountSiteRouteUrl } from "~/services/accounts/utils/siteRouteResolver"
+import { isExtensionPopup } from "~/utils/browser"
+import {
+  getExtensionURL,
+  openRuntimeOptionsPage as openRuntimeOptionsPageApi,
+} from "~/utils/browser/runtime"
+import {
+  getSidePanelSupport,
+  openSidePanel as openSidePanelApi,
+} from "~/utils/browser/sidePanel"
+import {
+  createTab as createTabApi,
+  focusTab as focusTabApi,
+} from "~/utils/browser/tabs"
+import { createWindow, hasWindowsAPI } from "~/utils/browser/windows"
+import {
+  openAccountManagerWithSearch,
+  openApiCredentialProfilesPage,
+  openAutoCheckinPage,
+  openFullAccountManagerPage,
+  openFullBookmarkManagerPage,
+  openKeysPage,
+  openManagedSiteChannelsPage,
+  openManagedSiteModelSyncForChannel,
+  openModelsPage,
+  openOptionsPage,
+  openPermissionsOnboardingPage,
+  openProtectionBypassHistory,
+  openSettingsPage,
+  openSettingsTab,
+  openSettingsTabInNewTab,
+} from "~/utils/navigation"
+import { getSiteSupportRequestUrl } from "~/utils/navigation/feedbackLinks"
+import {
+  openBugReportPage,
+  openCommunityPage,
+  openFeatureRequestPage,
+  openLanguageRequestPage,
+  openSiteSupportRequestPage,
+} from "~/utils/navigation/feedbackPages"
+import {
+  navigateWithinOptionsPage,
+  openOrFocusOptionsPage,
+  pushWithinOptionsPage,
+  replaceWithinOptionsPage,
+} from "~/utils/navigation/optionsPage"
+import { openMultiplePages } from "~/utils/navigation/popup"
+import {
+  openSidePanelPage,
+  openSidePanelWithFallback,
+} from "~/utils/navigation/sidepanel"
+import {
+  openAccountBaseUrl,
+  openCheckInAndRedeem,
+  openCheckInPage,
+  openCheckInPages,
+  openCustomCheckInPage,
+  openRedeemPage,
+  openUsagePage,
+} from "~/utils/navigation/sitePages"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+import { modelResourceRef } from "~~/tests/test-utils/managedModelResource"
+
+const OPTIONS_PAGE_URL = "http://localhost:3000/options.html"
+
+vi.mock("~/utils/browser", () => ({
+  isExtensionPopup: vi.fn().mockReturnValue(false),
+}))
+
+vi.mock("~/utils/browser/extensionPageUrls", () => ({
+  OPTIONS_PAGE_URL: "http://localhost:3000/options.html",
+}))
+
+vi.mock("~/utils/browser/tabs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/browser/tabs")>()
+  const createTab = vi.fn()
+
+  const focusTab = vi.fn()
+
+  return { ...actual, createTab, focusTab }
+})
+vi.mock("~/utils/browser/windows", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/windows")>()
+
+  const createWindow = vi.fn()
+
+  const hasWindowsAPI = vi.fn(() => false)
+
+  return { ...actual, createWindow, hasWindowsAPI }
+})
+vi.mock("~/utils/browser/runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/runtime")>()
+
+  const getExtensionURL = vi.fn((path: string) => `ext://${path}`)
+
+  const openRuntimeOptionsPage = vi.fn()
+
+  return { ...actual, getExtensionURL, openRuntimeOptionsPage }
+})
+vi.mock("~/utils/browser/sidePanel", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/sidePanel")>()
+
+  const openSidePanel = vi.fn()
+
+  return {
+    ...actual,
+    openSidePanel,
+    getSidePanelSupport: vi.fn(() => ({ supported: true })),
+  }
+})
+
+vi.mock("~/services/accounts/utils/siteRouteResolver", () => ({
+  SITE_ROUTE_KINDS: {
+    Usage: "usage",
+    CheckIn: "checkIn",
+    Redeem: "redeem",
+  },
+  resolveAccountSiteRouteUrl: vi.fn(
+    (
+      account: { baseUrl: string },
+      route: "usage" | "checkIn" | "redeem",
+      customUrl?: string,
+    ) => {
+      const routePaths = {
+        usage: "/usage",
+        checkIn: "/checkin",
+        redeem: "/redeem",
+      } as const
+      return Promise.resolve(
+        customUrl || `${account.baseUrl}${routePaths[route]}`,
+      )
+    },
+  ),
+}))
+
+vi.mock("~/utils/navigation/feedbackLinks", () => ({
+  getSiteSupportRequestUrl: vi.fn((context?: { siteUrl?: string }) =>
+    context?.siteUrl
+      ? `https://feedback.example/site-support?site=${encodeURIComponent(
+          context.siteUrl,
+        )}`
+      : "https://feedback.example/site-support",
+  ),
+  getFeedbackDestinationUrls: vi.fn((language?: string) => ({
+    bugReport: "https://feedback.example/bug",
+    featureRequest: "https://feedback.example/feature",
+    languageRequest: "https://feedback.example/language",
+    siteSupportRequest: "https://feedback.example/site-support",
+    discussions: "https://feedback.example/discussions",
+    community: language
+      ? `https://feedback.example/community?lang=${language}`
+      : "https://feedback.example/community",
+  })),
+}))
+
+const mockedIsExtensionPopup = vi.mocked(isExtensionPopup)
+const mockedCreateTab = vi.mocked(createTabApi)
+const mockedCreateWindow = vi.mocked(createWindow)
+const mockedFocusTab = vi.mocked(focusTabApi)
+const mockedGetExtensionURL = vi.mocked(getExtensionURL)
+const mockedHasWindowsAPI = vi.mocked(hasWindowsAPI)
+const mockedOpenSidePanel = vi.mocked(openSidePanelApi)
+const mockedGetSiteSupportRequestUrl = vi.mocked(getSiteSupportRequestUrl)
+
+const getMockedRouteResolver = async () => {
+  const { resolveAccountSiteRouteUrl } = await import(
+    "~/services/accounts/utils/siteRouteResolver"
+  )
+  return vi.mocked(resolveAccountSiteRouteUrl)
+}
+
+describe("navigation utilities", () => {
+  it("preserves an occupied handoff and opens the supplied fallback without delaying native opening", async () => {
+    let finishPublish!: (accepted: boolean) => void
+    const publish = new Promise<boolean>((resolve) => {
+      finishPublish = resolve
+    })
+    const fallback = vi.fn(async () => {})
+    const tab = { id: 4, windowId: 2 } as browser.tabs.Tab
+    const opening = openSidePanelWithFallback(tab, fallback, {
+      handoff: { publish: () => publish, retract: async () => true },
+    })
+    expect(mockedOpenSidePanel).toHaveBeenCalledWith(tab)
+    finishPublish(false)
+    expect(await opening).toBe("options")
+    expect(fallback).toHaveBeenCalledOnce()
+  })
+  it("counts unsupported check-in pages without opening empty tabs or blocking other accounts", async () => {
+    vi.mocked(resolveAccountSiteRouteUrl)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce("https://example.com/check")
+    mockedCreateTab.mockResolvedValueOnce({ id: 10 } as any)
+    const result = await openCheckInPages([
+      { baseUrl: "https://unsupported.example", siteType: "sharedchat" } as any,
+      { baseUrl: "https://example.com", siteType: "new-api" } as any,
+    ])
+    expect(result).toEqual({ openedCount: 1, failedCount: 1 })
+    expect(mockedCreateTab).toHaveBeenCalledTimes(1)
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.com/check",
+      true,
+    )
+  })
+  it("does not open an unsupported redemption page, but honors a custom URL", async () => {
+    const account = {
+      baseUrl: "https://example.com",
+      siteType: "sharedchat",
+    } as any
+    vi.mocked(resolveAccountSiteRouteUrl).mockResolvedValueOnce(null)
+    await openRedeemPage(account)
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    await openRedeemPage({
+      ...account,
+      checkIn: { customCheckIn: { redeemUrl: "https://example.com/custom" } },
+    })
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.com/custom",
+      true,
+    )
+  })
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedHasWindowsAPI.mockReturnValue(false)
+    mockedIsExtensionPopup.mockReturnValue(false)
+    window.history.replaceState(null, "", "/")
+  })
+
+  it("openKeysPage should open keys page without accountId", async () => {
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+
+    await openKeysPage()
+
+    expect(mockedGetExtensionURL).toHaveBeenCalledWith("options.html")
+    const baseUrl = atIndex(mockedGetExtensionURL.mock.results, 0).value
+    expect(mockedCreateTab).toHaveBeenCalledWith(`${baseUrl}#keys`, true)
+    expect(closeSpy).not.toHaveBeenCalled()
+
+    closeSpy.mockRestore()
+  })
+
+  it("openKeysPage should include accountId when provided", async () => {
+    await openKeysPage("123")
+
+    expect(mockedGetExtensionURL).toHaveBeenCalledWith("options.html")
+    const baseUrl = atIndex(mockedGetExtensionURL.mock.results, 0).value
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${baseUrl}?accountId=123#keys`,
+      true,
+    )
+  })
+
+  it("openKeysPage should omit a blank legacy accountId outside options", async () => {
+    await openKeysPage("")
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "ext://options.html#keys",
+      true,
+    )
+  })
+
+  it("openKeysPage should deep-link an associated Account Runtime Key", async () => {
+    await openKeysPage({ associationId: "association-123" })
+
+    expect(mockedGetExtensionURL).toHaveBeenCalledWith("options.html")
+    const baseUrl = atIndex(mockedGetExtensionURL.mock.results, 0).value
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${baseUrl}?associationId=association-123#keys`,
+      true,
+    )
+  })
+
+  it("openKeysPage should push within the current options tab", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#models`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+
+    await openKeysPage("123")
+
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    expect(window.location.href).toBe(`${OPTIONS_PAGE_URL}?accountId=123#keys`)
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    pushStateSpy.mockRestore()
+  })
+
+  it("openKeysPage should close popup after dispatching navigation", async () => {
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+    mockedIsExtensionPopup.mockReturnValue(true)
+
+    await openKeysPage()
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "ext://options.html#keys",
+      true,
+    )
+    expect(closeSpy).toHaveBeenCalledTimes(1)
+
+    closeSpy.mockRestore()
+  })
+
+  it("openUsagePage should open usage URL built from site router", async () => {
+    const mockedResolveAccountSiteRouteUrl = await getMockedRouteResolver()
+    mockedResolveAccountSiteRouteUrl.mockResolvedValueOnce(
+      "https://example.com/usage-resolved",
+    )
+    const account = {
+      baseUrl: "https://example.com",
+      siteType: "one-api",
+    } as any
+
+    await openUsagePage(account)
+
+    expect(mockedResolveAccountSiteRouteUrl).toHaveBeenCalledWith(
+      account,
+      "usage",
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.com/usage-resolved",
+      true,
+    )
+  })
+
+  it("openModelsPage should open models page for the default view, accounts, and stored profiles", async () => {
+    await openModelsPage()
+    await openModelsPage("42")
+    await openModelsPage({ accountId: "43" })
+    await openModelsPage({ profileId: "profile-7" })
+
+    expect(mockedGetExtensionURL).toHaveBeenCalledTimes(4)
+    expect(mockedGetExtensionURL).toHaveBeenCalledWith("options.html")
+    const baseUrl = atIndex(mockedGetExtensionURL.mock.results, 0).value
+    const baseUrl2 = atIndex(mockedGetExtensionURL.mock.results, 1).value
+    const baseUrl3 = atIndex(mockedGetExtensionURL.mock.results, 2).value
+    const baseUrl4 = atIndex(mockedGetExtensionURL.mock.results, 3).value
+    expect(baseUrl2).toBe(baseUrl)
+    expect(baseUrl3).toBe(baseUrl)
+    expect(baseUrl4).toBe(baseUrl)
+    expect(mockedCreateTab).toHaveBeenCalledWith(`${baseUrl}#models`, true)
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${baseUrl}?accountId=42#models`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${baseUrl}?accountId=43#models`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${baseUrl}?profileId=profile-7#models`,
+      true,
+    )
+  })
+
+  it("openModelsPage should preserve a blank legacy accountId outside options", async () => {
+    await openModelsPage("")
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "ext://options.html?accountId=#models",
+      true,
+    )
+  })
+
+  it("openModelsPage should close popup and preserve parameterized routing", async () => {
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+    mockedIsExtensionPopup.mockReturnValue(true)
+
+    await openModelsPage({ profileId: "profile-7" })
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "ext://options.html?profileId=profile-7#models",
+      true,
+    )
+    expect(closeSpy).toHaveBeenCalledTimes(1)
+
+    closeSpy.mockRestore()
+  })
+
+  it("openModelsPage should push within the current options tab", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#keys`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+
+    await openModelsPage({ profileId: "profile-7" })
+
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    expect(window.location.href).toBe(
+      `${OPTIONS_PAGE_URL}?profileId=profile-7#models`,
+    )
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    pushStateSpy.mockRestore()
+  })
+
+  it("openAutoCheckinPage should omit undefined params and close popup", async () => {
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+    const querySpy = vi.spyOn(browser.tabs, "query").mockResolvedValue([])
+    mockedIsExtensionPopup.mockReturnValue(true)
+
+    await openAutoCheckinPage({ runNow: "true", ignored: undefined })
+
+    expect(querySpy).toHaveBeenCalledWith({})
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?runNow=true#autoCheckin`,
+      true,
+    )
+    expect(closeSpy).toHaveBeenCalledTimes(1)
+
+    querySpy.mockRestore()
+    closeSpy.mockRestore()
+  })
+
+  it("openOrFocusOptionsPage should reuse an existing matching tab and append refresh markers", async () => {
+    const querySpy = vi.spyOn(browser.tabs, "query").mockResolvedValue([
+      { id: 4, url: "not-a-valid-url" } as browser.tabs.Tab,
+      {
+        id: 5,
+        url: `${OPTIONS_PAGE_URL}?runNow=true#autoCheckin`,
+      } as browser.tabs.Tab,
+    ])
+    const updateSpy = vi
+      .spyOn(browser.tabs, "update")
+      .mockResolvedValue({ id: 5 } as browser.tabs.Tab)
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(123)
+
+    await openOrFocusOptionsPage("#autoCheckin", { runNow: "true" })
+
+    expect(updateSpy).toHaveBeenCalledWith(5, {
+      active: true,
+      url: `${OPTIONS_PAGE_URL}?runNow=true&refresh=true&t=123#autoCheckin`,
+    })
+    expect(mockedOpenSidePanel).not.toHaveBeenCalled()
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+    expect(mockedFocusTab).toHaveBeenCalledWith({
+      id: 5,
+      url: `${OPTIONS_PAGE_URL}?runNow=true#autoCheckin`,
+    })
+
+    nowSpy.mockRestore()
+    updateSpy.mockRestore()
+    querySpy.mockRestore()
+  })
+
+  it("navigateWithinOptionsPage should dispatch hashchange without replacing history when the URL is unchanged", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/options.html?runNow=true#autoCheckin",
+    )
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    navigateWithinOptionsPage("#autoCheckin", {
+      runNow: "true",
+      ignored: undefined,
+    })
+
+    expect(replaceStateSpy).not.toHaveBeenCalled()
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.any(Event))
+    expect(window.location.search).toBe("?runNow=true")
+
+    replaceStateSpy.mockRestore()
+    dispatchSpy.mockRestore()
+  })
+
+  it("navigateWithinOptionsPage should support preserving history with pushState", () => {
+    window.history.replaceState(null, "", "/options.html#basic")
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+
+    navigateWithinOptionsPage(
+      "#account",
+      { search: "alpha" },
+      { historyMode: "push" },
+    )
+
+    expect(replaceStateSpy).not.toHaveBeenCalled()
+    expect(pushStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?search=alpha#account`,
+    )
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.any(Event))
+
+    pushStateSpy.mockRestore()
+    replaceStateSpy.mockRestore()
+    dispatchSpy.mockRestore()
+  })
+
+  it("navigateWithinOptionsPage should clear stale query params when search params are omitted", () => {
+    window.history.replaceState(null, "", "/options.html?tab=managedSite#basic")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    navigateWithinOptionsPage("#account")
+
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}#account`,
+    )
+    expect(window.location.search).toBe("")
+
+    replaceStateSpy.mockRestore()
+  })
+
+  it("pushWithinOptionsPage and replaceWithinOptionsPage should apply their named history semantics", () => {
+    window.history.replaceState(null, "", "/options.html#basic")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+
+    pushWithinOptionsPage("#account", { search: "alpha" })
+    replaceWithinOptionsPage("#basic", { tab: "general" })
+
+    expect(pushStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?search=alpha#account`,
+    )
+    expect(replaceStateSpy).toHaveBeenLastCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?tab=general#basic`,
+    )
+
+    pushStateSpy.mockRestore()
+    replaceStateSpy.mockRestore()
+  })
+
+  it("openMultiplePages should execute all operations and not close popup when isExtensionPopup is false", async () => {
+    const op1 = vi.fn()
+    const op2 = vi.fn()
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+
+    await openMultiplePages([op1, op2])
+
+    expect(op1).toHaveBeenCalled()
+    expect(op2).toHaveBeenCalled()
+    expect(closeSpy).not.toHaveBeenCalled()
+
+    closeSpy.mockRestore()
+  })
+
+  it("openMultiplePages should close popup when isExtensionPopup is true", async () => {
+    const op = vi.fn()
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+    mockedIsExtensionPopup.mockReturnValue(true)
+
+    await openMultiplePages([op])
+
+    expect(op).toHaveBeenCalled()
+    expect(closeSpy).toHaveBeenCalled()
+
+    closeSpy.mockRestore()
+  })
+
+  it("openCheckInAndRedeem should open redeem and custom check-in URLs", async () => {
+    const account = {
+      baseUrl: "https://example.com",
+      siteType: "one-api",
+      checkIn: {
+        customCheckIn: {
+          url: "https://checkin.custom",
+          redeemUrl: "https://redeem.custom",
+        },
+      },
+    } as any
+
+    await openCheckInAndRedeem(account)
+
+    // openMultiplePages wraps two operations; ensure both tabs were opened
+    const calls = mockedCreateTab.mock.calls.map((call) => call[0] as string)
+    expect(calls).toContain("https://redeem.custom")
+    expect(calls).toContain("https://checkin.custom")
+  })
+
+  it("openCheckInPages should open grouped check-in tabs by default", async () => {
+    const mockedResolveAccountSiteRouteUrl = await getMockedRouteResolver()
+    mockedResolveAccountSiteRouteUrl
+      .mockResolvedValueOnce("https://example.com/checkin-resolved")
+      .mockResolvedValueOnce("https://example.org/checkin-resolved")
+    mockedCreateTab
+      .mockResolvedValueOnce({ id: 11 } as any)
+      .mockResolvedValueOnce({ id: 12 } as any)
+
+    const result = await openCheckInPages([
+      {
+        baseUrl: "https://example.com",
+        siteType: "one-api",
+      } as any,
+      {
+        baseUrl: "https://example.org",
+        siteType: "one-api",
+      } as any,
+    ])
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.com/checkin-resolved",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.org/checkin-resolved",
+      true,
+    )
+    expect(result).toEqual({ openedCount: 2, failedCount: 0 })
+  })
+
+  it("openCheckInPages should reuse a dedicated window when requested", async () => {
+    mockedHasWindowsAPI.mockReturnValue(true)
+    mockedCreateWindow.mockResolvedValue({ id: 77 } as any)
+    mockedCreateTab.mockResolvedValueOnce({ id: 21 } as any)
+
+    const result = await openCheckInPages(
+      [
+        {
+          baseUrl: "https://example.com",
+          siteType: "one-api",
+        } as any,
+        {
+          baseUrl: "https://example.org",
+          siteType: "one-api",
+        } as any,
+      ],
+      { openInNewWindow: true },
+    )
+
+    expect(mockedCreateWindow).toHaveBeenCalledWith({
+      url: "https://example.com/checkin",
+      focused: true,
+    })
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.org/checkin",
+      true,
+      { windowId: 77 },
+    )
+    expect(result).toEqual({ openedCount: 2, failedCount: 0 })
+  })
+
+  it("openCheckInPages should fall back to a normal tab when grouped window creation returns no id", async () => {
+    mockedHasWindowsAPI.mockReturnValue(true)
+    mockedCreateWindow.mockResolvedValue({} as any)
+    mockedCreateTab.mockResolvedValueOnce({ id: 31 } as any)
+
+    const result = await openCheckInPages(
+      [
+        {
+          baseUrl: "https://example.com",
+          siteType: "one-api",
+        } as any,
+      ],
+      { openInNewWindow: true },
+    )
+
+    expect(mockedCreateWindow).toHaveBeenCalledWith({
+      url: "https://example.com/checkin",
+      focused: true,
+    })
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.com/checkin",
+      true,
+    )
+    expect(result).toEqual({ openedCount: 1, failedCount: 0 })
+  })
+
+  it("openCheckInPages should recreate the grouped window when tab reuse fails", async () => {
+    mockedHasWindowsAPI.mockReturnValue(true)
+    mockedCreateWindow
+      .mockResolvedValueOnce({ id: 88 } as any)
+      .mockResolvedValueOnce({ id: 99 } as any)
+    mockedCreateTab.mockRejectedValueOnce(new Error("window closed"))
+
+    const result = await openCheckInPages(
+      [
+        {
+          baseUrl: "https://example.com",
+          siteType: "one-api",
+        } as any,
+        {
+          baseUrl: "https://example.org",
+          siteType: "one-api",
+        } as any,
+      ],
+      { openInNewWindow: true },
+    )
+
+    expect(mockedCreateWindow).toHaveBeenNthCalledWith(1, {
+      url: "https://example.com/checkin",
+      focused: true,
+    })
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.org/checkin",
+      true,
+      { windowId: 88 },
+    )
+    expect(mockedCreateWindow).toHaveBeenNthCalledWith(2, {
+      url: "https://example.org/checkin",
+      focused: true,
+    })
+    expect(result).toEqual({ openedCount: 2, failedCount: 0 })
+  })
+
+  it("openCheckInPages should fall back to a normal tab when grouped reuse returns no tab and window recreation has no id", async () => {
+    mockedHasWindowsAPI.mockReturnValue(true)
+    mockedCreateWindow
+      .mockResolvedValueOnce({ id: 88 } as any)
+      .mockResolvedValueOnce({} as any)
+    mockedCreateTab
+      .mockResolvedValueOnce(undefined as any)
+      .mockResolvedValueOnce({ id: 55 } as any)
+
+    const result = await openCheckInPages(
+      [
+        {
+          baseUrl: "https://example.com",
+          siteType: "one-api",
+        } as any,
+        {
+          baseUrl: "https://example.org",
+          siteType: "one-api",
+        } as any,
+      ],
+      { openInNewWindow: true },
+    )
+
+    expect(mockedCreateTab).toHaveBeenNthCalledWith(
+      1,
+      "https://example.org/checkin",
+      true,
+      { windowId: 88 },
+    )
+    expect(mockedCreateWindow).toHaveBeenNthCalledWith(2, {
+      url: "https://example.org/checkin",
+      focused: true,
+    })
+    expect(mockedCreateTab).toHaveBeenNthCalledWith(
+      2,
+      "https://example.org/checkin",
+      true,
+    )
+    expect(result).toEqual({ openedCount: 2, failedCount: 0 })
+  })
+
+  it("openCheckInPages should report a failed url when grouped fallbacks still cannot open the page", async () => {
+    mockedHasWindowsAPI.mockReturnValue(true)
+    mockedCreateWindow
+      .mockResolvedValueOnce({ id: 88 } as any)
+      .mockResolvedValueOnce({} as any)
+    mockedCreateTab
+      .mockResolvedValueOnce(undefined as any)
+      .mockRejectedValueOnce(new Error("tab failed"))
+
+    const result = await openCheckInPages(
+      [
+        {
+          baseUrl: "https://example.com",
+          siteType: "one-api",
+        } as any,
+        {
+          baseUrl: "https://example.org",
+          siteType: "one-api",
+        } as any,
+      ],
+      { openInNewWindow: true },
+    )
+
+    expect(mockedCreateTab).toHaveBeenNthCalledWith(
+      1,
+      "https://example.org/checkin",
+      true,
+      { windowId: 88 },
+    )
+    expect(mockedCreateTab).toHaveBeenNthCalledWith(
+      2,
+      "https://example.org/checkin",
+      true,
+    )
+    expect(result).toEqual({ openedCount: 1, failedCount: 1 })
+  })
+
+  it("openCheckInPages should report failed urls when opening returns no tab", async () => {
+    mockedCreateTab
+      .mockResolvedValueOnce({ id: 41 } as any)
+      .mockResolvedValueOnce(undefined as any)
+
+    const result = await openCheckInPages([
+      {
+        baseUrl: "https://example.com",
+        siteType: "one-api",
+      } as any,
+      {
+        baseUrl: "https://example.org",
+        siteType: "one-api",
+      } as any,
+    ])
+
+    expect(result).toEqual({ openedCount: 1, failedCount: 1 })
+  })
+
+  it("openSidePanelWithFallback should open the account page and report Options when side panel opening fails", async () => {
+    mockedOpenSidePanel.mockRejectedValueOnce(new Error("fail"))
+
+    await expect(openSidePanelWithFallback()).resolves.toBe("options")
+
+    await vi.waitFor(() => {
+      expect(mockedCreateTab).toHaveBeenCalledWith(
+        `${OPTIONS_PAGE_URL}#account`,
+        true,
+      )
+    })
+  })
+
+  it("skips the side panel API when unavailable and reports the Options destination", async () => {
+    vi.mocked(getSidePanelSupport).mockReturnValueOnce({
+      supported: false,
+      kind: "unsupported",
+      reason: "missing",
+    })
+    await expect(openSidePanelWithFallback()).resolves.toBe("options")
+    expect(mockedOpenSidePanel).not.toHaveBeenCalled()
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#account`,
+      true,
+    )
+  })
+
+  it("openSidePanelWithFallback should forward the clicked tab context", async () => {
+    const clickedTab = { id: 7, windowId: 9 } as browser.tabs.Tab
+
+    await expect(openSidePanelWithFallback(clickedTab)).resolves.toBe(
+      "sidepanel",
+    )
+
+    expect(mockedOpenSidePanel).toHaveBeenCalledWith(clickedTab)
+  })
+
+  it("openSidePanelPage should close the popup after fallback navigation", async () => {
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+    mockedIsExtensionPopup.mockReturnValue(true)
+    mockedOpenSidePanel.mockRejectedValueOnce(new Error("fail"))
+
+    await openSidePanelPage()
+
+    expect(closeSpy).toHaveBeenCalledTimes(1)
+
+    closeSpy.mockRestore()
+  })
+
+  it("openOrFocusOptionsPage should open a new tab when querying existing tabs fails", async () => {
+    const querySpy = vi
+      .spyOn(browser.tabs, "query")
+      .mockRejectedValueOnce(new Error("query failed"))
+
+    await openOrFocusOptionsPage("#basic")
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#basic`,
+      true,
+    )
+
+    querySpy.mockRestore()
+  })
+
+  it("openOptionsPage should use the browser's standard options page opener", async () => {
+    await openOptionsPage()
+
+    expect(openRuntimeOptionsPageApi).toHaveBeenCalledTimes(1)
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+  })
+
+  it("openOptionsPage should close the popup after opening the standard options page", async () => {
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+    mockedIsExtensionPopup.mockReturnValue(true)
+
+    await openOptionsPage()
+
+    expect(openRuntimeOptionsPageApi).toHaveBeenCalledTimes(1)
+    expect(closeSpy).toHaveBeenCalledTimes(1)
+
+    closeSpy.mockRestore()
+  })
+
+  it("opens account, bookmark, settings, and managed-site wrappers with the expected targets", async () => {
+    await openFullAccountManagerPage()
+    await openAccountManagerWithSearch("alpha")
+    await openFullBookmarkManagerPage()
+    await openFullBookmarkManagerPage({ search: "beta" })
+    await openSettingsPage()
+    await openSettingsTab("permissions")
+    await openPermissionsOnboardingPage({ reason: "debug" })
+    await openApiCredentialProfilesPage()
+    await openManagedSiteChannelsPage({
+      resourceRef: modelResourceRef(42),
+      search: "relay",
+    })
+    await openManagedSiteChannelsPage({ resourceRef: modelResourceRef(77) })
+    await openManagedSiteModelSyncForChannel(
+      modelResourceRef("provider/key:100"),
+    )
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#account`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?search=alpha#account`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#bookmark`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?search=beta#bookmark`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#basic`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?tab=permissions#basic`,
+      true,
+    )
+    await openSettingsTab("general", {
+      anchor: "site-announcement-notifications-enabled",
+    })
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?tab=general&anchor=site-announcement-notifications-enabled#basic`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?onboarding=permissions&reason=debug#overview`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#apiCredentialProfiles`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?${new URLSearchParams({ search: "relay", resourceRef: JSON.stringify(modelResourceRef(42)) })}#managedSiteChannels`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?${new URLSearchParams({ resourceRef: JSON.stringify(modelResourceRef(77)) })}#managedSiteChannels`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?${new URLSearchParams({ resourceRef: JSON.stringify(modelResourceRef("provider/key:100")), tab: "manual" })}#managedSiteModelSync`,
+      true,
+    )
+  })
+
+  it("opens bookmark and API credential creation flows with prefill query params", async () => {
+    await openFullBookmarkManagerPage({
+      create: {
+        name: "Manual Provider",
+        url: "https://manual.example.com",
+      },
+    })
+    await openApiCredentialProfilesPage({
+      create: {
+        name: "Manual Provider",
+        baseUrl: "https://manual.example.com",
+        apiKeyCreateUrl: "https://manual.example.com/keys?aff=all-api-hub",
+        apiKeyCreateHint: "Use promo code APIHUB after registration.",
+      },
+    })
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?action=add&name=Manual+Provider&url=https%3A%2F%2Fmanual.example.com#bookmark`,
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?action=add&name=Manual+Provider&baseUrl=https%3A%2F%2Fmanual.example.com&apiKeyCreateUrl=https%3A%2F%2Fmanual.example.com%2Fkeys%3Faff%3Dall-api-hub&apiKeyCreateHint=Use+promo+code+APIHUB+after+registration.#apiCredentialProfiles`,
+      true,
+    )
+  })
+
+  it("pushes a profile deep link within the current options tab", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#keys`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+
+    await openApiCredentialProfilesPage({ profileId: "profile-123" })
+
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    expect(window.location.href).toBe(
+      `${OPTIONS_PAGE_URL}?profileId=profile-123#apiCredentialProfiles`,
+    )
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    pushStateSpy.mockRestore()
+  })
+
+  it("opens managed-site channels without empty query params when no filters are provided", async () => {
+    await openManagedSiteChannelsPage()
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}#managedSiteChannels`,
+      true,
+    )
+  })
+
+  it("preserves an opaque channel identity and clears stale filters in an existing options tab", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?search=old&channelId=8#managedSiteChannels`,
+    )
+
+    const resourceRef = modelResourceRef("native/42+=&中")
+    await openManagedSiteChannelsPage({ resourceRef })
+
+    const params = new URL(window.location.href).searchParams
+    expect(JSON.parse(params.get("resourceRef")!)).toEqual(resourceRef)
+    expect(params.has("channelId")).toBe(false)
+    expect(params.has("search")).toBe(false)
+    expect(window.location.hash).toBe("#managedSiteChannels")
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+  })
+
+  it("keeps channels with the same id in different deployments as distinct deep links", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}#managedSiteChannels`,
+    )
+    const firstRef = modelResourceRef(42, { scopeKey: "https://first.example" })
+    const secondRef = modelResourceRef(42, {
+      scopeKey: "https://second.example",
+    })
+
+    await openManagedSiteChannelsPage({ resourceRef: firstRef })
+    const firstUrl = new URL(window.location.href)
+    await openManagedSiteChannelsPage({ resourceRef: secondRef })
+    const secondUrl = new URL(window.location.href)
+
+    expect(JSON.parse(firstUrl.searchParams.get("resourceRef")!)).toEqual(
+      firstRef,
+    )
+    expect(JSON.parse(secondUrl.searchParams.get("resourceRef")!)).toEqual(
+      secondRef,
+    )
+    expect(firstUrl.href).not.toBe(secondUrl.href)
+    expect(secondUrl.searchParams.has("channelId")).toBe(false)
+  })
+
+  it("preserves options-page history for account and managed-site drill-down navigation", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#autoCheckin`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    await openAccountManagerWithSearch("alpha")
+    await openManagedSiteChannelsPage({ resourceRef: modelResourceRef(77) })
+
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+    expect(pushStateSpy).toHaveBeenNthCalledWith(
+      1,
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?search=alpha#account`,
+    )
+    expect(pushStateSpy).toHaveBeenNthCalledWith(
+      2,
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?${new URLSearchParams({ resourceRef: JSON.stringify(modelResourceRef(77)) })}#managedSiteChannels`,
+    )
+    expect(replaceStateSpy).not.toHaveBeenCalled()
+
+    replaceStateSpy.mockRestore()
+    pushStateSpy.mockRestore()
+  })
+
+  it("keeps settings-style options navigation on replaceState", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#autoCheckin`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    await openSettingsPage()
+
+    expect(pushStateSpy).not.toHaveBeenCalled()
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}#basic`,
+    )
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    replaceStateSpy.mockRestore()
+    pushStateSpy.mockRestore()
+  })
+
+  it("root options-page navigations clear existing query params when no filters are requested", async () => {
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    window.history.replaceState(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?tab=managedSite#basic`,
+    )
+    await openSettingsPage()
+
+    window.history.replaceState(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?search=alpha#account`,
+    )
+    await openFullAccountManagerPage()
+
+    expect(replaceStateSpy).toHaveBeenNthCalledWith(
+      2,
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}#basic`,
+    )
+    expect(replaceStateSpy).toHaveBeenNthCalledWith(
+      4,
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}#account`,
+    )
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    replaceStateSpy.mockRestore()
+  })
+
+  it("can preserve history when opening a settings tab from another workflow", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#account`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    await openSettingsTab("managedSite", { preserveHistory: true })
+
+    expect(replaceStateSpy).not.toHaveBeenCalled()
+    expect(pushStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?tab=managedSite#basic`,
+    )
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    replaceStateSpy.mockRestore()
+    pushStateSpy.mockRestore()
+  })
+
+  it("can always open a settings target in a new tab without replacing the current workflow", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#keyManagement`)
+
+    await openSettingsTabInNewTab("managedSite", {
+      anchor: "managed-site-selector",
+    })
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?tab=managedSite&anchor=managed-site-selector#basic`,
+      true,
+    )
+    expect(window.location.href).toBe(`${OPTIONS_PAGE_URL}#keyManagement`)
+  })
+
+  it("keeps the popup workflow alive when the settings tab opens in a new tab", async () => {
+    mockedIsExtensionPopup.mockReturnValue(true)
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+
+    await openSettingsTabInNewTab("managedSite", {
+      anchor: "axonhub",
+      keepCurrentWindow: true,
+    })
+
+    // A page-action popup is dismissed as soon as focus moves, so the settings
+    // tab has to open in the background for the popup form to survive.
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      `${OPTIONS_PAGE_URL}?tab=managedSite&anchor=axonhub#basic`,
+      false,
+    )
+    expect(closeSpy).not.toHaveBeenCalled()
+
+    closeSpy.mockRestore()
+  })
+
+  it("opens shield history in the current options page and keeps a return path", async () => {
+    mockedIsExtensionPopup.mockReturnValue(false)
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#autoCheckin`)
+    const pushStateSpy = vi.spyOn(window.history, "pushState")
+    const locationChanged = vi.fn()
+    window.addEventListener("hashchange", locationChanged)
+
+    try {
+      await openProtectionBypassHistory()
+
+      expect(window.location.href).toBe(
+        `${OPTIONS_PAGE_URL}?tab=refresh&anchor=shield-history#basic`,
+      )
+      expect(pushStateSpy).toHaveBeenCalledTimes(1)
+      expect(mockedCreateTab).not.toHaveBeenCalled()
+
+      await openProtectionBypassHistory()
+
+      expect(locationChanged).toHaveBeenCalledTimes(2)
+      expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      window.removeEventListener("hashchange", locationChanged)
+      pushStateSpy.mockRestore()
+    }
+  })
+
+  it.each([
+    { surface: "popup", closesPopup: true },
+    { surface: "sidepanel", closesPopup: false },
+  ])("opens shield history from $surface", async ({ surface, closesPopup }) => {
+    window.history.replaceState(null, "", `/${surface}.html`)
+    mockedIsExtensionPopup.mockReturnValue(closesPopup)
+    const closeSpy = vi.spyOn(window, "close").mockImplementation(() => {})
+
+    try {
+      await openProtectionBypassHistory()
+
+      expect(mockedCreateTab).toHaveBeenCalledWith(
+        `${OPTIONS_PAGE_URL}?tab=refresh&anchor=shield-history#basic`,
+        true,
+      )
+      expect(closeSpy).toHaveBeenCalledTimes(closesPopup ? 1 : 0)
+    } finally {
+      closeSpy.mockRestore()
+      mockedIsExtensionPopup.mockReturnValue(false)
+    }
+  })
+
+  it("opens permissions onboarding in-place when already on the options page", async () => {
+    window.history.replaceState(null, "", `${OPTIONS_PAGE_URL}#account`)
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
+
+    await openPermissionsOnboardingPage({ reason: "debug" })
+
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
+      `${OPTIONS_PAGE_URL}?onboarding=permissions&reason=debug#overview`,
+    )
+    expect(mockedCreateTab).not.toHaveBeenCalled()
+
+    replaceStateSpy.mockRestore()
+  })
+
+  it("opens the remaining wrapper destinations in fresh tabs", async () => {
+    const account = {
+      baseUrl: "https://example.com",
+      siteType: "one-api",
+      checkIn: {
+        customCheckIn: {
+          url: "https://custom.example/check-in",
+          redeemUrl: "https://custom.example/redeem",
+        },
+      },
+    } as any
+
+    await openBugReportPage()
+    await openFeatureRequestPage()
+    await openLanguageRequestPage()
+    await openSiteSupportRequestPage({
+      siteUrl: "https://relay.example.com/console",
+    })
+    await openCommunityPage("ja")
+    await openAccountBaseUrl(account)
+    await openCheckInPage(account)
+    await openCustomCheckInPage(account)
+    await openRedeemPage(account)
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://feedback.example/bug",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://feedback.example/feature",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://feedback.example/language",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://feedback.example/site-support?site=https%3A%2F%2Frelay.example.com%2Fconsole",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://feedback.example/community?lang=ja",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith("https://example.com", true)
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://example.com/checkin",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://custom.example/check-in",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://custom.example/redeem",
+      true,
+    )
+  })
+
+  it("opens the site-support request through the prefill builder even without site context", async () => {
+    await openSiteSupportRequestPage()
+
+    expect(mockedGetSiteSupportRequestUrl).toHaveBeenCalledWith(undefined)
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://feedback.example/site-support",
+      true,
+    )
+  })
+
+  it("falls back to default check-in and redeem paths when custom URLs are missing", async () => {
+    const account = {
+      baseUrl: "https://fallback.example",
+      siteType: "one-api",
+      checkIn: {
+        customCheckIn: {
+          url: "",
+          redeemUrl: "",
+        },
+      },
+    } as any
+
+    await openCustomCheckInPage(account)
+    await openRedeemPage(account)
+
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://fallback.example/checkin",
+      true,
+    )
+    expect(mockedCreateTab).toHaveBeenCalledWith(
+      "https://fallback.example/redeem",
+      true,
+    )
+  })
+})

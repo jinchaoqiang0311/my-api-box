@@ -1,0 +1,224 @@
+import { runAbortableTask } from "~/services/apiTransport/abortableTask"
+import {
+  COOKIE_AUTH_HEADER_NAME,
+  EXTENSION_HEADER_NAME,
+} from "~/utils/browser/cookieHelper"
+import {
+  buildTempWindowBlockedDownloadExtensionPattern,
+  TEMP_WINDOW_DOWNLOAD_BLOCK_RESOURCE_TYPES,
+} from "~/utils/browser/tempWindowDownloadRules"
+import { createLogger } from "~/utils/core/logger"
+
+/**
+ * Unified logger scoped to DNR cookie header injection helpers.
+ */
+const logger = createLogger("DnrCookieInjector")
+
+// Optional download protection must not indefinitely block page creation or pool cleanup.
+const DOWNLOAD_RULE_TIMEOUT_MS = 2000
+
+/**
+ * DeclarativeNetRequest session-rule helpers.
+ *
+ * Chromium-based browsers can modify request headers using declarativeNetRequest.
+ * We use a short-lived, per-tab session rule during temp-window fetch so that:
+ * - token-auth requests can carry WAF-bypass cookies without leaking session cookies
+ * - requests are isolated to the temp window tab (fixes multi-account confusion)
+ */
+
+export const TEMP_WINDOW_DNR_RULE_ID_BASE = 1_000_000 as const
+export const TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE = 2_000_000 as const
+
+interface TempWindowCookieRuleParams {
+  tabId: number
+  url: string
+  cookieHeader: string
+}
+
+/**
+ * Checks whether the declarativeNetRequest session rules API is available.
+ */
+function hasDnrApi(): boolean {
+  try {
+    return Boolean(
+      (globalThis as any).chrome?.declarativeNetRequest?.updateSessionRules,
+    )
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Builds a stable rule ID for a given tab.
+ */
+function buildRuleId(tabId: number): number {
+  const safeTabId = Number.isFinite(tabId) ? Math.max(0, Math.floor(tabId)) : 0
+  return TEMP_WINDOW_DNR_RULE_ID_BASE + safeTabId
+}
+
+/**
+ * Builds a stable download block rule ID for a given temp tab.
+ */
+function buildDownloadBlockRuleId(tabId: number): number {
+  const safeTabId = Number.isFinite(tabId) ? Math.max(0, Math.floor(tabId)) : 0
+  return TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE + safeTabId
+}
+
+/**
+ * Escape a URL origin so it can be embedded safely in a DNR regex filter.
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/**
+ * Build a session-scoped DNR rule that forces the Cookie header for a specific
+ * tab and URL.
+ */
+export function buildTempWindowCookieRule(params: TempWindowCookieRuleParams) {
+  const ruleId = buildRuleId(params.tabId)
+
+  return {
+    id: ruleId,
+    priority: 1,
+    action: {
+      type: "modifyHeaders",
+      requestHeaders: [
+        { header: EXTENSION_HEADER_NAME, operation: "remove" },
+        { header: COOKIE_AUTH_HEADER_NAME, operation: "remove" },
+        { header: "Cookie", operation: "set", value: params.cookieHeader },
+      ],
+    },
+    condition: {
+      tabIds: [params.tabId],
+      regexFilter: `^${escapeRegExp(new URL(params.url).origin)}/`,
+      resourceTypes: ["xmlhttprequest", "other"],
+    },
+  } as const
+}
+
+/**
+ * Build a session-scoped DNR rule that blocks executable/installer downloads
+ * initiated inside a specific temp-context tab.
+ */
+export function buildTempWindowDownloadBlockRule(tabId: number) {
+  return {
+    id: buildDownloadBlockRuleId(tabId),
+    priority: 1,
+    action: {
+      type: "block",
+    },
+    condition: {
+      tabIds: [tabId],
+      regexFilter: `^https?://[^?#]*\\.(${buildTempWindowBlockedDownloadExtensionPattern()})(?:[?#].*)?$`,
+      resourceTypes: [...TEMP_WINDOW_DOWNLOAD_BLOCK_RESOURCE_TYPES],
+    },
+  } as const
+}
+
+/**
+ * Installs (or replaces) a per-tab temp-context rule that blocks obvious
+ * executable/installer downloads before they leave the browser.
+ */
+export async function applyTempWindowDownloadBlockRule(
+  tabId: number,
+): Promise<number | null> {
+  if (!hasDnrApi()) {
+    return null
+  }
+
+  const ruleId = buildDownloadBlockRuleId(tabId)
+
+  try {
+    await runAbortableTask(
+      async (signal) => {
+        await (
+          globalThis as any
+        ).chrome.declarativeNetRequest.updateSessionRules({
+          removeRuleIds: [ruleId],
+          addRules: [buildTempWindowDownloadBlockRule(tabId)],
+        })
+        // A timeout cannot cancel the browser API. Retire a late rule because its
+        // caller already continued without taking ownership of this rule id.
+        if (signal?.aborted) await removeTempWindowDownloadBlockRule(ruleId)
+      },
+      { timeoutMs: DOWNLOAD_RULE_TIMEOUT_MS },
+    )
+    return ruleId
+  } catch (error) {
+    logger.warn("Failed to install temp-window download block rule", error)
+    return null
+  }
+}
+
+/**
+ * Best-effort removal of a previously installed temp-window download block rule.
+ */
+export async function removeTempWindowDownloadBlockRule(
+  ruleId: number,
+): Promise<void> {
+  if (!hasDnrApi()) {
+    return
+  }
+
+  try {
+    await runAbortableTask(
+      () =>
+        (globalThis as any).chrome.declarativeNetRequest.updateSessionRules({
+          removeRuleIds: [ruleId],
+        }),
+      { timeoutMs: DOWNLOAD_RULE_TIMEOUT_MS },
+    )
+  } catch (error) {
+    logger.warn("Failed to remove temp-window download block rule", error)
+  }
+}
+
+/**
+ * Installs (or replaces) a temp-window Cookie override rule for the given tab.
+ * Returns the installed ruleId, or null when rule install is not possible.
+ */
+export async function applyTempWindowCookieRule(
+  params: TempWindowCookieRuleParams,
+): Promise<number | null> {
+  if (!params.cookieHeader) {
+    return null
+  }
+
+  if (!hasDnrApi()) {
+    return null
+  }
+
+  const ruleId = buildRuleId(params.tabId)
+  const rule = buildTempWindowCookieRule(params)
+
+  try {
+    await (globalThis as any).chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: [ruleId],
+      addRules: [rule],
+    })
+    return ruleId
+  } catch (error) {
+    logger.warn("Failed to install temp-window cookie rule", error)
+    return null
+  }
+}
+
+/**
+ * Best-effort removal of a previously installed temp-window cookie rule.
+ */
+export async function removeTempWindowCookieRule(
+  ruleId: number,
+): Promise<void> {
+  if (!hasDnrApi()) {
+    return
+  }
+
+  try {
+    await (globalThis as any).chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: [ruleId],
+    })
+  } catch (error) {
+    logger.warn("Failed to remove temp-window cookie rule", error)
+  }
+}

@@ -1,0 +1,37 @@
+import { Badge, Card, CardContent } from "~/components/ui"
+
+export interface TechItem {
+  name: string
+  version: string
+  description: string
+}
+
+export interface TechStackGridProps {
+  items: TechItem[]
+}
+
+const TechStackGrid = ({ items }: TechStackGridProps) => {
+  return (
+    <div className="gap-y-density-4 grid grid-cols-1 gap-x-4 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((tech, index) => (
+        <Card key={index}>
+          <CardContent>
+            <div className="mb-density-2 flex items-center justify-between">
+              <span className="text-foreground text-base font-medium">
+                {tech.name}
+              </span>
+              <Badge variant="secondary" size="sm">
+                v{tech.version}
+              </Badge>
+            </div>
+            <p className="dark:text-secondary-foreground text-muted-foreground text-sm">
+              {tech.description}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+export default TechStackGrid

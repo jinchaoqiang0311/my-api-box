@@ -1,0 +1,73 @@
+name: Feature Request / 功能请求
+description: Tell us what would make My API Box work better for you / 告诉我们什么能让 My API Box 更适合您的使用
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to share an idea. Knowing a little about the context helps us understand the request more clearly and think about it in a way that is genuinely useful.
+
+        感谢您愿意分享想法。多一点使用背景，会帮助我们更准确地理解这个需求，也更认真地思考怎样做才真正有帮助。
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description / 功能描述
+      description: A clear and concise description of the feature you'd like to see / 清晰简洁地描述您希望看到的功能
+      placeholder: |
+        What would you like My API Box to support or do better?
+        您希望 My API Box 新增什么，或在哪方面做得更好？
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case / Motivation / 使用场景 / 动机
+      description: If you can share the situation behind this request, it helps us understand why it matters to you. / 如果您愿意补充这个需求背后的使用场景，会帮助我们理解它为什么对您重要。
+      placeholder: |
+        In what situation would this help you?
+        这个功能会在什么场景下帮助到您？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution / 建议的解决方案
+      description: If you already have an idea for how this could work, we would love to hear it. If not, simply describe the outcome you hope for. / 如果您已经想过它大概可以怎么实现，欢迎直接告诉我们；如果还没有，也只需描述您希望达到的效果。
+      placeholder: |
+        If you have an idea, you can describe it here; otherwise just share the outcome you want
+        如果您已经有想法，可以写在这里；如果没有，也可以只写希望达到的效果
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered / 考虑的替代方案
+      description: What alternative solutions or features have you considered? / 您考虑过哪些替代解决方案或功能？
+      placeholder: |
+        Have you tried any workaround or thought about another approach?
+        您是否尝试过其他做法，或想过别的方案？
+
+  - type: dropdown
+    id: browsers-affected
+    attributes:
+      label: Target Browsers / 目标浏览器
+      description: Which browsers should this feature support? / 此功能应支持哪些浏览器？
+      multiple: true
+      options:
+        - All browsers / 所有浏览器
+        - Chrome
+        - Firefox
+        - Edge
+        - Safari
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context / 其他信息
+      description: Add any other context, screenshots, or mockups about the feature request here / 在此处添加有关功能请求的任何其他信息、截图或模型
+      placeholder: |
+        Anything else you want us to know, including screenshots or mockups
+        任何您希望补充的信息，也可以附上截图或示意图

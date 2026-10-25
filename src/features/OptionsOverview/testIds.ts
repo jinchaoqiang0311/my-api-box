@@ -1,0 +1,16 @@
+export const OPTIONS_OVERVIEW_TEST_IDS = {
+  page: "options-overview-page",
+  statusSummary: "options-overview-status-summary",
+  unifiedApiGuidance: "options-overview-unified-api-guidance",
+  needsAttention: "options-overview-needs-attention",
+  attentionSeverityFilters: "options-overview-attention-severity-filters",
+  attentionCategoryFilters: "options-overview-attention-category-filters",
+  automationOverview: "options-overview-automation-overview",
+  recentUsage: "options-overview-recent-usage",
+  actionCenter: "options-overview-action-center",
+  permissionOnboardingDialog: "permission-onboarding-dialog",
+  permissionOnboardingDeferButton: "permission-onboarding-defer-button",
+  permissionOnboardingIntroSection: "permission-onboarding-intro-section",
+  permissionOnboardingPermissionsSection:
+    "permission-onboarding-permissions-section",
+} as const

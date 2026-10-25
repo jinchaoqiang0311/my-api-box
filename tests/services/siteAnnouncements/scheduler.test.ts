@@ -1,0 +1,1733 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { Storage } from "@plasmohq/storage"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { STORAGE_KEYS } from "~/services/core/storageKeys"
+import { SiteAnnouncementsMessageTypes } from "~/services/runtimeMessaging/messageTypes"
+import {
+  resolveSiteAnnouncementsCheckNowMessage,
+  resolveSiteAnnouncementsGetStatusMessage,
+  resolveSiteAnnouncementsListRecordsMessage,
+  resolveSiteAnnouncementsMarkAllReadMessage,
+  resolveSiteAnnouncementsMarkReadMessage,
+  resolveSiteAnnouncementsUpdatePreferencesMessage,
+  setupSiteAnnouncementsMessagingListeners,
+} from "~/services/siteAnnouncements/runtimeMessages"
+import { siteAnnouncementScheduler } from "~/services/siteAnnouncements/scheduler"
+import { getAnnouncementSourceHandlers } from "~/services/siteAnnouncements/sourceHandlers"
+import { siteAnnouncementStorage } from "~/services/siteAnnouncements/storage"
+import { AuthTypeEnum, SiteHealthStatus } from "~/types"
+import type {
+  AnnouncementSourceScope,
+  SiteAnnouncementSiteState,
+} from "~/types/siteAnnouncements"
+import {
+  ANNOUNCEMENT_SOURCE_SCOPES,
+  SITE_ANNOUNCEMENT_STATUS,
+} from "~/types/siteAnnouncements"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+
+const {
+  clearAlarmMock,
+  createAlarmMock,
+  getAlarmMock,
+  getEnabledAccountsMock,
+  getAccountByIdMock,
+  hasAlarmsAPIMock,
+  getPreferencesMock,
+  notifySiteAnnouncementsMock,
+  onSiteAnnouncementsMessageMock,
+  onAlarmMock,
+  handlerFetchMock,
+  handlerMarkReadMock,
+  savePreferencesMock,
+  siteAnnouncementsMessageHandlers,
+} = vi.hoisted(() => ({
+  clearAlarmMock: vi.fn(),
+  createAlarmMock: vi.fn(),
+  getAlarmMock: vi.fn(),
+  getEnabledAccountsMock: vi.fn(),
+  getAccountByIdMock: vi.fn(),
+  hasAlarmsAPIMock: vi.fn(() => true),
+  getPreferencesMock: vi.fn(),
+  notifySiteAnnouncementsMock: vi.fn(),
+  onSiteAnnouncementsMessageMock: vi.fn(),
+  onAlarmMock: vi.fn(),
+  handlerFetchMock: vi.fn(),
+  handlerMarkReadMock: vi.fn(),
+  savePreferencesMock: vi.fn(),
+  siteAnnouncementsMessageHandlers: new Map<
+    string,
+    (message: { data: Record<string, unknown> }) => Promise<unknown> | unknown
+  >(),
+}))
+
+vi.mock("~/utils/browser/alarms", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/utils/browser/alarms")>()),
+  clearAlarm: clearAlarmMock,
+  createAlarm: createAlarmMock,
+  getAlarm: getAlarmMock,
+  hasAlarmsAPI: hasAlarmsAPIMock,
+  onAlarm: onAlarmMock,
+}))
+
+vi.mock("~/services/accounts/accountStorage/accountQueries", () => ({
+  accountQueries: {
+    getEnabledAccounts: getEnabledAccountsMock,
+    getAccountById: getAccountByIdMock,
+  },
+}))
+
+vi.mock("~/services/preferences/userPreferences", () => ({
+  userPreferences: {
+    getPreferences: getPreferencesMock,
+    savePreferences: savePreferencesMock,
+  },
+}))
+
+vi.mock("~/services/siteAnnouncements/notificationService", () => ({
+  notifySiteAnnouncements: notifySiteAnnouncementsMock,
+}))
+
+vi.mock("~/services/siteAnnouncements/messaging", () => ({
+  onSiteAnnouncementsMessage: onSiteAnnouncementsMessageMock.mockImplementation(
+    (type, handler) => {
+      siteAnnouncementsMessageHandlers.set(type, handler)
+      return vi.fn()
+    },
+  ),
+}))
+
+vi.mock("~/services/siteAnnouncements/sourceHandlers", () => {
+  const createHandler = (siteType: string) => ({
+    scope:
+      siteType === "sub2api"
+        ? ANNOUNCEMENT_SOURCE_SCOPES.Account
+        : ANNOUNCEMENT_SOURCE_SCOPES.Site,
+    createSiteKey: ({ accountId, baseUrl }: any) =>
+      siteType === "sub2api"
+        ? `account:sub2api:${accountId}:${baseUrl}`
+        : `site:${siteType}:${baseUrl}`,
+    fetch: handlerFetchMock,
+    markRead: siteType === "sub2api" ? handlerMarkReadMock : undefined,
+  })
+  return {
+    getAnnouncementSourceHandlers: vi.fn((siteType: string) => [
+      createHandler(siteType),
+    ]),
+  }
+})
+
+function createAccount(overrides: Partial<any> = {}) {
+  return {
+    id: "account-1",
+    site_name: "Example",
+    site_url: "https://example.com",
+    site_type: "new-api",
+    disabled: false,
+    authType: AuthTypeEnum.AccessToken,
+    account_info: {
+      id: "1",
+      access_token: "token",
+      username: "user",
+      quota: 0,
+      today_prompt_tokens: 0,
+      today_completion_tokens: 0,
+      today_quota_consumption: 0,
+      today_requests_count: 0,
+      today_income: 0,
+    },
+    health: { status: SiteHealthStatus.Unknown },
+    exchange_rate: 7,
+    last_sync_time: 0,
+    updated_at: 0,
+    created_at: 0,
+    notes: "",
+    tagIds: [],
+    excludeFromTotalBalance: false,
+    checkIn: buildCheckInConfig(),
+    ...overrides,
+  }
+}
+
+/**
+ * Seeds a successful site state so a later check is not treated as the site's
+ * first scan, which stores everything it finds as already-read history.
+ */
+async function seedCheckedSite(params: {
+  siteKey: string
+  accountId: string
+  siteType: SiteAnnouncementSiteState["siteType"]
+  sourceScope: AnnouncementSourceScope
+  baseUrl: string
+  siteName?: string
+}) {
+  await siteAnnouncementStorage.upsertDiscoveredRecords({
+    site: {
+      siteKey: params.siteKey,
+      siteName: params.siteName ?? "Example",
+      siteType: params.siteType,
+      baseUrl: params.baseUrl,
+      accountId: params.accountId,
+      sourceScope: params.sourceScope,
+      status: SITE_ANNOUNCEMENT_STATUS.Success,
+      lastCheckedAt: 1,
+      lastSuccessAt: 1,
+    },
+    records: [],
+    now: 1,
+  })
+}
+
+describe("siteAnnouncementScheduler", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    const storage = new Storage({ area: "local" })
+    await storage.remove(STORAGE_KEYS.SITE_ANNOUNCEMENTS_STORE)
+    ;(siteAnnouncementScheduler as any).isInitialized = false
+    hasAlarmsAPIMock.mockReturnValue(true)
+    getAlarmMock.mockResolvedValue(undefined)
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: {
+        enabled: true,
+        notificationEnabled: true,
+        intervalMinutes: 360,
+      },
+    })
+    savePreferencesMock.mockResolvedValue(true)
+    notifySiteAnnouncementsMock.mockResolvedValue({ success: true })
+    getAccountByIdMock.mockResolvedValue(null)
+    getEnabledAccountsMock.mockResolvedValue([])
+  })
+
+  it("initializes a six-hour alarm from preferences", async () => {
+    await siteAnnouncementScheduler.initialize()
+
+    expect(onAlarmMock).toHaveBeenCalled()
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: 360,
+      delayInMinutes: 1,
+    })
+  })
+
+  it("falls back to the default interval when stored polling interval is invalid", async () => {
+    getPreferencesMock.mockResolvedValueOnce({
+      siteAnnouncementNotifications: {
+        enabled: true,
+        notificationEnabled: true,
+        intervalMinutes: "bad",
+      },
+    })
+
+    await siteAnnouncementScheduler.initialize()
+
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: 360,
+      delayInMinutes: 1,
+    })
+  })
+
+  it("preserves an existing announcement alarm when the period already matches", async () => {
+    getAlarmMock.mockResolvedValueOnce({
+      name: "siteAnnouncementsCheck",
+      periodInMinutes: 360,
+      scheduledTime: Date.now() + 60_000,
+    })
+
+    await siteAnnouncementScheduler.initialize()
+
+    expect(clearAlarmMock).not.toHaveBeenCalled()
+    expect(createAlarmMock).not.toHaveBeenCalled()
+  })
+
+  it("recreates a missing announcement alarm when status is queried", async () => {
+    getAlarmMock
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: 360,
+        scheduledTime: Date.now() + 60_000,
+      })
+      .mockResolvedValueOnce(undefined)
+
+    await siteAnnouncementScheduler.initialize()
+    expect(createAlarmMock).not.toHaveBeenCalled()
+
+    const response = await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: 360,
+      delayInMinutes: 1,
+    })
+    expect(response).toMatchObject({
+      success: true,
+      data: [],
+    })
+  })
+
+  it("recreates a missing announcement alarm with a short delay when stored status is overdue", async () => {
+    const intervalMinutes = 360
+    const intervalMs = intervalMinutes * 60 * 1000
+    const lastCheckedAt = 1_800_000_000_000
+    const now = lastCheckedAt + intervalMs + 5 * 60 * 1000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+
+    getAlarmMock
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: intervalMinutes,
+        scheduledTime: now + 60_000,
+      })
+      .mockResolvedValueOnce(undefined)
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://example.com",
+      siteName: "Example",
+      siteType: "new-api",
+      baseUrl: "https://example.com",
+      accountId: "account-1",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt,
+    })
+
+    await siteAnnouncementScheduler.initialize()
+    createAlarmMock.mockClear()
+    clearAlarmMock.mockClear()
+
+    const response = await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: intervalMinutes,
+      delayInMinutes: 1,
+    })
+    expect(response).toMatchObject({
+      success: true,
+      data: [
+        expect.objectContaining({
+          siteKey: "site:new-api:https://example.com",
+        }),
+      ],
+    })
+    nowSpy.mockRestore()
+  })
+
+  it("recreates a missing announcement alarm with a short delay when an enabled site has no status", async () => {
+    const intervalMinutes = 360
+    const now = 1_800_000_000_000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+
+    getAlarmMock
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: intervalMinutes,
+        scheduledTime: now + 60_000,
+      })
+      .mockResolvedValueOnce(undefined)
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://removed.example.com",
+      siteName: "Removed",
+      siteType: "new-api",
+      baseUrl: "https://removed.example.com",
+      accountId: "removed-account",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt: now - 10 * 60 * 1000,
+    })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({
+        id: "unchecked-account",
+        site_url: "https://unchecked.example.com",
+      }),
+    ])
+
+    await siteAnnouncementScheduler.initialize()
+    createAlarmMock.mockClear()
+    clearAlarmMock.mockClear()
+
+    await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: intervalMinutes,
+      delayInMinutes: 1,
+    })
+    nowSpy.mockRestore()
+  })
+
+  it("realigns an existing same-period alarm when an enabled site has no status", async () => {
+    const intervalMinutes = 360
+    const now = 1_800_000_000_000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+
+    getAlarmMock
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: intervalMinutes,
+        scheduledTime: now + intervalMinutes * 60 * 1000,
+      })
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: intervalMinutes,
+        scheduledTime: now + intervalMinutes * 60 * 1000,
+      })
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://checked.example.com",
+      siteName: "Checked",
+      siteType: "new-api",
+      baseUrl: "https://checked.example.com",
+      accountId: "checked-account",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt: now - 10 * 60 * 1000,
+    })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({
+        id: "checked-account",
+        site_url: "https://checked.example.com",
+      }),
+      createAccount({
+        id: "unchecked-account",
+        site_url: "https://unchecked.example.com",
+      }),
+    ])
+
+    await siteAnnouncementScheduler.initialize()
+    createAlarmMock.mockClear()
+    clearAlarmMock.mockClear()
+
+    await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(clearAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck")
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: intervalMinutes,
+      delayInMinutes: 1,
+    })
+    nowSpy.mockRestore()
+  })
+
+  it("ignores removed site cooldowns when realigning the next announcement alarm", async () => {
+    const intervalMinutes = 360
+    const now = 1_800_000_000_000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+
+    getAlarmMock
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: intervalMinutes,
+        scheduledTime: now + intervalMinutes * 60 * 1000,
+      })
+      .mockResolvedValueOnce({
+        name: "siteAnnouncementsCheck",
+        periodInMinutes: intervalMinutes,
+        scheduledTime: now + intervalMinutes * 60 * 1000,
+      })
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://active.example.com",
+      siteName: "Active",
+      siteType: "new-api",
+      baseUrl: "https://active.example.com",
+      accountId: "active-account",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt: now,
+    })
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://removed.example.com",
+      siteName: "Removed",
+      siteType: "new-api",
+      baseUrl: "https://removed.example.com",
+      accountId: "removed-account",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt: now - intervalMinutes * 60 * 1000,
+    })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({
+        id: "active-account",
+        site_url: "https://active.example.com",
+      }),
+    ])
+
+    await siteAnnouncementScheduler.initialize()
+    createAlarmMock.mockClear()
+    clearAlarmMock.mockClear()
+
+    const response = await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(clearAlarmMock).not.toHaveBeenCalled()
+    expect(createAlarmMock).not.toHaveBeenCalled()
+    expect(response).toMatchObject({
+      success: true,
+    })
+    nowSpy.mockRestore()
+  })
+
+  it("keeps announcement alarm cleared when status is queried while polling is disabled", async () => {
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: {
+        enabled: false,
+        notificationEnabled: true,
+        intervalMinutes: 360,
+      },
+    })
+
+    const response = await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(clearAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck")
+    expect(createAlarmMock).not.toHaveBeenCalled()
+    expect(response).toMatchObject({
+      success: true,
+      data: [],
+    })
+  })
+
+  it("initializes only once even when the background service runs setup twice", async () => {
+    await siteAnnouncementScheduler.initialize()
+    await siteAnnouncementScheduler.initialize()
+
+    expect(onAlarmMock).toHaveBeenCalledTimes(1)
+    expect(createAlarmMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("ignores unrelated alarm names", async () => {
+    await siteAnnouncementScheduler.initialize()
+
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    getEnabledAccountsMock.mockClear()
+
+    await alarmHandler?.({ name: "other-alarm" })
+
+    expect(getEnabledAccountsMock).not.toHaveBeenCalled()
+    expect(handlerFetchMock).not.toHaveBeenCalled()
+  })
+
+  it("skips scheduling when the alarms api is unavailable", async () => {
+    hasAlarmsAPIMock.mockReturnValue(false)
+
+    await siteAnnouncementScheduler.initialize()
+
+    expect(createAlarmMock).not.toHaveBeenCalled()
+    expect(clearAlarmMock).not.toHaveBeenCalled()
+  })
+
+  it("clears the scheduled alarm when announcement polling is disabled", async () => {
+    getPreferencesMock.mockResolvedValueOnce({
+      siteAnnouncementNotifications: {
+        enabled: false,
+        notificationEnabled: true,
+        intervalMinutes: 360,
+      },
+    })
+
+    await resolveSiteAnnouncementsUpdatePreferencesMessage({
+      settings: { enabled: false },
+    })
+
+    expect(clearAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck")
+    expect(createAlarmMock).not.toHaveBeenCalled()
+  })
+
+  it("skips alarm-triggered checks when automatic polling is disabled", async () => {
+    await siteAnnouncementScheduler.initialize()
+
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: {
+        enabled: false,
+        notificationEnabled: true,
+        intervalMinutes: 360,
+      },
+    })
+
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    getEnabledAccountsMock.mockClear()
+
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(getEnabledAccountsMock).not.toHaveBeenCalled()
+    expect(handlerFetchMock).not.toHaveBeenCalled()
+  })
+
+  it("skips alarm-triggered checks for sites checked within the configured interval", async () => {
+    const now = 1_800_000_000_000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://example.com",
+      siteName: "Example",
+      siteType: "new-api",
+      baseUrl: "https://example.com",
+      accountId: "account-1",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt: now - 10 * 60 * 1000,
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await siteAnnouncementScheduler.initialize()
+
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    getEnabledAccountsMock.mockClear()
+
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(getEnabledAccountsMock).toHaveBeenCalledTimes(1)
+    expect(handlerFetchMock).not.toHaveBeenCalled()
+    nowSpy.mockRestore()
+  })
+
+  it("realigns the alarm to the cooldown boundary when an alarm fires just before a manual check expires", async () => {
+    const intervalMinutes = 360
+    const intervalMs = intervalMinutes * 60 * 1000
+    const lastCheckedAt = 1_800_000_000_000
+    const now = lastCheckedAt + intervalMs - 60_000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: {
+        enabled: true,
+        notificationEnabled: true,
+        intervalMinutes,
+      },
+    })
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://example.com",
+      siteName: "Example",
+      siteType: "new-api",
+      baseUrl: "https://example.com",
+      accountId: "account-1",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+      lastCheckedAt,
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await siteAnnouncementScheduler.initialize()
+
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    createAlarmMock.mockClear()
+    clearAlarmMock.mockClear()
+
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(handlerFetchMock).not.toHaveBeenCalled()
+    expect(clearAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck")
+    expect(createAlarmMock).toHaveBeenCalledWith("siteAnnouncementsCheck", {
+      periodInMinutes: intervalMinutes,
+      delayInMinutes: 1,
+    })
+    nowSpy.mockRestore()
+  })
+
+  it("filters explicit account ids down to existing enabled accounts", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [],
+    })
+    getAccountByIdMock.mockImplementation(async (id: string) => {
+      if (id === "enabled") {
+        return createAccount({ id: "enabled" })
+      }
+
+      if (id === "disabled") {
+        return createAccount({ id: "disabled", disabled: true })
+      }
+
+      return null
+    })
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({
+      accountIds: ["enabled", "missing", "disabled"],
+    })
+
+    expect(handlerFetchMock).toHaveBeenCalledTimes(1)
+    if (response.success) {
+      expect(response.data).toMatchObject({
+        checked: 1,
+        created: 0,
+        failed: 0,
+        unsupported: 0,
+      })
+    } else {
+      expect.fail(response.error)
+    }
+  })
+
+  it("preserves provider read state without notifying", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [
+        {
+          title: "Already read",
+          content: "Provider-owned read state",
+          readAt: 1234,
+        },
+      ],
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    expect(response).toMatchObject({
+      success: true,
+      data: { created: 0, notified: 0 },
+    })
+    expect(notifySiteAnnouncementsMock).not.toHaveBeenCalled()
+    expect(await siteAnnouncementStorage.listRecords()).toEqual([
+      expect.objectContaining({ read: true, readAt: 1234 }),
+    ])
+  })
+
+  it.each([
+    [undefined, 1234],
+    [1234, undefined],
+  ])(
+    "does not notify duplicate provider fingerprints in either read ordering (%s, %s)",
+    async (firstReadAt, secondReadAt) => {
+      handlerFetchMock.mockResolvedValue({
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        siteKey: "site:new-api:https://example.com",
+        status: "success",
+        announcements: [
+          {
+            title: "B representative",
+            content: "B body",
+            fingerprint: "scheduler-duplicate-order",
+            readAt: firstReadAt,
+          },
+          {
+            title: "A representative",
+            content: "A body",
+            fingerprint: "scheduler-duplicate-order",
+            readAt: secondReadAt,
+          },
+        ],
+      })
+      getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+      const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+      expect(response).toMatchObject({
+        success: true,
+        data: { created: 0, notified: 0 },
+      })
+      expect(notifySiteAnnouncementsMock).not.toHaveBeenCalled()
+      expect(await siteAnnouncementStorage.listRecords()).toEqual([
+        expect.objectContaining({
+          title: "A representative",
+          content: "A body",
+          read: true,
+          readAt: 1234,
+        }),
+      ])
+    },
+  )
+
+  it("does not recreate evicted announcements after marking the site read", async () => {
+    const announcements = Array.from({ length: 101 }, (_, index) => ({
+      title: `Notice ${index}`,
+      content: `Body ${index}`,
+      fingerprint: `scheduler-mark-all-${index}`,
+    }))
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements,
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await resolveSiteAnnouncementsCheckNowMessage({})
+    await siteAnnouncementStorage.markAllRead(
+      "site:new-api:https://example.com",
+    )
+    const secondResponse = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    expect(secondResponse).toMatchObject({
+      success: true,
+      data: { created: 0, notified: 0 },
+    })
+  })
+
+  it("uses the stored-account API context for provider requests", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      status: "success",
+      announcements: [],
+    })
+    const account = createAccount({
+      id: "sub-1",
+      site_type: SITE_TYPES.SUB2API,
+      site_url: "https://sub.example.com",
+      authType: AuthTypeEnum.Cookie,
+      account_info: {
+        id: "stored-user",
+        access_token: "stored-access-token",
+        username: "stored-user",
+        quota: 0,
+        today_prompt_tokens: 0,
+        today_completion_tokens: 0,
+        today_quota_consumption: 0,
+        today_requests_count: 0,
+        today_income: 0,
+      },
+      cookieAuth: { sessionCookie: "stored-session-cookie" },
+      sub2apiAuth: {
+        refreshToken: "stored-refresh-token",
+        tokenExpiresAt: 123456,
+      },
+    })
+    getEnabledAccountsMock.mockResolvedValue([account])
+    getAccountByIdMock.mockImplementation(async (id: string) =>
+      id === account.id ? account : null,
+    )
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    expect(response).toMatchObject({ success: true })
+    expect(handlerFetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiRequest: expect.objectContaining({
+          baseUrl: "https://sub.example.com",
+          accountId: "sub-1",
+          auth: expect.objectContaining({
+            authType: AuthTypeEnum.Cookie,
+            userId: "stored-user",
+            accessToken: "stored-access-token",
+            cookie: "stored-session-cookie",
+          }),
+          sub2apiAuthSession: expect.any(Object),
+        }),
+      }),
+    )
+    const providerRequest = handlerFetchMock.mock.calls[0]?.[0]
+    await expect(
+      providerRequest.apiRequest.sub2apiAuthSession.getLatestAuth("sub-1"),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        accessToken: "stored-access-token",
+        userId: "stored-user",
+        sub2apiAuth: {
+          refreshToken: "stored-refresh-token",
+          tokenExpiresAt: 123456,
+        },
+      }),
+    )
+  })
+
+  it("dedupes common site checks but keeps Sub2API account-scoped checks", async () => {
+    handlerFetchMock.mockImplementation((request) =>
+      Promise.resolve({
+        sourceScope: request.sourceScope,
+        siteKey:
+          request.sourceScope === "account"
+            ? `account:sub2api:${request.accountId}:${request.baseUrl}`
+            : `site:${request.siteType}:${request.baseUrl}`,
+        status: "success",
+        announcements: [{ content: `Notice ${request.accountId}` }],
+      }),
+    )
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({ id: "common-1" }),
+      createAccount({ id: "common-2" }),
+      createAccount({
+        id: "sub-1",
+        site_type: SITE_TYPES.SUB2API,
+        site_url: "https://sub.example.com",
+      }),
+      createAccount({
+        id: "sub-2",
+        site_type: SITE_TYPES.SUB2API,
+        site_url: "https://sub.example.com",
+      }),
+    ])
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    expect(handlerFetchMock).toHaveBeenCalledTimes(3)
+    if (response.success) {
+      expect(response.data).toMatchObject({
+        checked: 3,
+        created: 3,
+        // Manual checks refresh the page the user is already looking at, so
+        // they never notify.
+        notified: 0,
+      })
+    } else {
+      expect.fail(response.error)
+    }
+    expect(notifySiteAnnouncementsMock).not.toHaveBeenCalled()
+  })
+
+  it("tracks unsupported and error provider results separately", async () => {
+    handlerFetchMock
+      .mockResolvedValueOnce({
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        siteKey: "site:new-api:https://example.com",
+        status: "unsupported",
+        announcements: [],
+      })
+      .mockResolvedValueOnce({
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        siteKey: "site:new-api:https://second.example.com",
+        status: "error",
+        announcements: [],
+        error: "provider failed",
+      })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({ id: "account-1" }),
+      createAccount({
+        id: "account-2",
+        site_url: "https://second.example.com",
+      }),
+    ])
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    if (response.success) {
+      expect(response.data).toMatchObject({
+        checked: 2,
+        failed: 1,
+        unsupported: 1,
+        created: 0,
+      })
+    } else {
+      expect.fail(response.error)
+    }
+  })
+
+  it("records provider fetch failures and keeps checking remaining accounts", async () => {
+    handlerFetchMock
+      .mockRejectedValueOnce(new Error("timeout"))
+      .mockResolvedValueOnce({
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        siteKey: "site:new-api:https://second.example.com",
+        status: "success",
+        announcements: [{ content: "Recovered" }],
+      })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({ id: "account-1" }),
+      createAccount({
+        id: "account-2",
+        site_url: "https://second.example.com",
+      }),
+    ])
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    if (response.success) {
+      expect(response.data).toMatchObject({
+        checked: 2,
+        failed: 1,
+        created: 1,
+      })
+    } else {
+      expect.fail(response.error)
+    }
+    await expect(siteAnnouncementStorage.getStatus()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          siteKey: "site:new-api:https://example.com",
+          status: "error",
+          lastError: "timeout",
+        }),
+      ]),
+    )
+  })
+
+  it("returns null when the outer account fetch fails", async () => {
+    getEnabledAccountsMock.mockRejectedValueOnce(new Error("db unavailable"))
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    expect(response).toEqual({
+      success: true,
+      data: null,
+    })
+  })
+
+  it("returns null immediately when a check is already in progress", async () => {
+    let finishFetch!: (accounts: never[]) => void
+    getEnabledAccountsMock.mockReturnValueOnce(
+      new Promise<never[]>((resolve) => {
+        finishFetch = resolve
+      }),
+    )
+    const firstCheck = resolveSiteAnnouncementsCheckNowMessage({})
+    await vi.waitFor(() =>
+      expect(getEnabledAccountsMock).toHaveBeenCalledOnce(),
+    )
+    try {
+      await expect(
+        resolveSiteAnnouncementsCheckNowMessage({}),
+      ).resolves.toEqual({ success: true, data: null })
+      expect(getEnabledAccountsMock).toHaveBeenCalledOnce()
+    } finally {
+      finishFetch([])
+      await firstCheck
+    }
+    await expect(
+      resolveSiteAnnouncementsCheckNowMessage({}),
+    ).resolves.toMatchObject({ success: true, data: { checked: 0 } })
+  })
+
+  it("stores provider title and content without deriving a persisted summary", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [{ content: "Only body text" }],
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    const response = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    if (response.success) {
+      expect(response.data?.records[0]).toMatchObject({
+        title: "",
+        content: "Only body text",
+      })
+      expect(response.data?.records[0]).not.toHaveProperty("summary")
+    } else {
+      expect.fail(response.error)
+    }
+  })
+
+  it("syncs Sub2API upstream read state before marking the local record read", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      status: "success",
+      announcements: [
+        {
+          id: "42",
+          title: "Sub2API notice",
+          content: "Body",
+          fingerprint: "42",
+        },
+      ],
+    })
+    const account = createAccount({
+      id: "sub-1",
+      site_type: SITE_TYPES.SUB2API,
+      site_url: "https://sub.example.com",
+    })
+    getEnabledAccountsMock.mockResolvedValue([account])
+    getAccountByIdMock.mockResolvedValue(account)
+    await seedCheckedSite({
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      accountId: "sub-1",
+      siteType: SITE_TYPES.SUB2API,
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      baseUrl: "https://sub.example.com",
+    })
+
+    const checkResponse = await resolveSiteAnnouncementsCheckNowMessage({})
+
+    if (!checkResponse.success) {
+      expect.fail(checkResponse.error)
+    }
+    const recordId = checkResponse.data!.records[0]!.id
+    const readResponse = await resolveSiteAnnouncementsMarkReadMessage({
+      recordId,
+    })
+
+    expect(handlerMarkReadMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "sub-1",
+        apiRequest: expect.objectContaining({
+          requestScheduling: { priority: "foreground" },
+        }),
+      }),
+      [{ id: "42" }],
+    )
+    expect(readResponse).toEqual({ success: true })
+  })
+
+  it.each([true, false])(
+    "uses optional provider acknowledgement rather than a site-type check (registered: %s)",
+    async (registered) => {
+      const account = createAccount()
+      getEnabledAccountsMock.mockResolvedValue([account])
+      getAccountByIdMock.mockResolvedValue(account)
+      await seedCheckedSite({
+        siteKey: "site:new-api:https://example.com",
+        accountId: "account-1",
+        siteType: SITE_TYPES.NEW_API,
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        baseUrl: "https://example.com",
+      })
+      handlerFetchMock.mockResolvedValue({
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        siteKey: "site:new-api:https://example.com",
+        status: "success",
+        announcements: [
+          {
+            id: "provider-notice",
+            title: "Notice",
+            content: "Body",
+            fingerprint: "provider-notice",
+          },
+        ],
+      })
+      const response = await resolveSiteAnnouncementsCheckNowMessage({})
+      if (!response.success) expect.fail(response.error)
+      const recordId = response.data!.records[0]!.id
+      const handler = getAnnouncementSourceHandlers(SITE_TYPES.NEW_API)[0]!
+      vi.mocked(getAnnouncementSourceHandlers).mockReturnValueOnce([
+        {
+          ...handler,
+          markRead: registered ? handlerMarkReadMock : undefined,
+        },
+      ])
+
+      expect(
+        await resolveSiteAnnouncementsMarkReadMessage({ recordId }),
+      ).toEqual({ success: true })
+      expect(handlerMarkReadMock).toHaveBeenCalledTimes(registered ? 1 : 0)
+    },
+  )
+
+  it("stores notification errors without acknowledging upstream announcements when delivery fails", async () => {
+    await seedCheckedSite({
+      siteKey: "site:new-api:https://example.com",
+      accountId: "account-1",
+      siteType: SITE_TYPES.NEW_API,
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      baseUrl: "https://example.com",
+    })
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [{ content: "Only body text" }],
+    })
+    notifySiteAnnouncementsMock.mockResolvedValue({
+      success: false,
+      error: "notifications blocked",
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await siteAnnouncementScheduler.initialize()
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(notifySiteAnnouncementsMock).toHaveBeenCalledTimes(1)
+    await expect(siteAnnouncementStorage.listRecords()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          notificationError: "notifications blocked",
+        }),
+      ]),
+    )
+    expect(handlerMarkReadMock).not.toHaveBeenCalled()
+  })
+
+  it("treats the first scan of a site as baseline history without notifying", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [
+        {
+          title: "Old notice",
+          content: "Body",
+          createdAt: Date.now() - 60_000,
+        },
+      ],
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await siteAnnouncementScheduler.initialize()
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(notifySiteAnnouncementsMock).not.toHaveBeenCalled()
+    await expect(siteAnnouncementStorage.listRecords()).resolves.toEqual([
+      expect.objectContaining({ title: "Old notice", read: true }),
+    ])
+  })
+
+  it("does not acknowledge upstream announcements after notifying by default", async () => {
+    await seedCheckedSite({
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      accountId: "sub-1",
+      siteType: SITE_TYPES.SUB2API,
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      baseUrl: "https://sub.example.com",
+    })
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      status: "success",
+      announcements: [
+        {
+          id: "42",
+          title: "Sub2API notice",
+          content: "Body",
+          createdAt: Date.now(),
+        },
+      ],
+    })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({
+        id: "sub-1",
+        site_type: SITE_TYPES.SUB2API,
+        site_url: "https://sub.example.com",
+      }),
+    ])
+
+    await siteAnnouncementScheduler.initialize()
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(notifySiteAnnouncementsMock).toHaveBeenCalledTimes(1)
+    expect(handlerMarkReadMock).not.toHaveBeenCalled()
+    await expect(siteAnnouncementStorage.listRecords()).resolves.toEqual([
+      expect.objectContaining({ title: "Sub2API notice", read: false }),
+    ])
+  })
+
+  it("acknowledges upstream announcements after notifying when the opt-in is enabled", async () => {
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: {
+        enabled: true,
+        notificationEnabled: true,
+        intervalMinutes: 360,
+        autoMarkUpstreamReadOnNotify: true,
+      },
+    })
+    await seedCheckedSite({
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      accountId: "sub-1",
+      siteType: SITE_TYPES.SUB2API,
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      baseUrl: "https://sub.example.com",
+    })
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+      siteKey: "account:sub2api:sub-1:https://sub.example.com",
+      status: "success",
+      announcements: [
+        {
+          id: "42",
+          title: "Sub2API notice",
+          content: "Body",
+          createdAt: Date.now(),
+        },
+      ],
+    })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({
+        id: "sub-1",
+        site_type: SITE_TYPES.SUB2API,
+        site_url: "https://sub.example.com",
+      }),
+    ])
+
+    await siteAnnouncementScheduler.initialize()
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(notifySiteAnnouncementsMock).toHaveBeenCalledTimes(1)
+    expect(handlerMarkReadMock).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: "sub-1" }),
+      [expect.objectContaining({ id: "42" })],
+    )
+  })
+
+  it("notifies news inside the age window and stores older findings as read", async () => {
+    const now = 1_800_000_000_000
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now)
+    await seedCheckedSite({
+      siteKey: "site:new-api:https://example.com",
+      accountId: "account-1",
+      siteType: SITE_TYPES.NEW_API,
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      baseUrl: "https://example.com",
+    })
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [
+        {
+          title: "Fresh",
+          content: "New",
+          createdAt: now - 24 * 60 * 60 * 1000,
+        },
+        {
+          title: "Stale",
+          content: "Old",
+          createdAt: now - 30 * 24 * 60 * 60 * 1000,
+        },
+      ],
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await siteAnnouncementScheduler.initialize()
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+    nowSpy.mockRestore()
+
+    expect(notifySiteAnnouncementsMock).toHaveBeenCalledTimes(1)
+    expect(notifySiteAnnouncementsMock.mock.calls[0]?.[0]).toEqual([
+      expect.objectContaining({ title: "Fresh" }),
+    ])
+    await expect(siteAnnouncementStorage.listRecords()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Fresh", read: false }),
+        expect.objectContaining({ title: "Stale", read: true }),
+      ]),
+    )
+  })
+
+  it("runs alarm polling in the background lane and manual checks in the foreground lane", async () => {
+    handlerFetchMock.mockResolvedValue({
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [],
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+
+    await siteAnnouncementScheduler.initialize()
+    const alarmHandler = onAlarmMock.mock.calls[0]?.[0]
+    expect(alarmHandler).toBeTypeOf("function")
+    await alarmHandler?.({ name: "siteAnnouncementsCheck" })
+
+    expect(handlerFetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiRequest: expect.objectContaining({
+          requestScheduling: { priority: "background" },
+        }),
+      }),
+    )
+
+    handlerFetchMock.mockClear()
+    await resolveSiteAnnouncementsCheckNowMessage({})
+
+    expect(handlerFetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiRequest: expect.objectContaining({
+          requestScheduling: { priority: "foreground" },
+        }),
+      }),
+    )
+  })
+
+  it("skips upstream sync when mark-read targets an unknown local record", async () => {
+    const response = await resolveSiteAnnouncementsMarkReadMessage({
+      recordId: "missing-record",
+    })
+
+    expect(handlerMarkReadMock).not.toHaveBeenCalled()
+    expect(response).toEqual({
+      success: false,
+      error: "Failed to mark announcement as read",
+    })
+  })
+
+  it("marks local Sub2API records read even when the backing account can no longer be loaded", async () => {
+    await siteAnnouncementStorage.upsertDiscoveredRecords({
+      site: {
+        siteKey: "account:sub2api:sub-1:https://sub.example.com",
+        siteName: "Sub",
+        siteType: "sub2api",
+        baseUrl: "https://sub.example.com",
+        accountId: "sub-1",
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+        status: "success",
+      },
+      records: [
+        {
+          siteKey: "account:sub2api:sub-1:https://sub.example.com",
+          siteName: "Sub",
+          siteType: "sub2api",
+          baseUrl: "https://sub.example.com",
+          accountId: "sub-1",
+          sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Account,
+          title: "Notice",
+          content: "Body",
+          fingerprint: "missing-account",
+          upstreamId: "42",
+        },
+      ],
+    })
+    getAccountByIdMock.mockResolvedValueOnce(null)
+
+    const [record] = await siteAnnouncementStorage.listRecords()
+    const response = await resolveSiteAnnouncementsMarkReadMessage({
+      recordId: record!.id,
+    })
+
+    expect(handlerMarkReadMock).not.toHaveBeenCalled()
+    expect(response).toEqual({ success: true })
+  })
+
+  it("resolves current status, records, and mark-all typed messages", async () => {
+    await siteAnnouncementStorage.upsertDiscoveredRecords({
+      site: {
+        siteKey: "site:new-api:https://example.com",
+        siteName: "Example",
+        siteType: "new-api",
+        baseUrl: "https://example.com",
+        accountId: "account-1",
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        status: "success",
+      },
+      records: [
+        {
+          siteKey: "site:new-api:https://example.com",
+          siteName: "Example",
+          siteType: "new-api",
+          baseUrl: "https://example.com",
+          accountId: "account-1",
+          sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+          title: "Notice",
+          content: "Body",
+          fingerprint: "status-record",
+        },
+      ],
+    })
+
+    const statusResponse = await resolveSiteAnnouncementsGetStatusMessage()
+    expect(statusResponse).toMatchObject({
+      success: true,
+      data: [
+        expect.objectContaining({
+          siteKey: "site:new-api:https://example.com",
+        }),
+      ],
+    })
+
+    const listResponse = await resolveSiteAnnouncementsListRecordsMessage()
+    expect(listResponse).toMatchObject({
+      success: true,
+      data: [
+        expect.objectContaining({
+          fingerprint: "status-record",
+        }),
+      ],
+    })
+
+    const markAllResponse = await resolveSiteAnnouncementsMarkAllReadMessage({
+      siteKey: "site:new-api:https://example.com",
+    })
+    expect(markAllResponse).toEqual({
+      success: true,
+      data: 1,
+    })
+  })
+
+  it("wires typed site announcement messages through registered listeners", async () => {
+    await siteAnnouncementStorage.upsertDiscoveredRecords({
+      site: {
+        siteKey: "site:new-api:https://example.com",
+        siteName: "Example",
+        siteType: "new-api",
+        baseUrl: "https://example.com",
+        accountId: "account-1",
+        sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+        status: "success",
+      },
+      records: [
+        {
+          siteKey: "site:new-api:https://example.com",
+          siteName: "Example",
+          siteType: "new-api",
+          baseUrl: "https://example.com",
+          accountId: "account-1",
+          sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+          title: "Notice",
+          content: "Body",
+          fingerprint: "listener-record",
+        },
+      ],
+    })
+    getEnabledAccountsMock.mockResolvedValue([createAccount()])
+    handlerFetchMock.mockResolvedValue({
+      siteKey: "site:new-api:https://example.com",
+      status: "success",
+      announcements: [{ title: "New", content: "Fresh body" }],
+    })
+
+    setupSiteAnnouncementsMessagingListeners()
+    setupSiteAnnouncementsMessagingListeners()
+
+    expect([...siteAnnouncementsMessageHandlers.keys()]).toEqual([
+      SiteAnnouncementsMessageTypes.GetStatus,
+      SiteAnnouncementsMessageTypes.ListRecords,
+      SiteAnnouncementsMessageTypes.CheckNow,
+      SiteAnnouncementsMessageTypes.MarkRead,
+      SiteAnnouncementsMessageTypes.MarkAllRead,
+      SiteAnnouncementsMessageTypes.UpdatePreferences,
+      SiteAnnouncementsMessageTypes.DebugSeedFixtures,
+      SiteAnnouncementsMessageTypes.DebugClearFixtures,
+    ])
+    expect(onSiteAnnouncementsMessageMock).toHaveBeenCalledTimes(8)
+
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.MarkRead,
+      )?.({ data: { recordId: "missing-record" } }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Failed to mark announcement as read",
+    })
+
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.GetStatus,
+      )?.({ data: {} }),
+    ).resolves.toMatchObject({ success: true })
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.ListRecords,
+      )?.({ data: {} }),
+    ).resolves.toMatchObject({ success: true })
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.CheckNow,
+      )?.({ data: { accountIds: ["account-1"] } }),
+    ).resolves.toMatchObject({ success: true })
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.MarkAllRead,
+      )?.({ data: { siteKey: "site:new-api:https://example.com" } }),
+    ).resolves.toMatchObject({ success: true, data: expect.any(Number) })
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.UpdatePreferences,
+      )?.({ data: { settings: { enabled: false } } }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: expect.objectContaining({ enabled: false }),
+    })
+
+    vi.stubEnv("MODE", "development")
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.DebugSeedFixtures,
+      )?.({
+        data: {
+          announcementCount: 1,
+          failedSiteCount: 0,
+          unsupportedSiteCount: 0,
+        },
+      }),
+    ).resolves.toEqual({
+      success: true,
+      data: { sites: 1, records: 1 },
+    })
+    await expect(
+      siteAnnouncementsMessageHandlers.get(
+        SiteAnnouncementsMessageTypes.DebugClearFixtures,
+      )?.({ data: {} }),
+    ).resolves.toEqual({
+      success: true,
+      data: { sites: 1, records: 1 },
+    })
+    await expect(siteAnnouncementStorage.listRecords()).resolves.toEqual([
+      expect.objectContaining({ fingerprint: "listener-record" }),
+    ])
+    vi.unstubAllEnvs()
+  })
+
+  it("returns current status when schedule reconciliation fails", async () => {
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://example.com",
+      siteName: "Example",
+      siteType: "new-api",
+      baseUrl: "https://example.com",
+      accountId: "account-1",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "success",
+    })
+    getPreferencesMock.mockRejectedValueOnce(new Error("prefs failed"))
+
+    const response = await resolveSiteAnnouncementsGetStatusMessage()
+
+    expect(response).toMatchObject({
+      success: true,
+      data: [
+        expect.objectContaining({
+          siteKey: "site:new-api:https://example.com",
+        }),
+      ],
+    })
+  })
+
+  it("returns cached announcement status when enabled-account discovery fails", async () => {
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: { enabled: false },
+    })
+    await seedCheckedSite({
+      siteKey: "site:new-api:https://example.com",
+      accountId: "saved-account",
+      siteType: "new-api",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      baseUrl: "https://example.com",
+    })
+    const cached = await siteAnnouncementStorage.getStatus()
+    getEnabledAccountsMock.mockRejectedValue(new Error("account store offline"))
+
+    await expect(resolveSiteAnnouncementsGetStatusMessage()).resolves.toEqual({
+      success: true,
+      data: cached,
+    })
+    expect(handlerFetchMock).not.toHaveBeenCalled()
+    expect(await siteAnnouncementStorage.getStatus()).toEqual(cached)
+  })
+
+  it("exposes unscanned enabled sources beside historical cache without fetching or persisting them", async () => {
+    getPreferencesMock.mockResolvedValue({
+      siteAnnouncementNotifications: { enabled: false },
+    })
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({
+        id: "new-account",
+        site_name: "New site",
+        site_url: "https://new.example",
+      }),
+    ])
+    await seedCheckedSite({
+      siteKey: "site:new-api:https://old.example",
+      accountId: "removed-account",
+      siteType: "new-api",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      baseUrl: "https://old.example",
+    })
+    const before = await siteAnnouncementStorage.getStatus()
+    const response = await resolveSiteAnnouncementsGetStatusMessage()
+    expect(response).toMatchObject({
+      success: true,
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          siteKey: "site:new-api:https://old.example",
+          status: "success",
+        }),
+        expect.objectContaining({
+          siteKey: "site:new-api:https://new.example",
+          accountId: "new-account",
+          siteName: "New site",
+          status: "never",
+          records: [],
+        }),
+      ]),
+    })
+    expect(handlerFetchMock).not.toHaveBeenCalled()
+    expect(await siteAnnouncementStorage.getStatus()).toEqual(before)
+  })
+
+  it("rebinds cached site status to the current source account without discarding its error or records", async () => {
+    getEnabledAccountsMock.mockResolvedValue([
+      createAccount({ id: "replacement", site_name: "Renamed" }),
+    ])
+    await siteAnnouncementStorage.upsertSiteStatus({
+      siteKey: "site:new-api:https://example.com",
+      siteName: "Old",
+      siteType: "new-api",
+      baseUrl: "https://example.com",
+      accountId: "deleted",
+      sourceScope: ANNOUNCEMENT_SOURCE_SCOPES.Site,
+      status: "error",
+      lastError: "offline",
+      lastCheckedAt: 123,
+    })
+    expect(await resolveSiteAnnouncementsGetStatusMessage()).toMatchObject({
+      success: true,
+      data: [
+        expect.objectContaining({
+          accountId: "replacement",
+          siteName: "Renamed",
+          status: "error",
+          lastError: "offline",
+          lastCheckedAt: 123,
+        }),
+      ],
+    })
+  })
+
+  it("converts thrown message handler errors into error responses", async () => {
+    vi.spyOn(siteAnnouncementStorage, "listRecords").mockRejectedValueOnce(
+      new Error("boom"),
+    )
+
+    const response = await resolveSiteAnnouncementsListRecordsMessage()
+
+    expect(response).toEqual({
+      success: false,
+      error: "boom",
+    })
+  })
+
+  it("returns a failure response when cached status cannot be read", async () => {
+    const statusSpy = vi
+      .spyOn(siteAnnouncementStorage, "getStatus")
+      .mockRejectedValue(new Error("status storage failed"))
+
+    await expect(resolveSiteAnnouncementsGetStatusMessage()).resolves.toEqual({
+      success: false,
+      error: "status storage failed",
+    })
+    statusSpy.mockRestore()
+  })
+
+  it("converts thrown site announcement resolver errors into failure responses", async () => {
+    const markReadSpy = vi
+      .spyOn(siteAnnouncementStorage, "markRead")
+      .mockRejectedValueOnce(new Error("mark read storage failed"))
+    await expect(
+      resolveSiteAnnouncementsMarkReadMessage({ recordId: "missing-record" }),
+    ).resolves.toEqual({
+      success: false,
+      error: "mark read storage failed",
+    })
+    markReadSpy.mockRestore()
+
+    vi.spyOn(siteAnnouncementScheduler, "runManualCheck").mockRejectedValueOnce(
+      new Error("check failed"),
+    )
+    await expect(resolveSiteAnnouncementsCheckNowMessage({})).resolves.toEqual({
+      success: false,
+      error: "check failed",
+    })
+
+    vi.spyOn(siteAnnouncementStorage, "markAllRead").mockRejectedValueOnce(
+      new Error("mark all failed"),
+    )
+    await expect(
+      resolveSiteAnnouncementsMarkAllReadMessage({
+        siteKey: "site:new-api:https://example.com",
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "mark all failed",
+    })
+
+    vi.spyOn(siteAnnouncementScheduler, "updateSettings").mockRejectedValueOnce(
+      new Error("preferences failed"),
+    )
+    await expect(
+      resolveSiteAnnouncementsUpdatePreferencesMessage({
+        settings: { enabled: true },
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "preferences failed",
+    })
+  })
+})

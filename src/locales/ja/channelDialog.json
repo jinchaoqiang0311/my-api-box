@@ -1,0 +1,90 @@
+{
+  "actions": {
+    "create": "チャネルを作成",
+    "deselectAll": "すべての選択を解除",
+    "hideKey": "キーを隠す",
+    "inverse": "選択を反転",
+    "loadingRealKey": "実際のキーを読み込み中...",
+    "loadRealKey": "実際のキーを読み込む",
+    "selectAll": "すべて選択",
+    "showKey": "キーを表示",
+    "update": "変更を保存"
+  },
+  "description": {
+    "add": "管理対象サイト用の新しいチャネルを設定します",
+    "edit": "チャネル設定とルーティング情報を更新します"
+  },
+  "fields": {
+    "baseUrl": {
+      "label": "Base URL",
+      "placeholder": "https://api.example.com"
+    },
+    "groups": {
+      "hint": "グループは管理対象サイトから取得されます",
+      "label": "チャネルグループ",
+      "placeholder": "グループを選択"
+    },
+    "key": {
+      "label": "API キー",
+      "placeholder": "上流プロバイダーの API キーを入力",
+      "realKeyHint": "一覧 API が完全なチャネルキーを返さない場合は、ここで実際のキーを読み込めます。チャネル種別によっては追加の認証が必要です。"
+    },
+    "models": {
+      "hint": "入力して検索するか、Enter でカスタムモデル名を追加します",
+      "label": "利用可能モデル",
+      "placeholder": "モデル名を選択または入力"
+    },
+    "name": {
+      "label": "チャネル名",
+      "placeholder": "説明しやすいチャネル名を入力"
+    },
+    "priority": {
+      "label": "優先度"
+    },
+    "status": {
+      "label": "状態"
+    },
+    "type": {
+      "hint": "このチャネルが転送する上流プロバイダーを選択します",
+      "label": "チャネル種別",
+      "placeholder": "チャネル種別を選択"
+    },
+    "weight": {
+      "label": "重み"
+    }
+  },
+  "opening": {
+    "loading": "チャネル設定を読み込み中…"
+  },
+  "title": {
+    "add": "チャネルを作成",
+    "edit": "チャネルを編集",
+    "view": "チャネルを表示"
+  },
+  "warnings": {
+    "channelExists": {
+      "actions": {
+        "continue": "続行"
+      },
+      "description": "管理対象サイトにはすでに {{channelName}} という名前のチャネルがあります。別のチャネルを作成することはできますが、重複したルーティングが発生する可能性があります。このまま続行しますか？",
+      "title": "チャネルはすでに存在します",
+      "warningTitle": "重複の可能性があります"
+    },
+    "exactDuplicate": {
+      "description": "管理対象サイトに重複候補チャネル {{channelName}} が存在することが確認されました。重複を避けたい場合は保存前に名前、モデル、キーを調整してください。重複したままでも作成を続けることはできます。",
+      "title": "重複チャネルが確認されました"
+    },
+    "modelsPrefillFailed": {
+      "description": "この API キーの上流モデル一覧を取得できませんでした。チャネル作成は続行できますが、保存前にモデルを手動で入力して確認してください。",
+      "title": "モデルを手動入力してください"
+    },
+    "reviewSuggested": {
+      "description": "同じ上流 URL またはモデル構成に近い候補チャネルが見つかりましたが、重複かどうかはまだ自動で確定できません。作成は続行できますが、保存前に名前、モデル、キーを確認してください。",
+      "title": "重複候補を確認してください"
+    },
+    "verificationRequired": {
+      "description": "候補チャネルは見つかりましたが、実際のチャネルキーを読む前に追加の検証が必要なため、現時点では重複を正確に確認できません。チャネル作成は続行できますが、正確に重複確認したい場合は先に検証を完了してください。",
+      "title": "重複の確認には検証が必要です"
+    }
+  }
+}

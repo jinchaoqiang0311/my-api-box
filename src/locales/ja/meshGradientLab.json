@@ -1,0 +1,23 @@
+{
+  "actions": {
+    "shuffleSeed": "Seed をシャッフル"
+  },
+  "captions": {
+    "layoutIndex": "レイアウト #{{index}}",
+    "paletteIndex": "#{{index}}"
+  },
+  "labels": {
+    "layout": "レイアウト",
+    "overlay": "オーバーレイ",
+    "palette": "パレット",
+    "seed": "シード",
+    "view": "表示"
+  },
+  "summaryLayout_other": "{{count}} レイアウト",
+  "summaryPalette_other": "{{count}} パレット",
+  "title": "Mesh Gradient Lab（開発用）",
+  "view": {
+    "layouts": "レイアウト",
+    "palettes": "パレット"
+  }
+}

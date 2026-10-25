@@ -1,0 +1,944 @@
+{
+  "accountSummary": {
+    "keys": "{{count}} 个密钥",
+    "loadFailed": "加载失败",
+    "loading": "加载中",
+    "partialLoadFailed": "部分加载",
+    "title": "账号概览",
+    "unavailableAccounts": "未能加载密钥 · {{count}}",
+    "unsupported": "不支持"
+  },
+  "actions": {
+    "collapseAll": "全部折叠",
+    "copyKelivoImportCode": "导出到 Kelivo 移动端",
+    "deleteKey": "删除密钥",
+    "details": "查看详情",
+    "detailsFor": "查看 {{name}} 的详情",
+    "editKey": "编辑密钥",
+    "expandAll": "全部展开",
+    "exportToAiToolbox": "导出到 AI Toolbox",
+    "exportToCCSwitch": "导出到 CC Switch",
+    "exportToCursorPlus": "导出 Cursor++ 提供商配置",
+    "exportToKiloCode": "导出 Kilo Code 配置",
+    "hideKey": "隐藏密钥",
+    "importToClaudeCodeRouter": "导入到 Claude Code Router",
+    "importToManagedSite": "导入到 {{site}}",
+    "openApiProfiles": "打开 API 凭据库",
+    "openSelectedAccountModels": "查看账号模型",
+    "retryFailed": "重试失败账号",
+    "saveToApiProfiles": "保存并关联到 API 凭据库",
+    "showKey": "显示密钥",
+    "useInCherry": "在 Cherry Studio 中使用",
+    "verifyApi": "验证接口",
+    "verifyCliSupport": "验证 CLI 兼容性"
+  },
+  "actionToolbar": {
+    "apiCredential": "API 凭据",
+    "diagnostics": "诊断",
+    "integrationsAndExport": "集成与导出",
+    "label": "密钥操作",
+    "management": "管理",
+    "quickActions": "快捷操作"
+  },
+  "allAccounts": "所有账号",
+  "allAccountsFailed": "{{count}} 个账号加载失败，结果不完整",
+  "allAccountsLoading": "{{count}} 个加载中",
+  "allAccountsProgress": "已处理 {{completed}}/{{total}} 个账号",
+  "batchApiCredentialProfiles": {
+    "actions": {
+      "open": "保存到 API 凭据库（{{selectedCount}}）"
+    }
+  },
+  "batchManagedSiteExport": {
+    "actions": {
+      "clearSelection": "清空选择",
+      "open": "批量导入到 {{site}}（{{selectedCount}}）",
+      "refreshPreview": "刷新预览",
+      "retry": "重试失败的 Key",
+      "running": "正在导入...",
+      "selectAll": "已选 {{selected}}/{{total}}",
+      "start": "开始导入",
+      "verifyAndRefresh": "验证并刷新预览",
+      "verifying": "正在验证...",
+      "viewChannels": "查看渠道"
+    },
+    "blockedDetails": {
+      "createdKeyReferenceAmbiguous": "无法安全匹配新创建的密钥。",
+      "createdKeyUnavailable": "新创建的密钥已不可用。",
+      "sourceAccountUnavailable": "来源账号已不可用。",
+      "sourceKeyInventoryUnavailable": "无法加载来源账号的密钥。"
+    },
+    "blockedReasons": {
+      "baseUrlRequired": "目标自建 AI 网关要求填写 Base URL。",
+      "configMissing": "缺少自建 AI 网关管理员配置。",
+      "inputPreparationFailed": "无法为该密钥准备渠道数据。",
+      "keyRequired": "生成的渠道 Key 为空。",
+      "modelsRequired": "未能解析出可用模型。",
+      "nameRequired": "生成的渠道名称为空。",
+      "realKeyRequired": "目标自建 AI 网关要求真实供应商 Key。",
+      "secretResolutionFailed": "无法解析真实密钥。"
+    },
+    "confirm": {
+      "description": "将为 {{selectedCount}} 个已选择密钥创建渠道。已精确存在和被阻塞的项目不会创建。",
+      "title": "导入已选择密钥"
+    },
+    "description": "创建到 {{site}} 前，先检查 {{selectedCount}} 个已选择密钥。",
+    "fallbackLabels": {
+      "createdKey": "已创建的密钥"
+    },
+    "fields": {
+      "baseUrl": "Base URL",
+      "editModelsLabel": "编辑 {{name}} 的模型列表",
+      "groups": "分组",
+      "models": "模型"
+    },
+    "gatewayDescription": "这会将账号 Key 导入为自建 AI 网关渠道。导入后，多个 Key 即可通过同一个 AI API 提供给客户端使用。",
+    "importMode": {
+      "appendTo": "添加到已有渠道：{{name}}",
+      "chooseTarget": "请选择要添加密钥的渠道",
+      "createNew": "新建一个渠道",
+      "grouped": "同站点密钥合并到一个新渠道",
+      "independent": "每个密钥新建一个渠道",
+      "keyCount": "{{count}} 个密钥",
+      "label": "密钥导入方式",
+      "modelDifferences": "这些密钥的模型列表不同，合并资源采用模型并集，由目标网关负责路由。",
+      "models": "模型：{{models}}",
+      "preserveSettings": "保留已有渠道的配置和模型设置，只添加尚未导入的密钥。",
+      "resourceName": "新渠道名称",
+      "resultSummary": "密钥结果：{{created}} 个已导入，{{failed}} 个失败，{{uncertain}} 个结果不确定，{{skipped}} 个已跳过。",
+      "reuse": "优先添加到已有渠道",
+      "reuseHelp": "同地址有可用渠道时添加密钥；有多个渠道时选择目标，没有时合并新建。",
+      "reuseSummary": "已选择 {{keyCount}} 个密钥：新建 {{createCount}} 个渠道，添加到 {{appendCount}} 个已有渠道。",
+      "saveFailed": "本次导入已采用所选方式，但未能保存偏好。",
+      "scheduling": "多个密钥如何轮换由目标网关决定，请按你的使用需求选择。",
+      "summary": "已选择 {{keyCount}} 个密钥，将新建 {{resourceCount}} 个渠道。",
+      "target": "添加到哪个渠道",
+      "unsupported": "此资源类型不支持多密钥合并，将独立创建。"
+    },
+    "loadingDescription": "正在为 {{selectedCount}} 个已选择密钥准备预览。",
+    "messages": {
+      "batchDuplicate": "与本批次的 {{item}} 重复，已跳过。",
+      "completed": "密钥结果：{{created}} 个已导入，{{failed}} 个失败，{{uncertain}} 个结果不确定，{{skipped}} 个已跳过。",
+      "duplicate": "已存在精确匹配渠道：{{channel}}，不会重复创建。",
+      "executionFailed": "执行批量导入失败：{{error}}",
+      "targetChanged": "自建 AI 网关目标已变化。请刷新预览或选择正确目标后再导入。",
+      "verificationFailed": "New API 验证失败：{{error}}"
+    },
+    "preview": {
+      "loadFailed": "加载预览失败：{{error}}",
+      "loading": "正在准备渠道预览...",
+      "selected": "已选择 {{count}} 个密钥",
+      "summary": "预览：可创建 {{ready}} 个，警告 {{warning}} 个，已跳过 {{skipped}} 个，阻塞 {{blocked}} 个，共 {{total}} 个。"
+    },
+    "repairTrusted": {
+      "description": "这些 Key 刚刚创建完成。简化审核会跳过重复检查和精确 Key 检查；如果希望在导入前再次核对，可使用完整检查。",
+      "useCompleteChecks": "使用完整检查"
+    },
+    "results": {
+      "channelCreationFailed": "密钥导入失败。",
+      "status": {
+        "failed": "失败",
+        "notSelected": "未选择",
+        "skipped": "已跳过",
+        "success": "已导入",
+        "uncertain": "需检查"
+      },
+      "summary": "密钥结果：{{created}} 个已导入，{{failed}} 个失败，{{uncertain}} 个结果不确定，{{skipped}} 个已跳过。"
+    },
+    "selection": {
+      "accountGroup": "选择账号 {{name}} 当前可见密钥",
+      "rowLabel": "选择 {{name}} 用于批量导入",
+      "visible": "当前可见已选 {{selected}}/{{total}}"
+    },
+    "status": {
+      "blocked": "已阻塞",
+      "ready": "可创建",
+      "skipped": "已跳过",
+      "warning": "需确认"
+    },
+    "target": {
+      "change": "更换目标",
+      "title": "导入到 {{site}}"
+    },
+    "title": "批量导入到自建 AI 网关",
+    "warnings": {
+      "backendSearchFailed": "重复检查暂时无法连接目标后台。",
+      "dedupeUnsupported": "当前自建 AI 网关无法可靠按 Base URL 检查重复渠道。",
+      "exactVerificationUnavailable": "可能已有匹配渠道，但无法确认精确 Key。创建前请检查。",
+      "matchRequiresConfirmation": "发现相似渠道，请确认后再创建。",
+      "modelPrefillFailed": "模型预填失败，将使用当前可用的模型列表。"
+    }
+  },
+  "batchSelection": {
+    "accountUnavailableReason": "该账号没有支持批量操作的密钥。",
+    "eligibilityNotice": "当前有 {{count}} 个密钥支持批量操作；其他密钥不会参与。",
+    "unavailableReason": "此密钥不支持批量操作。"
+  },
+  "createdKey": {
+    "subtitle": "{{name}} 已创建。现在可以复制密钥，以后仍可再次显示。",
+    "title": "密钥已创建"
+  },
+  "createFirstKey": "创建第一个密钥",
+  "credentialAssociation": {
+    "linked": "已关联 API 凭据",
+    "needsConfirmation": "关联待确认",
+    "reviewCredential": "查看待确认的凭据关联",
+    "target": {
+      "clear": "返回密钥列表",
+      "found": "已定位到关联密钥",
+      "loading": "正在加载凭据关联…",
+      "locating": "正在定位关联密钥…",
+      "missing": "这条凭据关联已不存在。",
+      "needsConfirmation": "这条凭据关联需要确认后才能打开。",
+      "retry": "重试",
+      "unavailable": "目前无法定位关联密钥，请检查账号连接后重试。"
+    },
+    "viewCredential": "查看关联的 API 凭据"
+  },
+  "description": "管理各站点账号的 API 密钥，创建密钥并查看配置与用量。",
+  "details": {
+    "empty": "没有更多详情",
+    "loading": "正在加载详情",
+    "unavailable": "详情暂不可用"
+  },
+  "dialog": {
+    "accountSelect": "选择账号",
+    "addToken": "添加 API 密钥",
+    "advancedSettings": "高级设置",
+    "availableModels": "可用模型",
+    "basicInfo": "基本信息",
+    "createNotSupported": "该账号不支持创建 API 密钥。",
+    "createToken": "创建密钥",
+    "expiration": "过期时间",
+    "expirationPlaceholder": "留空表示永不过期",
+    "groupLabel": "分组",
+    "ipLimits": "IP 限制",
+    "ipPlaceholder": "留空表示不限制，多个 IP 用逗号分隔",
+    "modelLimits": "模型限制",
+    "quotaPlaceholder": "请输入额度金额（美元）",
+    "quotaSettings": "额度设置",
+    "selectModels": "选择模型",
+    "subnetLimits": "Subnet 限制",
+    "subnetPlaceholder": "留空表示不限制，输入 subnet 或 CIDR",
+    "tokenName": "密钥名称",
+    "unlimitedQuota": "无限额度",
+    "warningText": "请妥善保管 API 密钥，避免泄露",
+    "warningTitle": "注意事项"
+  },
+  "enabledCount": "启用 {{count}} 个",
+  "exportMenu": {
+    "groups": {
+      "chatClients": "聊天客户端",
+      "codingAgents": "编程 Agents",
+      "gateways": "网关与路由工具"
+    }
+  },
+  "keyDetails": {
+    "channels": "渠道",
+    "createResponseOnlySecret": "该站点仅在创建时显示完整密钥。如果当时没有保存，请前往密钥管理创建替代密钥。",
+    "createTime": "创建时间：",
+    "defaultChannels": "站点默认渠道",
+    "expireTime": "过期时间：",
+    "followsAccountGroup": "跟随账号分组",
+    "group": "分组：",
+    "ipLimits": "IP 限制：",
+    "key": "密钥：",
+    "lastUsedTime": "最近使用时间：",
+    "models": "模型限制：",
+    "neverExpires": "永不过期",
+    "note": "备注：",
+    "remainingQuota": "剩余额度：",
+    "totalQuota": "总额度：",
+    "ungrouped": "未分组",
+    "usedQuota": "已用额度："
+  },
+  "knownTotalKeys": "已读取 {{count}} 个密钥",
+  "linkedCleanup": {
+    "description": "检查所有使用此密钥的渠道。多密钥渠道仅移除对应凭据，没有剩余密钥时才删除渠道；检查失败时保留源密钥。",
+    "option": "同时清理当前管理站点中的关联渠道",
+    "pending": "{{count}} 个渠道待清理",
+    "retry": "重试清理",
+    "retryDescription": "未完成的清理会保留以供重试。只有确认源密钥已删除后，才会继续清理。"
+  },
+  "loadError": {
+    "description": "未能读取当前账号的密钥列表。可能是登录已失效、权限不足，或站点暂时不可访问。请先重新登录站点后再重试。\n\n错误信息：{{error}}",
+    "openSite": "打开站点",
+    "title": "密钥列表加载失败"
+  },
+  "managedSiteSetupRecovery": {
+    "configureManagedSite": "配置自建 AI 网关",
+    "description": "完成自建 AI 网关配置后，可将账号 Key 导入为网关渠道，汇总成一个统一 AI API。"
+  },
+  "managedSiteStatus": {
+    "actions": {
+      "configureChecks": "配置管理站点校验",
+      "refresh": "刷新管理站点渠道状态",
+      "refreshing": "正在刷新管理站点渠道状态",
+      "reviewChannels": "查看候选渠道",
+      "verifyNow": "立即验证"
+    },
+    "badges": {
+      "added": "已添加",
+      "checkFailed": "检查失败",
+      "checking": "检查中",
+      "configMissing": "未配置",
+      "notAdded": "未添加",
+      "requiresConfirmation": "需确认",
+      "unknown": "未知",
+      "verificationUnavailable": "无法完整验证"
+    },
+    "descriptions": {
+      "backendSearchFailed": "管理站点校验暂时无法完成。",
+      "baseUrlSearchUnsupported": "该功能在当前托管站点上不受支持，因为当前托管站点不支持按基础地址搜索渠道。",
+      "configMissingOptional": "可选的管理站点渠道校验尚未启用；不影响密钥查看、复制或创建。",
+      "inputPreparationFailed": "无法准备可比对的渠道输入，暂时无法完成校验。",
+      "newApiRetrieveKeyHint": "对于 New API，完整的 key 比对依赖渠道 key，而查看渠道 key 本身需要先完成 2FA 验证，因此当前暂无法完成完整 key 比对。"
+    },
+    "label": "管理站点",
+    "pageUnsupported": "由于当前托管站点暂不支持使用 URL 搜索渠道，暂不提供管理站点渠道检查功能。",
+    "recovery": {
+      "configureLogin": "请先在设置中填写 New API 登录与两步验证辅助信息，否则当前无法读取渠道 key，也无法完成完整的 key 比对。",
+      "verificationRequired": "完整的 key 比对需要先完成一次短时有效的 New API 验证，因为 New API 查看渠道 key 本身就需要 2FA 验证。"
+    },
+    "signals": {
+      "key": {
+        "matched": "Key 已命中",
+        "noMatch": "Key 未命中",
+        "notProvided": "Key 缺失",
+        "tooltipMatched": "在相同规范化 URL 范围内，有渠道命中了该 key：{{channelName}}。",
+        "tooltipNoMatch": "存在可比较的渠道 key，但没有任何一个命中当前 key。",
+        "tooltipNotProvided": "当前 token 没有可用于比较的 key。",
+        "tooltipUnavailable": "由于后端没有暴露可比较的渠道 key，当前无法完成 key 比对。",
+        "unavailable": "Key 不可比对"
+      },
+      "models": {
+        "contained": "模型包含命中",
+        "exact": "模型完全一致",
+        "noMatch": "模型未命中",
+        "notProvided": "模型缺失",
+        "similar": "模型相似命中",
+        "tooltipContained": "规范化后的模型集合与渠道 {{channelName}} 通过包含关系命中。",
+        "tooltipExact": "规范化后的模型集合与渠道 {{channelName}} 完全一致。",
+        "tooltipNoMatch": "在当前规范化 URL 范围内，没有确认到模型命中。",
+        "tooltipNotProvided": "当前 token 没有可用于比较的模型列表。",
+        "tooltipSimilar": "规范化后的模型集合与渠道 {{channelName}} 通过相似度命中（{{score}}%）。",
+        "tooltipUnavailable": "由于没有可比较的 URL 范围，当前无法完成模型比对。",
+        "unavailable": "模型不可比对"
+      },
+      "url": {
+        "matched": "URL 已命中",
+        "noMatch": "URL 未找到",
+        "tooltipMatched": "在相同规范化 URL 范围内找到了 {{count}} 个候选渠道。示例候选：{{channelName}}。",
+        "tooltipNoMatch": "在相同规范化 URL 范围内未找到任何渠道。"
+      }
+    }
+  },
+  "messages": {
+    "batchSavedToApiProfiles": "已保存所选密钥到 API 凭据库",
+    "batchSavedToApiProfilesNeedsConfirmation": "已保存所选密钥，请在 API 凭据库中检查标记的关联。",
+    "batchSaveToApiProfilesFailed": "保存所选密钥到 API 凭据库失败",
+    "batchSaveToApiProfilesPartialFailed": "已保存 {{savedCount}}/{{totalCount}} 个所选密钥，{{failedCount}} 个未能保存。",
+    "copyFailed": "复制失败",
+    "keyCopied": "密钥 {{name}} 已复制到剪贴板",
+    "keyDeleted": "密钥 {{name}} 已删除",
+    "keyDeletedSimple": "密钥已删除",
+    "keySiteTypeMismatch": "该站点本身对应「{{suggestedType}}」，而账号当前是「{{storedType}}」。请在「编辑账号」把站点类型改为「{{suggestedType}}」后重试。",
+    "keyUpdated": "密钥 {{name}} 已更新",
+    "keyUpdatedSimple": "密钥已更新",
+    "loadFailed": "加载密钥列表失败",
+    "revealFailed": "显示密钥失败",
+    "savedToApiProfiles": "已保存 {{name}} 到 API 凭据库",
+    "savedToApiProfilesNeedsConfirmation": "凭据已保存，请在 API 凭据库中检查其密钥关联。",
+    "saveToApiProfilesFailed": "保存到 API 凭据库失败",
+    "serviceCredentialCopied": "服务密钥已复制到剪贴板",
+    "serviceCredentialRotated": "服务密钥已重置",
+    "serviceCredentialRotateFailed": "重置服务密钥失败",
+    "verifyApiFailed": "打开接口验证失败",
+    "verifyCliSupportFailed": "打开 CLI 兼容性验证失败"
+  },
+  "native": {
+    "actions": {
+      "delete": "删除密钥",
+      "disable": "禁用 API Key",
+      "edit": "编辑密钥",
+      "enable": "启用 API Key",
+      "revoke": "撤销密钥",
+      "rotate": "轮换 API Key"
+    },
+    "delete": {
+      "confirm": "删除密钥",
+      "description": "要永久删除密钥 {{name}} 吗？删除后无法恢复。",
+      "feedback": {
+        "authenticationFailed": "请重新登录或更新此账号的凭据，然后重试。",
+        "error": "无法删除此密钥。请刷新后再试。",
+        "permissionDenied": "请使用有权查看和管理密钥的凭据，然后重试。",
+        "unavailable": "服务暂时不可用，请刷新后再试。",
+        "uncertain": "密钥状态可能已变化。请先刷新密钥，再决定是否重试。"
+      },
+      "refresh": "刷新密钥",
+      "title": "删除 API 密钥？"
+    },
+    "detailsLoadFailed": "无法加载密钥详情。",
+    "editor": {
+      "actions": {
+        "cancel": "取消",
+        "save": "保存密钥"
+      },
+      "allowlistHelp": "逗号或换行分隔，留空不限。",
+      "allowWallet": "允许使用余额",
+      "allowWalletHelp": "套餐额度用完后，该密钥仍可从账户余额扣费继续使用。",
+      "budget5h": "5 小时预算（USD）",
+      "budgetDay": "单日预算（USD）",
+      "budgetMonth": "每月预算（USD）",
+      "budgetNextReset": "重置 {{time}}（北京时间）",
+      "budgetResetHelp": "0 表示不限。5 小时滚动恢复；日、周、月按北京时间重置，周一开始。",
+      "budgetRolling": "滚动窗口",
+      "budgetsAndLimits": "预算与访问限制",
+      "budgetUsage": "已用 ${{used}} / ${{limit}} · 剩余 ${{remaining}} · 预留 ${{reserved}}",
+      "budgetWeek": "每周预算（USD）",
+      "channel": "渠道",
+      "dahl": {
+        "allocate": "分配 Token",
+        "amountHelp": "输入整数 Token，或使用 K/M。可用：{{max}} Token。",
+        "amountInvalid": "请输入不超过可用额度的有效数量。",
+        "amountPlaceholder": "例如 2.5M 或 500K",
+        "create": "创建密钥",
+        "createdHelp": "{{name}} 已创建，尚未分配额度。可复制密钥或分配 tokens 后开始使用，以后仍可再次显示密钥。",
+        "createHelp": "创建初始额度为 0 Token 的新密钥。可填写名称，创建后复制密钥或分配 tokens。",
+        "createTitle": "创建 API 密钥",
+        "invalidAmount": "数量必须是正整数 Token，且不能超过 {{max}} Token。",
+        "keyAfter": "转账后密钥额度",
+        "keyBalance": "此密钥（Token）",
+        "manageTitle": "管理 Key",
+        "max": "全部",
+        "name": "Key 名称",
+        "nameCached": "正在显示本地缓存名称。打开对应官网账户页面后，将检查官网名称。",
+        "nameHelp": "官网账户页面打开时，名称会与当前浏览器中的官网存储同步。官网需刷新后显示修改。",
+        "nameInvalid": "名称不能超过 128 个字符。",
+        "namePending": "已保存在本地，等待同步。请打开官网并登录此账户，然后刷新 Key 列表。",
+        "namePlaceholder": "可选名称",
+        "nameSynced": "名称已与官网同步，刷新官网即可查看。",
+        "noKeyTokens": "此密钥没有可回收的 Token。",
+        "noPoolTokens": "账户池没有可分配的 Token，请在官网充值或从其他密钥回收额度。",
+        "poolAfter": "转账后账户池",
+        "poolBalance": "账户池（Token）",
+        "rename": "重命名",
+        "return": "回收 Token",
+        "revoke": "撤销密钥",
+        "revokeDescription": "撤销 {{name}}？密钥将停止使用，剩余 Token 会退回账户池，官网会保留撤销记录。此操作无法撤回。",
+        "revokeTitle": "撤销 API 密钥",
+        "saveName": "保存名称",
+        "transferAmount": "转账 Token 数量"
+      },
+      "daya": {
+        "allowFast": "允许 Fast 模式",
+        "allowFastHelp": "允许 OpenAI 请求使用 Fast，是否计为 Fast 由系统规则决定。关闭后，所有 OpenAI 请求（包括 Flex）强制普通模式并按普通档计费。",
+        "budget7d": "7 天额度（USD）",
+        "budgetHelp": "各时间窗口内的美元消费上限，0 表示不限制。",
+        "customKey": "自定义密钥（可选）",
+        "customKeyHelp": "不填写则自动生成。自定义密钥至少 16 位，仅支持字母、数字、下划线和连字符。",
+        "groupOrderHelp": "按此顺序尝试路由。可拖拽排序，或使用上下箭头调整。",
+        "ipBlacklist": "IP 黑名单",
+        "ipWhitelist": "IP 白名单"
+      },
+      "description": "描述（可选）",
+      "emrank": {
+        "expiration": "有效期",
+        "expirationOptions": {
+          "custom": "自定义时间",
+          "day": "一天",
+          "hour": "一小时",
+          "keep": "保持现有有效期",
+          "month": "一个月（30 天）",
+          "never": "永不过期"
+        },
+        "quotaHelp": "1 M = 1,000,000 Token，最多 6 位小数；保持开启无限额度则不受限制。",
+        "quotaMToken": "额度（M Token）"
+      },
+      "excludeIps": "排除 IP",
+      "excludeIpsPlaceholder": "一行一个（支持 CIDR）",
+      "expiryDays": "有效期（天）",
+      "feedback": {
+        "adminOnlyKeySettings": "该站点仅管理员可设置 IP 白名单等高级密钥选项；请清除对应字段后重试。",
+        "authenticationFailed": "请重新登录或更新此账号的凭据，然后重试。",
+        "error": "请根据错误信息处理后重试。",
+        "permissionDenied": "请使用有权查看和管理密钥的凭据，然后重试。",
+        "title": "无法保存密钥",
+        "unavailable": "服务暂时不可用，请稍后重试。",
+        "uncertain": "服务可能已应用此更改。请先刷新密钥确认当前状态，再决定是否重试。"
+      },
+      "followAccountQuotaHelp": "-1 表示跟随账户额度。",
+      "followsAccount": "跟随账户",
+      "groupOnly": "仅使用选定分组",
+      "groupOnlyHelp": "开启后该密钥只在选定分组上调用，不再自动切换到其它分组。",
+      "independentQuotaUsd": "独立额度（USD）",
+      "ipCidrAllowlist": "IP/CIDR 白名单",
+      "issues": {
+        "inconsistentValue": "请检查此值后重试。",
+        "invalidValue": "请输入有效值。",
+        "outOfRange": "请输入允许范围内的值。",
+        "required": "此项为必填项。",
+        "unsupportedOption": "请选择可用选项。"
+      },
+      "keyConcurrency": "Key 并发",
+      "keyRateHelp": "0 表示跟随账户限制。",
+      "keyRpm": "Key RPM",
+      "keyUnlimitedQuota": "Key 不限额",
+      "keyUnlimitedQuotaHelp": "仍受账户余额或订阅额度限制。",
+      "krill": {
+        "allowAnyIp": "允许任意 IP",
+        "allowAnyIpHelp": "停用已保存的 IP 白名单，允许任意 IP 发起请求。",
+        "channels": "渠道",
+        "channelsHelp": "该密钥可以使用的计费线路。"
+      },
+      "laozhang": {
+        "activateOnFirstUse": "首次使用时激活",
+        "activationHelp": "0 表示不设置激活后有效期；绝对到期时间仍由站点规则决定。",
+        "billingHybrid": "混合计费",
+        "billingRequest": "按次计费",
+        "billingRequestPriority": "按次优先",
+        "billingType": "计费方式",
+        "billingUsage": "按量计费",
+        "billingUsagePriority": "按量优先",
+        "discordProxy": "Discord 代理地址",
+        "fallbackGroups": "备用分组（按顺序）",
+        "fallbackHelp": "备用分组按选择顺序尝试；自动分组不使用备用分组。数量限制由站点决定。",
+        "mjApiKey": "MJ 翻译 API 密钥",
+        "mjBaseUrl": "MJ 翻译接口地址",
+        "mjModel": "MJ 翻译模型",
+        "mjTranslation": "启用 MJ 翻译",
+        "rateLimitDuration": "限流周期（秒）",
+        "rateLimitEnabled": "启用限流",
+        "rateLimitMessage": "超出限流提示",
+        "rateLimitNum": "周期内请求次数",
+        "remark": "密钥备注",
+        "retryAuto": "自动（跟随全局）",
+        "retryBilling": "重试保持计费方式",
+        "retryOff": "关闭",
+        "retryOn": "开启",
+        "validDuration": "激活后有效天数"
+      },
+      "modelAllowlist": "模型白名单",
+      "opening": {
+        "failed": "无法打开密钥编辑器",
+        "loading": "正在打开密钥编辑器...",
+        "retry": "重试"
+      },
+      "quotaCredits": "剩余积分",
+      "quotaCreditsHelp": "额度用完后该密钥将无法继续使用。",
+      "quotaUsd": "额度（美元）",
+      "remainingCount": "剩余次数",
+      "remainingCountPlaceholder": "该密钥还能调用多少次",
+      "storageLocation": "存储地域",
+      "storageLocationGlobal": "全球节点",
+      "storageLocationHelp": "该密钥生成的图片、视频等内容的存放节点。",
+      "storageLocationNone": "不转存（使用原始链接）",
+      "storageLocationUnconfigured": "跟随部署默认",
+      "title": {
+        "create": "创建 API 密钥",
+        "edit": "编辑 API 密钥"
+      },
+      "totalQuotaUsd": "总额度（美元）",
+      "unlimitedCount": "不限调用次数",
+      "unlimitedCountHelp": "关闭后按「剩余次数」计满即停；次数与额度是两套计量。",
+      "unsaved": {
+        "description": "关闭后，本次修改不会保存。",
+        "discard": "放弃更改",
+        "keepEditing": "继续编辑",
+        "title": "放弃更改？"
+      }
+    },
+    "heading": "API 密钥",
+    "lifecycle": {
+      "disableDescription": "暂时禁用此 Key，之后可以重新启用。",
+      "enableDescription": "使用现有配置重新启用此 Key。",
+      "rotateDescription": "轮换后旧 Key 将立即失效。请复制新 Key 并及时更新客户端，其他配置保持不变。"
+    },
+    "missing": "暂无数据",
+    "revoke": {
+      "description": "确定撤销“{{name}}”吗？密钥将永久停用，记录会保留，直到你将其删除。",
+      "feedback": {
+        "error": "无法撤销此密钥，请刷新后重试。"
+      },
+      "success": "密钥已撤销",
+      "title": "撤销密钥",
+      "working": "正在撤销..."
+    },
+    "scope": {
+      "empty": "暂无可用作用域",
+      "error": "无法加载作用域",
+      "errorHelp": "请检查账户访问权限后重试。",
+      "fallback": "请求的作用域不可用，现已显示默认作用域。",
+      "heading": "作用域",
+      "label": "选择作用域",
+      "loading": "正在加载作用域…",
+      "partial": "部分作用域未能加载，已加载的作用域仍可使用。",
+      "placeholder": "请选择作用域",
+      "retry": "重新加载作用域"
+    },
+    "status": {
+      "all": "全部",
+      "disabled": "已停用",
+      "enabled": "已启用",
+      "expired": "已过期",
+      "unknown": "未知"
+    },
+    "statusFilter": {
+      "label": "密钥状态"
+    }
+  },
+  "noAccountsSupportKeyCreation": "当前视图中的账号都不支持创建 API 密钥。请选择其他账号或添加受支持的账号。",
+  "noKeys": "暂无密钥数据",
+  "noMatchingKeys": "没有找到匹配的密钥",
+  "oneTimeKey": {
+    "close": "关闭",
+    "closeConfirm": {
+      "cancel": "返回查看密钥",
+      "confirm": "仍然关闭",
+      "description": "如果尚未复制或保存，请先返回处理此密钥。",
+      "title": "关闭后将无法再次查看完整密钥"
+    },
+    "copied": "完整密钥已复制到剪贴板",
+    "copiedAction": "已复制",
+    "copy": "复制完整密钥",
+    "copyFailed": "复制完整密钥失败",
+    "keyLabel": "完整密钥",
+    "subtitle": "密钥 {{name}} 的完整值只会在本次操作后显示。",
+    "subtitleUnnamed": "完整密钥只会在本次操作后显示。",
+    "title": "立即保存完整密钥",
+    "warningDescription": "关闭此对话框后，扩展将无法再次显示完整密钥。",
+    "warningTitle": "该密钥只能查看一次"
+  },
+  "openRouter": {
+    "editor": {
+      "fields": {
+        "creator": {
+          "editHelp": "如需更改创建者，请新建密钥。",
+          "help": "可选地将此密钥分配给工作区成员。",
+          "label": "创建者",
+          "placeholder": "无创建者"
+        },
+        "disabled": {
+          "help": "停用的密钥在重新启用前无法使用。",
+          "label": "停用密钥"
+        },
+        "expiresAt": {
+          "editHelp": "如需更改到期时间，请新建密钥。",
+          "help": "日期和时间按本地时区输入，并以 UTC 保存。",
+          "label": "过期时间"
+        },
+        "includeByokInLimit": {
+          "help": "将自带密钥用量计入此额度。",
+          "label": "计入 BYOK 用量"
+        },
+        "limit": {
+          "help": "额度为 0 USD 时将无法消费。",
+          "label": "限制额度"
+        },
+        "limitMode": {
+          "label": "用量限制"
+        },
+        "limitReset": {
+          "help": "选择额度重置的频率。",
+          "label": "重置周期"
+        },
+        "name": {
+          "help": "为此密钥使用便于识别的名称。",
+          "label": "密钥名称",
+          "placeholder": "生产环境密钥"
+        },
+        "workspace": {
+          "editHelp": "如需更改工作区，请新建密钥。",
+          "help": "选择此密钥所属的工作区。",
+          "label": "工作区",
+          "placeholder": "选择工作区"
+        }
+      },
+      "options": {
+        "creator": {
+          "empty": "此工作区没有可用成员。",
+          "none": "无创建者",
+          "unavailable": "所选工作区无法分配成员。你可以不选择成员直接创建密钥。",
+          "unknown": "未知成员"
+        },
+        "limitMode": {
+          "limited": "限额",
+          "unlimited": "不限额"
+        },
+        "limitReset": {
+          "daily": "每天",
+          "monthly": "每月",
+          "none": "不重置",
+          "weekly": "每周"
+        },
+        "workspace": {
+          "unknown": "未知工作区"
+        }
+      },
+      "sections": {
+        "advanced": "高级设置",
+        "basic": "基本信息",
+        "lifecycle": "有效期与状态",
+        "spending": "用量限制"
+      },
+      "summary": "API 密钥设置",
+      "summaryRules": {
+        "byok": {
+          "excluded": "不计入 BYOK 用量",
+          "included": "计入 BYOK 用量"
+        },
+        "expiresAt": "于本地时间 {{expiresAt}} 过期，并以 UTC 保存",
+        "limit": "用量上限：{{limit}} USD",
+        "limitUnset": "尚未设置用量上限",
+        "neverExpires": "永不过期",
+        "reset": {
+          "daily": "每天重置",
+          "monthly": "每月重置",
+          "none": "不重置",
+          "weekly": "每周重置"
+        },
+        "unlimited": "无用量上限"
+      }
+    },
+    "list": {
+      "details": {
+        "byokUsage": "BYOK 用量",
+        "byokUsageDaily": "每日 BYOK 用量",
+        "byokUsageMonthly": "每月 BYOK 用量",
+        "byokUsageWeekly": "每周 BYOK 用量",
+        "createdAt": "创建时间",
+        "creator": "创建者",
+        "disabled": "已停用",
+        "expiresAt": "过期时间",
+        "includeByokInLimit": "计入 BYOK 用量",
+        "limit": "限额",
+        "limitMode": "限额模式",
+        "loadFailed": "无法加载密钥详情。",
+        "remaining": "剩余",
+        "reset": "重置周期",
+        "updatedAt": "更新时间",
+        "usage": "用量",
+        "usageDaily": "日用量",
+        "usageMonthly": "月用量",
+        "usageWeekly": "周用量",
+        "workspace": "工作区"
+      },
+      "values": {
+        "missing": "暂无数据",
+        "no": "否",
+        "unlimited": "不限额",
+        "yes": "是"
+      }
+    },
+    "workspace": {
+      "empty": "此账号没有可用的工作区。",
+      "error": "无法加载工作区",
+      "errorHelp": "请检查账号访问权限后重试。",
+      "fallback": "请求的工作区不可用，现已显示默认工作区。",
+      "heading": "工作区",
+      "label": "工作区",
+      "loading": "正在加载工作区...",
+      "partial": "部分工作区未能加载。",
+      "placeholder": "选择工作区",
+      "retry": "重试加载工作区"
+    }
+  },
+  "pleaseAddAccount": "请先添加账号",
+  "pleaseSelectAccount": "请选择账号",
+  "provisioning": {
+    "actions": {
+      "allGroups": "补齐全部分组",
+      "default": "补齐默认密钥",
+      "hint": "仅创建缺失项，保留现有密钥。",
+      "title": "补齐密钥"
+    },
+    "cancelled": "已停止，已创建的密钥会保留。",
+    "completed": "账号密钥补全完成：新建 {{created}} 个，已有密钥覆盖 {{covered}} 项。",
+    "continue": "继续处理",
+    "creating": "正在补全账号密钥：已创建 {{created}} / {{total}}…",
+    "input": "{{label}} · {{current}} / {{total}}。填写完所有参数后再创建密钥。",
+    "preparing": "正在检查账号密钥…",
+    "progress": "已创建 {{created}} / {{total}}，已有覆盖：{{covered}}。",
+    "result": {
+      "cancelled": "密钥补全已停止",
+      "covered": "已有覆盖",
+      "created": "已创建",
+      "failed": "部分密钥未能创建",
+      "next": "接下来",
+      "remaining": "未确认创建",
+      "resume": "可稍后重新补齐，已有密钥会自动跳过。",
+      "retained": "已创建和已有的密钥均会保留。",
+      "uncertain": "部分密钥需要核实"
+    }
+  },
+  "refreshTokenList": "刷新密钥列表",
+  "repairMissingKeys": {
+    "action": "检查与修复",
+    "actions": {
+      "cancel": "取消检查",
+      "rerun": "重新检查",
+      "start": "开始检查并补齐"
+    },
+    "deleteConfirm": {
+      "confirm": "删除所选密钥",
+      "description": "这些密钥会同时从对应网站删除，无法通过扩展恢复。请确认它们已不再需要。",
+      "more": "以及另外 {{count}} 个",
+      "title": "删除 {{count}} 个异常密钥？"
+    },
+    "description": "检查所选账号的全部可用分组，在支持自动创建时补齐缺失的可用密钥，其他问题会在下方列出。",
+    "failureGuidance": {
+      "aborted": "操作在完成前已取消；准备好后可重新检查。",
+      "authenticationFailed": "请重新登录或更新此账号的凭据，然后重试。",
+      "configurationRequired": "请先完成此站点所需的配置，然后重新检查密钥。",
+      "invalidConfiguration": "请检查此账号保存的站点配置，然后重新检查密钥。",
+      "mutationStateUncertain": "站点可能已应用这次更改；请先刷新密钥列表，再决定是否重试。",
+      "notFound": "对应密钥已不存在；请刷新账号后重新检查。",
+      "permissionDenied": "请使用有权查看和管理密钥的凭据，然后重试。",
+      "unavailable": "站点暂时无法访问，或返回了无法处理的响应；请稍后重试。",
+      "unexpected": "请重新检查密钥；如果仍然失败，请根据站点返回的信息排查。",
+      "upstreamRejected": "站点拒绝了请求；请根据站点返回的信息处理后重试。",
+      "validationFailed": "请检查并修正所需的密钥设置，然后重试。"
+    },
+    "historyNote": "这里显示上次检查结果；当前没有正在执行的任务，可重新检查。",
+    "initialNotice": "开始后会逐个检查所选账号的分组，并为支持自动创建的缺失分组补齐密钥；已有可用密钥的分组会跳过。",
+    "invalidKeys": {
+      "badge": "异常",
+      "deleteFailed": "删除异常密钥失败",
+      "deleteNeedsAttention": "已删除 {{applied}} 个；{{rejected}} 个被拒绝，{{uncertain}} 个需要核实",
+      "deleteSelected": "删除所选",
+      "deleteSuccess": "已删除 {{count}} 个异常密钥",
+      "emptyDescription": "本次检查未发现异常密钥。",
+      "emptyTitle": "没有异常密钥",
+      "group": "原分组：{{name}}",
+      "reason": "原因：{{reason}}",
+      "reasons": {
+        "orphanedPlacement": "原因：此密钥所属的分组已不再可用。确认不再需要后，可将其删除。"
+      },
+      "selectAll": "全选当前结果",
+      "selectedCount": "已选择 {{count}} 个异常密钥",
+      "unnamed": "未命名密钥"
+    },
+    "inventoryIssues": {
+      "duplicateResourceRefs": "发现 {{count}} 条重复的密钥记录，无法安全确认对应密钥。",
+      "inheritedAccountGroupUnavailable": "有 {{count}} 个密钥使用账号默认分组，但无法确认账号当前分组。",
+      "invalidRequirementPlacement": "有 {{count}} 个密钥的分组数据与当前可用分组不一致。",
+      "partialFailure": "未能读取全部密钥，自动处理已停止；请根据账号旁的站点返回信息处理后重试。",
+      "refreshFailed": "密钥变更后无法确认最新结果；请刷新密钥列表后重试。",
+      "unknownCoverage": "有 {{count}} 个密钥的状态或有效期无法识别。",
+      "unknownPlacement": "有 {{count}} 个密钥的所属分组无法识别。"
+    },
+    "managedSiteImport": {
+      "action": "查看 {{count}} 个修复创建的密钥",
+      "changeTarget": "更改目标",
+      "configMissing": "当前管理站点尚未配置。请打开配置页，完成后返回此处再次导入。",
+      "configurationOpenFailed": "无法打开管理站点配置。请前往“设置 > 管理站点”手动配置。",
+      "failed": "准备修复创建的密钥导入失败，请重试。",
+      "nothingPending": "这些密钥已在当前目标处理完成：对应渠道已创建或已精确存在。如需再次检查，请使用常规导入进行完整校验。",
+      "openConfiguration": "打开管理站点配置",
+      "receiptFailed": "导入已完成，但无法更新修复结果。请刷新结果以确认当前状态。",
+      "target": "已找到 {{count}} 个修复创建的密钥，可用于 {{site}}；进入审核前会检查当前可用性和既有导入记录。",
+      "title": "导入修复创建的密钥",
+      "unavailable": "这些修复创建的密钥暂时无法导入。请刷新修复结果后重试。",
+      "useRegularImport": "使用常规导入"
+    },
+    "messages": {
+      "cancelFailed": "取消检查任务失败",
+      "loadFailed": "加载修复进度失败",
+      "startFailed": "启动修复任务失败"
+    },
+    "noMatchingResults": "没有匹配的结果",
+    "outcomes": {
+      "blocked": "受阻",
+      "covered": "无需补全",
+      "failed": "失败",
+      "partial": "部分完成",
+      "repaired": "已补全",
+      "skipped": "已跳过"
+    },
+    "previousResult": {
+      "backToSetup": "返回检查",
+      "description": "可查看上次检查结果；新的检查会按当前设置执行。",
+      "title": "有上次检查结果",
+      "view": "查看上次结果"
+    },
+    "progressChecked": "已检查",
+    "progressLabel": "进度",
+    "remoteWriteNotice": "此操作可能会在对应网站创建新密钥；不会自动删除任何密钥。",
+    "renameOption": {
+      "helper": "仅针对扩展自动创建的密钥。检查修复时，会让名称跟随当前分组。",
+      "infoLabel": "查看密钥名称一致性说明",
+      "label": "保持密钥名称和分组一致",
+      "tooltip": "仅处理名称符合自动创建样式的密钥，例如 “user group (auto)” 或 “vip group (auto)”。修复后名称会跟随密钥当前分组；其他名称不会修改。"
+    },
+    "renameSummary": {
+      "accountApplied": "已同步名称：{{count}}",
+      "accountRejected": "重命名被拒绝：{{count}}",
+      "accountUncertain": "重命名需要核实：{{count}}"
+    },
+    "requirements": {
+      "blockedIncompleteInventory": "密钥未完整加载",
+      "blockedInputRequired": "需手动设置",
+      "covered": "已有可用密钥",
+      "coveredAfterUncertain": "刷新后确认可用",
+      "created": "已创建新密钥",
+      "rejected": "站点未执行",
+      "uncertain": "请先核实结果"
+    },
+    "resultsTitle": "结果",
+    "runningNote": "任务在后台运行；可关闭此对话框稍后查看，或在进度卡片中取消任务。",
+    "scope": {
+      "allSelected": "已选择全部账号",
+      "label": "检查账号"
+    },
+    "searchLabel": "搜索",
+    "searchPlaceholder": "搜索账号、密钥名称、分组、域名或站点类型...",
+    "skipReasons": {
+      "noneAuth": "无凭据（认证方式：无）",
+      "oneTimeKey": "此站点仅在创建时显示完整密钥，请手动创建并立即保存完整密钥",
+      "provisioningUnavailable": "此账号不支持自动创建密钥；如有需要，请前往对应站点手动创建。"
+    },
+    "status": {
+      "completed": "已完成",
+      "needsAttention": "需处理"
+    },
+    "summary": {
+      "completedNeedsAttention": "检查完成，但有结果需要处理。请在下方查看具体原因。",
+      "completedWithSkipped": "检查完成，部分账号未自动处理。请在下方查看原因。",
+      "healthy": "检查完成，未发现需要处理的问题。"
+    },
+    "title": "检查账号密钥",
+    "views": {
+      "accountCoverage": "账号结果",
+      "invalidKeys": "异常密钥",
+      "label": "结果视图"
+    }
+  },
+  "searchPlaceholder": "搜索密钥名称...",
+  "selectAccount": "选择账号",
+  "selectAccountToContinue": "请先在上方选择一个账号，然后查看或创建密钥。",
+  "serviceCredential": {
+    "authenticated": "已认证",
+    "baseUrl": "Base URL：",
+    "copy": "复制",
+    "notAuthenticated": "未认证",
+    "rotate": "重置",
+    "rotateUnsupported": "当前站点不支持重置服务密钥",
+    "rotating": "重置中...",
+    "singleton": "服务密钥"
+  },
+  "showingCount": "显示 {{count}} 个",
+  "title": "密钥管理",
+  "tools": {
+    "title": "密钥工具"
+  },
+  "totalKeys": "总计 {{count}} 个密钥",
+  "unifiedApiGuidance": {
+    "headerBridge": "可将密钥导入自建网关，或导出到客户端使用。"
+  },
+  "unsupportedSource": {
+    "description": "当前账号的站点类型已支持保存账号，但插件还没有适配该站点的密钥列表协议。你可以提交站点支持请求，帮助我们补齐密钥管理能力。",
+    "requestSiteSupport": "反馈站点支持",
+    "supportRequestErrorMessage": "{{siteType}} 暂未实现密钥管理",
+    "title": "该站点类型暂未适配密钥管理"
+  }
+}

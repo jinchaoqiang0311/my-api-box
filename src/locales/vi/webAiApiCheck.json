@@ -1,0 +1,118 @@
+{
+  "confirmToast": {
+    "body": "Bạn có muốn mở bảng kiểm tra AI API để kiểm tra và dùng thử khả năng khả dụng của AI API không?",
+    "enhancedInfo": "Thông báo này được kích hoạt bởi tự động phát hiện nâng cao. Nếu kết quả sai, hãy báo lỗi hoặc tắt tự động phát hiện nâng cao trong cài đặt.",
+    "feedback": "Báo lỗi",
+    "open": "Mở",
+    "settings": "Mở cài đặt",
+    "title": "Đã phát hiện URL AI API và API Key hợp lệ"
+  },
+  "messages": {
+    "success": {
+      "settingsSaved": "Đã lưu cài đặt phát hiện AI API."
+    }
+  },
+  "modal": {
+    "actions": {
+      "fetchingModels": "Đang lấy...",
+      "fetchModels": "Lấy danh sách mô hình",
+      "hideKey": "Ẩn Key",
+      "openApiProfiles": "Mở API Profiles",
+      "retry": "Thử lại",
+      "running": "Đang kiểm tra...",
+      "runOne": "Kiểm tra",
+      "saveToProfiles": "Lưu vào API Profiles",
+      "saving": "Đang lưu...",
+      "showKey": "Hiện Key",
+      "stopping": "Đang dừng...",
+      "stopTest": "Dừng kiểm tra",
+      "test": "Kiểm tra"
+    },
+    "candidates": {
+      "apiKey": "Key ứng viên {{index}}"
+    },
+    "errors": {
+      "fetchModelsFailed": "Lấy danh sách mô hình thất bại.",
+      "missingBaseUrlOrKey": "Vui lòng điền Base URL và API Key trước.",
+      "runProbeFailed": "Thăm dò thất bại.",
+      "saveToProfilesFailed": "Lưu vào API Profiles thất bại"
+    },
+    "fields": {
+      "apiKey": "API Key",
+      "apiType": "Loại API",
+      "baseUrl": "Base URL",
+      "expiresAt": "Ngày hết hạn",
+      "modelId": "Model ID",
+      "notes": "Ghi chú",
+      "sourceUrl": "Source page",
+      "tags": "Thẻ"
+    },
+    "hints": {
+      "expiresAt": "Tùy chọn. Ghi lại ngày dự kiến khóa này hết hạn.",
+      "saveWithoutTest": "Mẹo: Chỉ cần điền Base URL và API Key là có thể lưu vào API Profiles (không cần kiểm tra hoặc lấy danh sách mô hình trước). Kiểm tra chỉ được sử dụng để xác minh khả năng khả dụng.",
+      "sourceUrl": "Optional. Record the page where you found these credentials so you can revisit it later for updates.",
+      "tags": "Tùy chọn. Dùng chung với thẻ toàn cục của tài khoản và dấu trang."
+    },
+    "history": {
+      "empty": "Chưa có lịch sử Base URL",
+      "label": "Base URL đã dùng gần đây",
+      "remove": "Xóa khỏi lịch sử Base URL",
+      "trigger": "Chọn từ lịch sử Base URL"
+    },
+    "messages": {
+      "savedToProfiles": "Đã lưu {{name}} vào API Profiles",
+      "stoppingTest": "Đang dừng kiểm tra. Yêu cầu hiện tại sẽ được ngắt sớm nhất có thể.",
+      "testStopped": "Đã dừng kiểm tra. Các kết quả đã hoàn tất được giữ lại, và các mục chưa bắt đầu sẽ không chạy tiếp."
+    },
+    "optionalProfileFields": {
+      "hasInput": "Đã thêm thông tin lưu tùy chọn",
+      "hint": "Thẻ, ghi chú và ngày hết hạn không ảnh hưởng đến kết quả kiểm tra.",
+      "title": "Tùy chọn lưu (không bắt buộc)"
+    },
+    "placeholders": {
+      "notes": "Ghi chú tùy chọn",
+      "sourceUrl": "https://example.com/post",
+      "tags": "Chọn thẻ"
+    },
+    "privacyHint": "API Key được coi là thông tin nhạy cảm: mặc định bị ẩn và trừ khi bạn chủ động lưu vào API Profiles, sẽ không có bất kỳ dữ liệu nào được lưu trữ liên tục.",
+    "probes": {
+      "notRunYet": "Chưa chạy"
+    },
+    "sourceText": {
+      "label": "Văn bản để trích xuất",
+      "placeholder": "Dán Base URL và API Key vào đây, hoặc sử dụng menu chuột phải để điền sẵn từ văn bản được chọn."
+    },
+    "title": "Kiểm tra khả năng khả dụng của AI API"
+  },
+  "settings": {
+    "autoDetect": {
+      "enable": "Bật tự động phát hiện",
+      "enableDesc": "Sau khi bật, tiện ích có thể nhận diện thông tin xác thực từ thao tác sao chép và yêu cầu xác nhận trước khi mở cửa sổ bật lên.",
+      "enhanced": {
+        "enable": "Bật tự động phát hiện nâng cao",
+        "enableDesc": "Nhận diện miền trần, định dạng khóa không chuẩn và khóa lẫn ký tự không hợp lệ trong nội dung đã sao chép. Kết quả nâng cao sẽ hiển thị nhắc nhở trong cửa sổ bật lên và có thể tắt nhanh."
+      },
+      "whitelist": {
+        "invalidMore": "...và nhiều hơn nữa",
+        "invalidTitle": "Quy tắc không hợp lệ",
+        "patterns": "Quy tắc danh sách trắng URL",
+        "patternsDesc": "Một JavaScript RegExp mỗi dòng. Mặc định không phân biệt chữ hoa chữ thường khi khớp. Các quy tắc không hợp lệ sẽ bị bỏ qua (coi như không khớp).",
+        "patternsPlaceholder": "^https://example\\.com/console"
+      }
+    },
+    "contextMenu": {
+      "enable": "Hiển thị trong menu chuột phải của trình duyệt",
+      "enableDesc": "Sau khi bật, mục \"Phát hiện AI API\" sẽ hiển thị trong menu chuột phải của trang web."
+    },
+    "description": "Menu chuột phải thủ công luôn khả dụng. Tự động phát hiện là một tính năng tùy chọn, chỉ chạy trên các trang trong danh sách trắng và yêu cầu xác nhận trước khi mở cửa sổ bật lên. API Key được trích xuất sẽ không được lưu theo mặc định.",
+    "keyCleanup": {
+      "invalidMore": "...và nhiều hơn nữa",
+      "invalidTitle": "Quy tắc làm sạch không hợp lệ",
+      "patterns": "Quy tắc làm sạch API Key",
+      "patternsDesc": "Dùng khi Key sao chép có kèm nhãn, dấu ngoặc hoặc ký tự phân tách thừa. Mỗi dòng là một biểu thức chính quy; quy tắc không hợp lệ sẽ được báo trước khi lưu.",
+      "patternsPlaceholder": "\\[\\[xóa phần này\\]\\]\n【xóa phần này】\n<remove-this>\n(?:separator|noise)\n[\\s\\-_.]+",
+      "save": "Lưu quy tắc làm sạch"
+    },
+    "title": "Kiểm tra khả năng khả dụng của AI API trên trang web"
+  }
+}

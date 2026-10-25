@@ -1,0 +1,209 @@
+import { CircleHelp, TriangleAlert, type LucideIcon } from "lucide-react"
+import { isValidElement, type ReactElement, type ReactNode } from "react"
+
+import { ActionGroup } from "~/components/ui/ActionGroup"
+import { Button } from "~/components/ui/button"
+import { Modal } from "~/components/ui/Dialog/Modal"
+
+interface ConfirmDialogProps {
+  /** Preserve focus across a confirmed operation and its successor dialog. */
+  focusWorkflowId?: string | number
+  terminalCloseKey?: string | number | null
+  panelTestId?: string
+  /**
+   * Keeps the header and confirm button consistent; defaults to a general confirmation.
+   */
+  intent?: "confirm" | "warning" | "destructive"
+  /**
+   * Controls whether the modal is visible.
+   */
+  isOpen: boolean
+  /**
+   * Called when the modal should close (close button, backdrop click, Escape).
+   */
+  onClose: () => void
+  /**
+   * Primary title shown in the header next to the action icon.
+   */
+  title: string
+  /**
+   * Supporting text shown in the body.
+   */
+  description: string
+  /**
+   * Optional heading shown above the description inside the warning section.
+   * When omitted, the section renders only the description to avoid duplicating the header title.
+   */
+  warningTitle?: string
+  /**
+   * Label for the confirm button.
+   */
+  confirmLabel: string
+  /** Preparation can block confirmation while cancellation remains available. */
+  confirmDisabled?: boolean
+  /**
+   * Optional label shown while the action is in progress.
+   */
+  workingLabel?: string
+  /**
+   * Label for the cancel button.
+   */
+  cancelLabel: string
+  /**
+   * Called when the user confirms the action.
+   */
+  onConfirm: () => void
+  /**
+   * Optional extra content rendered below the warning copy (e.g., entity details).
+   */
+  details?: ReactNode
+  /**
+   * Disables interactions and prevents closing while an action is in progress.
+   */
+  isWorking?: boolean
+  /**
+   * Optional modal size; defaults to a compact dialog.
+   */
+  size?: "sm" | "md" | "lg"
+  /**
+   * Optional stable selector for the confirmation action.
+   */
+  confirmButtonTestId?: string
+  /**
+   * Optional stable selector for the cancel action.
+   */
+  cancelButtonTestId?: string
+  /**
+   * Optional header icon. Lucide icons follow the intent color; custom elements retain their branding.
+   */
+  icon?: LucideIcon | ReactElement
+}
+
+const intentPresentation = {
+  confirm: {
+    icon: CircleHelp,
+    iconClassName: "text-link",
+    confirmVariant: "default",
+  },
+  warning: {
+    icon: TriangleAlert,
+    iconClassName: "text-warning-indicator",
+    confirmVariant: "warning",
+  },
+  destructive: {
+    icon: TriangleAlert,
+    iconClassName: "text-destructive-indicator",
+    confirmVariant: "destructive",
+  },
+} as const
+
+/**
+ * Shared confirmation layout with a general default, action-specific intent,
+ * and consistent header and button presentation.
+ */
+export function ConfirmDialog({
+  focusWorkflowId,
+  terminalCloseKey,
+  panelTestId,
+  intent = "confirm",
+  isOpen,
+  onClose,
+  title,
+  description,
+  warningTitle,
+  confirmLabel,
+  confirmDisabled = false,
+  workingLabel,
+  cancelLabel,
+  onConfirm,
+  details,
+  isWorking = false,
+  size = "sm",
+  confirmButtonTestId,
+  cancelButtonTestId,
+  icon,
+}: ConfirmDialogProps) {
+  const presentation = intentPresentation[intent]
+  const Icon = isValidElement(icon)
+    ? presentation.icon
+    : icon ?? presentation.icon
+
+  return (
+    <Modal
+      focusWorkflowId={focusWorkflowId}
+      terminalCloseKey={terminalCloseKey}
+      panelTestId={panelTestId}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      closeOnBackdropClick={!isWorking}
+      closeOnEsc={!isWorking}
+      showCloseButton={!isWorking}
+      size={size}
+      header={
+        <div className="flex min-w-0 items-center justify-between pr-8">
+          <div className="flex min-w-0 items-center space-x-3">
+            {isValidElement(icon) ? (
+              <span aria-hidden="true" className="shrink-0">
+                {icon}
+              </span>
+            ) : (
+              <Icon
+                className={`h-5 w-5 shrink-0 ${presentation.iconClassName}`}
+                aria-hidden="true"
+              />
+            )}
+            <h2 className="text-foreground min-w-0 text-lg font-semibold break-words">
+              {title}
+            </h2>
+          </div>
+        </div>
+      }
+      footer={
+        <ActionGroup
+          layout="stack-on-narrow"
+          className="gap-y-density-3 gap-x-3"
+        >
+          <Button
+            type="button"
+            onClick={onClose}
+            variant="secondary"
+            className="flex-1"
+            disabled={isWorking}
+            data-testid={cancelButtonTestId}
+          >
+            {cancelLabel}
+          </Button>
+          <Button
+            type="button"
+            onClick={onConfirm}
+            variant={presentation.confirmVariant}
+            className="flex-1"
+            disabled={confirmDisabled}
+            loading={isWorking}
+            data-testid={confirmButtonTestId}
+            data-variant={presentation.confirmVariant}
+          >
+            {isWorking ? workingLabel ?? confirmLabel : confirmLabel}
+          </Button>
+        </ActionGroup>
+      }
+    >
+      <div className="space-y-density-4">
+        <div className="flex space-x-3">
+          <div className="flex-1">
+            {warningTitle && (
+              <h3 className="text-foreground mb-density-2 text-sm font-medium">
+                {warningTitle}
+              </h3>
+            )}
+            <p className="dark:text-secondary-foreground text-muted-foreground text-sm">
+              {description}
+            </p>
+          </div>
+        </div>
+        {details}
+      </div>
+    </Modal>
+  )
+}

@@ -1,0 +1,476 @@
+import type { Locator } from "@playwright/test"
+
+import { OPTIONS_PAGE_PATH, POPUP_PAGE_PATH } from "~/constants/extensionPages"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import { THEME_MODE, THEME_PRESET } from "~/constants/theme"
+import { OPTIONS_TEST_IDS } from "~/entrypoints/options/testIds"
+import { DEFAULT_APPEARANCE } from "~/types/theme"
+import { expect, test } from "~~/e2e/fixtures/extensionTest"
+import {
+  createStoredBookmark,
+  forceExtensionLanguage,
+  seedStoredBookmarks,
+  seedUserPreferences,
+  stubLlmMetadataIndex,
+} from "~~/e2e/utils/commonUserFlows"
+import { expectCornerShape } from "~~/e2e/utils/cornerShape"
+import { getServiceWorker } from "~~/e2e/utils/extensionState"
+import { setVisualDarkMode } from "~~/e2e/utils/visualTheme"
+
+const OPTIONS_PAGE_HEADINGS = {
+  [MENU_ITEM_IDS.OVERVIEW]: "Overview",
+  [MENU_ITEM_IDS.BASIC]: "Settings",
+  [MENU_ITEM_IDS.ACCOUNT]: "Account Management",
+  [MENU_ITEM_IDS.BOOKMARK]: "Bookmark Management",
+  [MENU_ITEM_IDS.AUTO_CHECKIN]: /^(Auto Check-in|Batch Check-in)$/,
+  [MENU_ITEM_IDS.USAGE_ANALYTICS]: "Usage Analytics",
+  [MENU_ITEM_IDS.BALANCE_HISTORY]: "Balance History",
+  [MENU_ITEM_IDS.SITE_ANNOUNCEMENTS]: "Site Announcements",
+  [MENU_ITEM_IDS.MODELS]: "Model List",
+  [MENU_ITEM_IDS.KEYS]: "Key Management",
+  [MENU_ITEM_IDS.API_CREDENTIAL_PROFILES]: "API credential library",
+  [MENU_ITEM_IDS.MANAGED_SITE_CHANNELS]: "Channels management",
+  [MENU_ITEM_IDS.MANAGED_SITE_MODEL_SYNC]: "Model List Synchronization",
+  [MENU_ITEM_IDS.IMPORT_EXPORT]: "Import/Export",
+  [MENU_ITEM_IDS.ABOUT]: "About",
+} as const
+
+/**
+ * Lists the opaque surfaces painted between a card and the workspace canvas.
+ *
+ * A card only reads as rounded when the canvas shows through its corners. A
+ * plate of the same color directly behind the card fills those corners in, so
+ * every element between the page root and the card has to stay transparent.
+ * The walk stays inside the page-owned surface: a portalled card belongs to a
+ * floating layer, not to the page canvas.
+ */
+async function opaqueSurfacesBehindCard(card: Locator): Promise<string[]> {
+  // Resolve and inspect the optional card in one browser task. It may disappear
+  // after a separate count() when navigation or asynchronous data replaces it.
+  return card.evaluateAll((elements) => {
+    const element = elements[0]
+    if (!element) return []
+    const pageSurface = element.closest('[data-testid="options-content-card"]')
+    if (!pageSurface) return []
+
+    const opaque: string[] = []
+    for (
+      let node = element.parentElement;
+      node && pageSurface.contains(node);
+      node = node.parentElement
+    ) {
+      const background = getComputedStyle(node).backgroundColor
+      if (background !== "rgba(0, 0, 0, 0)") {
+        opaque.push(
+          `${node.tagName.toLowerCase()}.${node.getAttribute("class") ?? ""} → ${background}`,
+        )
+      }
+    }
+    return opaque
+  })
+}
+
+test.beforeEach(async ({ context, page }) => {
+  await forceExtensionLanguage(page, "en")
+  await stubLlmMetadataIndex(context)
+  await seedUserPreferences(await getServiceWorker(context), {
+    themeMode: THEME_MODE.LIGHT,
+    currencyType: "USD",
+  })
+})
+
+test("card backdrop inspection handles a card disappearing during navigation", async ({
+  page,
+}) => {
+  page.setDefaultTimeout(1_000)
+  await page.setContent(`
+    <main data-testid="options-content-card">
+      <section class="backdrop" style="background: rgb(255, 255, 255)">
+        <div data-slot="card">Departing page</div>
+      </section>
+    </main>
+  `)
+  const card = page.locator('main [data-slot="card"]:visible').first()
+  expect(await card.count()).toBe(1)
+  expect(await opaqueSurfacesBehindCard(card)).toEqual([
+    "section.backdrop → rgb(255, 255, 255)",
+  ])
+  await page.locator("section").evaluate((element) => {
+    element.style.background = "transparent"
+  })
+  expect(await opaqueSurfacesBehindCard(card)).toEqual([])
+  await card.evaluate((element) => element.remove())
+
+  expect(await opaqueSurfacesBehindCard(card)).toEqual([])
+})
+
+test("responsive finite radii restore continuous shaping after rounded-full", async ({
+  page,
+  extensionId,
+}) => {
+  await page.goto(`chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}`)
+  // Exercise the shared stylesheet independently of a particular component.
+  // Both utilities are used by production controls and included in the build.
+  await page.evaluate(() => {
+    const button = document.createElement("button")
+    button.textContent = "Responsive corner probe"
+    button.className = "rounded-full sm:rounded-sm"
+    document.body.append(button)
+  })
+  const button = page.getByRole("button", { name: "Responsive corner probe" })
+  await page.setViewportSize({ width: 390, height: 900 })
+  await expect(button).toHaveCSS("border-top-left-radius", "9999px")
+  await expectCornerShape(button, "round")
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await expect(button).toHaveCSS("border-top-left-radius", "10px")
+  await expectCornerShape(button, "superellipse(1.5)")
+  await page.setViewportSize({ width: 390, height: 900 })
+  await expect(button).toHaveCSS("border-top-left-radius", "9999px")
+  await expectCornerShape(button, "round")
+})
+
+test("overview edge focus rings follow the responsive card perimeter", async ({
+  page,
+  extensionId,
+}, testInfo) => {
+  await page.goto(`chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}`)
+  const summary = page.getByTestId("options-overview-status-summary")
+  const cells = summary.locator(":scope > div > *")
+  await expect(cells).toHaveCount(4)
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const dark of [false, true]) {
+      await setVisualDarkMode(page, dark)
+      await expect(cells.first()).toHaveCSS("border-top-left-radius", "15px")
+      await expect(cells.first()).toHaveCSS(
+        "border-bottom-left-radius",
+        width === 1280 ? "15px" : "0px",
+      )
+      await expect(cells.nth(1)).toHaveCSS(
+        "border-top-right-radius",
+        width === 1280 ? "0px" : "15px",
+      )
+      const button = summary.getByRole("button").first()
+      await button.focus()
+      await expect(button).toBeFocused()
+      await expect(button).toHaveCSS("border-top-left-radius", "15px")
+      await expectCornerShape(button, "superellipse(1.5)")
+      await expect(button).toHaveCSS("box-shadow", / 2px inset(?:,|$)/)
+      await page.screenshot({
+        animations: "disabled",
+        path: testInfo.outputPath(`overview-focus-${width}-${dark}.png`),
+      })
+    }
+  }
+})
+
+test("card edge rows and notification surfaces use the actual shared radius", async ({
+  page,
+  extensionId,
+}, testInfo) => {
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  // Edge rows come from the card so adding or reordering settings rows cannot
+  // silently point these assertions at a row that is no longer an edge.
+  const rows = page.locator("#general-display [data-slot='card-item']")
+  const firstRow = rows.first()
+  const middleRow = page.locator("#display-today-cashflow-enabled")
+  const lastRow = rows.last()
+  await expect(firstRow).toBeVisible()
+  for (const dark of [false, true]) {
+    await page
+      .locator(`#${SETTINGS_ANCHORS.APPEARANCE_THEME_MODE}`)
+      .getByRole("button", {
+        name: dark ? /Dark/ : /Light/,
+      })
+      .click()
+    await expect(firstRow).toHaveCSS("border-top-left-radius", "15px")
+    await expect(firstRow).toHaveCSS("border-bottom-left-radius", "0px")
+    await expect(middleRow).toHaveCSS("border-top-left-radius", "0px")
+    await expect(lastRow).toHaveCSS("border-bottom-left-radius", "15px")
+    await expect(firstRow.locator("..")).not.toHaveCSS("overflow", "hidden")
+
+    await firstRow
+      .getByRole("button", { name: dark ? "USD ($)" : "CNY (¥)" })
+      .click()
+    const closeButton = page.getByRole("button", {
+      name: "Close",
+      exact: true,
+    })
+    // The close action belongs to the toast surface, independent of its styles.
+    const toast = closeButton.locator("..")
+    await expect(toast).toBeVisible()
+    await expect(toast).toHaveCSS("border-top-left-radius", "16px")
+    await expect(toast).toHaveCSS(
+      "background-color",
+      dark ? "rgb(30, 41, 59)" : "rgb(255, 255, 255)",
+    )
+    await expectCornerShape(toast, "superellipse(1.5)")
+    await page.keyboard.press("Tab")
+    await closeButton.focus()
+    await expect(closeButton).toBeFocused()
+    await expect(closeButton).toHaveCSS("border-top-left-radius", "8px")
+    await expectCornerShape(closeButton, "superellipse(1.5)")
+    // The visible ring is 2px thick beyond the 2px offset, not just a shadow.
+    await expect(closeButton).toHaveCSS("box-shadow", / 4px(?:,|$)/)
+    await page.screenshot({
+      animations: "disabled",
+      path: testInfo.outputPath(`card-and-toast-${dark}.png`),
+    })
+    await closeButton.click()
+    await expect(toast).toHaveCount(0)
+  }
+})
+
+test("bookmark search surface follows the owning card in both themes", async ({
+  context,
+  page,
+  extensionId,
+}, testInfo) => {
+  await seedStoredBookmarks(await getServiceWorker(context), [
+    createStoredBookmark({ id: "corner-bookmark", name: "Corner bookmark" }),
+  ])
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BOOKMARK}`,
+  )
+  const card = page
+    .getByTestId("bookmarks-list-view")
+    .locator('[data-slot="card"]')
+  const searchSurface = card.locator(":scope > div > div").first()
+  await expect(searchSurface).toBeVisible()
+  for (const dark of [false, true]) {
+    await setVisualDarkMode(page, dark)
+    await expect(searchSurface).toHaveCSS("border-top-left-radius", "15px")
+    await expect(searchSurface).toHaveCSS("border-bottom-left-radius", "0px")
+    await expectCornerShape(searchSurface, "superellipse(1.5)")
+    await page.screenshot({
+      animations: "disabled",
+      path: testInfo.outputPath(`bookmark-search-${dark}.png`),
+    })
+  }
+})
+
+test("page roots and card backdrops keep the workspace canvas behind every corner", async ({
+  context,
+  page,
+  extensionId,
+}) => {
+  test.setTimeout(240_000)
+  await seedStoredBookmarks(await getServiceWorker(context), [
+    createStoredBookmark({ id: "surface-bookmark", name: "Surface bookmark" }),
+  ])
+  const base = `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}`
+  const appearances = [
+    { label: "default light", preferences: { themeMode: THEME_MODE.LIGHT } },
+    { label: "default dark", preferences: { themeMode: THEME_MODE.DARK } },
+    {
+      label: "anthropic preset",
+      preferences: {
+        themeMode: THEME_MODE.LIGHT,
+        appearance: {
+          ...DEFAULT_APPEARANCE,
+          preset: THEME_PRESET.ANTHROPIC,
+        },
+      },
+    },
+  ]
+
+  for (const { label, preferences } of appearances) {
+    await seedUserPreferences(await getServiceWorker(context), preferences)
+    for (const route of Object.values(MENU_ITEM_IDS)) {
+      // Force document navigation: a hash-only change leaves the departing
+      // page's heading and cards visible while its exit animation runs.
+      await page.goto(`${base}?surface-check=${route}#${route}`)
+      await expect(
+        page.locator("main").getByRole("heading", {
+          name: OPTIONS_PAGE_HEADINGS[route],
+          exact: true,
+        }),
+      ).toBeVisible()
+
+      // Page roots own only their own content; the canvas stays visible.
+      const pageRoot = page
+        .getByTestId(OPTIONS_TEST_IDS.contentCard)
+        .locator(":scope > *")
+      await expect(
+        pageRoot,
+        `${route}/${label}: page roots stay transparent over the workspace canvas`,
+      ).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+
+      const card = page.locator('main [data-slot="card"]:visible').first()
+      expect(
+        await opaqueSurfacesBehindCard(card),
+        `${route}/${label}: the card background would hide its own corners`,
+      ).toEqual([])
+    }
+  }
+})
+
+test("settings preserve inset corners, circular switches and focus in both themes", async ({
+  page,
+  extensionId,
+}, testInfo) => {
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  const group = page
+    .locator(`#${SETTINGS_ANCHORS.APPEARANCE_THEME_MODE}`)
+    .getByRole("group")
+  const button = group.getByRole("button").first()
+  await expect(button).toBeVisible()
+
+  for (const dark of [false, true]) {
+    await setVisualDarkMode(page, dark)
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 })
+      await button.scrollIntoViewIfNeeded()
+      await button.focus()
+      await expect(button).toBeFocused()
+      await expect(button).not.toHaveCSS("box-shadow", "none")
+      await expect(group).toHaveCSS("border-top-left-radius", "20px")
+      await expect(button).toHaveCSS("border-top-left-radius", "16px")
+      await expectCornerShape(button, "superellipse(1.5)")
+      const toggle = page.getByRole("switch").first()
+      await expect(toggle).toHaveCSS("border-top-left-radius", "9999px")
+      await expectCornerShape(toggle, "round")
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        )
+        .toBe(true)
+      await page.screenshot({
+        animations: "disabled",
+        path: testInfo.outputPath(
+          `settings-${dark ? "dark" : "light"}-${width}.png`,
+        ),
+      })
+    }
+  }
+
+  // Changing the outer token must also change the inset; no independent child radius.
+  await group.evaluate((element) => {
+    element.style.setProperty("--radius-xl", "24px")
+    element.style.setProperty("--corner-inset", "6px")
+  })
+  await expect(group).toHaveCSS("border-top-left-radius", "24px")
+  await expect(button).toHaveCSS("border-top-left-radius", "18px")
+})
+
+test("portalled menus and search dialog keep their nested outlines", async ({
+  page,
+  extensionId,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  const language = page
+    .locator(`#${SETTINGS_ANCHORS.APPEARANCE_LANGUAGE}`)
+    .getByRole("combobox")
+  await expect(language).toBeVisible()
+  for (const dark of [false, true]) {
+    await setVisualDarkMode(page, dark)
+    await language.click()
+    const select = page.locator('[data-slot="select-content"]')
+    await expect(select).toBeVisible()
+    await expect(select).toHaveCSS("border-top-left-radius", "16px")
+    const option = select.getByRole("option").first()
+    await option.hover()
+    await expect(option).toHaveCSS("border-top-left-radius", "11px")
+    await page.screenshot({
+      animations: "disabled",
+      path: testInfo.outputPath(`select-${dark}.png`),
+    })
+    await page.keyboard.press("Escape")
+
+    await page
+      .getByRole("banner")
+      .getByRole("button", { name: /Current:/ })
+      .click()
+    const menu = page.getByRole("menu")
+    await expect(menu).toHaveCSS("border-top-left-radius", "16px")
+    const item = menu.getByRole("menuitemradio").first()
+    await item.hover()
+    await expect(item).toHaveCSS("border-top-left-radius", "11px")
+    await page.screenshot({
+      animations: "disabled",
+      path: testInfo.outputPath(`menu-${dark}.png`),
+    })
+    await page.keyboard.press("Escape")
+
+    await page.keyboard.press("Control+k")
+    const dialog = page.getByRole("dialog")
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toHaveCSS("border-top-left-radius", "24px")
+    await expect(dialog.locator('[data-slot="command"]')).toHaveCSS(
+      "border-top-left-radius",
+      "24px",
+    )
+    await dialog.getByRole("combobox").fill("theme")
+    await expect(dialog.getByRole("option").first()).toBeVisible()
+    await expect(dialog.getByRole("option").first()).toHaveCSS(
+      "border-top-left-radius",
+      "16px",
+    )
+    await page.screenshot({
+      animations: "disabled",
+      path: testInfo.outputPath(`dialog-${dark}.png`),
+    })
+    await page.keyboard.press("Escape")
+  }
+})
+
+test("popup tabs retain concentric geometry with native shaping and the fallback stylesheet", async ({
+  page,
+  extensionId,
+}, testInfo) => {
+  await page.setViewportSize({ width: 400, height: 600 })
+  await page.goto(`chrome-extension://${extensionId}/${POPUP_PAGE_PATH}`)
+  const tabs = page.getByRole("tablist").first()
+  const tab = tabs.getByRole("tab").first()
+  await expect(tab).toBeVisible()
+  await expect(tabs).toHaveCSS("border-top-left-radius", "12px")
+  await expect(tab).toHaveCSS("border-top-left-radius", "8px")
+  await expectCornerShape(tab, "superellipse(1.5)")
+  await tab.hover()
+  await tab.focus()
+  await page.screenshot({
+    animations: "disabled",
+    path: testInfo.outputPath("popup-native.png"),
+  })
+
+  // Exercise the actual fallback declarations by removing only the enhancement
+  // block, as an engine without corner-shape support would ignore it.
+  const removed = await page.evaluate(() => {
+    let count = 0
+    const removeEnhancement = (sheet: CSSStyleSheet | CSSGroupingRule) => {
+      for (let index = sheet.cssRules.length - 1; index >= 0; index--) {
+        const rule = sheet.cssRules[index]
+        if (
+          rule instanceof CSSSupportsRule &&
+          rule.conditionText.includes("corner-shape")
+        ) {
+          sheet.deleteRule(index)
+          count++
+        } else if (rule instanceof CSSGroupingRule) {
+          removeEnhancement(rule)
+        }
+      }
+    }
+    for (const sheet of document.styleSheets) removeEnhancement(sheet)
+    return count
+  })
+  expect(removed).toBeGreaterThan(0)
+  await expectCornerShape(tab, "round")
+  await expect(tab).toHaveCSS("border-top-left-radius", "8px")
+  await tab.press("ArrowRight")
+  await expect(tabs.getByRole("tab").nth(1)).toBeFocused()
+  await page.screenshot({
+    animations: "disabled",
+    path: testInfo.outputPath("popup-fallback.png"),
+  })
+})

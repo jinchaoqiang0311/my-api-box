@@ -1,0 +1,90 @@
+{
+  "actions": {
+    "create": "Kanal erstellen",
+    "deselectAll": "Alle abwählen",
+    "hideKey": "Schlüssel ausblenden",
+    "inverse": "Umkehren",
+    "loadingRealKey": "Echter Schlüssel wird geladen...",
+    "loadRealKey": "Echten Schlüssel laden",
+    "selectAll": "Alles auswählen",
+    "showKey": "Schlüssel anzeigen",
+    "update": "Änderungen speichern"
+  },
+  "description": {
+    "add": "Konfigurieren Sie einen neuen Kanal für Ihre verwaltete Website",
+    "edit": "Kanaleinstellungen und Routing-Informationen aktualisieren"
+  },
+  "fields": {
+    "baseUrl": {
+      "label": "Basis-URL",
+      "placeholder": "https://api.example.com"
+    },
+    "groups": {
+      "hint": "Gruppen stammen von Ihrer verwalteten Website",
+      "label": "Kanalgruppen",
+      "placeholder": "Gruppen auswählen"
+    },
+    "key": {
+      "label": "API-Schlüssel",
+      "placeholder": "Geben Sie den API-Schlüssel des Upstream-Anbieters ein",
+      "realKeyHint": "Wenn in der Kanalliste der vollständige Schlüssel weggelassen oder maskiert wurde, laden Sie hier den echten Schlüssel. Für einige verwaltete Website-Typen ist möglicherweise eine zusätzliche Überprüfung erforderlich."
+    },
+    "models": {
+      "hint": "Geben Sie zum Suchen ein oder drücken Sie die Eingabetaste, um einen benutzerdefinierten Modellnamen hinzuzufügen",
+      "label": "Verfügbare Modelle",
+      "placeholder": "Modellnamen auswählen oder eingeben"
+    },
+    "name": {
+      "label": "Kanalname",
+      "placeholder": "Geben Sie einen beschreibenden Kanalnamen ein"
+    },
+    "priority": {
+      "label": "Priorität"
+    },
+    "status": {
+      "label": "Status"
+    },
+    "type": {
+      "hint": "Wählen Sie den Upstream-Anbieter, an den dieser Kanal weiterleitet",
+      "label": "Kanaltyp",
+      "placeholder": "Kanaltyp auswählen"
+    },
+    "weight": {
+      "label": "Gewicht"
+    }
+  },
+  "opening": {
+    "loading": "Kanalkonfiguration wird geladen…"
+  },
+  "title": {
+    "add": "Kanal erstellen",
+    "edit": "Kanal bearbeiten",
+    "view": "Kanal ansehen"
+  },
+  "warnings": {
+    "channelExists": {
+      "actions": {
+        "continue": "Weiter"
+      },
+      "description": "Ein Kanal mit dem Namen {{channelName}} ist bereits auf Ihrer verwalteten Website vorhanden. Sie können immer noch einen weiteren Kanal erstellen, es kann jedoch zu doppeltem Routing kommen. Trotzdem weitermachen?",
+      "title": "Kanal existiert bereits",
+      "warningTitle": "Mögliches Duplikat"
+    },
+    "exactDuplicate": {
+      "description": "Ein doppelter Kandidatenkanal {{channelName}} wurde jetzt auf der verwalteten Website bestätigt. Wenn Sie Duplikate vermeiden möchten, passen Sie den Namen, die Modelle oder den Schlüssel vor dem Speichern an. Andernfalls können Sie weiterhin mit der Erstellung des Kanals fortfahren.",
+      "title": "Bestätigter doppelter Kanal"
+    },
+    "modelsPrefillFailed": {
+      "description": "Für diesen API-Schlüssel wurde keine verwendbare Upstream-Modellliste geladen. Sie können den Kanal weiterhin erstellen, die Modelle jedoch vor dem Speichern manuell eingeben und bestätigen.",
+      "title": "Modelle erfordern manuelle Eingabe"
+    },
+    "reviewSuggested": {
+      "description": "Kandidatenkanäle wurden unter derselben Upstream-URL oder demselben Modell-Setup gefunden, ein exaktes Duplikat konnte jedoch nicht automatisch bestätigt werden. Sie können weiterhin mit der Erstellung des Kanals fortfahren, überprüfen Sie jedoch vor dem Speichern den Namen, die Modelle und den Schlüssel.",
+      "title": "Überprüfen Sie mögliche doppelte Kandidaten"
+    },
+    "verificationRequired": {
+      "description": "Kandidatenkanäle wurden gefunden, aber zum Lesen des echten Kanalschlüssels ist ein zusätzlicher Überprüfungsschritt erforderlich, sodass eine genaue Duplikatbestätigung derzeit nicht verfügbar ist. Sie können weiterhin mit der Erstellung des Kanals fortfahren. Führen Sie zunächst die Überprüfung durch, wenn Sie eine genaue Deduplizierungsprüfung benötigen.",
+      "title": "Mögliches Duplikat muss überprüft werden"
+    }
+  }
+}

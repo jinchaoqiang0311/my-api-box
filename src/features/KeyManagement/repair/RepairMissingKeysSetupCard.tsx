@@ -1,0 +1,67 @@
+import type { TFunction } from "i18next"
+import { ShieldCheck } from "lucide-react"
+import type { ReactNode } from "react"
+
+import { Alert, Button, Card, CardContent, CardFooter } from "~/components/ui"
+
+interface RepairMissingKeysSetupCardProps {
+  isStarting: boolean
+  isStartDisabled?: boolean
+  accountScope?: ReactNode
+  previousResultSummary?: ReactNode
+  renameOption: ReactNode
+  onStartRepair: () => void
+  t: TFunction
+}
+
+/**
+ * Shows the pre-run setup state before starting a repair job.
+ */
+export function RepairMissingKeysSetupCard({
+  isStarting,
+  isStartDisabled,
+  accountScope,
+  previousResultSummary,
+  renameOption,
+  onStartRepair,
+  t,
+}: RepairMissingKeysSetupCardProps) {
+  return (
+    <Card variant="outlined" className="overflow-hidden">
+      <CardContent padding="default" className="space-y-density-4">
+        <div className="gap-y-density-3 flex items-start gap-x-3">
+          <div className="bg-primary-soft text-primary-soft-foreground py-density-2 shrink-0 rounded-lg px-2">
+            <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <p className="text-secondary-foreground pt-density-1 text-sm leading-6">
+            {t("keyManagement:repairMissingKeys.initialNotice")}
+          </p>
+        </div>
+        <Alert
+          variant="warning"
+          compact
+          description={t("keyManagement:repairMissingKeys.remoteWriteNotice")}
+        />
+        {accountScope}
+        {renameOption}
+        {previousResultSummary}
+      </CardContent>
+      <CardFooter
+        padding="sm"
+        className="dark:bg-background/40 bg-surface-subtle/80 justify-start"
+      >
+        <Button
+          type="button"
+          onClick={onStartRepair}
+          loading={isStarting}
+          disabled={isStartDisabled}
+          className="w-full sm:w-auto"
+        >
+          {isStarting
+            ? t("common:status.starting")
+            : t("keyManagement:repairMissingKeys.actions.start")}
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}

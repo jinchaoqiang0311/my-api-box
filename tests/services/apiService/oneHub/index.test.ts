@@ -1,0 +1,291 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { newApiFamilyRequests } from "~/services/apiService/newApiFamily/request"
+import {
+  fetchAccountAvailableModels,
+  fetchAccountTokens,
+  fetchAvailableModel,
+  fetchModelPricing,
+  fetchUserGroupMap,
+  fetchUserGroups,
+} from "~/services/apiService/newApiFamily/variants/oneHub"
+import {
+  transformModelPricing,
+  transformUserGroup,
+} from "~/services/apiService/oneHub/transform"
+import { PaginationLimitError } from "~/services/apiTransport/pagination"
+
+const { mockSyncResolvedApiTokenKeyCache } = vi.hoisted(() => ({
+  mockSyncResolvedApiTokenKeyCache: vi.fn(),
+}))
+
+vi.mock("~/services/accountTokens/tokenKeyResolver", () => ({
+  syncResolvedApiTokenKeyCache: mockSyncResolvedApiTokenKeyCache,
+}))
+
+vi.mock("~/services/apiService/newApiFamily/request", () => ({
+  newApiFamilyRequests: {
+    data: vi.fn(),
+  },
+}))
+
+vi.mock("~/services/apiService/oneHub/transform", () => ({
+  transformModelPricing: vi.fn(),
+  transformUserGroup: vi.fn(),
+}))
+
+const mockedFetchApiData = newApiFamilyRequests.data as unknown as ReturnType<
+  typeof vi.fn
+>
+const mockedTransformModelPricing =
+  transformModelPricing as unknown as ReturnType<typeof vi.fn>
+const mockedTransformUserGroup = transformUserGroup as unknown as ReturnType<
+  typeof vi.fn
+>
+
+const baseRequest = {
+  baseUrl: "https://example.com",
+  auth: {
+    authType: "access_token",
+    userId: "1",
+    accessToken: "token",
+  },
+}
+
+describe("OneHub API service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("fetchAvailableModel should call newApiFamilyRequests.data with correct endpoint", async () => {
+    mockedFetchApiData.mockResolvedValueOnce({})
+
+    await fetchAvailableModel(baseRequest as any)
+
+    expect(mockedFetchApiData).toHaveBeenCalledWith(baseRequest, {
+      endpoint: "/api/available_model",
+    })
+  })
+
+  it("fetchUserGroupMap should call newApiFamilyRequests.data with correct endpoint", async () => {
+    mockedFetchApiData.mockResolvedValueOnce({})
+
+    await fetchUserGroupMap(baseRequest as any)
+
+    expect(mockedFetchApiData).toHaveBeenCalledWith(baseRequest, {
+      endpoint: "/api/user_group_map",
+    })
+  })
+
+  it("fetchModelPricing should combine available models and user group map then transform", async () => {
+    const availableModel = { model: {} }
+    const userGroupMap = { group: {} }
+    const transformed = {
+      data: [],
+      group_ratio: {},
+      success: true,
+      usable_group: {},
+    }
+
+    mockedFetchApiData
+      .mockResolvedValueOnce(availableModel)
+      .mockResolvedValueOnce(userGroupMap)
+    mockedTransformModelPricing.mockReturnValueOnce(transformed)
+
+    const result = await fetchModelPricing(baseRequest as any)
+
+    expect(mockedFetchApiData).toHaveBeenNthCalledWith(1, baseRequest, {
+      endpoint: "/api/available_model",
+    })
+    expect(mockedFetchApiData).toHaveBeenNthCalledWith(2, baseRequest, {
+      endpoint: "/api/user_group_map",
+    })
+    expect(mockedTransformModelPricing).toHaveBeenCalledWith(
+      availableModel,
+      userGroupMap,
+    )
+    expect(result).toBe(transformed)
+  })
+
+  it("fetchModelPricing should rethrow errors from underlying calls", async () => {
+    const error = new Error("network error")
+    mockedFetchApiData.mockRejectedValueOnce(error)
+
+    await expect(fetchModelPricing(baseRequest as any)).rejects.toThrow(
+      "network error",
+    )
+  })
+
+  it("fetchAccountTokens should return all array pages", async () => {
+    const tokens = [{ id: 1 }]
+    mockedFetchApiData.mockResolvedValueOnce(tokens).mockResolvedValueOnce([])
+
+    const result = await fetchAccountTokens(baseRequest as any)
+
+    expect(mockedFetchApiData).toHaveBeenCalled()
+    expect(result).toEqual(tokens)
+  })
+
+  it("fetchAccountTokens should trim token.key without synthesizing an sk- prefix", async () => {
+    mockedFetchApiData
+      .mockResolvedValueOnce([
+        { id: 1, key: "plain" },
+        { id: 2, key: "sk-already" },
+        { id: 3, key: "  sk-trim  " },
+      ])
+      .mockResolvedValueOnce([])
+
+    const result = await fetchAccountTokens(baseRequest as any)
+    expect(result.map((token: any) => token.key)).toEqual([
+      "plain",
+      "sk-already",
+      "sk-trim",
+    ])
+  })
+
+  it("fetchAccountTokens should return every data page from a paginated object", async () => {
+    const tokens = [{ id: 1 }, { id: 2 }]
+    mockedFetchApiData
+      .mockResolvedValueOnce({ data: tokens })
+      .mockResolvedValueOnce({ data: [] })
+
+    const result = await fetchAccountTokens(baseRequest as any)
+
+    expect(result).toEqual(tokens)
+    expect(mockSyncResolvedApiTokenKeyCache).toHaveBeenCalledWith(
+      baseRequest,
+      tokens,
+    )
+  })
+
+  it("fetchAccountTokens stops at the OneHub total without probing page two", async () => {
+    mockedFetchApiData.mockResolvedValueOnce({
+      data: [{ id: 1 }],
+      page: 1,
+      size: 100,
+      total_count: 1,
+    })
+
+    await expect(fetchAccountTokens(baseRequest as any)).resolves.toEqual([
+      { id: 1 },
+    ])
+    expect(mockedFetchApiData).toHaveBeenCalledTimes(1)
+  })
+
+  it("fetchAccountTokens should reject an unexpected format", async () => {
+    mockedFetchApiData.mockResolvedValueOnce({ foo: "bar" })
+
+    await expect(fetchAccountTokens(baseRequest as any)).rejects.toThrow(
+      "invalid_token_page_payload",
+    )
+  })
+
+  it("fetchAccountTokens should rethrow errors", async () => {
+    const error = new Error("token error")
+    mockedFetchApiData.mockRejectedValueOnce(error)
+
+    await expect(fetchAccountTokens(baseRequest as any)).rejects.toThrow(
+      "token error",
+    )
+  })
+
+  it("fetchAccountTokens collects OneHub pages using its pagination metadata", async () => {
+    const firstPageTokens = [{ id: 1 }, { id: 2 }]
+    mockedFetchApiData
+      .mockResolvedValueOnce({
+        data: firstPageTokens,
+        page: 1,
+        size: 2,
+        total_count: 3,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 3 }],
+        page: 2,
+        size: 2,
+        total_count: 3,
+      })
+
+    await expect(fetchAccountTokens(baseRequest as any)).resolves.toEqual([
+      ...firstPageTokens,
+      { id: 3 },
+    ])
+    expect(mockedFetchApiData).toHaveBeenNthCalledWith(1, baseRequest, {
+      endpoint: "/api/token/?page=1&size=100",
+    })
+    expect(mockedFetchApiData).toHaveBeenNthCalledWith(2, baseRequest, {
+      endpoint: "/api/token/?page=2&size=100",
+    })
+    expect(mockedFetchApiData).toHaveBeenCalledTimes(2)
+  })
+
+  it("fetchAccountTokens tolerates stale OneHub page metadata", async () => {
+    mockedFetchApiData
+      .mockResolvedValueOnce({
+        data: [{ id: 1 }],
+        page: 9,
+        size: 1,
+        total_count: 2,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 2 }],
+        page: 9,
+        size: 1,
+        total_count: 2,
+      })
+      .mockResolvedValueOnce({ data: [], page: 9, total_count: 0 })
+
+    await expect(fetchAccountTokens(baseRequest as any)).resolves.toEqual([
+      { id: 1 },
+      { id: 2 },
+    ])
+    expect(mockedFetchApiData).toHaveBeenNthCalledWith(2, baseRequest, {
+      endpoint: "/api/token/?page=2&size=100",
+    })
+  })
+
+  it("fetchAccountTokens rejects an inventory that reaches the page cap without syncing its cache", async () => {
+    mockedFetchApiData.mockResolvedValue({ data: [{ id: 1 }] })
+
+    await expect(fetchAccountTokens(baseRequest as any)).rejects.toBeInstanceOf(
+      PaginationLimitError,
+    )
+    expect(mockedFetchApiData).toHaveBeenCalledTimes(100)
+    expect(mockSyncResolvedApiTokenKeyCache).not.toHaveBeenCalled()
+  })
+
+  it("fetchUserGroups should transform user group response", async () => {
+    const responseData = { group1: { id: 1 } }
+    const transformed = { group1: { desc: "Group 1", ratio: 1 } }
+    mockedFetchApiData.mockResolvedValueOnce(responseData)
+    mockedTransformUserGroup.mockReturnValueOnce(transformed)
+
+    const result = await fetchUserGroups(baseRequest as any)
+
+    expect(mockedFetchApiData).toHaveBeenCalledWith(baseRequest, {
+      endpoint: "/api/user_group_map",
+    })
+    expect(mockedTransformUserGroup).toHaveBeenCalledWith(responseData)
+    expect(result).toBe(transformed)
+  })
+
+  it("fetchUserGroups should rethrow errors", async () => {
+    const error = new Error("group error")
+    mockedFetchApiData.mockRejectedValueOnce(error)
+
+    await expect(fetchUserGroups(baseRequest as any)).rejects.toThrow(
+      "group error",
+    )
+  })
+
+  it("fetchAccountAvailableModels should return keys of available models", async () => {
+    const availableModel = {
+      modelA: {},
+      modelB: {},
+    }
+    mockedFetchApiData.mockResolvedValueOnce(availableModel)
+
+    const result = await fetchAccountAvailableModels(baseRequest as any)
+
+    expect(result).toEqual(["modelA", "modelB"])
+  })
+})

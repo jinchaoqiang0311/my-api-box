@@ -1,0 +1,83 @@
+{
+  "alreadyStarred": "Mit Stern markiert",
+  "copyrightAck": "Urheberrecht und Danksagungen",
+  "description": "Version, Änderungsprotokoll und Projektlinks finden, Hilfe erhalten oder ein Problem melden.",
+  "devMaintenance": "Entwicklung & Wartung",
+  "devMode": {
+    "activatedToast": "🛠️ Entwicklermodus aktiviert! Alle Dev-Lab-Funktionen freigeschaltet.",
+    "alreadyDevToast": "Aktuell in der Entwicklungsumgebung (wxt dev). Entwicklermodus bleibt standardmäßig aktiviert.",
+    "deactivatedToast": "Entwicklermodus deaktiviert.",
+    "tooltipDev": "Läuft in der Entwicklungsumgebung (wxt dev)",
+    "tooltipProd": "7 Mal klicken, um den Entwicklermodus umzuschalten"
+  },
+  "features": "Funktionen",
+  "feedbackSection": {
+    "bugReport": {
+      "button": "Fehlerbericht öffnen",
+      "description": "Melden Sie fehlerhaftes Verhalten, Fehler oder unerwartete Ergebnisse mit der Fehlerberichtsvorlage."
+    },
+    "community": {
+      "button": "Community-Hub öffnen",
+      "description": "Sehen Sie sich den WeChat-QR-Code, die QQ-Gruppe, die mehrsprachige Discord-Community, die Telegram-Gruppe und andere Kanäle für Fragen, Setup-Diskussionen und Fehlerbehebung an."
+    },
+    "discussion": {
+      "button": "Diskussionen öffnen",
+      "description": "Stellen Sie Fragen, vergleichen Sie Setups oder starten Sie eine breitere Community-Diskussion auf GitHub Discussions."
+    },
+    "featureRequest": {
+      "button": "Funktionsanfrage öffnen",
+      "description": "Teilen Sie eine Verbesserungsidee oder eine Workflow-Anfrage über die Feature-Request-Vorlage."
+    },
+    "languageRequest": {
+      "button": "Sprachanfrage öffnen",
+      "description": "Bitten Sie uns, eine neue Schnittstellensprache für My API Box zu unterstützen."
+    },
+    "title": "Feedback und Support"
+  },
+  "githubDesc": "Quellcode ansehen, Probleme einreichen oder an der Projektentwicklung teilnehmen",
+  "githubRepo": "GitHub-Repository",
+  "homepage": "Projekt-Homepage",
+  "homepageDesc": "Detaillierte Dokumentation, Benutzerhandbücher und weitere Informationen anzeigen",
+  "implementedFeatures": "Implementierte Funktionen",
+  "intro": "My API Box bündelt Relay-Konten, Guthaben und API-Zugangsdaten und bietet automatische Aktualisierung, Check-ins und Modellprüfung. Verwalten Sie Kanäle oder Anbieter auf selbst gehosteten Websites wie CLIProxyAPI, New API und Sub2API, mit Modellsynchronisierung auf unterstützten Websites. WebDAV-Sicherungen sowie Datenimport und -export sind ebenfalls verfügbar.",
+  "privacyText": "Sensible Daten wie Konten, API-Schlüssel, Cookies, Kontostände, Anfrageinhalte und Benutzereingaben bleiben standardmäßig lokal. Optionale anonyme Produktanalysen dienen ausschließlich dazu, Fehler bei häufigen Problemen zu priorisieren, zentrale Abläufe und die Kompatibilität zu verbessern und unnötige Reibung zu verringern; diese sensiblen Daten werden dabei nicht erfasst.",
+  "privacyTitle": "Datenschutz",
+  "projectLinks": "Projektlinks",
+  "releaseUpdate": {
+    "currentVersion": "Aktuelle Version: v{{version}}",
+    "latestVersion": "Neueste stabile Version: v{{version}}",
+    "title": "Versionsaktualisierungen"
+  },
+  "starRepo": "Mit einem Stern markieren",
+  "stores": {
+    "chrome": "Chrome Web Store",
+    "edge": "Microsoft Edge Add-ons",
+    "firefox": "Firefox Add-ons"
+  },
+  "storesSection": {
+    "download": {
+      "button": "Store öffnen",
+      "description": "Von {{store}} herunterladen."
+    },
+    "review": {
+      "button": "Auf {{store}} bewerten",
+      "description": "Wenn My API Box Ihnen hilft, ist eine positive Bewertung auf {{store}} eine große Unterstützung.",
+      "title": "Hinterlassen Sie eine positive Bewertung"
+    },
+    "title": "Bewerten und herunterladen"
+  },
+  "techStack": {
+    "radix": "Zugängliche UI-Grundelemente",
+    "react": "Benutzeroberflächenbibliothek",
+    "tailwindcss": "Atomares CSS-Framework",
+    "title": "Tech-Stack",
+    "typescript": "Typsicheres JavaScript",
+    "wxt": "Entwicklungsframework für Browsererweiterungen"
+  },
+  "thanksDesc": "Vielen Dank an alle Entwickler, die zur Open-Source-Community beigetragen haben. Die Entwicklung dieses Plugins profitiert von diesen hervorragenden Open-Source-Projekten und -Tools",
+  "title": "Über",
+  "upcomingFeatures": "Kommende Funktionen",
+  "version": "Version:",
+  "viewRepo": "Repository besuchen",
+  "visitHomepage": "Homepage besuchen"
+}

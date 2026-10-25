@@ -1,0 +1,79 @@
+{
+  "accountMessage": {
+    "claimed": "Đã nhận",
+    "credits": "Phần thưởng: {{amount}} tín dụng",
+    "expires": "Hết hạn: {{time}}",
+    "openNative": "Xem và xử lý trên trang web",
+    "unclaimed": "Chưa nhận"
+  },
+  "actions": {
+    "checkNow": "Kiểm tra ngay",
+    "collapse": "Thu gọn",
+    "expand": "Mở rộng",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "markRead": "Đánh dấu đã đọc",
+    "pollingSettings": "Cài đặt lấy tự động",
+    "viewSource": "Xem thông báo trang web"
+  },
+  "badges": {
+    "notified": "Đã thông báo",
+    "unread": "Chưa đọc"
+  },
+  "description": {
+    "disabledSummary": "Đọc thông báo trang web và quản lý trạng thái chưa đọc. Kiểm tra tự động đang tắt; vẫn có thể kiểm tra thủ công.",
+    "enabledInterval": "Kiểm tra mỗi {{intervalMinutes}} phút.",
+    "enabledSummary": "Đọc thông báo trang web và quản lý trạng thái chưa đọc. Kiểm tra tự động đang bật.",
+    "pollingSettingsLink": "Cấu hình tự động lấy"
+  },
+  "empty": {
+    "addAccount": "Thêm tài khoản",
+    "description": "Thông báo mới sẽ được hiển thị ở đây sau khi được kiểm tra dưới nền.",
+    "descriptionWhenPollingDisabled": "Bạn có thể kiểm tra thủ công ngay bây giờ; tự động lấy có thể được quản lý trong cài đặt.",
+    "filtered": "Không có thông báo nào khớp với bộ lọc hiện tại",
+    "noAccounts": "Thêm tài khoản trước khi kiểm tra thông báo",
+    "noAccountsDesc": "Kiểm tra thông báo cần ít nhất một tài khoản đang bật để biết nên lấy thông báo từ những trang nào.",
+    "pollingSettingsLink": "Cấu hình tự động lấy",
+    "title": "Chưa có bản ghi thông báo nào"
+  },
+  "filters": {
+    "allSites": "Tất cả trang web",
+    "searchSite": "Tìm kiếm trang web",
+    "site": "Trang web"
+  },
+  "loading": "Đang tải thông báo...",
+  "messages": {
+    "checkCompleted": "Kiểm tra thông báo đã hoàn tất",
+    "checkCompletedWithIssues": "Đã kiểm tra: {{failed}} trang thất bại và {{unsupported}} trang không hỗ trợ. Hãy chọn một trang để xem chi tiết.",
+    "checkFailed": "Kiểm tra thông báo thất bại",
+    "loadFailed": "Tải thông báo thất bại",
+    "markAllReadFailed": "Không thể đánh dấu tất cả thông báo là đã đọc",
+    "markReadFailed": "Không thể đánh dấu thông báo là đã đọc"
+  },
+  "notification": {
+    "multipleUnread_other": "{{title}}, còn {{count}} thông báo chưa đọc",
+    "title": "{{site}} có thông báo mới"
+  },
+  "overview": {
+    "description": "Xem nhanh số liệu thông báo và lọc nội dung bạn quan tâm.",
+    "title": "Tổng quan"
+  },
+  "search": {
+    "clear": "Xóa",
+    "placeholder": "Tìm tiêu đề hoặc nội dung thông báo...",
+    "resultCount_other": "{{count}} kết quả"
+  },
+  "status": {
+    "aggregateIssues": "{{failed}} trang thất bại và {{unsupported}} trang không hỗ trợ kiểm tra thông báo. Hãy chọn trang để xem chi tiết và thử lại.",
+    "aggregateIssuesTitle": "Một số trang cần được xử lý",
+    "failed": "Lần kiểm tra thông báo gần nhất của trang web này đã thất bại: {{error}}",
+    "failedTitle": "Kiểm tra thất bại",
+    "lastChecked": "Lần kiểm tra gần nhất: {{time}}",
+    "unsupported": "Lần kiểm tra gần nhất của trang web này không tìm thấy API thông báo khả dụng.",
+    "unsupportedTitle": "Tạm thời không hỗ trợ API thông báo"
+  },
+  "summary": {
+    "total": "Tổng số thông báo",
+    "unread": "Thông báo chưa đọc"
+  },
+  "title": "Thông báo trang web"
+}

@@ -1,0 +1,97 @@
+import { SITE_TYPES } from "~/constants/siteType"
+import type { ManagedResourceMatchingCapability } from "~/services/apiAdapters/contracts/managedResourceMatching"
+import type {
+  ManagedSiteCapabilities,
+  ManagedSiteChannelDraftsCapability,
+  ManagedSiteConfigCapability,
+  ManagedSiteQueriesCapability,
+} from "~/services/apiAdapters/contracts/managedSiteCapabilities"
+import {
+  doneHubChannelOperations,
+  doneHubManagedResourceModels,
+} from "~/services/apiAdapters/managedResources/doneHub/operations"
+import {
+  toManagedResourceMatchCandidate,
+  toManagedResourceMatchList,
+  toNativeNumericMatchCandidates,
+} from "~/services/apiAdapters/managedResources/shared/matchingInputs"
+import { requireManagedResourceChannelId } from "~/services/apiAdapters/managedResources/shared/resourceIds"
+import { resolveNewApiKeyVariant } from "~/services/apiAdapters/newApi/keys/keyVariant"
+import {
+  fetchSiteUserGroups,
+  searchChannel,
+} from "~/services/apiService/doneHub"
+import {
+  checkValidDoneHubConfig,
+  prepareChannelFormData,
+} from "~/services/managedSites/providers/doneHubService"
+import type { DoneHubConfig } from "~/types/doneHubConfig"
+
+import { createManagedSiteConfigCapability } from "./config"
+import { toManagedSiteApiServiceRequest } from "./request"
+
+const doneHubManagedSiteConfig: ManagedSiteConfigCapability<DoneHubConfig> =
+  createManagedSiteConfigCapability(
+    SITE_TYPES.DONE_HUB,
+    checkValidDoneHubConfig,
+  )
+
+const doneHubTokenTransport = resolveNewApiKeyVariant(
+  SITE_TYPES.DONE_HUB,
+).transport
+
+const doneHubManagedSiteQueries: ManagedSiteQueriesCapability<DoneHubConfig> = {
+  siteUserGroups: {
+    fetch: async (config, options) =>
+      await fetchSiteUserGroups(
+        toManagedSiteApiServiceRequest(config, options),
+      ),
+  },
+  accountAvailableModels: {
+    fetch: async (config) =>
+      await doneHubTokenTransport.fetchAccountAvailableModels(
+        toManagedSiteApiServiceRequest(config),
+      ),
+  },
+}
+
+const doneHubManagedSiteChannelDrafts: ManagedSiteChannelDraftsCapability = {
+  prepareFormData: prepareChannelFormData,
+}
+
+const matching: ManagedResourceMatchingCapability<DoneHubConfig> = {
+  fetchSecretKey: async (config, ref, options) =>
+    doneHubChannelOperations.fetchSecretKey(
+      config,
+      requireManagedResourceChannelId(SITE_TYPES.DONE_HUB, config, ref),
+      options,
+    ),
+  hydrateComparableKeys: async (config, candidates, options) => {
+    const target = { siteType: SITE_TYPES.DONE_HUB, config }
+    const hydrated = await doneHubChannelOperations.hydrateComparableKeys(
+      config,
+      toNativeNumericMatchCandidates(candidates, target),
+      options,
+    )
+    return hydrated.map((candidate) =>
+      toManagedResourceMatchCandidate(candidate, target),
+    )
+  },
+  search: async (config, keyword, options) =>
+    toManagedResourceMatchList(
+      await searchChannel(
+        toManagedSiteApiServiceRequest(config, options),
+        keyword,
+      ),
+      { siteType: SITE_TYPES.DONE_HUB, config },
+    ),
+}
+
+export const doneHubManagedSiteCapabilities = {
+  siteType: SITE_TYPES.DONE_HUB,
+  matching,
+  models: doneHubManagedResourceModels,
+  config: doneHubManagedSiteConfig,
+  queries: doneHubManagedSiteQueries,
+  channelDrafts: doneHubManagedSiteChannelDrafts,
+} satisfies ManagedSiteCapabilities<DoneHubConfig, typeof SITE_TYPES.DONE_HUB>

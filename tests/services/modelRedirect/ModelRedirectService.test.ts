@@ -1,0 +1,403 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { generateModelMappingForChannel } from "~/services/models/modelRedirect/modelMatching"
+import { extractActualModel } from "~/services/models/modelRedirect/modelNormalization"
+
+const MOCKED_METADATA = vi.hoisted(() => {
+  const mockMetadataMap = new Map<
+    string,
+    { standardName: string; vendorName: string }
+  >([
+    ["gpt-4o", { standardName: "gpt-4o", vendorName: "OpenAI" }],
+    ["deepseek-r1", { standardName: "deepseek-r1", vendorName: "DeepSeek" }],
+    [
+      "claude-3-5-sonnet",
+      { standardName: "claude-3-5-sonnet-20241022", vendorName: "Anthropic" },
+    ],
+    ["gpt-4o-mini", { standardName: "gpt-4o-mini", vendorName: "OpenAI" }],
+  ])
+
+  const defaultFindStandardModelName = (modelName: string) => {
+    const cleaned = modelName.trim().toLowerCase()
+    return mockMetadataMap.get(cleaned) || null
+  }
+
+  const findStandardModelNameMock = vi.fn(defaultFindStandardModelName)
+
+  return {
+    defaultFindStandardModelName,
+    findStandardModelNameMock,
+    modelCount: mockMetadataMap.size,
+  }
+})
+
+vi.mock("~/services/models/modelMetadata", () => ({
+  modelMetadataService: {
+    initialize: vi.fn().mockResolvedValue(undefined),
+    findStandardModelName: MOCKED_METADATA.findStandardModelNameMock,
+    getCacheInfo: () => ({
+      isLoaded: true,
+      modelCount: MOCKED_METADATA.modelCount,
+      lastUpdated: Date.now(),
+    }),
+  },
+}))
+
+describe("generateModelMappingForChannel", () => {
+  beforeEach(() => {
+    MOCKED_METADATA.findStandardModelNameMock.mockClear()
+    MOCKED_METADATA.findStandardModelNameMock.mockImplementation(
+      MOCKED_METADATA.defaultFindStandardModelName,
+    )
+  })
+
+  it("should generate mapping with normalized names and deduplicate actual models", () => {
+    const standardModels = ["gpt-4o", "deepseek-r1", "claude-3-5-sonnet"]
+    const actualModels = [
+      "openai/gpt-4o:free",
+      "BigModel/deepseek/deepseek-r1:free",
+      "deepseek/deepseek-r1:premium",
+      "anthropic/claude-3-5-sonnet",
+      "anthropic/claude-3-5-sonnet-20241022",
+    ]
+
+    const mapping = generateModelMappingForChannel(standardModels, actualModels)
+
+    expect(mapping).toEqual({
+      "gpt-4o": "openai/gpt-4o:free",
+      "deepseek-r1": "BigModel/deepseek/deepseek-r1:free",
+      "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
+    })
+  })
+
+  it("maps duplicate standard model inputs once", () => {
+    expect(
+      generateModelMappingForChannel(["gpt-4o", "gpt-4o"], ["provider/gpt-4o"]),
+    ).toEqual({ "gpt-4o": "provider/gpt-4o" })
+  })
+
+  it("should skip standard models already present in actual models", () => {
+    const standardModels = ["gpt-4o", "gpt-4o-mini"]
+    const actualModels = ["gpt-4o", "openai/gpt-4o-mini"]
+
+    const mapping = generateModelMappingForChannel(standardModels, actualModels)
+
+    expect(mapping).toEqual({
+      "gpt-4o-mini": "openai/gpt-4o-mini",
+    })
+  })
+
+  it("should prevent duplicate keys", () => {
+    const standardModels = ["gpt-4o", "GPT-4o"]
+    const actualModels = ["openai/gpt-4o"]
+
+    const mapping = generateModelMappingForChannel(standardModels, actualModels)
+
+    expect(Object.keys(mapping)).toHaveLength(1)
+    expect(mapping["gpt-4o"]).toBe("openai/gpt-4o")
+  })
+
+  it("should return empty mapping when no matches found", () => {
+    const standardModels = ["gpt-4o", "claude-3-5-sonnet"]
+    const actualModels = ["moonshot-v1"]
+
+    const mapping = generateModelMappingForChannel(standardModels, actualModels)
+
+    expect(mapping).toEqual({})
+  })
+
+  it.each([
+    ["dashed", "model-a-2025-01-01", "model-a-2025-02-02"],
+    ["compact", "model-a-20250101", "model-a-20250202"],
+  ])(
+    "preserves %s dated model identities before normalization",
+    (_format, standardModel, actualModel) => {
+      expect(
+        generateModelMappingForChannel([standardModel], [actualModel]),
+      ).toEqual({})
+    },
+  )
+
+  it.each([
+    ["model-a-2025-01-01", "model-a-2025-01-01"],
+    ["model-a-20250101", "model-a-20250101"],
+    ["model-a", "model-a-2025-01-01"],
+    ["model-a-20250101", "model-a"],
+  ])(
+    "does not redirect exact or one-sided dated identities (%s, %s)",
+    (standardModel, actualModel) => {
+      expect(
+        generateModelMappingForChannel([standardModel], [actualModel]),
+      ).toEqual({})
+    },
+  )
+
+  it.each([
+    ["dashed actual", "model-a", "vendor/model-a-2025-01-01:free"],
+    ["compact actual", "model-a", "vendor/model-a-20250101:free"],
+    ["dashed standard", "vendor/model-a-2025-01-01:free", "model-a"],
+    ["compact standard", "vendor/model-a-20250101:free", "model-a"],
+  ])(
+    "preserves decorated %s dated identities before normalization",
+    (_scenario, standardModel, actualModel) => {
+      expect(
+        generateModelMappingForChannel([standardModel], [actualModel]),
+      ).toEqual({})
+    },
+  )
+
+  it.each([
+    ["vendor/model-a-2025-01-01:free"],
+    ["vendor/model-a-20250101:free"],
+  ])(
+    "keeps an identical decorated dated raw model as an exact match",
+    (model) => {
+      expect(generateModelMappingForChannel([model], [model])).toEqual({})
+    },
+  )
+
+  it("treats hyphen-separated and dot-separated model versions as equivalent", () => {
+    const standardModels = ["claude-sonnet-4-5"]
+    const actualModels = ["claude-4.5-sonnet"]
+
+    const mapping = generateModelMappingForChannel(standardModels, actualModels)
+
+    expect(mapping["claude-sonnet-4-5"]).toEqual("claude-4.5-sonnet")
+  })
+
+  it("does not map across minor versions (Claude 4.5 -> 4.6)", () => {
+    const mapping = generateModelMappingForChannel(
+      ["claude-4.5-sonnet"],
+      ["claude-sonnet-4-6-20260101"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("does not alias dated candidates even when one version token matches", () => {
+    const mapping = generateModelMappingForChannel(
+      ["claude-4.5-sonnet"],
+      ["claude-sonnet-4-6-20260101", "claude-sonnet-4-5-20250929"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("does not map across versions (OpenAI)", () => {
+    const mapping = generateModelMappingForChannel(
+      ["gpt-4o-mini"],
+      ["gpt-4.1-mini"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("does not map across versions (Google)", () => {
+    const mapping = generateModelMappingForChannel(
+      ["gemini-2.5-pro"],
+      ["gemini-3-pro"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("maps separator-only alias format for the same version (Google)", () => {
+    const mapping = generateModelMappingForChannel(
+      ["gemini-2.5-pro"],
+      ["gemini-2-5-pro"],
+    )
+
+    expect(mapping["gemini-2.5-pro"]).toBe("gemini-2-5-pro")
+  })
+
+  it("tries the next normalized candidate after an incompatible version", () => {
+    MOCKED_METADATA.findStandardModelNameMock.mockReturnValue({
+      standardName: "shared-model",
+      vendorName: "Example",
+    })
+
+    const mapping = generateModelMappingForChannel(
+      ["model-a-1"],
+      ["model-a-2", "model-1-a"],
+    )
+
+    expect(mapping).toEqual({ "model-a-1": "model-1-a" })
+  })
+
+  it("should not downgrade/upgrade versions even if metadata mis-normalizes (Claude)", () => {
+    MOCKED_METADATA.findStandardModelNameMock.mockImplementation(
+      (modelName: string) => {
+        const cleaned = modelName.trim().toLowerCase()
+        if (cleaned === "claude-4.5-sonnet") {
+          // Simulate a buggy metadata normalization that would downgrade 4.5 -> 3.5
+          return {
+            standardName: "claude-3-5-sonnet-20241022",
+            vendorName: "Anthropic",
+          }
+        }
+        return MOCKED_METADATA.defaultFindStandardModelName(modelName)
+      },
+    )
+
+    const mapping = generateModelMappingForChannel(
+      ["claude-4.5-sonnet"],
+      ["claude-3-5-sonnet-20241022"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("should not downgrade/upgrade versions even if metadata mis-normalizes (Google)", () => {
+    MOCKED_METADATA.findStandardModelNameMock.mockImplementation(
+      (modelName: string) => {
+        const cleaned = modelName.trim().toLowerCase()
+        if (cleaned === "gemini-2.5-pro") {
+          // Simulate a buggy metadata normalization that would map 2.5-pro -> 3-pro
+          return { standardName: "gemini-3-pro", vendorName: "Google" }
+        }
+        return MOCKED_METADATA.defaultFindStandardModelName(modelName)
+      },
+    )
+
+    const mapping = generateModelMappingForChannel(
+      ["gemini-2.5-pro"],
+      ["gemini-3-pro"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("should not cross minor versions even if metadata mis-normalizes (Claude 4.5 -> 4.6)", () => {
+    MOCKED_METADATA.findStandardModelNameMock.mockImplementation(
+      (modelName: string) => {
+        const cleaned = modelName.trim().toLowerCase()
+        if (cleaned === "claude-4.5-sonnet") {
+          // Simulate a buggy metadata normalization that would cross minor version 4.5 -> 4.6
+          return {
+            standardName: "claude-sonnet-4-6-20260101",
+            vendorName: "Anthropic",
+          }
+        }
+        return MOCKED_METADATA.defaultFindStandardModelName(modelName)
+      },
+    )
+
+    const mapping = generateModelMappingForChannel(
+      ["claude-4.5-sonnet"],
+      ["claude-sonnet-4-6-20260101"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+
+  it("should not downgrade/upgrade versions even if metadata mis-normalizes (OpenAI)", () => {
+    MOCKED_METADATA.findStandardModelNameMock.mockImplementation(
+      (modelName: string) => {
+        const cleaned = modelName.trim().toLowerCase()
+        if (cleaned === "gpt-4.1-mini") {
+          // Simulate a buggy metadata normalization that would map 4.1-mini -> 4o-mini
+          return { standardName: "gpt-4o-mini", vendorName: "OpenAI" }
+        }
+        return MOCKED_METADATA.defaultFindStandardModelName(modelName)
+      },
+    )
+
+    const mapping = generateModelMappingForChannel(
+      ["gpt-4o-mini"],
+      ["gpt-4.1-mini"],
+    )
+
+    expect(mapping).toEqual({})
+  })
+})
+
+describe("extractActualModel", () => {
+  it("should correctly extract actual model names", () => {
+    expect(extractActualModel("openai/gpt-4o:free")).toBe("gpt-4o")
+    expect(extractActualModel("BigModel/deepseek/deepseek-r1:free")).toBe(
+      "deepseek-r1",
+    )
+    expect(extractActualModel("claude-3-5-sonnet-20241022")).toBe(
+      "claude-3-5-sonnet",
+    )
+  })
+})
+
+describe("Model mapping merge logic", () => {
+  it("should demonstrate incremental merge behavior with new keys overriding old keys", () => {
+    // Simulate existing mapping from channel
+    const existingMapping: Record<string, string> = {
+      "gpt-4o": "old-provider/gpt-4o",
+      "claude-3-5-sonnet": "old-provider/claude-3-5-sonnet",
+      "custom-model": "custom-provider/model",
+    }
+
+    // Simulate newly generated mapping
+    const newMapping: Record<string, string> = {
+      "gpt-4o": "new-provider/gpt-4o", // This should override the old value
+      "deepseek-r1": "new-provider/deepseek-r1", // This should be added
+    }
+
+    // Merge logic: spread existing first, then new (new overrides old for same keys)
+    const mergedMapping = {
+      ...existingMapping,
+      ...newMapping,
+    }
+
+    // Assertions
+    expect(mergedMapping).toEqual({
+      "gpt-4o": "new-provider/gpt-4o", // Updated from old value
+      "claude-3-5-sonnet": "old-provider/claude-3-5-sonnet", // Preserved from old
+      "custom-model": "custom-provider/model", // Preserved from old
+      "deepseek-r1": "new-provider/deepseek-r1", // Added from new
+    })
+
+    // Verify that old keys are preserved
+    expect(mergedMapping["claude-3-5-sonnet"]).toBe(
+      "old-provider/claude-3-5-sonnet",
+    )
+    expect(mergedMapping["custom-model"]).toBe("custom-provider/model")
+
+    // Verify that new values override old values for same keys
+    expect(mergedMapping["gpt-4o"]).toBe("new-provider/gpt-4o")
+    expect(mergedMapping["gpt-4o"]).not.toBe("old-provider/gpt-4o")
+
+    // Verify that new keys are added
+    expect(mergedMapping["deepseek-r1"]).toBe("new-provider/deepseek-r1")
+
+    // Verify total key count
+    expect(Object.keys(mergedMapping)).toHaveLength(4)
+  })
+
+  it("should preserve all old keys when new mapping is empty", () => {
+    const existingMapping: Record<string, string> = {
+      "model-1": "provider-1/model-1",
+      "model-2": "provider-2/model-2",
+    }
+    const newMapping: Record<string, string> = {}
+
+    const mergedMapping = {
+      ...existingMapping,
+      ...newMapping,
+    }
+
+    expect(mergedMapping).toEqual(existingMapping)
+    expect(Object.keys(mergedMapping)).toHaveLength(2)
+  })
+
+  it("should add all new keys when existing mapping is empty", () => {
+    const existingMapping: Record<string, string> = {}
+    const newMapping: Record<string, string> = {
+      "model-1": "provider-1/model-1",
+      "model-2": "provider-2/model-2",
+    }
+
+    const mergedMapping = {
+      ...existingMapping,
+      ...newMapping,
+    }
+
+    expect(mergedMapping).toEqual(newMapping)
+    expect(Object.keys(mergedMapping)).toHaveLength(2)
+  })
+})

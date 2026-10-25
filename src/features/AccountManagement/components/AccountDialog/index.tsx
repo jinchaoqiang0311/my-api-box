@@ -1,0 +1,602 @@
+import { Info } from "lucide-react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react"
+import { useTranslation } from "react-i18next"
+
+import { Alert } from "~/components/ui"
+import { Modal } from "~/components/ui/Dialog/Modal"
+import { DIALOG_MODES, type DialogMode } from "~/constants/dialogModes"
+import AutoDetectErrorAlert from "~/features/AccountManagement/components/AccountDialog/detection/AutoDetectErrorAlert"
+import AutoDetectSlowHintAlert from "~/features/AccountManagement/components/AccountDialog/detection/AutoDetectSlowHintAlert"
+import { useLoginProviderEvidence } from "~/features/AccountManagement/components/AccountDialog/detection/useLoginProviderEvidence"
+import AccountForm, {
+  type AccountFormHandle,
+} from "~/features/AccountManagement/components/AccountDialog/form/AccountForm"
+import SiteInfoInput from "~/features/AccountManagement/components/AccountDialog/form/SiteInfoInput"
+import { getAccountDialogSitePolicy } from "~/features/AccountManagement/components/AccountDialog/form/sitePolicy"
+import { AihubmixDefaultKeyPromptDialog } from "~/features/AccountManagement/components/AccountDialog/postSave/AihubmixDefaultKeyPromptDialog"
+import { ManagedSiteConfigPromptDialog } from "~/features/AccountManagement/components/AccountDialog/postSave/ManagedSiteConfigPromptDialog"
+import { useAccountDialogRecoveryHandoff } from "~/features/AccountManagement/components/AccountDialog/recovery/useAccountDialogRecoveryHandoff"
+import { DuplicateAccountWarningDialog } from "~/features/AccountManagement/components/AccountDialog/saving/DuplicateAccountWarningDialog"
+import { useAccountDialog } from "~/features/AccountManagement/components/AccountDialog/workspace/useAccountDialog"
+import { useAccountDataContext } from "~/features/AccountManagement/data/AccountDataContext"
+import { useDialogStateContext } from "~/features/AccountManagement/dialogs/useDialogStateContext"
+import { normalizeSponsorAddAccountPrefill } from "~/features/AccountManagement/sponsors/addAccountPrefill"
+import { SPONSOR_RECOMMENDATION_SURFACES } from "~/features/AccountManagement/sponsors/constants"
+import { SponsorRecommendationsSection } from "~/features/AccountManagement/sponsors/SponsorRecommendationsSection"
+import type { AddAccountPrefill } from "~/features/AccountManagement/sponsors/types"
+import { useSponsorRecommendations } from "~/features/AccountManagement/sponsors/useSponsorRecommendations"
+import { ACCOUNT_MANAGEMENT_TEST_IDS } from "~/features/AccountManagement/testIds"
+import { AccountKeyProvisioningDialog } from "~/features/TokenProvisioning/creation/AccountKeyProvisioningDialog"
+import AddTokenDialog from "~/features/TokenProvisioning/creation/AddTokenDialog"
+import { buildOneTimeApiKeyProfileSaveAction } from "~/features/TokenProvisioning/secretDelivery/apiCredentialProfileSaveAction"
+import { OneTimeSecretDialog } from "~/features/TokenProvisioning/secretDelivery/OneTimeSecretDialog"
+import { resolveLoginProviderClaims } from "~/services/accountLogin/providerClaims"
+import { getAccountSiteDefinition } from "~/services/accountSiteDefinitions"
+import { isCanonicalOpenRouterUrl } from "~/services/accountSiteDefinitions/identifiers"
+import type { DisplaySiteData } from "~/types"
+import { isExtensionPopup } from "~/utils/browser"
+import { createLogger } from "~/utils/core/logger"
+import {
+  openApiCredentialProfilesPage,
+  openFullBookmarkManagerPage,
+} from "~/utils/navigation"
+
+import ActionButtons from "./ActionButtons"
+import DialogHeader from "./DialogHeader"
+import InfoPanel, { AccountSiteDiscoveryHint } from "./InfoPanel"
+import {
+  ACCOUNT_DIALOG_PHASES,
+  type AccountDialogRecoveryState,
+} from "./models"
+
+const logger = createLogger("AccountDialog")
+
+interface AccountDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  mode: DialogMode
+  account?: DisplaySiteData | null
+  prefill?: AddAccountPrefill | null
+  recoveryState?: AccountDialogRecoveryState | null
+  onSuccess: (data: any) => void
+  onError: (error: any) => void
+}
+
+/**
+ * Modal dialog for creating or editing account credentials with auto-detect support.
+ * @param props Component props to control dialog visibility and behavior.
+ * @param props.isOpen Whether the dialog is currently visible.
+ * @param props.onClose Handler invoked when closing without saving.
+ * @param props.mode Current dialog mode (add or edit).
+ * @param props.account Account data to prefill the form when editing.
+ * @param props.prefill Optional add-mode account prefill.
+ * @param props.recoveryState Form carried from the popup for token recovery.
+ * @param props.onSuccess Callback fired with saved data.
+ * @param props.onError Callback fired when submission fails.
+ */
+export default function AccountDialog({
+  isOpen,
+  onClose,
+  mode,
+  account,
+  prefill,
+  recoveryState,
+  onSuccess,
+  onError,
+}: AccountDialogProps) {
+  const { t } = useTranslation("messages")
+  const { t: tAccountDialog } = useTranslation("accountDialog")
+  const {
+    accounts,
+    displayData,
+    detectedSiteAccounts,
+    detectedAccount,
+    tags,
+    tagCountsById,
+    createTag,
+    renameTag,
+    deleteTag,
+    reloadAccountsById,
+  } = useAccountDataContext()
+  const { openEditAccount } = useDialogStateContext()
+
+  const { state, setters, handlers } = useAccountDialog({
+    isOpen,
+    onClose: () => {
+      onClose()
+    },
+    mode,
+    account,
+    prefill,
+    recoveryState,
+    onPostSaveAccountRefresh: reloadAccountsById,
+    onSuccess,
+  })
+
+  const accountFormRef = useRef<AccountFormHandle>(null)
+  // Login-context claims are read from the already-loaded account list, which
+  // refreshes with account changes; the edited account never claims against
+  // itself, so its own stored selection stays changeable and clearable. The
+  // same last-login evidence the scheduler uses keeps the greyed-out option in
+  // step with what a run would actually skip.
+  const loginProviderEvidence = useLoginProviderEvidence({
+    enabled: isOpen,
+    refreshKey: accounts,
+  })
+  const claimedLoginProviders = useMemo(
+    () =>
+      resolveLoginProviderClaims({
+        accounts,
+        accountId: account?.id,
+        evidence: loginProviderEvidence,
+      }),
+    [accounts, account?.id, loginProviderEvidence],
+  )
+  const accessTokenContinuation = useAccountDialogRecoveryHandoff({
+    enabled: isOpen && isExtensionPopup(),
+    state: state.tokenRecoveryState ?? null,
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      if (
+        mode === DIALOG_MODES.ADD &&
+        state.phase === ACCOUNT_DIALOG_PHASES.SITE_INPUT
+      ) {
+        if (state.url.trim() && !state.isDetecting) {
+          await handlers.handleAutoDetect()
+        }
+        return
+      }
+      const result = await handlers.handleSaveAccount()
+      if (!result) return
+      if (!handlers.shouldDeferAccountSaveSuccess(result)) {
+        onSuccess(result)
+      }
+    } catch (error) {
+      onError(error)
+    }
+  }
+
+  const detectedDisplayAccount =
+    displayData.find((acc) => acc.id === detectedAccount?.id) ?? null
+  const showEntryAuthTypeSelector =
+    mode === DIALOG_MODES.ADD &&
+    state.phase === ACCOUNT_DIALOG_PHASES.SITE_INPUT
+  const canShowSponsorRecommendations = isOpen && showEntryAuthTypeSelector
+  const sponsorRecommendations = useSponsorRecommendations({
+    surface: SPONSOR_RECOMMENDATION_SURFACES.AddAccountDialog,
+    enabled: canShowSponsorRecommendations,
+  })
+  const showSponsorRecommendations =
+    canShowSponsorRecommendations && sponsorRecommendations.items.length > 0
+  const [selectedSponsorPostClickNote, setSelectedSponsorPostClickNote] =
+    useState<string | null>(null)
+
+  useEffect(() => {
+    if (!canShowSponsorRecommendations) {
+      setSelectedSponsorPostClickNote(null)
+    }
+  }, [canShowSponsorRecommendations])
+  const addModeSiteInfoProps =
+    mode === DIALOG_MODES.ADD
+      ? {
+          currentTabUrl: state.currentTabUrl,
+          isCurrentSiteAdded: detectedSiteAccounts.length > 0,
+          detectedAccount: detectedDisplayAccount,
+          onUseCurrentTab: handlers.handleUseCurrentTabUrl,
+          onEditAccount: openEditAccount,
+        }
+      : {}
+  const cookieAuthPermissionProps = {
+    cookieAuthPermissionsGranted: state.cookieAuthPermissionsGranted,
+    isRequestingCookieAuthPermissions: state.isRequestingCookieAuthPermissions,
+    onRequestCookieAuthPermissions: handlers.handleRequestCookieAuthPermissions,
+  }
+  const currentSitePolicy = getAccountDialogSitePolicy(state.siteType)
+  const manualAddGuideAnchor = getAccountSiteDefinition(state.siteType)
+    ?.onboarding?.manualAddGuideAnchor
+  const isOpenRouterBootstrap = isCanonicalOpenRouterUrl(state.url)
+  const autoDetectPresentation = isOpenRouterBootstrap
+    ? {
+        action: {
+          idleLabel: tAccountDialog("mode.createOpenRouterManagementKey"),
+          pendingLabel: tAccountDialog("mode.creatingOpenRouterManagementKey"),
+          reDetectLabel: tAccountDialog("mode.createOpenRouterManagementKey"),
+          multiline: true,
+        },
+        info: {
+          title: tAccountDialog("infoPanel.openrouterBootstrap"),
+          description: tAccountDialog("infoPanel.openrouterBootstrapInfo"),
+        },
+      }
+    : undefined
+  const dialogTitle =
+    mode === DIALOG_MODES.ADD
+      ? tAccountDialog("title.add")
+      : tAccountDialog("title.edit")
+  const siteInfoInputProps: ComponentProps<typeof SiteInfoInput> =
+    showEntryAuthTypeSelector
+      ? {
+          url: state.url,
+          onUrlChange: handlers.handleUrlChange,
+          isDetected: state.isDetected,
+          onClearUrl: handlers.handleClearUrl,
+          sitePolicy: currentSitePolicy,
+          showAuthTypeSelector: true,
+          authType: state.authType,
+          onAuthTypeChange: setters.setAuthType,
+          ...cookieAuthPermissionProps,
+          ...addModeSiteInfoProps,
+        }
+      : {
+          url: state.url,
+          onUrlChange: handlers.handleUrlChange,
+          isDetected: state.isDetected,
+          onClearUrl: handlers.handleClearUrl,
+          sitePolicy: currentSitePolicy,
+          ...cookieAuthPermissionProps,
+          ...addModeSiteInfoProps,
+        }
+
+  const postSaveKeyInputSessionId =
+    typeof state.postSaveKeyInputSessionId === "number"
+      ? state.postSaveKeyInputSessionId
+      : null
+  const postSaveKeyInputDialogHandlers =
+    postSaveKeyInputSessionId !== null &&
+    typeof handlers.getPostSaveKeyInputDialogHandlers === "function"
+      ? handlers.getPostSaveKeyInputDialogHandlers(postSaveKeyInputSessionId)
+      : null
+
+  const postSaveOneTimeKeySaveAction = state.postSaveOneTimeSecret
+    ? buildOneTimeApiKeyProfileSaveAction({
+        result: state.postSaveOneTimeSecret,
+        t,
+        logger,
+        source: "AccountDialog",
+      })
+    : undefined
+
+  const handleOpenApiCredentialProfilesFromDetectFailure = () => {
+    void openApiCredentialProfilesPage()
+    handlers.handleClose()
+  }
+
+  const openRouterRecovery = state.openRouterBootstrapRecovery
+  const showOpenRouterManualRevocation = Boolean(
+    openRouterRecovery?.requiresManualRecovery,
+  )
+  const showOpenRouterRecovery = Boolean(
+    openRouterRecovery?.message || showOpenRouterManualRevocation,
+  )
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handlers.handleClose}
+        size="xl"
+        title={dialogTitle}
+        panelTestId={ACCOUNT_MANAGEMENT_TEST_IDS.accountDialog}
+        header={<DialogHeader mode={mode} />}
+        footer={
+          <ActionButtons
+            mode={mode}
+            url={state.url}
+            autoDetectPresentation={autoDetectPresentation?.action}
+            phase={state.phase}
+            formSource={state.formSource}
+            isDetecting={state.isDetecting}
+            onAutoDetect={handlers.handleAutoDetect}
+            onShowManualForm={handlers.handleShowManualForm}
+            onClose={handlers.handleClose}
+            isFormValid={state.isFormValid}
+            isSaving={state.isSaving}
+            onAutoConfig={handlers.handleAutoConfig}
+            isAutoConfiguring={state.isAutoConfiguring}
+            accountPostSaveWorkflowStep={state.accountPostSaveWorkflowStep}
+            // ensure submit button in footer can submit the form by linking via form id
+            formId="account-form"
+          />
+        }
+      >
+        <div>
+          <form
+            id="account-form"
+            onSubmit={handleSubmit}
+            className="gap-y-density-2 flex flex-col gap-x-2"
+            data-testid={ACCOUNT_MANAGEMENT_TEST_IDS.accountForm}
+          >
+            {state.detectionError && (
+              <AutoDetectErrorAlert
+                error={state.detectionError}
+                siteUrl={state.url}
+                siteType={state.siteType}
+                accessTokenContinuation={accessTokenContinuation}
+                onPrepareAccessTokenInput={() =>
+                  accountFormRef.current?.focusAccessToken()
+                }
+                manualAddGuideAnchor={
+                  mode === DIALOG_MODES.ADD ? manualAddGuideAnchor : undefined
+                }
+                onApiCredentialProfilesClick={
+                  handleOpenApiCredentialProfilesFromDetectFailure
+                }
+              />
+            )}
+
+            {openRouterRecovery && showOpenRouterRecovery && (
+              <Alert
+                variant="warning"
+                title={tAccountDialog("openrouterBootstrapRecovery.title")}
+                tabIndex={-1}
+                aria-live="assertive"
+                aria-atomic="true"
+              >
+                <div className="space-y-density-2 text-sm leading-relaxed">
+                  {openRouterRecovery.message && (
+                    <p>{openRouterRecovery.message}</p>
+                  )}
+                  {showOpenRouterManualRevocation && (
+                    <>
+                      {openRouterRecovery.label && (
+                        <p>
+                          {tAccountDialog("openrouterBootstrapRecovery.label", {
+                            label: openRouterRecovery.label,
+                          })}
+                        </p>
+                      )}
+                      <p>
+                        {tAccountDialog(
+                          "openrouterBootstrapRecovery.manualRevocation",
+                        )}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </Alert>
+            )}
+
+            {state.isDetecting && state.isDetectingSlow && (
+              <AutoDetectSlowHintAlert />
+            )}
+
+            {state.phase !== ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM && (
+              <div className="space-y-density-3 min-w-0">
+                <div className="space-y-density-4 min-w-0">
+                  <SiteInfoInput {...siteInfoInputProps} />
+                  {selectedSponsorPostClickNote ? (
+                    <div
+                      className="bg-primary-soft text-primary-soft-foreground gap-y-density-2 py-density-2 flex items-start gap-x-2 rounded-md px-2 text-xs leading-5"
+                      data-testid={
+                        ACCOUNT_MANAGEMENT_TEST_IDS.sponsorPostClickNote
+                      }
+                    >
+                      <Info
+                        aria-hidden="true"
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                      />
+                      <span>{selectedSponsorPostClickNote}</span>
+                    </div>
+                  ) : null}
+                </div>
+                {showSponsorRecommendations ? (
+                  <div className="min-w-0">
+                    <SponsorRecommendationsSection
+                      layout="grid"
+                      surface={SPONSOR_RECOMMENDATION_SURFACES.AddAccountDialog}
+                      items={sponsorRecommendations.items}
+                      onContinueAddAccount={(nextPrefill) => {
+                        const normalizedPrefill =
+                          normalizeSponsorAddAccountPrefill(nextPrefill)
+                        if (!normalizedPrefill) return
+
+                        handlers.handleUrlChange(normalizedPrefill.siteUrl, {
+                          applyAuthDefault: false,
+                        })
+                        setters.setSiteType(normalizedPrefill.siteType)
+                        if (normalizedPrefill.authType) {
+                          setters.setAuthType(normalizedPrefill.authType)
+                        }
+                        const selectedSponsor =
+                          sponsorRecommendations.items.find(
+                            (item) => item.id === normalizedPrefill.sponsorId,
+                          )
+                        setSelectedSponsorPostClickNote(
+                          selectedSponsor?.postClickNote ?? null,
+                        )
+                      }}
+                      onOpenBookmarkManager={(prefill) => {
+                        void openFullBookmarkManagerPage({ create: prefill })
+                      }}
+                      onOpenApiCredentialProfiles={(prefill) => {
+                        void openApiCredentialProfilesPage({ create: prefill })
+                      }}
+                    />
+                  </div>
+                ) : null}
+                {mode === DIALOG_MODES.ADD && (
+                  <div className="border-border space-y-density-3 pt-density-3 border-t">
+                    <InfoPanel
+                      mode={mode}
+                      phase={state.phase}
+                      formSource={state.formSource}
+                      presentation="inline"
+                      autoDetectPresentation={autoDetectPresentation?.info}
+                      manualAddGuideAnchor={
+                        state.detectionError ? undefined : manualAddGuideAnchor
+                      }
+                    />
+                    <AccountSiteDiscoveryHint />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {state.phase === ACCOUNT_DIALOG_PHASES.ACCOUNT_FORM && (
+              <AccountForm
+                continuous
+                guidance={
+                  <InfoPanel
+                    mode={mode}
+                    phase={state.phase}
+                    formSource={state.formSource}
+                    presentation="guidance"
+                    manualAddGuideAnchor={
+                      state.detectionError ? undefined : manualAddGuideAnchor
+                    }
+                  />
+                }
+                siteInfoInput={<SiteInfoInput {...siteInfoInputProps} />}
+                siteUrl={state.url}
+                ref={accountFormRef}
+                draft={state.draft}
+                feedbackAccountId={
+                  account &&
+                  account.baseUrl === state.url &&
+                  account.siteType === state.draft.siteType &&
+                  String(account.userId) === state.draft.userId
+                    ? account.id
+                    : undefined
+                }
+                feedbackBaseUrl={state.url}
+                feedbackOriginalBaseUrl={account?.baseUrl}
+                sitePolicy={currentSitePolicy}
+                claimedLoginProviders={claimedLoginProviders}
+                isDetected={state.isDetected}
+                isImportingSub2apiSession={state.isImportingSub2apiSession}
+                isManualBalanceUsdInvalid={state.isManualBalanceUsdInvalid}
+                showAccessToken={state.showAccessToken}
+                onSiteNameChange={setters.setSiteName}
+                onUsernameChange={setters.setUsername}
+                onUserIdChange={setters.setUserId}
+                onAccessTokenChange={setters.setAccessToken}
+                onSub2apiUseRefreshTokenChange={
+                  handlers.handleSub2apiUseRefreshTokenChange
+                }
+                onSub2apiRefreshTokenChange={setters.setSub2apiRefreshToken}
+                onImportSub2apiSession={handlers.handleImportSub2apiSession}
+                onExchangeRateChange={setters.setExchangeRate}
+                onManualBalanceUsdChange={setters.setManualBalanceUsd}
+                onShowAccessTokenChange={setters.setShowAccessToken}
+                onNotesChange={setters.setNotes}
+                onSelectedTagIdsChange={setters.setTagIds}
+                onExcludeFromTotalBalanceChange={
+                  setters.setExcludeFromTotalBalance
+                }
+                onExcludeFromTodayIncomeChange={
+                  setters.setExcludeFromTodayIncome
+                }
+                tags={tags}
+                tagCountsById={tagCountsById}
+                createTag={createTag}
+                renameTag={renameTag}
+                deleteTag={deleteTag}
+                onLoginChange={setters.setLogin}
+                onCheckInChange={setters.setCheckIn}
+                onCheckInSelectionChange={setters.setCheckInSelection}
+                onRedetectCheckInMethods={handlers.handleRedetectCheckInMethods}
+                isRedetectingCheckInMethods={state.isRedetectingCheckInMethods}
+                checkInRedetectionFeedback={state.checkInRedetectionFeedback}
+                onSiteTypeChange={setters.setSiteType}
+                onAuthTypeChange={setters.setAuthType}
+                isImportingCookies={state.isImportingCookies}
+                showCookiePermissionWarning={state.showCookiePermissionWarning}
+                cookieAuthPermissionsGranted={
+                  state.cookieAuthPermissionsGranted
+                }
+                isRequestingCookieAuthPermissions={
+                  state.isRequestingCookieAuthPermissions
+                }
+                onCookieAuthSessionCookieChange={
+                  setters.setCookieAuthSessionCookie
+                }
+                onImportCookieAuthSessionCookie={
+                  handlers.handleImportCookieAuthSessionCookie
+                }
+                onOpenCookiePermissionSettings={
+                  handlers.handleOpenCookiePermissionSettings
+                }
+                onRequestCookieAuthPermissions={
+                  handlers.handleRequestCookieAuthPermissions
+                }
+              />
+            )}
+          </form>
+        </div>
+      </Modal>
+
+      <DuplicateAccountWarningDialog
+        isOpen={state.duplicateAccountWarning.isOpen}
+        siteUrl={state.duplicateAccountWarning.siteUrl}
+        existingAccountsCount={
+          state.duplicateAccountWarning.existingAccountsCount
+        }
+        existingUsername={state.duplicateAccountWarning.existingUsername}
+        existingUserId={state.duplicateAccountWarning.existingUserId}
+        onCancel={handlers.handleDuplicateAccountWarningCancel}
+        onContinue={handlers.handleDuplicateAccountWarningContinue}
+        onDisableWarningAndContinue={
+          handlers.handleDuplicateAccountWarningDisableAndContinue
+        }
+      />
+
+      <ManagedSiteConfigPromptDialog
+        isOpen={state.managedSiteConfigPrompt.isOpen}
+        managedSiteLabel={state.managedSiteConfigPrompt.managedSiteLabel}
+        managedSiteType={state.managedSiteConfigPrompt.managedSiteType}
+        missingMessage={state.managedSiteConfigPrompt.missingMessage}
+        onClose={handlers.handleManagedSiteConfigPromptClose}
+        onOpenSettings={handlers.handleOpenManagedSiteSettings}
+      />
+
+      <AihubmixDefaultKeyPromptDialog
+        isOpen={state.aihubmixPostSaveKeyPrompt.isOpen}
+        accountName={state.aihubmixPostSaveKeyPrompt.accountName}
+        isCreating={state.aihubmixPostSaveKeyPrompt.isCreating}
+        onCancel={handlers.handleAihubmixPostSaveKeyPromptCancel}
+        onConfirm={handlers.handleAihubmixPostSaveKeyPromptConfirm}
+      />
+
+      {state.postSaveKeyProvisioning ? (
+        <AccountKeyProvisioningDialog
+          account={state.postSaveKeyProvisioning.account}
+          mode={state.postSaveKeyProvisioning.mode}
+          onClose={handlers.handlePostSaveKeyProvisioningClose}
+        />
+      ) : null}
+
+      {state.postSaveKeyInputAccount ? (
+        <AddTokenDialog
+          isOpen={true}
+          onClose={
+            postSaveKeyInputDialogHandlers?.onClose ??
+            handlers.handlePostSaveKeyInputTokenDialogClose
+          }
+          availableAccounts={[state.postSaveKeyInputAccount]}
+          preSelectedAccountId={state.postSaveKeyInputAccount.id}
+          onSuccess={
+            postSaveKeyInputDialogHandlers?.onSuccess ??
+            handlers.handlePostSaveKeyInputTokenCreated
+          }
+          showOneTimeKeyDialog={false}
+        />
+      ) : null}
+
+      <OneTimeSecretDialog
+        isOpen={!!state.postSaveOneTimeSecret}
+        result={state.postSaveOneTimeSecret}
+        onClose={handlers.handlePostSaveOneTimeSecretClose}
+        saveAction={postSaveOneTimeKeySaveAction}
+      />
+    </>
+  )
+}

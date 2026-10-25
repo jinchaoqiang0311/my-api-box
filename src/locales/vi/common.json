@@ -1,0 +1,103 @@
+{
+  "actions": {
+    "cancel": "Hủy",
+    "clear": "Xóa sạch",
+    "close": "Đóng",
+    "copyKey": "Sao chép khóa",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "export": "Xuất",
+    "goToSettings": "Đi tới cài đặt",
+    "import": "Nhập",
+    "loadField": "Tải {{field}}",
+    "more": "Thêm",
+    "moveDownItem": "Di chuyển {{name}} xuống",
+    "moveUpItem": "Di chuyển {{name}} lên",
+    "openSidePanel": "Mở trong bảng điều khiển bên",
+    "refresh": "Làm mới",
+    "refreshField": "Làm mới {{field}}",
+    "reset": "Đặt lại",
+    "retry": "Thử lại",
+    "save": "Lưu"
+  },
+  "currency": {
+    "clickToSwitch": "Nhấn để chuyển sang {{currency}}",
+    "cny": "Nhân dân tệ",
+    "usd": "Đô la Mỹ"
+  },
+  "datePicker": {
+    "in1Year": "+1 năm",
+    "in30Days": "+30 ngày",
+    "in7Days": "+7 ngày",
+    "in90Days": "+90 ngày",
+    "naturalInput": {
+      "invalid": "Nhập ngày có thể nhận dạng, như YYYY-MM-DD hoặc in 7 days",
+      "label": "Nhập ngày",
+      "openCalendar": "Mở lịch",
+      "placeholder": "Ví dụ: in 7 days, tomorrow, hoặc 2026-08-01",
+      "preview": "Sẽ đặt thành: {{date}}"
+    },
+    "noExpiration": "Không hết hạn",
+    "placeholder": "Chọn ngày"
+  },
+  "labels": {
+    "apiKey": "API Key",
+    "notAvailable": "N/A",
+    "settings": "Cài đặt",
+    "token": "Token",
+    "unknown": "Không xác định"
+  },
+  "quota": {
+    "unlimited": "Không giới hạn"
+  },
+  "rootErrorBoundary": {
+    "genericDescription": "Không thể hiển thị trang chính xác. Trước tiên hãy tải lại trang. Nếu lỗi vẫn tiếp diễn, hãy báo cáo sự cố để chúng tôi hỗ trợ kiểm tra.",
+    "reload": "Tải lại trang",
+    "reportIssue": "Báo cáo sự cố",
+    "requestLanguage": "Yêu cầu ngôn ngữ",
+    "title": "Không hiển thị được trang",
+    "translationDescription": "Nếu bạn đang dùng tính năng tự động dịch của trình duyệt, hãy tắt tự động dịch cho trang này hoặc chuyển sang ngôn ngữ bạn cần trong cài đặt tiện ích."
+  },
+  "status": {
+    "applying": "Đang áp dụng...",
+    "cancelled": "Đã hủy",
+    "cancelling": "Đang hủy...",
+    "checking": "Đang kiểm tra...",
+    "configurationRequired": "Yêu cầu cấu hình",
+    "copying": "Đang sao chép...",
+    "creating": "Đang tạo...",
+    "deleting": "Đang xóa...",
+    "disabled": "Đã vô hiệu hóa",
+    "disabling": "Đang vô hiệu hóa...",
+    "enabled": "Đã kích hoạt",
+    "enabling": "Đang bật...",
+    "error": "Lỗi",
+    "exporting": "Đang xuất...",
+    "failed": "Thất bại",
+    "importing": "Đang nhập...",
+    "loading": "Đang tải...",
+    "loadingField": "Đang tải {{field}}...",
+    "opening": "Đang mở...",
+    "processing": "Đang xử lý...",
+    "refreshing": "Đang làm mới...",
+    "resetting": "Đang đặt lại...",
+    "retrying": "Đang thử lại...",
+    "saving": "Đang lưu...",
+    "starting": "Đang bắt đầu...",
+    "success": "Thành công",
+    "testing": "Đang kiểm tra...",
+    "uploading": "Đang tải lên..."
+  },
+  "tagFilter": {
+    "allTags": "Tất cả thẻ",
+    "noResults": "Không có thẻ phù hợp",
+    "search": "Tìm thẻ",
+    "selected": "Đã chọn"
+  },
+  "time": {
+    "neverExpires": "Không bao giờ hết hạn",
+    "seconds": "giây",
+    "updatedAt": "Cập nhật lúc {{time}}"
+  },
+  "total": "Tổng số"
+}

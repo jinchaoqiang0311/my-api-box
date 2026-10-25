@@ -1,0 +1,63 @@
+import { defineExtensionMessaging } from "~/services/runtimeMessaging/extensionMessaging"
+import { createRuntimeMessagingLogger } from "~/services/runtimeMessaging/logger"
+import { SiteAnnouncementsMessageTypes } from "~/services/runtimeMessaging/messageTypes"
+import type { RuntimeMessageResponse } from "~/services/runtimeMessaging/result"
+import type {
+  SiteAnnouncementCheckResult,
+  SiteAnnouncementPreferences,
+  SiteAnnouncementRecordView,
+  SiteAnnouncementSiteState,
+} from "~/types/siteAnnouncements"
+
+import type {
+  SiteAnnouncementsDevFixtureResult,
+  SiteAnnouncementsDevSeedRequest,
+} from "./devFixtures"
+
+export interface SiteAnnouncementsCheckNowRequest {
+  accountIds?: string[]
+}
+
+export interface SiteAnnouncementsMarkReadRequest {
+  recordId: string
+}
+
+export interface SiteAnnouncementsMarkAllReadRequest {
+  siteKey?: string
+}
+
+export interface SiteAnnouncementsUpdatePreferencesRequest {
+  settings: Partial<SiteAnnouncementPreferences>
+}
+
+interface SiteAnnouncementsProtocolMap {
+  [SiteAnnouncementsMessageTypes.GetStatus](): RuntimeMessageResponse<
+    SiteAnnouncementSiteState[]
+  >
+  [SiteAnnouncementsMessageTypes.ListRecords](): RuntimeMessageResponse<
+    SiteAnnouncementRecordView[]
+  >
+  [SiteAnnouncementsMessageTypes.CheckNow](
+    data?: SiteAnnouncementsCheckNowRequest,
+  ): RuntimeMessageResponse<SiteAnnouncementCheckResult | null>
+  [SiteAnnouncementsMessageTypes.MarkRead](
+    data: SiteAnnouncementsMarkReadRequest,
+  ): RuntimeMessageResponse<undefined>
+  [SiteAnnouncementsMessageTypes.MarkAllRead](
+    data: SiteAnnouncementsMarkAllReadRequest,
+  ): RuntimeMessageResponse<number>
+  [SiteAnnouncementsMessageTypes.UpdatePreferences](
+    data: SiteAnnouncementsUpdatePreferencesRequest,
+  ): RuntimeMessageResponse<SiteAnnouncementPreferences>
+  [SiteAnnouncementsMessageTypes.DebugSeedFixtures](
+    data?: SiteAnnouncementsDevSeedRequest,
+  ): RuntimeMessageResponse<SiteAnnouncementsDevFixtureResult>
+  [SiteAnnouncementsMessageTypes.DebugClearFixtures](): RuntimeMessageResponse<SiteAnnouncementsDevFixtureResult>
+}
+
+export const {
+  sendMessage: sendSiteAnnouncementsMessage,
+  onMessage: onSiteAnnouncementsMessage,
+} = defineExtensionMessaging<SiteAnnouncementsProtocolMap>({
+  logger: createRuntimeMessagingLogger("SiteAnnouncementsMessaging"),
+})

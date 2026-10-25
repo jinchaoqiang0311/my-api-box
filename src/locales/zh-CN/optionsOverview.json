@@ -1,0 +1,396 @@
+{
+  "actions": {
+    "open": "打开"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "已禁用账号不会参与刷新、签到等自动化，请按需重新启用。",
+      "title": "{{count}} 个账号均已禁用"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} 需要检查浏览器设置"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} 状态异常"
+    },
+    "actions": {
+      "addAccount": "添加账号",
+      "addProfile": "添加 API 凭据",
+      "editAccount": "编辑账号",
+      "fixAccount": "修复账号",
+      "handleCheckIn": "处理签到",
+      "manageAccounts": "管理账号",
+      "openSettings": "打开设置",
+      "refreshAccounts": "刷新账号",
+      "signInAgain": "去重新登录",
+      "viewAccount": "查看账号",
+      "viewAnnouncements": "查看公告",
+      "viewCheckIn": "查看签到",
+      "viewCheckInResults": "查看结果"
+    },
+    "addAccount": {
+      "description": "先添加账号，才能汇总余额、用量和自动任务状态。",
+      "title": "还没有账号"
+    },
+    "addProfile": {
+      "description": "凭据库存放 API Key、coding plan Key 等各类 Key，并集中监控余额与用量：coding plan 的 5 小时 / 7 天 / 每月额度还剩多少，一眼就能看到。",
+      "title": "还没有 API 凭据"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description": "{{count}} 个账号已开启自动签到，但全局开关关闭后不会执行。请在签到设置中重新开启。",
+      "title": "自动签到已全局关闭"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "最近一次运行中有失败或结果待确认。前往自动签到查看原因并重试。",
+      "title": "{{count}} 个账号的自动签到未完成"
+    },
+    "categories": {
+      "accounts": "账号",
+      "automation": "自动化",
+      "credentials": "凭据",
+      "data": "数据"
+    },
+    "categoryFilterLabel": "类别",
+    "checkInAccountDataMissing": {
+      "description": "保存的凭据或账号数据不完整，请在账号管理中重新识别后再签到。",
+      "title": "{{count}} 个账号缺少登录数据"
+    },
+    "checkInMethodUnresolved": {
+      "description": "自动签到已开启，但当前还没有可用的签到方式。请在账号管理中重新检测或选择签到方式后再运行。",
+      "title": "{{name}} 的签到方式待确认"
+    },
+    "checkInPermissionDenied": {
+      "description": "站点拒绝了签到请求，请重新登录或检查账号权限后重试。",
+      "title": "{{count}} 个账号的签到请求被拒绝"
+    },
+    "checkInReloginRequired": {
+      "description": "最近一次运行因登录状态失效跳过了这些账号。请在站点重新登录后再签到。",
+      "title": "{{count}} 个账号需要重新登录"
+    },
+    "filterAll": "全部",
+    "severityFilterLabel": "严重度",
+    "siteTypeMismatch": {
+      "description": "该站点本身对应「{{suggestedType}}」，而账号当前是「{{storedType}}」。请编辑账号并把站点类型改为「{{suggestedType}}」。",
+      "title": "{{name}} 的站点类型可能不正确"
+    },
+    "siteTypeUnknown": {
+      "description": "自动签到暂时无法确定该站点的协议。请编辑账号并选择正确的站点类型，或重新自动识别。",
+      "title": "{{name}} 的站点类型未知"
+    },
+    "sortHint": "按影响程度排序",
+    "summary": "{{count}} 项待处理",
+    "unreadSiteAnnouncements": {
+      "description": "查看站点公告后可标记为已读，避免遗漏站点维护或风险通知。",
+      "title": "{{count}} 条站点公告未读"
+    },
+    "usageRefreshPending": {
+      "description": "刷新账号后即可补齐今日请求、Token 和消耗统计。",
+      "title": "{{count}} 个账号的今日统计待刷新"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "查看签到",
+      "retryFailed": "重试失败"
+    },
+    "empty": {
+      "disabled": {
+        "description": "你已关闭自动签到。需要自动领取签到奖励时，可以在设置中重新开启。"
+      },
+      "notRun": {
+        "description": "还没有签到记录。确认账号已开启签到检测后，系统会在下次计划时间执行，也可以进入自动签到页手动处理。"
+      }
+    },
+    "lastRun": "上次运行",
+    "metrics": {
+      "failed": "失败",
+      "skipped": "跳过",
+      "success": "成功"
+    },
+    "nextRetry": "下次重试",
+    "nextRun": "下次计划",
+    "notRunYet": "尚未运行",
+    "notScheduled": "未计划",
+    "status": {
+      "disabled": "已停用",
+      "failed": "全部失败",
+      "not_run": "等待首次运行",
+      "partial": "部分成功",
+      "ready": "已就绪",
+      "skipped": "未执行",
+      "success": "运行成功"
+    },
+    "summary": "自动签到运行概况"
+  },
+  "automation": {
+    "automaticEnabled": "自动执行已开启",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "想自动领取签到奖励时，先开启自动签到。之后这里会显示下次计划和执行结果。"
+      },
+      "managedSiteModelSync": {
+        "disabled": "需要自动同步自建 AI 网关模型时，先开启模型同步。之后这里会显示同步间隔和范围。"
+      },
+      "siteAnnouncements": {
+        "disabled": "想及时看到站点公告时，先开启公告抓取。之后这里会显示最近检查时间和公告数量。"
+      },
+      "webdavAutoSync": {
+        "disabled": "想跨设备备份数据时，先配置 WebDAV 自动同步。之后这里会显示同步策略和范围。"
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "自动签到"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "限定模型数",
+        "concurrency": "并发数",
+        "interval": "同步间隔（小时）",
+        "label": "托管站点模型同步",
+        "open": "打开同步"
+      },
+      "siteAnnouncements": {
+        "interval": "抓取间隔（分钟）",
+        "label": "网站公告抓取",
+        "lastChecked": "最近检查",
+        "openPage": "查看公告",
+        "openSettings": "设置抓取",
+        "records": "公告总数",
+        "unread": "未读公告"
+      },
+      "webdavAutoSync": {
+        "domains": "同步范围数",
+        "interval": "同步间隔（分钟）",
+        "label": "WebDAV 备份同步",
+        "open": "打开备份同步",
+        "strategy": "同步策略"
+      }
+    },
+    "metrics": {
+      "failed": "失败",
+      "skipped": "跳过",
+      "success": "成功",
+      "unsupported": "不支持"
+    },
+    "neverChecked": "尚未检查",
+    "openItem": "打开 {{name}}",
+    "status": {
+      "disabled": "已停用",
+      "failed": "运行失败",
+      "limited": "部分不支持",
+      "notRun": "等待首次运行",
+      "partial": "部分失败",
+      "ready": "已就绪",
+      "running": "正在运行",
+      "skipped": "未执行",
+      "success": "运行成功",
+      "unknown": "状态未知",
+      "unsupported": "暂不支持"
+    },
+    "statusUnavailable": "暂时无法读取执行状态，请打开详情查看或刷新后重试。"
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "账号、余额与健康状态，是其他能力的基础。",
+      "label": "账号基础",
+      "state": {
+        "disabled": "当前还不能读取账号状态，请先检查账号配置是否完整。",
+        "needs_setup": "先添加至少一个账号，总览才能帮你汇总余额、用量和自动任务状态。",
+        "not_applicable": "当前环境不需要添加账号也可以继续使用。"
+      }
+    },
+    "automation": {
+      "description": "自动签到与公告抓取是否处于可用状态。",
+      "label": "自动化",
+      "state": {
+        "disabled": "暂时不会自动执行任务。需要时可以开启自动签到或公告抓取。",
+        "needs_setup": "自动任务还缺少可执行账号或检测配置，先完成对应设置后再开启。",
+        "not_applicable": "当前环境暂时没有可用的自动任务。"
+      }
+    },
+    "backupSync": {
+      "description": "本地数据备份与跨设备同步配置。",
+      "label": "备份同步",
+      "state": {
+        "disabled": "数据只保存在本机。需要跨设备备份时，可以开启 WebDAV 同步。",
+        "needs_setup": "先连接 WebDAV，才能把本地数据备份到远端。",
+        "not_applicable": "当前环境暂时不能使用备份同步。"
+      }
+    },
+    "credentialAssets": {
+      "description": "各类 Key 的存放，以及余额、额度和用量监控。",
+      "label": "凭据资产",
+      "state": {
+        "disabled": "当前还没有可复用的凭据，请先检查账号或 API 凭据配置。",
+        "needs_setup": "保存一个 API 凭据（Base URL + API Key），就能集中监控余额、额度和用量。",
+        "not_applicable": "当前环境不需要单独维护 API 凭据。"
+      }
+    },
+    "dataHistory": {
+      "description": "用量与余额历史是否已有可查看数据。",
+      "label": "数据历史",
+      "state": {
+        "disabled": "暂时不会保存历史记录。开启后，后续用量和余额变化会持续沉淀。",
+        "needs_setup": "历史记录已开启，但还需要账号或首批数据；产生数据后这里会自动更新。",
+        "not_applicable": "当前环境暂时没有可查看的数据历史。"
+      }
+    },
+    "managedSite": {
+      "description": "自建 AI 网关的渠道管理与模型同步能力。",
+      "label": "自建 AI 网关",
+      "state": {
+        "disabled": "还没有配置自建 AI 网关，需要时可以先完成网关配置。",
+        "needs_setup": "先配置自建 AI 网关，才能在这里管理渠道或同步模型。",
+        "not_applicable": "当前站点类型暂不支持自建 AI 网关管理。"
+      }
+    },
+    "subItems": {
+      "accounts": "账号管理",
+      "apiKeys": "API 密钥",
+      "apiProfiles": "API 凭据",
+      "autoCheckin": "自动签到",
+      "balanceHistory": "余额历史",
+      "managedSiteChannels": "渠道管理",
+      "managedSiteModelSync": "模型同步",
+      "siteAnnouncements": "网站公告",
+      "usageAnalytics": "用量分析",
+      "webdavAutoSync": "WebDAV 自动同步",
+      "webdavManual": "WebDAV 手动备份"
+    }
+  },
+  "coverageStatus": {
+    "configured": "已配置",
+    "disabled": "未启用",
+    "needs_setup": "待设置",
+    "not_applicable": "不适用"
+  },
+  "description": "查看账号、密钥与用量概况，跟进自动任务和待处理事项。",
+  "sections": {
+    "automationOverview": "自动化执行",
+    "configurationOverview": "配置概览",
+    "needsAttention": "需要处理",
+    "recentUsage": "近期使用",
+    "unifiedApiGuidance": "统一 API 设置"
+  },
+  "severity": {
+    "error": "错误",
+    "info": "提示",
+    "warning": "警告"
+  },
+  "states": {
+    "allClear": "当前没有需要处理的事项。",
+    "allClearDescription": "账号异常、签到方式缺失和待刷新统计会自动出现在这里。",
+    "loadDetailUnavailable": "部分总览信息暂时不可用，请重试加载。",
+    "loadedWithError": "部分信息加载失败，已显示可用数据。",
+    "loading": "正在加载总览..."
+  },
+  "status": {
+    "accounts": {
+      "label": "账号"
+    },
+    "attention": {
+      "label": "待处理"
+    },
+    "profiles": {
+      "label": "凭据库"
+    },
+    "todayUsage": {
+      "label": "今日用量"
+    }
+  },
+  "title": "总览",
+  "todayMetricAvailability": {
+    "coverage": "完整 {{complete}} · 部分 {{partial}} · 符合条件 {{eligible}}",
+    "coverageWithRefresh": "完整 {{complete}} · 部分 {{partial}} · 待刷新 {{refresh}} · 符合条件 {{eligible}}",
+    "includesPendingRefresh": "含待刷新",
+    "partial": "部分日级统计",
+    "pendingRefresh": "待刷新",
+    "pendingRefreshHelp": "今日统计状态尚未确认。请前往账号列表刷新相关账号。",
+    "unavailable": "不可用"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "添加账号",
+      "addApiCredential": "添加 API 凭据",
+      "addGatewayChannel": "添加第一个网关渠道",
+      "configureManagedSite": "配置自建 AI 网关",
+      "manageChannels": "管理渠道",
+      "openApiCredentialProfiles": "打开凭据库",
+      "openModelSync": "打开模型同步"
+    },
+    "boundaryNote": "My API Box 负责管理和导入配置，不代理模型请求；外部客户端实际调用的是你的自建 AI 网关。",
+    "description": {
+      "has_gateway_channels": "已完成网关设置引导。前往渠道管理确认当前状态。",
+      "needs_importable_source": "已有账号，但当前账号类型无法读取可导入的 Key。请先保存 API Key，或添加支持 Key 获取的账号，再导入自建 AI 网关。",
+      "needs_managed_site": "已有账号 Key 或 API Key。完成自建 AI 网关配置后，即可将它们导入为网关渠道，让多个 Key 通过同一个 AI API 使用。",
+      "needs_sources": "先添加账号或保存 API Key，再导入自建 AI 网关，汇总成一个统一 AI API。",
+      "ready_accounts": "自建 AI 网关基础配置已完成。继续导入账号 Key 或 API Key；导入流程会验证连接并创建网关渠道。",
+      "ready_profiles": "自建 AI 网关基础配置已完成。前往凭据库验证已保存的 API Key，并将它导入为网关渠道。"
+    },
+    "headline": "将多个账号 Key 或 API Key 汇总成一个统一 AI API",
+    "modelSyncOptional": "模型同步可自动更新网关模型列表，减少手动维护；渠道创建后可按需开启。",
+    "optionalLabel": "可选维护",
+    "overview": {
+      "collapse": "收起",
+      "completedDescription": "设置引导已完成。你可以随时查看步骤或管理网关渠道。",
+      "description": "将账号 Key 或 API 凭据导入自建网关，通过同一个 API 地址调用。",
+      "progress": "配置进度 {{completed}}/{{total}}",
+      "reopen": "配置指南",
+      "resume": "继续配置",
+      "start": "查看步骤",
+      "title": "统一 API"
+    },
+    "sources": {
+      "account": "账号来源",
+      "accountUnavailable": "账号暂不可导入",
+      "both": "账号 + 凭据",
+      "none": "还没有来源",
+      "profile": "凭据来源"
+    },
+    "stepper": {
+      "label": "统一 API 设置进度",
+      "states": {
+        "completed": "已完成",
+        "current": "当前步骤",
+        "upcoming": "稍后"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "导入至少一个账号 Key 或已保存的 API 凭据。",
+          "title": "创建网关渠道"
+        },
+        "gatewaySettings": {
+          "description": "填写自建 AI 网关的管理员连接信息。",
+          "title": "保存网关设置"
+        },
+        "source": {
+          "description": "添加可读取 Key 的账号或保存 API 凭据。",
+          "title": "准备数据源"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "账号、凭据或网关设置未能加载，当前不会据此判断为“没有来源”。",
+      "retry": "重新检查设置状态",
+      "title": "暂时无法确认设置进度"
+    }
+  },
+  "usage": {
+    "activityMix": "近期趋势",
+    "empty": {
+      "description": "发起一次请求或完成用量历史同步后，这里会自动汇总今日请求、Token、消耗和近 7 日趋势。",
+      "title": "还没有用量记录"
+    },
+    "noRecentActivity": "暂无近期用量记录。",
+    "requestShare": "请求占比",
+    "sevenDayRequests": "近 7 日请求",
+    "sevenDayTokens": "近 7 日 Token",
+    "todayCost": "今日消耗",
+    "todayRequests": "今日请求",
+    "todayShare": "今日在近 7 日中的占比",
+    "todayTokens": "今日 Token",
+    "tokenShare": "Token 占比"
+  }
+}

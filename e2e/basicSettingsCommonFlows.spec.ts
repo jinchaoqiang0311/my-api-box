@@ -1,0 +1,409 @@
+import { OPTIONS_PAGE_PATH, POPUP_PAGE_PATH } from "~/constants/extensionPages"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import { THEME_MODE } from "~/constants/theme"
+import { BASIC_SETTINGS_TEST_IDS } from "~/features/BasicSettings/testIds"
+import { STORAGE_KEYS } from "~/services/core/storageKeys"
+import { DEFAULT_ACCOUNT_AUTO_REFRESH } from "~/types/accountAutoRefresh"
+import { expect, test } from "~~/e2e/fixtures/extensionTest"
+import {
+  forceExtensionLanguage,
+  installExtensionPageGuards,
+  seedUserPreferences,
+  stubLlmMetadataIndex,
+} from "~~/e2e/utils/commonUserFlows"
+import {
+  getPlasmoStorageJsonValue,
+  getServiceWorker,
+  getStoredUserPreferences,
+} from "~~/e2e/utils/extensionState"
+import { waitForExtensionRoot } from "~~/e2e/utils/lazyLoading"
+
+async function expectStoredPreference(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+  key: string,
+  value: unknown,
+) {
+  await expect
+    .poll(async () => {
+      const preferences = await getStoredUserPreferences(serviceWorker)
+      return preferences[key]
+    })
+    .toEqual(value)
+}
+
+function normalizeActionPopupPath(popup: string): string {
+  if (!popup) return ""
+
+  try {
+    const url = new URL(popup)
+    return url.protocol === "chrome-extension:"
+      ? url.pathname.replace(/^\//, "")
+      : popup
+  } catch {
+    return popup
+  }
+}
+
+async function getConfiguredActionPopupPath(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+): Promise<string> {
+  const popup = await serviceWorker.evaluate(async () => {
+    const chromeApi = (globalThis as any).chrome
+
+    return await new Promise<string>((resolve, reject) => {
+      chromeApi.action.getPopup({}, (popup: string) => {
+        const error = chromeApi.runtime?.lastError
+        if (error) {
+          reject(new Error(error.message))
+          return
+        }
+        resolve(popup)
+      })
+    })
+  })
+
+  return normalizeActionPopupPath(popup)
+}
+
+async function expectConfiguredActionPopup(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+  expectedPopup: string,
+) {
+  await expect
+    .poll(async () => getConfiguredActionPopupPath(serviceWorker))
+    .toBe(expectedPopup)
+}
+
+async function hasSidePanelOpenSupport(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+): Promise<boolean> {
+  return await serviceWorker.evaluate(() => {
+    const chromeApi = (globalThis as any).chrome
+    return typeof chromeApi?.sidePanel?.open === "function"
+  })
+}
+
+async function getNativeSidePanelActionClickState(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+): Promise<boolean | null> {
+  return await serviceWorker.evaluate(async () => {
+    const sidePanel = (globalThis as any).chrome?.sidePanel
+    if (typeof sidePanel?.getPanelBehavior !== "function") return null
+    const behavior = await sidePanel.getPanelBehavior()
+    return behavior.openPanelOnActionClick === true
+  })
+}
+
+async function expectNativeSidePanelActionClickState(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+  expected: boolean,
+) {
+  await expect
+    .poll(async () => getNativeSidePanelActionClickState(serviceWorker))
+    .toBe(expected)
+}
+
+async function hasActionClickListeners(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+): Promise<boolean> {
+  return await serviceWorker.evaluate(() => {
+    const chromeApi = (globalThis as any).chrome
+    return Boolean(chromeApi.action?.onClicked?.hasListeners?.())
+  })
+}
+
+async function expectActionClickListenerState(
+  serviceWorker: Awaited<ReturnType<typeof getServiceWorker>>,
+  expectedHasListeners: boolean,
+) {
+  await expect
+    .poll(async () => hasActionClickListeners(serviceWorker))
+    .toBe(expectedHasListeners)
+}
+
+test.beforeEach(async ({ context, page }) => {
+  installExtensionPageGuards(page)
+  await forceExtensionLanguage(page, "en")
+  await stubLlmMetadataIndex(context)
+})
+
+test("shows gentle refresh interval guidance only for valid frequent intervals", async ({
+  context,
+  extensionId,
+  page,
+}, testInfo) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    accountAutoRefresh: {
+      ...DEFAULT_ACCOUNT_AUTO_REFRESH,
+      enabled: true,
+      interval: 300,
+    },
+  })
+  await forceExtensionLanguage(page, "zh-CN")
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}?tab=refresh&anchor=refresh-interval#${MENU_ITEM_IDS.BASIC}`,
+  )
+  await waitForExtensionRoot(page)
+  const input = page.getByRole("spinbutton", { name: "刷新间隔", exact: true })
+  await expect(input).toHaveValue("300")
+  const section = page
+    .locator('[data-slot="setting-section"]')
+    .filter({ has: input })
+  for (const [name, width] of [
+    ["desktop", 1280],
+    ["mobile", 390],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 })
+    await section.screenshot({
+      path: testInfo.outputPath(`refresh-guidance-${name}.png`),
+      animations: "disabled",
+    })
+  }
+  const hint =
+    "刷新较频繁，账号较多时可能触发站点限流，建议使用 15 分钟或更长间隔。"
+  await expect(input).toHaveAccessibleDescription(hint)
+  await expect(section.getByRole("alert")).toHaveCount(0)
+  await input.fill("")
+  await expect(section.getByText(hint)).toHaveCount(0)
+  await input.fill("60")
+  await expect(input).toHaveAccessibleDescription(hint)
+  await input.fill("600")
+  await expect(section.getByText(hint)).toHaveCount(0)
+  await input.blur()
+  await expect
+    .poll(async () => {
+      const prefs = await getStoredUserPreferences(serviceWorker)
+      return (prefs.accountAutoRefresh as { interval: number }).interval
+    })
+    .toBe(600)
+})
+
+test("persists an options setting through extension storage and reload", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    currencyType: "USD",
+    activeTab: "cashflow",
+    showTodayCashflow: true,
+    themeMode: THEME_MODE.SYSTEM,
+    actionClickBehavior: "popup",
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  await waitForExtensionRoot(page)
+
+  await page.getByRole("button", { name: "CNY (¥)" }).click()
+  await expectStoredPreference(serviceWorker, "currencyType", "CNY")
+  await expect(page.getByRole("button", { name: "CNY (¥)" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  )
+
+  await page.reload()
+  await waitForExtensionRoot(page)
+
+  await expect(page.getByRole("button", { name: "CNY (¥)" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  )
+})
+
+test("persists product analytics opt-out through dedicated storage and reload", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  await waitForExtensionRoot(page)
+
+  const productAnalyticsSection = page.locator("#product-analytics")
+  await expect(productAnalyticsSection).toBeVisible()
+
+  const productAnalyticsSwitch = productAnalyticsSection.getByRole("switch", {
+    name: "Toggle",
+  })
+  await expect(productAnalyticsSwitch).toBeEnabled()
+  await expect(productAnalyticsSwitch).toHaveAttribute("aria-checked", "true")
+
+  await productAnalyticsSwitch.click()
+
+  await expect
+    .poll(async () => {
+      const preferences = await getPlasmoStorageJsonValue<{
+        enabled?: boolean
+        updatedAt?: number
+      }>(serviceWorker, STORAGE_KEYS.PRODUCT_ANALYTICS_PREFERENCES)
+
+      return {
+        enabled: preferences?.enabled,
+        hasUpdatedAt: typeof preferences?.updatedAt === "number",
+      }
+    })
+    .toEqual({
+      enabled: false,
+      hasUpdatedAt: true,
+    })
+  await expect(productAnalyticsSwitch).toHaveAttribute("aria-checked", "false")
+
+  await page.reload()
+  await waitForExtensionRoot(page)
+
+  const reloadedProductAnalyticsSwitch = page
+    .locator("#product-analytics")
+    .getByRole("switch", { name: "Toggle" })
+  await expect(reloadedProductAnalyticsSwitch).toBeEnabled()
+  await expect(reloadedProductAnalyticsSwitch).toHaveAttribute(
+    "aria-checked",
+    "false",
+  )
+})
+
+test("updates toolbar action behavior from settings into the live extension action", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    actionClickBehavior: "popup",
+  })
+
+  await expectConfiguredActionPopup(serviceWorker, POPUP_PAGE_PATH)
+  await expectActionClickListenerState(serviceWorker, true)
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  await waitForExtensionRoot(page)
+
+  await page.getByRole("button", { name: "Side panel" }).click()
+
+  await expectStoredPreference(
+    serviceWorker,
+    "actionClickBehavior",
+    "sidepanel",
+  )
+  const sidePanelOpenSupported = await hasSidePanelOpenSupport(serviceWorker)
+  const nativeSidePanelActionClickState =
+    await getNativeSidePanelActionClickState(serviceWorker)
+
+  if (sidePanelOpenSupported) {
+    await expectConfiguredActionPopup(serviceWorker, "")
+    await expectActionClickListenerState(serviceWorker, true)
+    if (nativeSidePanelActionClickState !== null) {
+      await expectNativeSidePanelActionClickState(serviceWorker, true)
+    }
+  } else {
+    await expectConfiguredActionPopup(serviceWorker, POPUP_PAGE_PATH)
+    await expectActionClickListenerState(serviceWorker, true)
+  }
+
+  await page
+    .getByTestId(BASIC_SETTINGS_TEST_IDS.actionClickBehaviorPopupButton)
+    .click()
+
+  await expectStoredPreference(serviceWorker, "actionClickBehavior", "popup")
+  await expectConfiguredActionPopup(serviceWorker, POPUP_PAGE_PATH)
+  await expectActionClickListenerState(serviceWorker, true)
+  if (nativeSidePanelActionClickState !== null) {
+    await expectNativeSidePanelActionClickState(serviceWorker, false)
+  }
+})
+
+test("uses control-specific layouts at narrow card widths", async ({
+  extensionId,
+  page,
+}) => {
+  await page.setViewportSize({ width: 560, height: 900 })
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.BASIC}`,
+  )
+  await waitForExtensionRoot(page)
+
+  const card = page.locator(`#${SETTINGS_ANCHORS.APPEARANCE_THEME_MODE}`)
+  const content = card.locator('[data-slot="card-item-content"]')
+
+  await expect(card).toBeVisible()
+  await expect
+    .poll(async () =>
+      content.evaluate((element) => getComputedStyle(element).flexDirection),
+    )
+    .toBe("column")
+
+  const narrowLayout = await content.evaluate((element) => {
+    const control = element.querySelector<HTMLElement>(
+      '[data-slot="card-item-control"]',
+    )
+    if (!control) throw new Error("Card item control is missing")
+
+    const contentRect = element.getBoundingClientRect()
+    const controlRect = control.getBoundingClientRect()
+    const renderedControl = control.firstElementChild
+    if (!(renderedControl instanceof HTMLElement)) {
+      throw new Error("Rendered card item control is missing")
+    }
+    const renderedControlRect = renderedControl.getBoundingClientRect()
+
+    return {
+      renderedControlRightDifference: Math.abs(
+        renderedControlRect.right - contentRect.right,
+      ),
+      controlWidthDifference: Math.abs(controlRect.width - contentRect.width),
+    }
+  })
+
+  expect(narrowLayout.renderedControlRightDifference).toBeLessThanOrEqual(1)
+  expect(narrowLayout.controlWidthDifference).toBeLessThanOrEqual(1)
+
+  const switchCard = page.locator("#changelog-on-update-toggle")
+  const switchContent = switchCard.locator('[data-slot="card-item-content"]')
+
+  await expect(switchCard).toBeVisible()
+  await expect
+    .poll(async () =>
+      switchContent.evaluate(
+        (element) => getComputedStyle(element).flexDirection,
+      ),
+    )
+    .toBe("row")
+
+  const switchLayout = await switchContent.evaluate((element) => {
+    const control = element.querySelector<HTMLElement>(
+      '[data-slot="card-item-control"]',
+    )
+    if (!control) throw new Error("Switch control is missing")
+
+    const contentRect = element.getBoundingClientRect()
+    const controlRect = control.getBoundingClientRect()
+
+    return {
+      rightDifference: Math.abs(controlRect.right - contentRect.right),
+      verticalCenterDifference: Math.abs(
+        controlRect.top +
+          controlRect.height / 2 -
+          (contentRect.top + contentRect.height / 2),
+      ),
+    }
+  })
+
+  expect(switchLayout.rightDifference).toBeLessThanOrEqual(1)
+  expect(switchLayout.verticalCenterDifference).toBeLessThanOrEqual(1)
+
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await expect
+    .poll(async () =>
+      content.evaluate((element) => getComputedStyle(element).flexDirection),
+    )
+    .toBe("row")
+})

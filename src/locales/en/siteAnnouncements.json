@@ -1,0 +1,81 @@
+{
+  "accountMessage": {
+    "claimed": "Claimed",
+    "credits": "Reward: {{amount}} credits",
+    "expires": "Expires: {{time}}",
+    "openNative": "View and handle on the site",
+    "unclaimed": "Not claimed"
+  },
+  "actions": {
+    "checkNow": "Check now",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "markAllRead": "Mark all read",
+    "markRead": "Mark read",
+    "pollingSettings": "Polling settings",
+    "viewSource": "View site announcement"
+  },
+  "badges": {
+    "notified": "Notified",
+    "unread": "Unread"
+  },
+  "description": {
+    "disabledSummary": "Read site announcements and manage unread items. Automatic checks are off; manual checks remain available.",
+    "enabledInterval": "Checks run every {{intervalMinutes}} minutes.",
+    "enabledSummary": "Read site announcements and manage unread items. Automatic checks are on.",
+    "pollingSettingsLink": "Configure automatic polling"
+  },
+  "empty": {
+    "addAccount": "Add account",
+    "description": "New announcements discovered by background checks will appear here.",
+    "descriptionWhenPollingDisabled": "You can check manually now; automatic polling can be managed in settings.",
+    "filtered": "No announcements match the current filters",
+    "noAccounts": "Add an account before checking announcements",
+    "noAccountsDesc": "Announcement checks need at least one enabled account to know which sites should be polled.",
+    "pollingSettingsLink": "Configure automatic polling",
+    "title": "No announcement records"
+  },
+  "filters": {
+    "allSites": "All sites",
+    "searchSite": "Search sites",
+    "site": "Site"
+  },
+  "loading": "Loading announcements...",
+  "messages": {
+    "checkCompleted": "Announcement check completed",
+    "checkCompletedWithIssues": "The check completed with {{failed}} failed and {{unsupported}} unsupported site(s). Select a site to review details.",
+    "checkFailed": "Announcement check failed",
+    "loadFailed": "Failed to load announcements",
+    "markAllReadFailed": "Failed to mark announcements as read",
+    "markReadFailed": "Failed to mark announcement as read"
+  },
+  "notification": {
+    "multipleUnread_one": "{{title}}, plus {{count}} unread announcement",
+    "multipleUnread_other": "{{title}}, plus {{count}} unread announcements",
+    "title": "{{site}} has new announcements"
+  },
+  "overview": {
+    "description": "See the announcement totals and filter down to what you care about.",
+    "title": "Overview"
+  },
+  "search": {
+    "clear": "Clear",
+    "placeholder": "Search announcement title or body...",
+    "resultCount_one": "{{count}} result",
+    "resultCount_other": "{{count}} results"
+  },
+  "status": {
+    "aggregateIssues": "{{failed}} site(s) failed and {{unsupported}} do not support announcement checks. Select a site to view details and retry failures.",
+    "aggregateIssuesTitle": "Some sites need attention",
+    "failed": "The latest announcement check failed: {{error}}",
+    "failedTitle": "Check failed",
+    "lastChecked": "Last checked: {{time}}",
+    "unsupported": "The latest check did not find a usable announcement endpoint for this site.",
+    "unsupportedTitle": "Announcement endpoint unsupported"
+  },
+  "summary": {
+    "total": "Total",
+    "unread": "Unread"
+  },
+  "title": "Site Announcements"
+}

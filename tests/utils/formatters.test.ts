@@ -1,0 +1,461 @@
+import { describe, expect, it, vi } from "vitest"
+
+import type { CurrencyType } from "~/types"
+import {
+  ACCOUNT_TODAY_METRIC_REASONS,
+  ACCOUNT_TODAY_METRIC_STATUSES,
+} from "~/types/accountTodayStats"
+import {
+  calculateTotalBalance,
+  calculateTotalConsumption,
+  calculateTotalIncomeForSites,
+  formatFullTime,
+  formatKeyTime,
+  formatLocaleDateTime,
+  formatRelativeTime,
+  formatTimestamp,
+  formatTokenCount,
+  getCurrencySymbol,
+  getOppositeCurrency,
+  getTodayMetricPresentation,
+  maskSecretForDisplay,
+  normalizeSecretMaskForDisplay,
+  normalizeToDate,
+  normalizeToMs,
+} from "~/utils/core/formatters"
+import { buildCompleteTodayStatsAvailability } from "~~/tests/test-utils/accountTodayStats"
+import { buildDisplaySiteData } from "~~/tests/test-utils/factories"
+
+describe("formatters utilities", () => {
+  describe("formatLocaleDateTime", () => {
+    it("accepts locale date-time options without changing invalid-input fallback behavior", () => {
+      const date = new Date(2026, 5, 1, 8, 30, 45)
+      const options: Intl.DateTimeFormatOptions = {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+
+      expect(formatLocaleDateTime(date, "-", options)).toBe(
+        date.toLocaleString(undefined, options),
+      )
+      expect(formatLocaleDateTime(null, "-", options)).toBe("-")
+    })
+  })
+
+  describe("maskSecretForDisplay", () => {
+    it("uses the same mask for a full key and native masked representations", () => {
+      const expected = "sk-a••••••wxyz"
+      expect(maskSecretForDisplay("sk-abcdefghijklmnopqrstuvwxyz")).toBe(
+        expected,
+      )
+      expect(normalizeSecretMaskForDisplay("sk-a…wxyz")).toBe(expected)
+      expect(normalizeSecretMaskForDisplay("sk-a...wxyz")).toBe(expected)
+      expect(normalizeSecretMaskForDisplay(expected)).toBe(expected)
+    })
+
+    it("does not expose unknown or fully masked native values", () => {
+      for (const value of ["••••••", "********", "unexpected-raw-secret", ""]) {
+        expect(normalizeSecretMaskForDisplay(value)).toBe("••••••")
+      }
+    })
+    it("fully masks short secrets", () => {
+      expect(maskSecretForDisplay("short-key")).toBe("••••••")
+    })
+
+    it("fully masks a 12-character secret", () => {
+      expect(maskSecretForDisplay("123456789012")).toBe("••••••")
+    })
+
+    it("preserves the start and end of long secrets", () => {
+      const secret = "sk-1234567890abcdefghijklmnop"
+
+      expect(maskSecretForDisplay(secret)).toBe(
+        `${secret.substring(0, 4)}••••••${secret.substring(secret.length - 4)}`,
+      )
+    })
+  })
+
+  describe("getTodayMetricPresentation", () => {
+    it("requires refresh for legacy-unclassified account availability", () => {
+      expect(
+        getTodayMetricPresentation(999, {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.LegacyUnclassified,
+        }),
+      ).toEqual({
+        status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+        value: null,
+        requiresRefresh: true,
+      })
+    })
+
+    it("does not require refresh for unsupported account availability", () => {
+      expect(
+        getTodayMetricPresentation(999, {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.Unsupported,
+        }),
+      ).toEqual({
+        status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+        value: null,
+        requiresRefresh: false,
+      })
+    })
+
+    it("requires refresh for aggregate coverage containing legacy metrics", () => {
+      expect(
+        getTodayMetricPresentation(30, {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+          completeCount: 1,
+          partialCount: 1,
+          eligibleCount: 3,
+          legacyUnclassifiedCount: 1,
+        }),
+      ).toEqual({
+        status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+        value: 30,
+        requiresRefresh: true,
+      })
+    })
+
+    it("does not require refresh for ordinary aggregate coverage", () => {
+      expect(
+        getTodayMetricPresentation(30, {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Complete,
+          completeCount: 2,
+          partialCount: 0,
+          eligibleCount: 2,
+          legacyUnclassifiedCount: 0,
+        }),
+      ).toEqual({
+        status: ACCOUNT_TODAY_METRIC_STATUSES.Complete,
+        value: 30,
+        requiresRefresh: false,
+      })
+    })
+  })
+
+  describe("formatTokenCount", () => {
+    it("should format large numbers with M suffix", () => {
+      expect(formatTokenCount(1500000)).toBe("1.5M")
+      expect(formatTokenCount(2000000)).toBe("2.0M")
+    })
+
+    it("should format medium numbers with K suffix", () => {
+      expect(formatTokenCount(1500)).toBe("1.5K")
+      expect(formatTokenCount(2000)).toBe("2.0K")
+    })
+
+    it("should return string for small numbers", () => {
+      expect(formatTokenCount(500)).toBe("500")
+      expect(formatTokenCount(99)).toBe("99")
+    })
+
+    it("should handle zero", () => {
+      expect(formatTokenCount(0)).toBe("0")
+    })
+  })
+
+  describe("normalizeToMs", () => {
+    it("should convert seconds to milliseconds", () => {
+      const seconds = 1640000000 // Unix timestamp in seconds
+      const result = normalizeToMs(seconds)
+      expect(result).toBe(seconds * 1000)
+    })
+
+    it("should keep milliseconds as is", () => {
+      const milliseconds = 1640000000000 // Unix timestamp in ms
+      const result = normalizeToMs(milliseconds)
+      expect(result).toBe(milliseconds)
+    })
+
+    it("should handle Date objects", () => {
+      const date = new Date("2024-01-01T00:00:00.000Z")
+      const result = normalizeToMs(date)
+      expect(result).toBe(date.getTime())
+    })
+
+    it("should handle null and undefined", () => {
+      expect(normalizeToMs(null)).toBeNull()
+      expect(normalizeToMs(undefined)).toBeNull()
+    })
+
+    it("should handle invalid inputs", () => {
+      expect(normalizeToMs("invalid" as any)).toBeNull()
+    })
+  })
+
+  describe("normalizeToDate", () => {
+    it("should convert timestamp to Date", () => {
+      const timestamp = 1640000000000
+      const result = normalizeToDate(timestamp)
+      expect(result).toBeInstanceOf(Date)
+      expect(result?.getTime()).toBe(timestamp)
+    })
+
+    it("should handle null and undefined", () => {
+      expect(normalizeToDate(null)).toBeNull()
+      expect(normalizeToDate(undefined)).toBeNull()
+    })
+
+    it("should handle Date objects", () => {
+      const date = new Date("2024-01-01T00:00:00.000Z")
+      const result = normalizeToDate(date)
+      expect(result).toBeInstanceOf(Date)
+      expect(result?.getTime()).toBe(date.getTime())
+    })
+  })
+
+  describe("getCurrencySymbol", () => {
+    it("should return correct symbol for USD", () => {
+      expect(getCurrencySymbol("USD" as CurrencyType)).toBe("$")
+    })
+
+    it("should return correct symbol for CNY", () => {
+      expect(getCurrencySymbol("CNY" as CurrencyType)).toBe("¥")
+    })
+  })
+
+  describe("getOppositeCurrency", () => {
+    it("should return CNY for USD", () => {
+      expect(getOppositeCurrency("USD" as CurrencyType)).toBe("CNY")
+    })
+
+    it("should return USD for CNY", () => {
+      expect(getOppositeCurrency("CNY" as CurrencyType)).toBe("USD")
+    })
+  })
+
+  describe("formatKeyTime", () => {
+    it("should return translation string when timestamp is non-positive", () => {
+      const result = formatKeyTime(0)
+      expect(result).toBe("keyManagement:keyDetails.neverExpires")
+    })
+
+    it("should format timestamp using the runtime locale when positive", () => {
+      const timestamp = new Date(2024, 0, 1).getTime()
+      const localeSpy = vi
+        .spyOn(Date.prototype, "toLocaleDateString")
+        .mockReturnValue("2024-01-01")
+
+      const result = formatKeyTime(timestamp)
+
+      expect(result).toBe("2024-01-01")
+      expect(localeSpy).toHaveBeenCalledWith()
+
+      localeSpy.mockRestore()
+    })
+  })
+
+  describe("formatRelativeTime", () => {
+    it("should return empty string when date is undefined", () => {
+      expect(formatRelativeTime(undefined)).toBe("")
+    })
+
+    it("should format human-readable relative strings", () => {
+      vi.useFakeTimers()
+      const now = new Date(2024, 0, 1, 12, 0, 0)
+      vi.setSystemTime(now)
+      const anHourAgo = new Date(2024, 0, 1, 11, 0, 0)
+
+      expect(formatRelativeTime(anHourAgo)).toBe("an hour ago")
+
+      vi.useRealTimers()
+    })
+  })
+
+  describe("formatFullTime", () => {
+    it("should return empty string when date is undefined", () => {
+      expect(formatFullTime(undefined)).toBe("")
+    })
+
+    it("should format date into YYYY/MM/DD HH:mm:ss", () => {
+      const date = new Date(2024, 0, 3, 9, 5, 7)
+      expect(formatFullTime(date)).toBe("2024/01/03 09:05:07")
+    })
+  })
+
+  describe("calculateTotalConsumption", () => {
+    it("uses the same available contributors for USD and CNY totals", () => {
+      const result = calculateTotalConsumption([
+        buildDisplaySiteData({
+          todayConsumption: { USD: 10, CNY: 70 },
+        }),
+        buildDisplaySiteData({
+          id: "partial",
+          todayConsumption: { USD: 20, CNY: 140 },
+          todayStatsAvailability: buildCompleteTodayStatsAvailability({
+            consumption: {
+              status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+              reason: ACCOUNT_TODAY_METRIC_REASONS.SourcePartial,
+            },
+          }),
+        }),
+        buildDisplaySiteData({
+          id: "unavailable",
+          todayConsumption: { USD: 999, CNY: 6993 },
+          todayStatsAvailability: buildCompleteTodayStatsAvailability({
+            consumption: {
+              status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+              reason: ACCOUNT_TODAY_METRIC_REASONS.Unsupported,
+            },
+          }),
+        }),
+      ])
+
+      expect(result).toEqual({
+        amount: { USD: 30, CNY: 210 },
+        coverage: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+          completeCount: 1,
+          partialCount: 1,
+          eligibleCount: 3,
+          legacyUnclassifiedCount: 0,
+        },
+      })
+    })
+
+    it("recalculates coverage for a filtered subset and excludes unavailable compatibility values", () => {
+      const partial = buildDisplaySiteData({
+        id: "partial",
+        todayConsumption: { USD: 20, CNY: 140 },
+        todayStatsAvailability: buildCompleteTodayStatsAvailability({
+          consumption: {
+            status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+            reason: ACCOUNT_TODAY_METRIC_REASONS.PageLimit,
+          },
+        }),
+      })
+      const unavailable = buildDisplaySiteData({
+        id: "unavailable",
+        todayConsumption: { USD: 999, CNY: 6993 },
+        todayStatsAvailability: buildCompleteTodayStatsAvailability({
+          consumption: {
+            status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+            reason: ACCOUNT_TODAY_METRIC_REASONS.Unsupported,
+          },
+        }),
+      })
+
+      expect(calculateTotalConsumption([partial, unavailable])).toEqual({
+        amount: { USD: 20, CNY: 140 },
+        coverage: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+          completeCount: 0,
+          partialCount: 1,
+          eligibleCount: 2,
+          legacyUnclassifiedCount: 0,
+        },
+      })
+      expect(calculateTotalConsumption([]).coverage.status).toBe(
+        ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+      )
+    })
+  })
+
+  describe("calculateTotalBalance", () => {
+    it("excludes native allowances even when a caller has not projected the exclusion flag", () => {
+      expect(
+        calculateTotalBalance([
+          buildDisplaySiteData({ balance: { USD: 2, CNY: 14 } }),
+          buildDisplaySiteData({
+            nativeBalance: { unit: "USD", total: 8, permanent: 2, daily: 3 },
+            balance: { USD: 2, CNY: 14 },
+            excludeFromTotalBalance: false,
+          }),
+        ]),
+      ).toEqual({ USD: 2, CNY: 14 })
+    })
+
+    it("should sum balances across sites and round to 2 decimals", () => {
+      const data = [
+        { balance: { USD: 1.234, CNY: 7.89 } },
+        { balance: { USD: 2.345, CNY: 8.11 } },
+      ] as any
+
+      const result = calculateTotalBalance(data)
+
+      expect(result.USD).toBeCloseTo(3.58, 2)
+      expect(result.CNY).toBeCloseTo(16.0, 1)
+    })
+
+    it("should exclude disabled and explicitly excluded accounts", () => {
+      const data = [
+        { balance: { USD: 10, CNY: 20 }, disabled: false },
+        { balance: { USD: 1, CNY: 2 }, excludeFromTotalBalance: true },
+        { balance: { USD: 5, CNY: 10 }, disabled: true },
+      ] as any
+
+      const result = calculateTotalBalance(data)
+
+      expect(result.USD).toBe(10)
+      expect(result.CNY).toBe(20)
+    })
+  })
+
+  describe("calculateTotalIncomeForSites", () => {
+    it("excludes disabled accounts and accounts opted out of today income totals", () => {
+      const data = [
+        buildDisplaySiteData({ todayIncome: { USD: 10, CNY: 70 } }),
+        buildDisplaySiteData({
+          id: "excluded",
+          todayIncome: { USD: 1, CNY: 7 },
+          excludeFromTodayIncome: true,
+        }),
+        buildDisplaySiteData({
+          id: "disabled",
+          todayIncome: { USD: 5, CNY: 35 },
+          disabled: true,
+        }),
+      ]
+
+      const result = calculateTotalIncomeForSites(data)
+
+      expect(result.amount).toEqual({ USD: 10, CNY: 70 })
+      expect(result.coverage).toEqual({
+        status: ACCOUNT_TODAY_METRIC_STATUSES.Complete,
+        completeCount: 1,
+        partialCount: 0,
+        eligibleCount: 1,
+        legacyUnclassifiedCount: 0,
+      })
+    })
+
+    it("reports an empty eligible subset as unavailable", () => {
+      expect(calculateTotalIncomeForSites([])).toEqual({
+        amount: { USD: 0, CNY: 0 },
+        coverage: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          completeCount: 0,
+          partialCount: 0,
+          eligibleCount: 0,
+          legacyUnclassifiedCount: 0,
+        },
+      })
+    })
+  })
+
+  describe("formatTimestamp", () => {
+    it("should return translation when timestamp is non-positive", () => {
+      const result = formatTimestamp(0)
+      expect(result).toBe("common:time.neverExpires")
+    })
+
+    it("should format timestamp using the runtime locale when positive", () => {
+      const timestamp = new Date(2024, 0, 1).getTime()
+      const localeSpy = vi
+        .spyOn(Date.prototype, "toLocaleDateString")
+        .mockReturnValue("2024-01-01")
+
+      const result = formatTimestamp(timestamp)
+
+      expect(result).toBe("2024-01-01")
+      expect(localeSpy).toHaveBeenCalledWith()
+
+      localeSpy.mockRestore()
+    })
+  })
+})

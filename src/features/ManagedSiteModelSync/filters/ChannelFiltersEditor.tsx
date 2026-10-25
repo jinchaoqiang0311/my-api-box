@@ -1,0 +1,439 @@
+import { ArrowDown, ArrowUp, Loader2, Plus, Settings2, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { CompactMultiSelect, Input, Textarea } from "~/components/ui"
+import { Button } from "~/components/ui/button"
+import { Label } from "~/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select"
+import { Switch } from "~/components/ui/Switch"
+import {
+  CHANNEL_FILTER_ACTIONS,
+  CHANNEL_FILTER_EDITOR_VIEW_MODES,
+  CHANNEL_MODEL_FILTER_PROBE_IDS,
+  CHANNEL_MODEL_FILTER_RULE_KINDS,
+  isProbeChannelModelFilterRule,
+  type ChannelFilterAction,
+  type ChannelFilterEditorViewMode,
+  type ChannelModelFilterRule,
+  type ChannelModelFilterRuleKind,
+  type EditableFilterField,
+} from "~/types/channelModelFilters"
+
+type EditableFilter = ChannelModelFilterRule
+
+interface ChannelFiltersEditorProps {
+  filters: EditableFilter[]
+  viewMode: ChannelFilterEditorViewMode
+  jsonText: string
+  isLoading?: boolean
+  probeRulesSupported?: boolean
+  probeRulesUnsupportedMessage?: string
+  onAddFilter: (kind?: ChannelModelFilterRuleKind) => void
+  onMoveFilter: (id: string, direction: "up" | "down") => void
+  onRemoveFilter: (id: string) => void
+  onFieldChange: (
+    id: string,
+    field: EditableFilterField,
+    value: unknown,
+  ) => void
+  onClickViewVisual: () => void
+  onClickViewJson: () => void
+  onChangeJsonText: (value: string) => void
+  testIds?: {
+    viewJsonButton?: string
+    jsonEditor?: string
+  }
+}
+
+/**
+ * Editor for New API channel filtering rules supporting visual and JSON modes.
+ * Provides UX to add/remove rules, toggle regex behavior, and edit raw JSON definitions.
+ * @param props Component props bundle.
+ * @param props.filters Array of editable filter rules rendered in visual mode.
+ * @param props.viewMode Visual or JSON editing mode flag.
+ * @param props.jsonText Raw JSON string for manual editing.
+ * @param props.isLoading Whether filter data is still loading.
+ * @param props.onAddFilter Handler invoked when user adds a rule.
+ * @param props.onRemoveFilter Handler to delete a rule by id.
+ * @param props.onFieldChange Field update callback for rule edits.
+ * @param props.onClickViewVisual Switcher handler for the visual view.
+ * @param props.onClickViewJson Switcher handler for the JSON view.
+ * @param props.onChangeJsonText Controlled change handler for JSON textarea.
+ * @returns Visual or JSON editing surface depending on selected view mode.
+ */
+export default function ChannelFiltersEditor(props: ChannelFiltersEditorProps) {
+  const {
+    filters,
+    viewMode,
+    jsonText,
+    isLoading,
+    probeRulesSupported = true,
+    probeRulesUnsupportedMessage,
+    onAddFilter,
+    onMoveFilter,
+    onRemoveFilter,
+    onFieldChange,
+    onClickViewVisual,
+    onClickViewJson,
+    onChangeJsonText,
+    testIds,
+  } = props
+  const { t } = useTranslation("managedSiteChannels")
+  const probeOptions = CHANNEL_MODEL_FILTER_PROBE_IDS.map((probeId) => ({
+    value: probeId,
+    label: t(`filters.probes.options.${probeId}`),
+  }))
+
+  if (isLoading) {
+    return (
+      <div className="text-muted-foreground gap-y-density-2 flex min-h-[160px] items-center justify-center gap-x-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        {t("filters.loading")}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-density-4">
+      <div className="gap-y-density-2 flex items-center justify-between gap-x-2">
+        <Label className="text-muted-foreground text-xs font-medium">
+          {t("filters.viewMode.label")}
+        </Label>
+        <div className="gap-y-density-2 flex gap-x-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === "visual" ? "secondary" : "ghost"}
+            onClick={onClickViewVisual}
+          >
+            {t("filters.viewMode.visual")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === "json" ? "secondary" : "ghost"}
+            onClick={onClickViewJson}
+            data-testid={testIds?.viewJsonButton}
+          >
+            {t("filters.viewMode.json")}
+          </Button>
+        </div>
+      </div>
+
+      {viewMode === CHANNEL_FILTER_EDITOR_VIEW_MODES.Visual ? (
+        !filters.length ? (
+          <div className="text-center">
+            <div className="bg-muted mb-density-3 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+              <Settings2 className="text-muted-foreground h-5 w-5" />
+            </div>
+            <p className="text-base font-semibold">
+              {t("filters.empty.title")}
+            </p>
+            <p className="text-muted-foreground mb-density-6 text-sm">
+              {t("filters.empty.description")}
+            </p>
+            <div className="gap-y-density-2 grid grid-cols-1 gap-x-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="dashed"
+                size="sm"
+                className="w-full"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() =>
+                  onAddFilter(CHANNEL_MODEL_FILTER_RULE_KINDS.Pattern)
+                }
+              >
+                {t("filters.addPatternRule")}
+              </Button>
+              <Button
+                type="button"
+                variant="dashed"
+                size="sm"
+                className="w-full"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() =>
+                  onAddFilter(CHANNEL_MODEL_FILTER_RULE_KINDS.Probe)
+                }
+                disabled={!probeRulesSupported}
+              >
+                {t("filters.addProbeRule")}
+              </Button>
+            </div>
+            {!probeRulesSupported && probeRulesUnsupportedMessage ? (
+              <p className="text-muted-foreground mt-density-3 text-xs">
+                {probeRulesUnsupportedMessage}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {filters.map((filter, index) => (
+              <div
+                key={filter.id}
+                className="border-border space-y-density-5 py-density-5 rounded-lg border px-5"
+              >
+                <div className="gap-y-density-4 grid gap-x-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] md:items-end">
+                  <div className="space-y-density-2">
+                    <Label>{t("filters.labels.name")}</Label>
+                    <Input
+                      value={filter.name}
+                      onChange={(event) =>
+                        onFieldChange(filter.id, "name", event.target.value)
+                      }
+                      placeholder={t("filters.placeholders.name")}
+                      onClear={() => onFieldChange(filter.id, "name", "")}
+                      clearButtonLabel={t("common:actions.clear")}
+                    />
+                  </div>
+                  <div className="space-y-density-2">
+                    <Label>{t("filters.labels.enabled")}</Label>
+                    <div className="border-input py-density-2 flex items-center justify-between rounded-lg border px-3 text-sm">
+                      <span className="text-muted-foreground">
+                        {filter.enabled
+                          ? t("common:status.enabled")
+                          : t("common:status.disabled")}
+                      </span>
+                      <Switch
+                        id={`filter-enabled-${filter.id}`}
+                        checked={filter.enabled}
+                        onChange={(value: boolean) =>
+                          onFieldChange(filter.id, "enabled", value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="gap-y-density-1 flex justify-end gap-x-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onMoveFilter(filter.id, "up")}
+                      aria-label={t("filters.actions.moveUp")}
+                      disabled={index === 0}
+                      className="text-muted-foreground"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onMoveFilter(filter.id, "down")}
+                      aria-label={t("filters.actions.moveDown")}
+                      disabled={index === filters.length - 1}
+                      className="text-muted-foreground"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onRemoveFilter(filter.id)}
+                      aria-label={t("filters.labels.delete")}
+                      className="text-muted-foreground hover:text-destructive-text"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="gap-y-density-4 grid gap-x-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.45fr)_minmax(180px,0.4fr)]">
+                  <div className="space-y-density-2">
+                    <Label>{t("filters.labels.ruleType")}</Label>
+                    <Select
+                      value={
+                        filter.kind ?? CHANNEL_MODEL_FILTER_RULE_KINDS.Pattern
+                      }
+                      onValueChange={(value: ChannelModelFilterRuleKind) =>
+                        onFieldChange(filter.id, "kind", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          value={CHANNEL_MODEL_FILTER_RULE_KINDS.Pattern}
+                        >
+                          {t("filters.ruleTypeOptions.pattern")}
+                        </SelectItem>
+                        <SelectItem
+                          value={CHANNEL_MODEL_FILTER_RULE_KINDS.Probe}
+                          disabled={!probeRulesSupported}
+                        >
+                          {t("filters.ruleTypeOptions.probe")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {!probeRulesSupported && probeRulesUnsupportedMessage ? (
+                      <p className="text-muted-foreground text-xs">
+                        {probeRulesUnsupportedMessage}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-density-2">
+                    {isProbeChannelModelFilterRule(filter) ? (
+                      <>
+                        <Label>{t("filters.labels.probes")}</Label>
+                        <CompactMultiSelect
+                          options={probeOptions}
+                          selected={filter.probeIds}
+                          size="default"
+                          disabled={!probeRulesSupported}
+                          onChange={(value) =>
+                            onFieldChange(filter.id, "probeIds", value)
+                          }
+                          bulkActionsMinOptions={5}
+                          placeholder={t("filters.placeholders.probes")}
+                          searchPlaceholder={t(
+                            "filters.placeholders.probeSearch",
+                          )}
+                          emptyMessage={t("filters.probes.empty")}
+                        />
+                        <p className="text-muted-foreground text-xs">
+                          {t("filters.hints.probesAllPass")}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="gap-y-density-3 flex flex-wrap items-center justify-between gap-x-3">
+                          <Label>{t("filters.labels.pattern")}</Label>
+                          <div className="text-muted-foreground gap-y-density-2 flex items-center gap-x-2 text-sm">
+                            <span>{t("filters.labels.regex")}</span>
+                            <Switch
+                              size={"sm"}
+                              id={`filter-regex-${filter.id}`}
+                              checked={filter.isRegex}
+                              onChange={(value: boolean) =>
+                                onFieldChange(filter.id, "isRegex", value)
+                              }
+                            />
+                          </div>
+                        </div>
+                        <Input
+                          value={filter.pattern}
+                          onChange={(event) =>
+                            onFieldChange(
+                              filter.id,
+                              "pattern",
+                              event.target.value,
+                            )
+                          }
+                          placeholder={t("filters.placeholders.pattern")}
+                          onClear={() =>
+                            onFieldChange(filter.id, "pattern", "")
+                          }
+                          clearButtonLabel={t("common:actions.clear")}
+                        />
+                        <p className="text-muted-foreground text-xs">
+                          {filter.isRegex
+                            ? t("filters.hints.regex")
+                            : t("filters.hints.substring")}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <div className="space-y-density-2">
+                    <Label>{t("filters.labels.action")}</Label>
+                    <Select
+                      value={filter.action}
+                      onValueChange={(value: ChannelFilterAction) =>
+                        onFieldChange(filter.id, "action", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={CHANNEL_FILTER_ACTIONS.Include}>
+                          {t("filters.actionOptions.include")}
+                        </SelectItem>
+                        <SelectItem value={CHANNEL_FILTER_ACTIONS.Exclude}>
+                          {t("filters.actionOptions.exclude")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-density-2">
+                  <Label>{t("filters.labels.description")}</Label>
+                  <Textarea
+                    value={filter.description ?? ""}
+                    onChange={(event) =>
+                      onFieldChange(
+                        filter.id,
+                        "description",
+                        event.target.value,
+                      )
+                    }
+                    placeholder={t("filters.placeholders.description")}
+                    rows={2}
+                    onClear={() => onFieldChange(filter.id, "description", "")}
+                    clearButtonLabel={t("common:actions.clear")}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <div className="gap-y-density-2 grid grid-cols-1 gap-x-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="dashed"
+                size="sm"
+                className="w-full"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() =>
+                  onAddFilter(CHANNEL_MODEL_FILTER_RULE_KINDS.Pattern)
+                }
+              >
+                {t("filters.addPatternRule")}
+              </Button>
+              <Button
+                type="button"
+                variant="dashed"
+                size="sm"
+                className="w-full"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() =>
+                  onAddFilter(CHANNEL_MODEL_FILTER_RULE_KINDS.Probe)
+                }
+                disabled={!probeRulesSupported}
+              >
+                {t("filters.addProbeRule")}
+              </Button>
+            </div>
+            {!probeRulesSupported && probeRulesUnsupportedMessage ? (
+              <p className="text-muted-foreground text-xs">
+                {probeRulesUnsupportedMessage}
+              </p>
+            ) : null}
+          </>
+        )
+      ) : (
+        <div className="space-y-density-2">
+          <Label>{t("filters.jsonEditor.label")}</Label>
+          <Textarea
+            data-testid={testIds?.jsonEditor}
+            value={jsonText}
+            onChange={(event) => onChangeJsonText(event.target.value)}
+            placeholder={t("filters.jsonEditor.placeholder")}
+            rows={10}
+            onClear={() => onChangeJsonText("")}
+            clearButtonLabel={t("common:actions.clear")}
+          />
+          <p className="text-muted-foreground text-xs">
+            {t("filters.jsonEditor.hint")}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}

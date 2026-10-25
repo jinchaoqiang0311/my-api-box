@@ -1,0 +1,182 @@
+import { describe, expect, it } from "vitest"
+
+import {
+  createDefaultReleaseUpdateStatus,
+  RELEASE_UPDATE_REASONS,
+} from "~/services/updates/releaseUpdateStatus"
+import { parseReleaseUpdateStatus } from "~/services/updates/statusCodec"
+
+describe("parseReleaseUpdateStatus", () => {
+  it.each([undefined, null, "future-channel", 42, {}, ["firefox-amo"]])(
+    "omits unrecognized channel metadata: %j",
+    (distributionChannel) => {
+      const parsed = parseReleaseUpdateStatus({
+        currentVersion: "4.5.0",
+        distributionChannel,
+      })
+      expect(parsed).not.toHaveProperty("distributionChannel")
+    },
+  )
+
+  it.each(["a".repeat(40), "A".repeat(40), "a".repeat(39), null, 42])(
+    "preserves only a full lowercase build revision: %j",
+    (buildRevision) => {
+      const parsed = parseReleaseUpdateStatus({
+        currentVersion: "4.5.0",
+        buildRevision,
+      })
+      if (buildRevision === "a".repeat(40)) {
+        expect(parsed).toHaveProperty("buildRevision", buildRevision)
+      } else {
+        expect(parsed).not.toHaveProperty("buildRevision")
+      }
+    },
+  )
+
+  it("returns null for non-object payloads and whitespace-only current versions", () => {
+    expect(parseReleaseUpdateStatus(null)).toBeNull()
+    expect(parseReleaseUpdateStatus("invalid")).toBeNull()
+    expect(
+      parseReleaseUpdateStatus({
+        currentVersion: "   ",
+      }),
+    ).toBeNull()
+  })
+
+  it("trims the current version and falls back invalid reason and release URL values", () => {
+    const parsed = parseReleaseUpdateStatus({
+      currentVersion: " 3.31.0 ",
+      reason: "not-a-real-reason",
+      releaseUrl: "javascript:alert(1)",
+    })
+
+    expect(parsed).toMatchObject({
+      currentVersion: "3.31.0",
+      reason: RELEASE_UPDATE_REASONS.Unknown,
+      releaseUrl: createDefaultReleaseUpdateStatus("3.31.0").releaseUrl,
+    })
+  })
+
+  it("normalizes blank latestVersion and malformed checkedAt and lastError fields", () => {
+    const parsed = parseReleaseUpdateStatus({
+      currentVersion: "3.31.0",
+      latestVersion: "   ",
+      checkedAt: "yesterday",
+      lastError: 123,
+    })
+
+    expect(parsed).toMatchObject({
+      currentVersion: "3.31.0",
+      latestVersion: null,
+      checkedAt: null,
+      lastError: null,
+    })
+  })
+
+  it("accepts and normalizes valid https release URLs", () => {
+    const parsed = parseReleaseUpdateStatus({
+      currentVersion: "3.31.0",
+      reason: RELEASE_UPDATE_REASONS.ChromiumDevelopment,
+      releaseUrl:
+        " https://github.com/qixing-jk/all-api-hub/releases/tag/v3.31.0 ",
+      lastError: " network issue ",
+    })
+
+    expect(parsed).toMatchObject({
+      currentVersion: "3.31.0",
+      reason: RELEASE_UPDATE_REASONS.ChromiumDevelopment,
+      releaseUrl:
+        "https://github.com/qixing-jk/all-api-hub/releases/tag/v3.31.0",
+      lastError: "network issue",
+    })
+  })
+
+  it("accepts and normalizes valid http release URLs", () => {
+    const parsed = parseReleaseUpdateStatus({
+      currentVersion: "3.31.0",
+      reason: RELEASE_UPDATE_REASONS.ChromiumDevelopment,
+      releaseUrl:
+        " http://github.com/qixing-jk/all-api-hub/releases/tag/v3.31.0 ",
+      lastError: " network issue ",
+    })
+
+    expect(parsed).toMatchObject({
+      currentVersion: "3.31.0",
+      reason: RELEASE_UPDATE_REASONS.ChromiumDevelopment,
+      releaseUrl:
+        "http://github.com/qixing-jk/all-api-hub/releases/tag/v3.31.0",
+      lastError: "network issue",
+    })
+  })
+
+  it("falls back to the default release URL when releaseUrl is empty or non-string", () => {
+    const fallback = createDefaultReleaseUpdateStatus("3.31.0").releaseUrl
+
+    expect(
+      parseReleaseUpdateStatus({
+        currentVersion: "3.31.0",
+        releaseUrl: "",
+      }),
+    ).toMatchObject({ releaseUrl: fallback })
+
+    expect(
+      parseReleaseUpdateStatus({
+        currentVersion: "3.31.0",
+        releaseUrl: 42,
+      }),
+    ).toMatchObject({ releaseUrl: fallback })
+  })
+
+  it("normalizes browser store update metadata", () => {
+    expect(
+      parseReleaseUpdateStatus({
+        currentVersion: "3.31.0",
+        storeUpdate: {
+          supported: true,
+          status: "update_available",
+          version: " 3.32.0 ",
+        },
+      }),
+    ).toMatchObject({
+      storeUpdate: {
+        supported: true,
+        status: "update_available",
+        version: "3.32.0",
+      },
+    })
+
+    expect(
+      parseReleaseUpdateStatus({
+        currentVersion: "3.31.0",
+        storeUpdate: {
+          supported: true,
+          status: "unexpected",
+          version: " ",
+        },
+      }),
+    ).toMatchObject({
+      storeUpdate: {
+        supported: false,
+        status: "unsupported",
+        version: null,
+      },
+    })
+  })
+
+  it("infers browser store support from a valid non-default status", () => {
+    expect(
+      parseReleaseUpdateStatus({
+        currentVersion: "3.31.0",
+        storeUpdate: {
+          status: "no_update",
+        },
+      }),
+    ).toMatchObject({
+      storeUpdate: {
+        supported: true,
+        status: "no_update",
+        version: null,
+      },
+    })
+  })
+})

@@ -1,0 +1,30 @@
+# Site-specific check-in workflow
+
+Use when adding a check-in method, including to an already-supported site. Confirm existing site identity/authentication and reuse it; check-in does not require a new site type or unrelated account/managed capability changes.
+
+Use the [completeness checklist and handoff table](capability-assessment.md) to assess candidate/source eligibility, read-only discovery, status readback, execution, duplicate/uncertain results, day boundaries, rewards and UI feedback separately. Give each part an adaptation reason or an evidence-backed exclusion; distinguish deployment disablement from upstream absence and a registered candidate from a ready method.
+
+## Establish discovery, status and execution separately
+
+Read the closest provider under `src/services/checkin/autoCheckin/providers/`. Inspect `registry.ts`, discovery and feedback consumers before adding a method.
+
+- Capture native status and mutation requests/responses independently: authentication, method/body, timezone/day boundary, enablement, already-checked state, eligibility and reward fields. A status request must not perform the action.
+- Keep candidate discovery read-only, including hidden side effects of transport helpers: no credential issuance, login window or recovery-triggered writes merely to classify a method. Reuse verified structural clues across a family when appropriate; retain an origin restriction only when the evidence establishes a deployment-specific contract.
+- Distinguish disabled, unavailable, not checked, already checked, auth failure and inconclusive responses. A guessed endpoint's 404 or missing credential does not establish family-wide absence. Do not treat an unknown status as permission to submit.
+- Each method definition declares `feedbackStatusRoutes`. A method with `supportsStatusReadback: true` needs at least one verified GET route or a date-aware route factory; mutation-only methods declare an empty list. Keep path/query builders pure and shared with execution. Feedback consumes these definitions, not a parallel route switch or a POST status fallback.
+- For split origins, feedback status queries use the maintained deployment API-origin map; asset scanning stays on the browser origin and shares the existing scan budgets. Cover affected feedback behavior in `tests/services/checkin/feedback/`.
+- Bind cancellation and asynchronous results to the current account/origin/credentials. Test cancellation and timeout even when provider work ignores its signal, so late discovery cannot overwrite a newer draft or trigger fallback.
+
+## Execute and reconcile rewards
+
+Verify successful execution, duplicate/already-checked semantics and authoritative readback. Use existing centralized retry/reconciliation policy. After an uncertain response, read status where available rather than blindly replaying a mutation. Record timezone/reset semantics and whether an extension run observed a fresh grant or only the already-completed state; do not perform extra daily mutations solely for evidence.
+
+Keep points, expiring bonus credit, subscription allowance and cash balance distinct. Populate quota rewards only from a verified balance-equivalent amount and valid finite conversion. Preserve authoritative reward/status data through polling, retry and result-replacement paths; absence of a reward field is not zero reward. Include manual/automatic execution, feedback and result UI consumers affected by the method.
+
+Set `AutoCheckinProviderOutcome.reward` from the granted amount using the existing `readQuotaReward` or `readUsdReward` helper for verified monetary units. For a balance-equivalent native asset without a cash conversion, retain the atomic `amount` and explicit `asset` in the native reward variant. Leave it unset when the response has no authoritative amount; do not substitute a usual award or estimated balance delta. Record the source field, unit and supporting evidence in the current task's spec/evidence index.
+
+## Validate and hand off
+
+Start with focused failing tests for the actual discovery/transport/provider and affected consumers, including missing credentials without recovery side effects, duplicate result, uncertainty, cancellation and reward semantics where applicable. Then exercise the authorized real deployment or self-hosted backend. Explain whether discovery is structurally reusable or hostname-specific and name the observed deployment/version.
+
+Persist the probe and site-specific CDP flow. Show the detected method and relevant status/result UI using [visual previews](visual-previews.md); include live protocol evidence and identify any fresh-grant path that could not be exercised. Check-in rewards generally cannot be rolled back, so record the real account change instead of claiming resource cleanup restored it.

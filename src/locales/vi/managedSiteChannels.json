@@ -1,0 +1,712 @@
+{
+  "alerts": {
+    "authenticationFailed": {
+      "description": "Thông tin đăng nhập {{site}} đã lưu bị từ chối. Mở phần cài đặt, cập nhật thông tin rồi làm mới danh sách kênh.",
+      "title": "Đăng nhập lại vào {{site}}"
+    },
+    "editorLoadError": {
+      "description": "Không thể tải biểu mẫu kênh. Hãy làm mới danh sách kênh rồi thử lại.",
+      "title": "Không thể mở trình chỉnh sửa kênh"
+    },
+    "editorSaveError": {
+      "description": "Các thay đổi của bạn chưa được lưu. Hãy thử lại.",
+      "title": "Không thể lưu kênh"
+    },
+    "loadError": {
+      "title": "Không thể tải kênh"
+    },
+    "partialMutation": {
+      "description": "Một số trường có thể đã được lưu nhưng chưa thể xác nhận trạng thái. Hãy làm mới danh sách kênh và kiểm tra kênh trước khi thử lại.",
+      "title": "Cần kiểm tra bản cập nhật kênh"
+    },
+    "permissionDenied": {
+      "description": "Tài khoản {{site}} này không thể quản lý kênh. Dùng tài khoản quản trị viên hoặc cập nhật quyền rồi làm mới.",
+      "title": "{{site}} đã từ chối truy cập"
+    },
+    "resourceChanged": {
+      "description": "Kênh này đã thay đổi trong lúc bạn chỉnh sửa. Các thay đổi của bạn chưa được lưu. Hãy đóng trình chỉnh sửa, làm mới danh sách kênh rồi chỉnh sửa lại."
+    },
+    "savedRefreshError": {
+      "description": "Kênh đã được lưu nhưng không thể tải danh sách mới nhất. Hãy làm mới danh sách kênh trước khi thực hiện thêm thay đổi.",
+      "title": "Đã lưu kênh, cần làm mới"
+    },
+    "unavailable": {
+      "description": "Không thể kết nối tới {{site}}. Kiểm tra máy chủ và mạng rồi làm mới danh sách kênh.",
+      "title": "{{site}} không khả dụng"
+    }
+  },
+  "cliProxyApi": {
+    "credentialWeightHelp": "Để trống tương đương trọng số 1. Giá trị không dương loại khóa khỏi định tuyến theo trọng số; tối đa 1.000.000.",
+    "excludedModels": "Mô hình bị loại trừ (mỗi dòng một mục)",
+    "headers": "Tiêu đề yêu cầu",
+    "headersHelp": "Mỗi dòng một tiêu đề, theo định dạng Tên: giá trị.",
+    "prefix": "Tiền tố mô hình",
+    "proxyUrl": "URL proxy"
+  },
+  "dialog": {
+    "cancel": "Hủy",
+    "confirm": "Xóa",
+    "deleteDescription": "Hành động này không thể hoàn tác, cấu hình đã chọn sẽ bị xóa vĩnh viễn.",
+    "deleteRefreshAction": "Làm mới danh sách kênh",
+    "deleteRefreshRequired": "Làm mới danh sách kênh để xác nhận trạng thái mới nhất trước khi tiếp tục xóa.",
+    "deleteResultStatus": {
+      "failed": "Thất bại",
+      "success": "Đã xóa",
+      "uncertain": "Chưa xác định"
+    },
+    "deleteResultsTitle": "Kết quả xóa",
+    "deleteTitle": "Xóa kênh?",
+    "deleteTitlePlural": "Xóa các kênh này?"
+  },
+  "editor": {
+    "advanced": {
+      "autoBan": {
+        "help": "Cho phép New API vô hiệu hóa kênh khi đáp ứng các điều kiện lỗi đã cấu hình.",
+        "label": "Tự động vô hiệu hóa kênh"
+      },
+      "autoSync": {
+        "help": "Cần bật kiểm tra cập nhật. Khi phát hiện thay đổi, New API tự động cập nhật danh sách mô hình của kênh này.",
+        "label": "Tự động đồng bộ mô hình thượng nguồn"
+      },
+      "check": {
+        "help": "New API kiểm tra định kỳ trên máy chủ. Chức năng này hoạt động riêng với tính năng đồng bộ mô hình của tiện ích.",
+        "label": "Kiểm tra cập nhật mô hình thượng nguồn"
+      },
+      "detectedModels": "Mô hình có thể thêm",
+      "groups": {
+        "detection": "Phát hiện mô hình thượng nguồn",
+        "management": "Quản lý kênh",
+        "network": "Cài đặt mạng"
+      },
+      "ignored": {
+        "help": "Nhập tên chính xác của mô hình cần loại khỏi quá trình phát hiện và đồng bộ.",
+        "label": "Mô hình thượng nguồn bị bỏ qua"
+      },
+      "invalidExisting": "Không thể phân tích cấu hình đã lưu một cách an toàn. Hãy sửa trong trang quản trị trước khi chỉnh sửa trường này.",
+      "lastCheck": "Lần kiểm tra gần nhất",
+      "mapping": {
+        "add": "Thêm ánh xạ",
+        "help": "Ánh xạ tên mô hình trong yêu cầu sang tên gửi đến thượng nguồn. Tên mô hình yêu cầu ở mỗi hàng phải duy nhất.",
+        "invalid": "Điền cả hai tên trong mỗi hàng và xóa các mô hình yêu cầu trùng lặp.",
+        "label": "Ánh xạ tên mô hình",
+        "remove": "Xóa ánh xạ {{index}}",
+        "source": "Mô hình yêu cầu {{index}}",
+        "sourcePlaceholder": "Mô hình yêu cầu",
+        "target": "Mô hình thượng nguồn {{index}}",
+        "targetPlaceholder": "Mô hình thượng nguồn"
+      },
+      "neverChecked": "Chưa kiểm tra",
+      "noModels": "Không có",
+      "proxy": {
+        "help": "Proxy được máy chủ New API sử dụng để truy cập kênh này. Hỗ trợ HTTP, HTTPS, SOCKS5 và SOCKS5H. Để trống để xóa proxy của kênh.",
+        "invalid": "Nhập URL proxy HTTP, HTTPS, SOCKS5 hoặc SOCKS5H hợp lệ.",
+        "label": "Địa chỉ proxy"
+      },
+      "remark": {
+        "help": "Ghi lại mục đích hoặc hướng dẫn sử dụng kênh (tối đa 255 ký tự).",
+        "label": "Ghi chú"
+      },
+      "removedModels": "Mô hình được phát hiện đã bị xóa",
+      "tag": "Nhãn kênh",
+      "testModel": {
+        "help": "Chọn mô hình hoặc nhập tên. Để trống để dùng mô hình kiểm tra mặc định của New API.",
+        "label": "Mô hình kiểm tra"
+      },
+      "unsupportedDetection": "Trình chỉnh sửa này không hỗ trợ phát hiện thượng nguồn cho loại kênh này. Kênh tùy chỉnh nâng cao cần cấu hình tuyến danh sách mô hình trong trang quản trị."
+    },
+    "doneHub": {
+      "allowExtraBody": {
+        "help": "Chuyển tiếp trường bổ sung trong yêu cầu của máy khách, như tham số extra_body, tới nhà cung cấp.",
+        "label": "Chuyển tiếp trường bổ sung"
+      },
+      "compatibleResponse": {
+        "help": "Khi bật, DoneHub chuyển yêu cầu Responses thành Chat Completions. Khi tắt, ưu tiên Responses gốc nhưng vẫn có thể dùng chế độ tương thích nếu không được hỗ trợ.",
+        "label": "Tương thích Responses API"
+      },
+      "customParameter": {
+        "help": "Nhập đối tượng JSON. Mặc định chỉ bổ sung trường còn thiếu. overwrite: true ghi đè trường; per_model: true cấu hình theo mô hình; pre_add: true áp dụng khi nhận yêu cầu. Để trống để xóa.",
+        "invalid": "Nhập đối tượng JSON hợp lệ.",
+        "label": "Tham số yêu cầu bổ sung",
+        "placeholder": "{\n  \"overwrite\": true,\n  \"temperature\": 0.7\n}"
+      },
+      "disabledStream": {
+        "help": "Yêu cầu streaming cho các mô hình này sẽ bỏ qua kênh, không chuyển thành yêu cầu không streaming. Chọn mô hình hoặc nhập tên. Xóa danh sách để khôi phục định tuyến bình thường.",
+        "label": "Mô hình không dùng streaming"
+      },
+      "modelHeaders": {
+        "help": "Thêm header cố định với giá trị văn bản. Kênh tự xử lý header xác thực. Để trống hoặc xóa mọi dòng để xóa cấu hình.",
+        "invalid": "Nhập đối tượng JSON có khóa duy nhất, không rỗng và giá trị văn bản.",
+        "label": "Header yêu cầu tùy chỉnh",
+        "placeholder": "{\"X-Project\": \"example\"}"
+      },
+      "modelMapping": {
+        "addModels": "Thêm tên ánh xạ vào danh sách mô hình",
+        "help": "Khóa là tên mô hình được yêu cầu, giá trị là tên mô hình phía nhà cung cấp. Thêm các khóa vào danh sách mô hình của kênh. Thêm + trước giá trị để tính phí theo mô hình được yêu cầu.",
+        "invalid": "Nhập đối tượng JSON có khóa duy nhất, không rỗng và giá trị văn bản.",
+        "label": "Ánh xạ mô hình",
+        "placeholder": "{\"alias\": \"upstream-model\"}"
+      },
+      "proxy": {
+        "help": "Máy chủ DoneHub dùng proxy này để kết nối nhà cung cấp. Hỗ trợ HTTP và SOCKS5; %s tạo mã phiên từ khóa kênh. Để trống để bỏ proxy riêng của kênh.",
+        "invalid": "Nhập URL proxy HTTP hoặc SOCKS5 hợp lệ.",
+        "label": "URL proxy",
+        "placeholder": "socks5://127.0.0.1:1080"
+      },
+      "responsesPath": {
+        "help": "Chỉ dành cho yêu cầu Responses gốc trên kênh tùy chỉnh. Để trống để dùng /v1/responses hoặc nhập disable để chặn yêu cầu này. Không dùng trong chế độ tương thích.",
+        "label": "Đường dẫn yêu cầu Responses",
+        "placeholder": "/v1/responses"
+      },
+      "testModel": {
+        "help": "Chọn mô hình chat trong kênh hoặc nhập tên. DoneHub không thể đo tốc độ kênh khi để trống. Tối đa 50 ký tự.",
+        "invalid": "Tên mô hình không được quá 50 ký tự.",
+        "label": "Mô hình kiểm tra",
+        "placeholder": "gpt-4o-mini"
+      }
+    },
+    "fields": {
+      "autoSyncModelPattern": {
+        "help": "Chỉ đồng bộ các mô hình khớp với mẫu này. Thêm tiền tố (?i) để không phân biệt chữ hoa chữ thường; để trống để đồng bộ tất cả mô hình.",
+        "invalid": "Nhập mẫu lọc mô hình hợp lệ.",
+        "label": "Mẫu lọc mô hình",
+        "placeholder": "Ví dụ: (?i)^model-example"
+      },
+      "autoSyncSupportedModels": {
+        "help": "AxonHub cập nhật các kênh đang bật từ API của nhà cung cấp theo tần suất được cấu hình trong phần cài đặt hệ thống AxonHub.",
+        "label": "Tự động đồng bộ các mô hình được hỗ trợ"
+      },
+      "channelStatusReason": {
+        "label": "Lý do vô hiệu hóa"
+      },
+      "concurrency": {
+        "help": "Số yêu cầu đồng thời tối đa được phép cho tài khoản này.",
+        "label": "Số yêu cầu đồng thời"
+      },
+      "defaultTestModel": {
+        "help": "Dùng để kiểm thử kết nối của kênh này. Chọn một mô hình được hỗ trợ.",
+        "label": "Mô hình kiểm thử mặc định",
+        "placeholder": "Chọn một mô hình đã cấu hình"
+      },
+      "extraModelPrefix": {
+        "help": "Cấu hình tiền tố mô hình bổ sung để cho phép truy cập kênh này bằng tên mô hình có tiền tố. Ví dụ: với tiền tố 'deepseek', cả 'deepseek/deepseek-chat' và 'deepseek-chat' đều có thể truy cập kênh này.",
+        "label": "Tiền tố mô hình bổ sung",
+        "placeholder": "Ví dụ: deepseek"
+      },
+      "gptLoadBaseUrl": {
+        "help": "The upstream address this channel forwards requests to. Leave it empty on a known provider to let the gateway use the provider's own endpoint."
+      },
+      "gptLoadKey": {
+        "help": "A key this group can use. The gateway keeps a per-group credential pool: add rows here to import a key and remove rows to drop it."
+      },
+      "gptLoadPriceMultiplier": {
+        "help": "Scales the channel's reported cost for balance and rate accounting (for example 1.5).",
+        "label": "Price multiplier"
+      },
+      "gptLoadProvider": {
+        "help": "The gpt-load driver id for this channel (for example openai, anthropic, gemini). Use the load button to read the drivers your gateway actually ships."
+      },
+      "gptLoadWeight": {
+        "help": "A manual load-balancing weight. Higher values draw proportionally more traffic; leave empty to use the gateway default.",
+        "label": "Weight"
+      },
+      "magpieAnthropic": {
+        "help": "Dùng URL gốc của API Anthropic (ANTHROPIC_BASE_URL); không thêm /v1/messages.",
+        "label": "URL Anthropic"
+      },
+      "magpieBalancePath": {
+        "help": "Số tiền trong phản hồi, ví dụ data.balance hoặc data.total / 500000. Để trống để dùng mặc định của Magpie. Chỉ đọc với nhà cung cấp đặt sẵn.",
+        "label": "Biểu thức số dư"
+      },
+      "magpieBalanceURL": {
+        "help": "API số dư tùy chọn cho Magpie. Hỗ trợ {key} trong URL. Giữ nguyên token số dư đã lưu. Chỉ đọc với nhà cung cấp đặt sẵn.",
+        "label": "URL số dư"
+      },
+      "magpieCatalog": {
+        "help": "ID nhà cung cấp models.dev phân cách bằng dấu phẩy cho tên và mức suy luận; ưu tiên kết quả khớp đầu tiên. Chỉ đọc với nhà cung cấp đặt sẵn.",
+        "label": "Danh mục mô hình"
+      },
+      "magpieChat": {
+        "help": "URL gốc của Chat Completions phải chứa /v1; không thêm /chat/completions.",
+        "label": "URL Chat Completions",
+        "required": "Nhập địa chỉ cho loại API đã chọn."
+      },
+      "magpieGemini": {
+        "help": "URL gốc của Gemini phải chứa /v1beta; không thêm tên mô hình hoặc đường dẫn generateContent.",
+        "label": "URL Gemini"
+      },
+      "magpieHeaders": {
+        "help": "Thêm tên và giá trị header theo từng dòng hoặc chuyển sang JSON. Các header này được gửi đến nhà cung cấp thượng nguồn.",
+        "label": "Header tùy chỉnh"
+      },
+      "magpieMaxConcurrency": {
+        "help": "0–1000 yêu cầu cho mỗi khóa hoặc tài khoản. Để trống: mặc định của Magpie; 0: không giới hạn.",
+        "label": "Yêu cầu đồng thời mỗi khóa"
+      },
+      "magpieMaxRPM": {
+        "help": "0–10000 yêu cầu mỗi phút cho mỗi khóa hoặc tài khoản. Để trống hoặc 0: không giới hạn.",
+        "label": "Yêu cầu mỗi phút mỗi khóa"
+      },
+      "magpieModels": {
+        "help": "Chọn mô hình đã tìm thấy hoặc nhập ID mô hình rồi nhấn Enter. Lấy mô hình sau khi điền thông tin kết nối. Để trống lựa chọn để dùng danh mục mô hình tự động của MAGPIE."
+      },
+      "magpieModelsURL": {
+        "help": "URL đầy đủ tùy chọn, truy vấn bằng khóa và tiêu đề hiện tại. Để trống để dùng URL giao thức. Chỉ đọc với nhà cung cấp đặt sẵn.",
+        "label": "URL danh sách mô hình"
+      },
+      "magpiePriceRate": {
+        "help": "Hệ số so với giá niêm yết, ví dụ 0.8. Từ 0–1000, tối đa 3 chữ số thập phân. Để trống hoặc 0 để dùng giá niêm yết.",
+        "label": "Hệ số giá"
+      },
+      "magpieProxy": {
+        "help": "Để trống để dùng proxy toàn cục; dùng direct để kết nối trực tiếp.",
+        "label": "Proxy"
+      },
+      "magpieResponses": {
+        "help": "URL gốc của Responses thường kết thúc bằng /v1; không thêm /responses.",
+        "label": "URL Responses"
+      },
+      "manualModels": {
+        "label": "Model thủ công"
+      },
+      "notes": {
+        "help": "Ghi chú tùy chọn về tài khoản thượng nguồn này.",
+        "label": "Ghi chú",
+        "placeholder": "Thêm ghi chú về tài khoản này..."
+      },
+      "omnirouteBaseUrl": {
+        "help": "Để trống để giữ endpoint mặc định của provider đã chọn; khi điền, gateway sẽ gửi yêu cầu của kênh này tới địa chỉ đó. Không thể xóa địa chỉ đã lưu, hãy nhập địa chỉ mới thay vì xóa."
+      },
+      "omnirouteDefaultModel": {
+        "help": "Dùng khi yêu cầu không nêu model. Kênh không lưu danh sách model: model đến từ danh mục provider và alias của gateway.",
+        "label": "Model mặc định"
+      },
+      "omnirouteLastError": {
+        "label": "Lỗi gần nhất"
+      },
+      "omniroutePrefix": {
+        "help": "Điền vào sẽ tạo một provider node trên gateway và định địa chỉ kênh theo dạng prefix/model; để trống thì dùng provider tích hợp. Có prefix thì bắt buộc phải có địa chỉ.",
+        "label": "Tiền tố model riêng"
+      },
+      "omniroutePriority": {
+        "help": "Gateway chọn kênh theo thứ tự tăng dần, nên số nhỏ hơn được dùng trước. Kết nối mới tạo sẽ được gateway xếp cuối.",
+        "label": "Độ ưu tiên"
+      },
+      "omnirouteProvider": {
+        "help": "Mã provider tích hợp của gateway. Một relay riêng có thể giữ openai và ghi đè địa chỉ. Dùng nút tải để đọc các provider mà gateway này thực sự phục vụ."
+      },
+      "omnirouteTestStatus": {
+        "label": "Kiểm tra kết nối"
+      },
+      "orderingWeight": {
+        "help": "Giá trị cao hơn được ưu tiên khi AxonHub chọn kênh; các giá trị bằng nhau có cùng mức ưu tiên.",
+        "label": "Trọng số thứ tự"
+      },
+      "priority": {
+        "help": "Tài khoản có giá trị thấp hơn sẽ được lên lịch trước.",
+        "label": "Ưu tiên"
+      },
+      "remark": {
+        "help": "Thêm ghi chú về kênh này để tham khảo.",
+        "label": "Ghi chú",
+        "placeholder": "Nhập ghi chú cho kênh này..."
+      },
+      "sub2apiModels": {
+        "help": "Không bắt buộc. Để trống để cho phép mọi mô hình mà thượng nguồn hỗ trợ; chỉ thêm mô hình khi cần giới hạn.",
+        "label": "Danh sách mô hình cho phép"
+      },
+      "sub2apiPlatform": {
+        "help": "Chọn giao thức thượng nguồn. Không thể thay đổi nền tảng sau khi tạo tài khoản.",
+        "label": "Nền tảng"
+      },
+      "supportedModels": {
+        "help": "Nhập hoặc dán tên mô hình. Các mô hình thêm tại đây được giữ lại khi tự động đồng bộ."
+      },
+      "tags": {
+        "help": "Thêm thẻ để phân loại và lọc kênh. Nhấn Enter để thêm thẻ. Bạn cũng có thể dán nhiều thẻ được phân tách bằng dấu phẩy hoặc dòng mới.",
+        "label": "Thẻ",
+        "placeholder": "Thêm thẻ..."
+      }
+    },
+    "json": {
+      "addRow": "Thêm dòng",
+      "editJson": "Sửa JSON",
+      "editRows": "Sửa từng dòng",
+      "format": "Định dạng JSON",
+      "key": "Khóa",
+      "keyAt": "{{field}}: khóa dòng {{index}}",
+      "removeAt": "{{field}}: xóa dòng {{index}}",
+      "value": "Giá trị",
+      "valueAt": "{{field}}: giá trị dòng {{index}}"
+    },
+    "multiKeyMode": {
+      "label": "Cách chọn khóa",
+      "polling": "Luân phiên",
+      "random": "Ngẫu nhiên"
+    },
+    "options": {
+      "channelType": {
+        "anthropic": "Anthropic",
+        "anthropicAws": "Anthropic trên AWS",
+        "anthropicGcp": "Anthropic trên Google Cloud",
+        "claudeCode": "Claude Code",
+        "deepseek": "DeepSeek",
+        "deepseekAnthropic": "DeepSeek Anthropic",
+        "gemini": "Gemini",
+        "geminiOpenai": "Gemini OpenAI",
+        "geminiVertex": "Gemini Vertex",
+        "githubCopilot": "GitHub Copilot",
+        "nanogpt": "NanoGPT",
+        "ollama": "Ollama",
+        "openai": "OpenAI",
+        "openaiResponses": "OpenAI Responses",
+        "openrouter": "OpenRouter",
+        "siliconflow": "SiliconFlow",
+        "unsupported": "Loại kênh không được hỗ trợ",
+        "volcengine": "Volcengine",
+        "xai": "xAI"
+      },
+      "omnirouteTestStatus": {
+        "failed": "Thất bại",
+        "ok": "Bình thường",
+        "pending": "Chưa kiểm tra",
+        "unsupported": "Không kiểm tra được"
+      },
+      "status": {
+        "archived": "Đã lưu trữ",
+        "disabled": "Đã tắt",
+        "enabled": "Đã bật",
+        "unknown": "Không xác định"
+      },
+      "unknown": "Tùy chọn không xác định"
+    },
+    "secret": {
+      "actions": {
+        "cancelLoad": "Hủy tải",
+        "clear": "Xóa khóa API đã lưu",
+        "restore": "Giữ khóa API đã lưu",
+        "retry": "Thử lại",
+        "view": "Xem khóa API đã lưu"
+      },
+      "createHint": "Nhập khóa API của nhà cung cấp cho kênh mới.",
+      "keepExistingHint": "Để trống trường này để giữ nguyên khóa API đã lưu.",
+      "loadableHint": "Khóa API đã lưu không hiển thị tại đây. Để trống để giữ nguyên khóa.",
+      "loadError": "Không thể tải khóa API đã lưu.",
+      "loading": "Đang tải khóa API đã lưu...",
+      "partialReplacementHint": "Theo mặc định, các khóa được thay thế sẽ chuyển xuống cuối danh sách. Để giữ nguyên thứ tự, hãy hiển thị một khóa đã lưu trước (cần xác minh).",
+      "placeholder": "Nhập khóa API của nhà cung cấp",
+      "replacementBlocked": {
+        "multipleCredentials": "Kênh này có nhiều khóa API. Hãy quản lý các khóa của kênh trong AxonHub."
+      },
+      "replacementDisabled": "Không thể thay thế khóa API này tại đây.",
+      "replacePlaceholder": "Nhập khóa API mới để thay thế khóa đã lưu",
+      "state": {
+        "available": "Có khóa API đã lưu.",
+        "masked": "Đã lưu khóa API được che.",
+        "permissionHidden": "Khóa API đã lưu bị ẩn do quyền truy cập.",
+        "unavailable": "Không thể hiển thị khóa API đã lưu tại đây."
+      }
+    },
+    "sections": {
+      "advanced": "Nâng cao",
+      "basic": "Thông tin cơ bản",
+      "basicConnection": "Cơ bản và kết nối",
+      "compatibility": "Tương thích API",
+      "connection": "Kết nối và thông tin xác thực",
+      "metadata": "Siêu dữ liệu",
+      "models": "Mô hình",
+      "requests": "Mạng và yêu cầu",
+      "routing": "Định tuyến",
+      "sync": "Đồng bộ mô hình"
+    },
+    "validation": {
+      "inconsistentValue": "Giá trị này xung đột với một trường khác.",
+      "invalidValue": "Hãy nhập một giá trị hợp lệ.",
+      "outOfRange": "Hãy nhập giá trị trong phạm vi cho phép.",
+      "required": "Trường này là bắt buộc.",
+      "unsupportedOption": "Tùy chọn này không được hỗ trợ."
+    }
+  },
+  "filter": {
+    "statusLabel": "Lọc theo trạng thái"
+  },
+  "filters": {
+    "actionOptions": {
+      "exclude": "Loại trừ các mô hình khớp",
+      "include": "Bao gồm các mô hình khớp"
+    },
+    "actions": {
+      "cancel": "Hủy",
+      "moveDown": "Di chuyển quy tắc xuống",
+      "moveUp": "Di chuyển quy tắc lên",
+      "save": "Lưu quy tắc"
+    },
+    "addPatternRule": "Thêm quy tắc mẫu",
+    "addProbeRule": "Thêm quy tắc thăm dò",
+    "empty": {
+      "description": "Thêm quy tắc bao gồm hoặc loại trừ (regex tùy chọn) để kiểm soát các mô hình được đồng bộ với kênh này.",
+      "title": "Chưa thêm quy tắc nào"
+    },
+    "hints": {
+      "probesAllPass": "Mô hình sẽ chỉ khớp với quy tắc này khi tất cả các thăm dò đã chọn đều vượt qua. Thăm dò sẽ sử dụng URL cơ sở của kênh và key của kênh đã được phân tích.",
+      "regex": "Mẫu regex sử dụng cú pháp JavaScript để đối khớp linh hoạt hơn.",
+      "substring": "Mẫu thông thường sẽ thực hiện đối khớp chuỗi con phân biệt chữ hoa chữ thường.",
+      "unsupportedChannelType": "Loại kênh này không thể ánh xạ tới API xác thực được hỗ trợ, hiện chưa thể sử dụng quy tắc thăm dò."
+    },
+    "jsonEditor": {
+      "hint": "JSON phải là một mảng các đối tượng quy tắc mẫu hoặc quy tắc thăm dò. Quy tắc mẫu sử dụng kind: 'pattern', name và pattern; quy tắc thăm dò sử dụng kind: 'probe', name và probeIds. Các trường thông tin xác thực như apiKey, key, baseUrl sẽ bị bỏ qua.",
+      "label": "Trình chỉnh sửa JSON nâng cao",
+      "placeholder": "Dán hoặc chỉnh sửa mảng đối tượng quy tắc lọc tại đây để nhanh chóng sử dụng lại cùng một bộ cấu hình trên nhiều kênh."
+    },
+    "labels": {
+      "action": "Thực hiện hành động",
+      "delete": "Xóa quy tắc",
+      "description": "Mô tả",
+      "enabled": "Bật",
+      "name": "Tên quy tắc",
+      "pattern": "Mẫu đối khớp",
+      "probes": "Thăm dò xác thực",
+      "regex": "Sử dụng regex",
+      "ruleType": "Loại quy tắc"
+    },
+    "loading": "Đang tải các quy tắc lọc của kênh…",
+    "messages": {
+      "jsonArrayRequired": "JSON phải là một mảng các quy tắc lọc.",
+      "jsonInvalid": "JSON quy tắc lọc không hợp lệ: {{error}}",
+      "jsonItemNotObject": "Quy tắc lọc tại chỉ mục {{index}} phải là một đối tượng.",
+      "loadFailed": "Tải quy tắc lọc thất bại: {{error}}",
+      "saved": "Đã lưu các quy tắc lọc",
+      "saveFailed": "Lưu quy tắc lọc thất bại: {{error}}",
+      "validationName": "Vui lòng điền tên cho từng quy tắc.",
+      "validationPattern": "Mẫu đối khớp không được để trống.",
+      "validationProbeIds": "Vui lòng chọn ít nhất một thăm dò xác thực cho mỗi quy tắc thăm dò.",
+      "validationRegex": "Biểu thức chính quy không hợp lệ: {{error}}"
+    },
+    "modelSyncExclusionHelp": "Sau khi lưu, đồng bộ tự động và Chạy tất cả sẽ bỏ qua kênh này. Chạy mục đã chọn và Đồng bộ hóa kênh này trong hàng vẫn có thể đồng bộ một lần. Hủy sẽ bỏ các thay đổi trong hộp thoại này.",
+    "placeholders": {
+      "description": "Ghi chú tùy chọn",
+      "name": "Ví dụ: Chỉ cho phép GPT-4",
+      "pattern": "Chuỗi chính xác hoặc biểu thức chính quy",
+      "probes": "Chọn thăm dò",
+      "probeSearch": "Tìm kiếm thăm dò"
+    },
+    "probes": {
+      "empty": "Không tìm thấy thăm dò",
+      "options": {
+        "structured-output": "Đầu ra có cấu trúc",
+        "text-generation": "Tạo văn bản",
+        "tool-calling": "Gọi công cụ",
+        "web-search": "Tìm kiếm trên web"
+      }
+    },
+    "ruleTypeOptions": {
+      "pattern": "Mẫu",
+      "probe": "Thăm dò"
+    },
+    "subtitle": "Cấu hình quy tắc bao gồm/loại trừ cho {{channel}}",
+    "title": "Quy tắc lọc kênh",
+    "viewMode": {
+      "json": "Chỉnh sửa JSON",
+      "label": "Chế độ chỉnh sửa",
+      "visual": "Chỉnh sửa trực quan"
+    }
+  },
+  "gatewayGuidance": {
+    "empty": {
+      "description": "AI gateway tự triển khai này chưa có kênh. Sau khi nhập key tài khoản hoặc API key, gateway có thể được client bên ngoài sử dụng như một AI API.",
+      "importFromAccountKey": "Nhập kênh từ key tài khoản",
+      "importFromApiKeyLibrary": "Nhập kênh từ Kho API Credentials",
+      "title": "Chưa có kênh AI gateway tự triển khai"
+    },
+    "headerDescription": "Quản lý kênh trên cổng AI tự triển khai để kết nối nhiều nguồn API qua một điểm truy cập.",
+    "openChannelConsole": "Mở trang quản lý kênh gateway",
+    "unconfiguredValueDescription": "Sau khi cấu hình, bạn có thể nhập các key tài khoản và API key rời rạc làm kênh gateway, rồi xem và quản lý trực tiếp trong My API Box."
+  },
+  "magpieKeys": {
+    "anyProtocol": "Mọi giao thức",
+    "enabled": "Bật",
+    "help": "Thêm khóa hoặc dán nhiều khóa ngăn cách bằng xuống dòng, dấu phẩy hoặc dấu cách. Chỉ khóa chính đã lưu mới có thể hiển thị đầy đủ. Để thay khóa bổ sung, hãy thêm khóa mới rồi xóa khóa cũ. Thay đổi có hiệu lực khi lưu.",
+    "invalid": "Kiểm tra khóa mới, giao thức và trọng số (0–1000). Giữ ít nhất một khóa được bật.",
+    "name": "Tên khóa",
+    "order": "Theo thứ tự (chuyển dự phòng)",
+    "pace": "Hạn mức còn lại mỗi giờ",
+    "primary": "Chính",
+    "primaryKey": "Khóa API chính",
+    "protocol": "Giao thức",
+    "rotate": "Luân phiên",
+    "routing": "Định tuyến khóa",
+    "smart": "Thông minh (tự động chuyển dự phòng)",
+    "title": "Nhóm khóa",
+    "usage": "Ưu tiên ít sử dụng nhất",
+    "weighted": "Theo trọng số",
+    "weightHelp": "0 hoặc 1 dùng trọng số mặc định; 2–1000 điều chỉnh tỷ lệ khi định tuyến theo trọng số."
+  },
+  "magpieProtocols": {
+    "checkOther": "Địa chỉ của một loại đã cấu hình khác không hợp lệ. Hãy chuyển sang loại đó để kiểm tra.",
+    "configured": "Đã cấu hình",
+    "help": "Chọn loại để sửa địa chỉ tương ứng. Để dùng nhiều giao thức, hãy lần lượt cấu hình từng loại; mỗi loại giữ địa chỉ riêng.",
+    "type": "Loại API",
+    "unmanaged": "Quản lý trong Magpie"
+  },
+  "migration": {
+    "actions": {
+      "cancel": "Hủy",
+      "close": "Đóng",
+      "refreshChannels": "Làm mới danh sách kênh",
+      "refreshPreview": "Làm mới bản xem trước",
+      "running": "Đang di chuyển…",
+      "start": "Bắt đầu di chuyển"
+    },
+    "betaBadge": "Beta",
+    "blockedReasons": {
+      "sourceKeyExportRestricted": "Xuất khóa từ trang nguồn yêu cầu xác minh trên web mà Admin API Key đã cấu hình không thể thực hiện. Hãy lấy khóa từ trang quản trị nguồn rồi di chuyển kênh này theo cách thủ công.",
+      "sourceKeyMissing": "Thiếu khóa kênh nguồn, hiện không thể di chuyển.",
+      "sourceKeyResolutionFailed": "Không thể lấy khóa kênh nguồn. Nếu bạn vừa hoàn tất xác thực, hãy làm mới bản xem trước và thử lại.",
+      "sourceKeysChanged": "Số lượng Key hoặc trạng thái bật ở nguồn đã thay đổi. Hãy làm mới bản xem trước trước khi di chuyển lại.",
+      "sourceMultiKeyUnsupported": "Nguồn này chưa hỗ trợ xuất đầy đủ danh sách nhiều Key. Hãy kiểm tra trang nguồn và di chuyển thủ công để tránh bỏ sót.",
+      "sourceTypeUnsupported": "Loại kênh nguồn này không được hỗ trợ để di chuyển. Hãy chọn kênh được hỗ trợ hoặc di chuyển thủ công.",
+      "targetDraftPreparationFailed": "Không thể chuẩn bị bản nháp kênh đích. Hãy kiểm tra thông tin kênh, làm mới bản xem trước rồi thử lại."
+    },
+    "confirm": {
+      "confirm": "Xác nhận di chuyển",
+      "description": "Kênh đích sẽ được tạo cho các mục sẵn sàng ({{ready}} trong {{total}}). Kênh có nhiều Key có thể đã được chia thành nhiều mục.",
+      "title": "Bắt đầu di chuyển kênh?",
+      "warningTitle": "Quá trình này sẽ chỉ tạo các kênh mới và sẽ không đồng bộ, loại bỏ trùng lặp hoặc hoàn tác."
+    },
+    "description": "Sao chép {{selectedCount}} kênh từ trang web lưu trữ hiện tại sang một trang web lưu trữ đã cấu hình khác.",
+    "generalWarnings": {
+      "compactSummary": "Chỉ tạo, không kiểm tra trùng lặp. Di chuột để xem chi tiết.",
+      "createOnly": "Lần di chuyển này chỉ tạo các kênh mới trên trang web mục tiêu và sẽ không sửa đổi các kênh nguồn.",
+      "noDedupeOrSync": "Lần di chuyển này sẽ không kiểm tra trùng lặp, ghi đè hoặc đồng bộ các kênh đã tồn tại trên trang web mục tiêu.",
+      "noRollback": "Lần di chuyển này không cung cấp tính năng tự động hoàn tác, vui lòng xử lý thủ công các công việc tiếp theo dựa trên danh sách kết quả.",
+      "targetRoutingDefaults": "Các thiết lập mức độ ưu tiên, trọng số và số tác vụ đồng thời sẽ không được di chuyển. Trang đích dùng giá trị mặc định riêng; bạn có thể điều chỉnh trong trình chỉnh sửa của trang đích sau khi di chuyển.",
+      "title": "Hạn chế di chuyển"
+    },
+    "itemWarnings": {
+      "dropsAdvancedSettings": "Cài đặt kênh nâng cao không thể di chuyển trực tiếp đến trang web mục tiêu và sẽ bị bỏ qua.",
+      "dropsModelMapping": "Cấu hình ánh xạ mô hình sẽ không được di chuyển cùng.",
+      "dropsMultiKeyState": "Trạng thái bật của Key được giữ lại; chính sách luân phiên, lý do tắt và lịch sử hoạt động không được sao chép.",
+      "dropsStatusCodeMapping": "Cấu hình ánh xạ mã trạng thái sẽ không được di chuyển cùng.",
+      "splitsKeys": "Đích không thể giữ các Key và trạng thái của chúng trong cùng một kênh. Mỗi Key sẽ được tạo thành một kênh riêng; cách phân phối lưu lượng có thể thay đổi.",
+      "sub2apiDefaultGroup": "Các nhóm nguồn không được sao chép. Đích sẽ sử dụng nhóm mặc định của nền tảng nếu có. Hãy kiểm tra việc gán nhóm sau khi di chuyển.",
+      "targetForcesDefaultGroup": "Trang web mục tiêu sẽ chuyển sang sử dụng nhóm mặc định.",
+      "targetNormalizesBaseUrl": "Trang web mục tiêu sẽ chuẩn hóa URL cơ sở.",
+      "targetRemapsChannelType": "Trang web mục tiêu sẽ ánh xạ loại kênh sang loại tương thích gần nhất.",
+      "targetSimplifiesStatus": "Trang web mục tiêu sẽ đơn giản hóa trạng thái kênh nguồn thành bật hoặc tắt."
+    },
+    "keyCount": "Số lượng Key",
+    "preview": {
+      "badges": {
+        "limitsLabel": "hạn chế",
+        "warningsLabel": "cảnh báo"
+      },
+      "compare": {
+        "fieldLabel": "Trường"
+      },
+      "loadFailed": "Tải bản xem trước di chuyển thất bại: {{error}}",
+      "loading": "Đang tạo bản xem trước di chuyển…",
+      "status": {
+        "blocked": "Đã chặn",
+        "ready": "Sẵn sàng"
+      },
+      "summary": "Xem trước: {{ready}} sẵn sàng, {{blocked}} bị chặn, tổng cộng {{total}} mục di chuyển."
+    },
+    "results": {
+      "refreshRequired": "Một số kết quả tạo chưa xác định. Hãy làm mới danh sách kênh trước khi đóng.",
+      "status": {
+        "failed": "Thất bại",
+        "skipped": "Đã bỏ qua",
+        "success": "Đã tạo",
+        "uncertain": "Chưa xác định"
+      },
+      "summary": "Kết quả di chuyển: {{created}}, {{failed}}, {{skipped}}, {{uncertain}}, {{total}}.",
+      "summaryMetrics": {
+        "created_one": "Thành công {{count}}",
+        "created_other": "Thành công {{count}}",
+        "failed_one": "Thất bại {{count}}",
+        "failed_other": "Thất bại {{count}}",
+        "skipped_one": "Bỏ qua {{count}}",
+        "skipped_other": "Bỏ qua {{count}}",
+        "total_one": "tổng cộng {{count}}",
+        "total_other": "tổng cộng {{count}}",
+        "uncertain_one": "Chưa xác định {{count}}",
+        "uncertain_other": "Chưa xác định {{count}}"
+      },
+      "title": "Kết quả di chuyển"
+    },
+    "sub2apiDefaultGroup": "Nhóm mặc định của nền tảng (nếu có)",
+    "target": {
+      "destinationLabel": "Trang web mục tiêu",
+      "label": "Mục tiêu di chuyển",
+      "placeholder": "Chọn trang web lưu trữ mục tiêu",
+      "sourceLabel": "Trang web nguồn",
+      "unselected": "Chưa chọn"
+    },
+    "title": "Di chuyển kênh"
+  },
+  "statusLabels": {
+    "autoDisabled": "Tự động tắt",
+    "enabled": "Bật",
+    "manualPause": "Tạm dừng thủ công",
+    "unknown": "Không rõ"
+  },
+  "table": {
+    "columns": {
+      "actions": "Hành động",
+      "group": "Nhóm khả dụng",
+      "id": "ID",
+      "models": "Số lượng mô hình",
+      "name": "Kênh",
+      "priority": "Mức độ ưu tiên",
+      "status": "Trạng thái",
+      "type": "Loại",
+      "weight": "Trọng số"
+    },
+    "emptyFiltered": "Không tìm thấy kênh phù hợp. Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc.",
+    "emptyNoChannels": "Chưa có kênh nào. Bạn có thể thêm kênh hoặc làm mới danh sách.",
+    "loading": "Đang tải kênh…",
+    "noEntries": "Không có dữ liệu",
+    "paginationNext": "Trang tiếp",
+    "paginationPrev": "Trang trước",
+    "paginationSummary": "{{start}} - {{end}} / Tổng {{total}}",
+    "rowActions": {
+      "delete": "Xóa",
+      "edit": "Chỉnh sửa",
+      "filters": "Chỉnh sửa quy tắc lọc kênh",
+      "migrate": "Di chuyển đến trang web khác",
+      "openSync": "Mở giao diện đồng bộ mô hình",
+      "sync": "Đồng bộ danh sách mô hình ngay",
+      "syncing": "Đang đồng bộ…",
+      "view": "Xem kênh"
+    },
+    "rowsPerPage": "Số hàng mỗi trang",
+    "selectAll": "Chọn tất cả",
+    "selectRow": "Chọn hàng"
+  },
+  "title": "Quản lý kênh",
+  "toasts": {
+    "channelSaved": "Đã lưu kênh",
+    "channelsDeleted_other": "Đã xóa {{count}} kênh",
+    "channelUpdated": "Đã cập nhật kênh",
+    "syncCompleted": "Đồng bộ mô hình hoàn tất ({{success}}/{{total}})",
+    "syncCompletedRefreshFailed": "Đã đồng bộ mô hình ({{success}}/{{total}}), nhưng không thể làm mới danh sách kênh. Hãy làm mới rồi thử lại.",
+    "syncFailed": "Đồng bộ mô hình thất bại: {{error}}",
+    "syncFailedFallback": "Không thể đồng bộ các kênh",
+    "syncIncomplete": "Đồng bộ mô hình chưa hoàn tất ({{success}}/{{total}} thành công). Mở trang đồng bộ mô hình để xem kết quả và thử lại các kênh bị lỗi."
+  },
+  "toolbar": {
+    "addChannel": "Thêm kênh",
+    "cancelRefresh": "Dừng làm mới",
+    "clearSearch": "Xóa tìm kiếm",
+    "columns": "Hiển thị cột",
+    "deleteSelected": "Xóa mục đã chọn",
+    "enterMigrationMode": "Di chuyển kênh",
+    "exitMigrationMode": "Thoát chế độ di chuyển",
+    "migrateFiltered": "Di chuyển tất cả các kênh được lọc hiện tại",
+    "migrateSelected": "Di chuyển mục đã chọn",
+    "refresh": "Làm mới",
+    "searchPlaceholder": "Tìm kiếm theo tên, URL hoặc nhóm",
+    "status": "Trạng thái",
+    "syncSelected": "Đồng bộ mô hình kênh đã chọn",
+    "toggleColumns": "Chuyển đổi cột"
+  }
+}

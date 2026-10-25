@@ -1,0 +1,111 @@
+import { useState } from "react"
+
+import type { ModelCapabilitySelectionValue } from "~/features/ModelList/filtering/modelCapabilityFilters"
+import {
+  MODEL_LIST_SORT_MODES,
+  type ModelListSortMode,
+} from "~/features/ModelList/filtering/sortModes"
+import {
+  MODEL_LIST_BILLING_MODES,
+  type ModelListBillingMode,
+} from "~/features/ModelList/pricing/billingModes"
+import {
+  DEFAULT_MODEL_PRICE_COMPARISON_PRESET_ID,
+  DEFAULT_MODEL_PRICE_COMPARISON_WEIGHTS,
+  type ModelPriceComparisonPresetId,
+  type ModelPriceComparisonWeights,
+} from "~/features/ModelList/pricing/priceComparison"
+import {
+  createDefaultPricingScenario,
+  type ModelPricingScenarioSettings,
+} from "~/features/ModelList/pricing/pricingScenario"
+import {
+  DEFAULT_MODEL_LIST_VERIFICATION_RESULT_FILTERS,
+  type ModelListVerificationResultFilter,
+} from "~/features/ModelList/verification/verificationResultFilters"
+import {
+  MODEL_VENDOR_FILTER_VALUES,
+  type ModelVendorFilterValue,
+} from "~/services/models/modelVendor"
+
+/**
+ * Manages view state for the model list page.
+ * Keeps selected account, provider, group, search term, and display toggles.
+ * @returns State values and setters for model list controls.
+ */
+export function useModelListState() {
+  const [pricingScenarioSettings, setPricingScenarioSettings] =
+    useState<ModelPricingScenarioSettings>(createDefaultPricingScenario)
+  // 状态管理
+  const [selectedSourceValue, setSelectedSourceValue] = useState("") // 当前选中的数据源
+  const [searchTerm, setSearchTerm] = useState("") // 搜索关键词
+  const [selectedProvider, setSelectedProvider] =
+    useState<ModelVendorFilterValue>(MODEL_VENDOR_FILTER_VALUES.All) // 当前选中的模型提供商
+  const [selectedModelCapabilities, setSelectedModelCapabilities] = useState<
+    ModelCapabilitySelectionValue[]
+  >([])
+  const [sortMode, setSortMode] = useState<ModelListSortMode>(
+    MODEL_LIST_SORT_MODES.DEFAULT,
+  )
+  const [priceComparisonPresetId, setPriceComparisonPresetId] =
+    useState<ModelPriceComparisonPresetId>(
+      DEFAULT_MODEL_PRICE_COMPARISON_PRESET_ID,
+    )
+  const [priceComparisonWeights, setPriceComparisonWeights] =
+    useState<ModelPriceComparisonWeights>(() => ({
+      ...DEFAULT_MODEL_PRICE_COMPARISON_WEIGHTS,
+    }))
+  const [selectedBillingMode, setSelectedBillingMode] =
+    useState<ModelListBillingMode>(MODEL_LIST_BILLING_MODES.ALL)
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]) // 当前选中的候选分组；空数组表示所有分组
+  const [
+    allAccountsExcludedGroupsByAccountId,
+    setAllAccountsExcludedGroupsByAccountId,
+  ] = useState<Record<string, string[]>>({}) // "所有账号"模式下按账号排除的分组；空对象表示所有账号都保留全部可用分组
+  const [allAccountsFilterAccountIds, setAllAccountsFilterAccountIds] =
+    useState<string[]>([]) // 在"所有账号"模式下用于临时筛选一个或多个账号
+  const [selectedVerificationResults, setSelectedVerificationResults] =
+    useState<ModelListVerificationResultFilter[]>(
+      DEFAULT_MODEL_LIST_VERIFICATION_RESULT_FILTERS,
+    )
+
+  // 显示选项
+  const [showUnavailableModels, setShowUnavailableModels] = useState(false)
+  const [showRealPrice, setShowRealPrice] = useState(false) // 是否显示真实价格
+  const [showEndpointTypes, setShowEndpointTypes] = useState(true) // 是否显示端点类型
+
+  return {
+    showUnavailableModels,
+    setShowUnavailableModels,
+    pricingScenarioSettings,
+    setPricingScenarioSettings,
+    selectedSourceValue,
+    setSelectedSourceValue,
+    searchTerm,
+    setSearchTerm,
+    selectedProvider,
+    setSelectedProvider,
+    selectedModelCapabilities,
+    setSelectedModelCapabilities,
+    sortMode,
+    setSortMode,
+    priceComparisonPresetId,
+    setPriceComparisonPresetId,
+    priceComparisonWeights,
+    setPriceComparisonWeights,
+    selectedBillingMode,
+    setSelectedBillingMode,
+    selectedGroups,
+    setSelectedGroups,
+    allAccountsExcludedGroupsByAccountId,
+    setAllAccountsExcludedGroupsByAccountId,
+    allAccountsFilterAccountIds,
+    setAllAccountsFilterAccountIds,
+    selectedVerificationResults,
+    setSelectedVerificationResults,
+    showRealPrice,
+    setShowRealPrice,
+    showEndpointTypes,
+    setShowEndpointTypes,
+  }
+}

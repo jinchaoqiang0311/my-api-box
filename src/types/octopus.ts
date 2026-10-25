@@ -1,0 +1,235 @@
+/**
+ * Octopus 渠道类型枚举
+ * 对应 Octopus 后端的 OutboundType
+ */
+export enum OctopusOutboundType {
+  /** OpenAI 聊天补全 API */
+  OpenAIChat = 0,
+  /** OpenAI 响应模式 */
+  OpenAIResponse = 1,
+  /** Anthropic (Claude) API */
+  Anthropic = 2,
+  /** Google Gemini API */
+  Gemini = 3,
+  /** 火山引擎 API */
+  Volcengine = 4,
+  /** OpenAI 嵌入 API */
+  OpenAIEmbedding = 5,
+}
+
+/**
+ * Octopus 自动分组类型枚举
+ */
+export enum OctopusAutoGroupType {
+  /** 不自动分组 */
+  None = 0,
+  /** 模糊匹配 */
+  Fuzzy = 1,
+  /** 精确匹配 */
+  Exact = 2,
+  /** 正则匹配 */
+  Regex = 3,
+}
+
+/**
+ * Octopus 渠道密钥
+ */
+export interface OctopusChannelKey {
+  originalName?: string
+  name?: string
+  /** 密钥唯一标识符 */
+  id?: number
+  /** 所属渠道 ID */
+  channel_id?: number
+  /** 是否启用 */
+  enabled: boolean
+  /** API 密钥值 */
+  channel_key: string
+  /** 备注信息 */
+  remark?: string
+  /** 最后响应状态码 */
+  status_code?: number
+  /** 最后使用时间戳 (Unix 秒) */
+  last_use_time_stamp?: number
+  /** 累计消费金额 */
+  total_cost?: number
+}
+
+/**
+ * Octopus Base URL 对象
+ */
+export interface OctopusBaseUrl {
+  /** API 基础地址 */
+  url: string
+  /** 延迟 (毫秒)，用于负载均衡选择 */
+  delay?: number
+}
+
+/**
+ * Octopus 自定义请求头
+ */
+export interface OctopusCustomHeader {
+  /** 请求头名称 */
+  header_key: string
+  /** 请求头值 */
+  header_value: string
+}
+
+/**
+ * Octopus 渠道统计信息
+ */
+export interface OctopusChannelStats {
+  /** 渠道 ID */
+  channel_id: number
+  /** 输入 token 总数 */
+  input_token: number
+  /** 输出 token 总数 */
+  output_token: number
+  /** 输入消费金额 */
+  input_cost: number
+  /** 输出消费金额 */
+  output_cost: number
+  /** 累计等待时间 */
+  wait_time: number
+  /** 成功请求数 */
+  request_success: number
+  /** 失败请求数 */
+  request_failed: number
+}
+
+/**
+ * Octopus 渠道完整对象
+ */
+export const OCTOPUS_CHANNEL_DETAIL_AVAILABILITY = {
+  Summary: "summary",
+  Full: "full",
+} as const
+
+export interface OctopusChannel {
+  keyManagement?: "single" | "legacy" | "named"
+  /** Migration cannot reproduce all native grants, dialect, or protocol paths. */
+  hasUnrepresentedProtocolSettings?: boolean
+  /** Stats-only inventories omit protocol, endpoints, and credential details. */
+  detailAvailability?: (typeof OCTOPUS_CHANNEL_DETAIL_AVAILABILITY)[keyof typeof OCTOPUS_CHANNEL_DETAIL_AVAILABILITY]
+  /** 渠道唯一标识符 */
+  id: number
+  /** 渠道名称 */
+  name: string
+  /** 渠道类型 */
+  type: OctopusOutboundType
+  /** 是否启用 */
+  enabled: boolean
+  /** 基础 URL 列表 */
+  base_urls: OctopusBaseUrl[]
+  /** API 密钥列表 */
+  keys: OctopusChannelKey[]
+  /** 支持的模型列表 (逗号分隔) */
+  model: string
+  /** 自定义模型列表 (逗号分隔) */
+  custom_model?: string
+  /** 是否使用代理 */
+  proxy: boolean
+  /** 是否自动同步模型 */
+  auto_sync: boolean
+  /** 自动分组类型 */
+  auto_group: OctopusAutoGroupType
+  /** 自定义请求头列表 */
+  custom_header?: OctopusCustomHeader[]
+  /** 参数覆盖配置 */
+  param_override?: string
+  /** 渠道专用代理地址 */
+  channel_proxy?: string
+  /** 模型匹配正则表达式 */
+  match_regex?: string
+  /** 渠道统计信息 */
+  stats?: OctopusChannelStats
+}
+
+/**
+ * 密钥添加请求
+ */
+export interface OctopusKeyAddRequest {
+  /** 是否启用 */
+  enabled?: boolean
+  /** API 密钥值 */
+  channel_key: string
+  /** 备注信息 */
+  remark?: string
+}
+
+/**
+ * 密钥更新请求
+ */
+export interface OctopusKeyUpdateRequest {
+  /** 要更新的密钥 ID */
+  id: number
+  /** 是否启用 */
+  enabled?: boolean
+  /** 新的 API 密钥值 */
+  channel_key?: string
+  /** 新的备注信息 */
+  remark?: string
+}
+
+/** Product-owned create command shared by current and legacy codecs. */
+export interface OctopusCreateChannelInput {
+  keys?: OctopusChannelKey[]
+  name: string
+  type: OctopusOutboundType
+  enabled?: boolean
+  baseUrl: string
+  key: string
+  model?: string
+  customModel?: string
+  proxy?: boolean
+  autoSync?: boolean
+  customHeaders?: OctopusCustomHeader[]
+  paramOverride?: string
+  channelProxy?: string
+  matchRegex?: string
+}
+
+/** Product-owned update command shared by current and legacy codecs. */
+export interface OctopusUpdateChannelInput {
+  keys?: OctopusChannelKey[]
+  id: number
+  /** Explicit credential removal, preserving retained keys and their metadata. */
+  removeKeys?: string[]
+  name?: string
+  type?: OctopusOutboundType
+  enabled?: boolean
+  baseUrl?: string
+  key?: string
+  model?: string
+  customModel?: string
+  proxy?: boolean
+  autoSync?: boolean
+  customHeaders?: OctopusCustomHeader[]
+  paramOverride?: string
+  channelProxy?: string
+  matchRegex?: string
+  /** Existing normalized state used by codecs to preserve provider semantics. */
+  source?: OctopusChannel
+}
+
+/** Product-owned model-probe command shared by current and legacy codecs. */
+export interface OctopusFetchModelInput {
+  type: OctopusOutboundType
+  baseUrl: string
+  key: string
+  proxy?: boolean
+  /** Existing normalized state lets each codec derive its native probe shape. */
+  source?: OctopusChannel
+}
+
+/**
+ * Octopus API 通用响应格式
+ */
+export interface OctopusApiResponse<T = unknown> {
+  /** 是否成功 */
+  success: boolean
+  /** 响应数据（无数据时为 null） */
+  data?: T | null
+  /** 错误消息 */
+  message?: string
+}

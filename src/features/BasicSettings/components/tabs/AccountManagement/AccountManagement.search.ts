@@ -1,0 +1,156 @@
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import {
+  buildControlDefinition,
+  buildSectionDefinition,
+  DEFAULT_BREADCRUMBS,
+} from "~/features/OptionsSearch/registryHelpers"
+import type { OptionsSearchItemDefinition } from "~/features/OptionsSearch/types"
+import { SortingCriteriaType } from "~/types/sorting"
+
+import { getSortingCriteriaTargetId } from "./SortingPrioritySettings/search"
+
+export const accountManagementSearchSections: OptionsSearchItemDefinition[] = [
+  buildSectionDefinition(
+    "section:account-page",
+    "accountManagement",
+    "account-management",
+    "settings:accountManagement.title",
+    220,
+    { keywordKeys: ["common:actions.reset"] },
+  ),
+  buildSectionDefinition(
+    "section:auto-provision-key",
+    "accountManagement",
+    SETTINGS_ANCHORS.AUTO_PROVISION_KEY,
+    "settings:autoProvisionKeyOnAccountAdd.title",
+    221,
+    { keywordKeys: ["common:actions.reset"] },
+  ),
+  buildSectionDefinition(
+    "section:auto-fill-current-site",
+    "accountManagement",
+    "auto-fill-current-site-url-on-account-add",
+    "settings:autoFillCurrentSiteUrlOnAccountAdd.title",
+    222,
+    { keywordKeys: ["common:actions.reset"] },
+  ),
+  buildSectionDefinition(
+    "section:duplicate-account-warning",
+    "accountManagement",
+    "duplicate-account-warning-on-add",
+    "settings:duplicateAccountWarningOnAdd.title",
+    223,
+    { keywordKeys: ["common:actions.reset"] },
+  ),
+  buildSectionDefinition(
+    "section:sorting-priority",
+    "accountManagement",
+    SETTINGS_ANCHORS.SORTING_PRIORITY,
+    "settings:sorting.title",
+    224,
+    { keywordKeys: ["common:actions.reset"] },
+  ),
+]
+
+export const accountManagementSearchControls: OptionsSearchItemDefinition[] = [
+  buildControlDefinition(
+    "control:auto-provision-key",
+    "accountManagement",
+    SETTINGS_ANCHORS.AUTO_PROVISION_KEY_ENABLED,
+    "settings:autoProvisionKeyOnAccountAdd.toggleLabel",
+    520,
+    {
+      descriptionKey: "settings:autoProvisionKeyOnAccountAdd.toggleDesc",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.accountManagement",
+        "settings:autoProvisionKeyOnAccountAdd.title",
+      ],
+      keywords: ["key", "token", "api key"],
+    },
+  ),
+  buildControlDefinition(
+    "control:auto-provision-key-mode",
+    "accountManagement",
+    SETTINGS_ANCHORS.AUTO_PROVISION_KEY_MODE,
+    "settings:autoProvisionKeyOnAccountAdd.modeLabel",
+    520.5,
+    {
+      descriptionKey: "settings:autoProvisionKeyOnAccountAdd.modeDescription",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.accountManagement",
+        "settings:autoProvisionKeyOnAccountAdd.title",
+      ],
+      keywordKeys: [
+        "settings:autoProvisionKeyOnAccountAdd.modes.allGroups",
+        "settings:autoProvisionKeyOnAccountAdd.modes.default",
+      ],
+      keywords: ["key", "token", "groups", "api key"],
+    },
+  ),
+  buildControlDefinition(
+    "control:auto-fill-current-site-url",
+    "accountManagement",
+    "auto-fill-current-site-url-toggle",
+    "settings:autoFillCurrentSiteUrlOnAccountAdd.toggleLabel",
+    521,
+    {
+      descriptionKey: "settings:autoFillCurrentSiteUrlOnAccountAdd.toggleDesc",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.accountManagement",
+        "settings:autoFillCurrentSiteUrlOnAccountAdd.title",
+      ],
+      keywords: ["prefill", "url", "current site"],
+    },
+  ),
+  buildControlDefinition(
+    "control:duplicate-account-warning",
+    "accountManagement",
+    "duplicate-account-warning-toggle",
+    "settings:duplicateAccountWarningOnAdd.toggleLabel",
+    522,
+    {
+      descriptionKey: "settings:duplicateAccountWarningOnAdd.toggleDesc",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.accountManagement",
+        "settings:duplicateAccountWarningOnAdd.title",
+      ],
+      keywords: ["duplicate", "warn", "account"],
+    },
+  ),
+  buildControlDefinition(
+    "control:sorting-current-site",
+    "accountManagement",
+    getSortingCriteriaTargetId(SortingCriteriaType.CURRENT_SITE),
+    "settings:sorting.currentSitePriority",
+    526,
+    {
+      descriptionKey: "settings:sorting.currentSiteDesc",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.accountManagement",
+        "settings:sorting.title",
+      ],
+      keywords: ["sorting", "priority", "current site", "site match"],
+    },
+  ),
+  buildControlDefinition(
+    "control:sorting-matched-open-tabs",
+    "accountManagement",
+    getSortingCriteriaTargetId(SortingCriteriaType.MATCHED_OPEN_TABS),
+    "settings:sorting.matchedOpenTabs",
+    532,
+    {
+      descriptionKey: "settings:sorting.matchedOpenTabsDesc",
+      breadcrumbsKeys: [
+        ...DEFAULT_BREADCRUMBS,
+        "settings:tabs.accountManagement",
+        "settings:sorting.title",
+      ],
+      keywords: ["sorting", "priority", "matched open tabs", "open tabs"],
+    },
+  ),
+]

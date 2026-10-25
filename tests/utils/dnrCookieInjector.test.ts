@@ -1,0 +1,334 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import {
+  applyTempWindowCookieRule,
+  applyTempWindowDownloadBlockRule,
+  buildTempWindowCookieRule,
+  buildTempWindowDownloadBlockRule,
+  removeTempWindowCookieRule,
+  removeTempWindowDownloadBlockRule,
+  TEMP_WINDOW_DNR_RULE_ID_BASE,
+  TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE,
+} from "~/utils/browser/dnrCookieInjector"
+
+const { loggerWarnMock } = vi.hoisted(() => ({
+  loggerWarnMock: vi.fn(),
+}))
+
+vi.mock("~/utils/core/logger", () => ({
+  createLogger: () => ({
+    warn: loggerWarnMock,
+  }),
+}))
+
+describe("dnrCookieInjector", () => {
+  let originalChrome: unknown
+
+  beforeEach(() => {
+    originalChrome = (globalThis as any).chrome
+    vi.restoreAllMocks()
+    loggerWarnMock.mockReset()
+  })
+
+  afterEach(() => {
+    ;(globalThis as any).chrome = originalChrome
+    vi.useRealTimers()
+  })
+
+  it("bounds a stalled download-rule install and removes a rule that arrives after timeout", async () => {
+    vi.useFakeTimers()
+    let installed!: () => void
+    const updateSessionRules = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            installed = resolve
+          }),
+      )
+      .mockResolvedValue(undefined)
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+    const settled = vi.fn()
+    const result = applyTempWindowDownloadBlockRule(6).then(settled)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(settled).toHaveBeenCalledWith(null)
+    await result
+    installed()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(updateSessionRules).toHaveBeenLastCalledWith({
+      removeRuleIds: [TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE + 6],
+    })
+  })
+
+  it("bounds download-rule cleanup so another temporary-page task can run", async () => {
+    vi.useFakeTimers()
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: {
+        updateSessionRules: vi.fn(() => new Promise(() => {})),
+      },
+    }
+    const settled = vi.fn()
+    const result = removeTempWindowDownloadBlockRule(2_000_042).then(settled)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(settled).toHaveBeenCalledOnce()
+    await result
+  })
+
+  it("buildTempWindowCookieRule should create a per-tab rule with stable id and cookie header override", () => {
+    const rule = buildTempWindowCookieRule({
+      tabId: 123,
+      url: "https://example.com/api/user/self",
+      cookieHeader: "cf_clearance=abc; __cf_bm=def",
+    })
+
+    expect(rule.id).toBe(TEMP_WINDOW_DNR_RULE_ID_BASE + 123)
+    expect(rule.action.type).toBe("modifyHeaders")
+
+    const cookieOp = rule.action.requestHeaders?.find(
+      (h) => h.header.toLowerCase() === "cookie",
+    )
+    expect(cookieOp).toBeTruthy()
+    expect(cookieOp?.operation).toBe("set")
+    if (cookieOp && cookieOp.operation === "set" && "value" in cookieOp) {
+      expect(cookieOp.value).toContain("cf_clearance")
+    }
+
+    expect(rule.condition.tabIds).toEqual([123])
+    expect(rule.condition.regexFilter).toBe("^https://example\\.com/")
+  })
+
+  it("buildTempWindowCookieRule falls back to the base rule id when tab id is unavailable", () => {
+    const rule = buildTempWindowCookieRule({
+      tabId: Number.NaN as number,
+      url: "https://example.com/api/user/self",
+      cookieHeader: "cf_clearance=abc",
+    })
+
+    expect(rule.id).toBe(TEMP_WINDOW_DNR_RULE_ID_BASE)
+    expect(rule.condition.regexFilter).toBe("^https://example\\.com/")
+  })
+
+  it("buildTempWindowCookieRule preserves URL ports in the DNR filter", () => {
+    const rule = buildTempWindowCookieRule({
+      tabId: 9,
+      url: "http://127.0.0.1:3100/api/user/self",
+      cookieHeader: "session=user-a",
+    })
+
+    expect(rule.condition.regexFilter).toBe("^http://127\\.0\\.0\\.1:3100/")
+  })
+
+  it("applyTempWindowCookieRule should call updateSessionRules with remove+add", async () => {
+    const updateSessionRules = vi.fn().mockResolvedValue(undefined)
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    const ruleId = await applyTempWindowCookieRule({
+      tabId: 5,
+      url: "https://example.com/api",
+      cookieHeader: "cf_clearance=abc",
+    })
+
+    expect(ruleId).toBe(TEMP_WINDOW_DNR_RULE_ID_BASE + 5)
+    expect(updateSessionRules).toHaveBeenCalledTimes(1)
+
+    const call = updateSessionRules.mock.calls[0]?.[0]
+    expect(call.removeRuleIds).toEqual([TEMP_WINDOW_DNR_RULE_ID_BASE + 5])
+    expect(call.addRules?.[0]?.id).toBe(TEMP_WINDOW_DNR_RULE_ID_BASE + 5)
+  })
+
+  it("buildTempWindowDownloadBlockRule creates a per-tab executable download block rule", () => {
+    const rule = buildTempWindowDownloadBlockRule(321)
+
+    expect(rule.id).toBe(TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE + 321)
+    expect(rule.action.type).toBe("block")
+    expect(rule.condition.tabIds).toEqual([321])
+    expect(rule.condition.regexFilter).toContain("[eE][xX][eE]")
+    expect(rule.condition.regexFilter).toContain("[mM][sS][iI]")
+    expect(rule.condition.resourceTypes).toContain("main_frame")
+    expect(rule.condition.resourceTypes).toContain("other")
+  })
+
+  it("buildTempWindowDownloadBlockRule only matches executable suffixes in the URL path", () => {
+    const rule = buildTempWindowDownloadBlockRule(321)
+    const regex = new RegExp(rule.condition.regexFilter)
+
+    expect(
+      regex.test("https://downloads.example.invalid/releases/tool.exe?via=ui"),
+    ).toBe(true)
+    expect(
+      regex.test(
+        "https://downloads.example.invalid/api/check?callback=tool.exe",
+      ),
+    ).toBe(false)
+  })
+
+  it("applyTempWindowDownloadBlockRule should call updateSessionRules with a per-tab block rule", async () => {
+    const updateSessionRules = vi.fn().mockResolvedValue(undefined)
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    const ruleId = await applyTempWindowDownloadBlockRule(6)
+
+    expect(ruleId).toBe(TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE + 6)
+    expect(updateSessionRules).toHaveBeenCalledTimes(1)
+
+    const call = updateSessionRules.mock.calls[0]?.[0]
+    expect(call.removeRuleIds).toEqual([
+      TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE + 6,
+    ])
+    expect(call.addRules?.[0]?.id).toBe(
+      TEMP_WINDOW_DOWNLOAD_BLOCK_RULE_ID_BASE + 6,
+    )
+    expect(call.addRules?.[0]?.action.type).toBe("block")
+  })
+
+  it("applyTempWindowDownloadBlockRule returns null when the DNR API is unavailable", async () => {
+    ;(globalThis as any).chrome = {}
+
+    await expect(applyTempWindowDownloadBlockRule(6)).resolves.toBeNull()
+  })
+
+  it("applyTempWindowDownloadBlockRule logs and returns null when session rule installation fails", async () => {
+    const updateSessionRules = vi
+      .fn()
+      .mockRejectedValue(new Error("download block unavailable"))
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    await expect(applyTempWindowDownloadBlockRule(6)).resolves.toBeNull()
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      "Failed to install temp-window download block rule",
+      expect.any(Error),
+    )
+  })
+
+  it("removeTempWindowDownloadBlockRule should call updateSessionRules with remove only", async () => {
+    const updateSessionRules = vi.fn().mockResolvedValue(undefined)
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    await removeTempWindowDownloadBlockRule(2_000_042)
+
+    expect(updateSessionRules).toHaveBeenCalledTimes(1)
+    expect(updateSessionRules).toHaveBeenCalledWith({
+      removeRuleIds: [2_000_042],
+    })
+  })
+
+  it("removeTempWindowDownloadBlockRule logs cleanup failures without throwing", async () => {
+    const updateSessionRules = vi
+      .fn()
+      .mockRejectedValue(new Error("download cleanup failed"))
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    await expect(
+      removeTempWindowDownloadBlockRule(2_000_042),
+    ).resolves.toBeUndefined()
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      "Failed to remove temp-window download block rule",
+      expect.any(Error),
+    )
+  })
+
+  it("applyTempWindowCookieRule returns null when no cookie header is available", async () => {
+    const updateSessionRules = vi.fn().mockResolvedValue(undefined)
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    const ruleId = await applyTempWindowCookieRule({
+      tabId: 5,
+      url: "https://example.com/api",
+      cookieHeader: "",
+    })
+
+    expect(ruleId).toBeNull()
+    expect(updateSessionRules).not.toHaveBeenCalled()
+  })
+
+  it("applyTempWindowCookieRule returns null when the DNR API is unavailable", async () => {
+    ;(globalThis as any).chrome = {}
+
+    const ruleId = await applyTempWindowCookieRule({
+      tabId: 5,
+      url: "https://example.com/api",
+      cookieHeader: "cf_clearance=abc",
+    })
+
+    expect(ruleId).toBeNull()
+  })
+
+  it("applyTempWindowCookieRule logs and returns null when session rule installation fails", async () => {
+    const updateSessionRules = vi
+      .fn()
+      .mockRejectedValue(new Error("DNR backend unavailable"))
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    const ruleId = await applyTempWindowCookieRule({
+      tabId: 5,
+      url: "https://example.com/api",
+      cookieHeader: "cf_clearance=abc",
+    })
+
+    expect(ruleId).toBeNull()
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      "Failed to install temp-window cookie rule",
+      expect.any(Error),
+    )
+  })
+
+  it("removeTempWindowCookieRule should call updateSessionRules with remove only", async () => {
+    const updateSessionRules = vi.fn().mockResolvedValue(undefined)
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    await removeTempWindowCookieRule(42)
+
+    expect(updateSessionRules).toHaveBeenCalledTimes(1)
+    expect(updateSessionRules).toHaveBeenCalledWith({ removeRuleIds: [42] })
+  })
+
+  it("removeTempWindowCookieRule no-ops when the DNR API is unavailable", async () => {
+    ;(globalThis as any).chrome = {}
+
+    await expect(removeTempWindowCookieRule(42)).resolves.toBeUndefined()
+    expect(loggerWarnMock).not.toHaveBeenCalled()
+  })
+
+  it("removeTempWindowCookieRule logs cleanup failures without throwing", async () => {
+    const updateSessionRules = vi
+      .fn()
+      .mockRejectedValue(new Error("cleanup failed"))
+
+    ;(globalThis as any).chrome = {
+      declarativeNetRequest: { updateSessionRules },
+    }
+
+    await expect(removeTempWindowCookieRule(42)).resolves.toBeUndefined()
+
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      "Failed to remove temp-window cookie rule",
+      expect.any(Error),
+    )
+  })
+})

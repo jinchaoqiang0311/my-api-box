@@ -1,0 +1,40 @@
+import { SITE_TYPES } from "~/constants/siteType"
+import { AuthTypeEnum, SiteHealthStatus } from "~/types"
+import { buildCompleteTodayStatsAvailability } from "~~/tests/test-utils/accountTodayStats"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+
+export const createAccount = (overrides: Partial<any>) => ({
+  id: "account",
+  name: "Account",
+  username: "user",
+  balance: { USD: 0, CNY: 0 },
+  todayConsumption: { USD: 0, CNY: 0 },
+  todayIncome: { USD: 0, CNY: 0 },
+  todayTokens: { upload: 0, download: 0 },
+  todayStatsAvailability: buildCompleteTodayStatsAvailability(),
+  health: { status: SiteHealthStatus.Healthy },
+  siteType: SITE_TYPES.NEW_API,
+  baseUrl: "https://example.com/v1",
+  token: "token",
+  userId: "1",
+  authType: AuthTypeEnum.AccessToken,
+  checkIn: buildCheckInConfig(),
+  ...overrides,
+})
+
+export const createToken = (overrides: Partial<any>) => ({
+  id: 1,
+  user_id: 1,
+  key: "sk-test",
+  status: 1,
+  name: "Token",
+  created_time: 0,
+  accessed_time: 0,
+  expired_time: -1,
+  remain_quota: 0,
+  unlimited_quota: false,
+  used_quota: 0,
+  accountId: "acc",
+  accountName: "Account",
+  ...overrides,
+})

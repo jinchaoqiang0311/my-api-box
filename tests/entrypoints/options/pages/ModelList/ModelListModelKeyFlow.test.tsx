@@ -1,0 +1,240 @@
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import ModelList from "~/entrypoints/options/pages/ModelList"
+import { KEY_MANAGEMENT_TEST_IDS } from "~/features/KeyManagement/testIds"
+import { createAccountSource } from "~/features/ModelList/catalog/modelManagementSources"
+import { MODEL_LIST_BILLING_MODES } from "~/features/ModelList/pricing/billingModes"
+import { AuthTypeEnum } from "~/types"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+import { render, screen, waitFor } from "~~/tests/test-utils/render"
+
+const {
+  fetchAccountTokensMock,
+  createApiTokenMock,
+  fetchAccountAvailableModelsMock,
+  fetchUserGroupsMock,
+  toastSuccessMock,
+  toastErrorMock,
+} = vi.hoisted(() => ({
+  fetchAccountTokensMock: vi.fn(),
+  createApiTokenMock: vi.fn(),
+  fetchAccountAvailableModelsMock: vi.fn(),
+  fetchUserGroupsMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+}))
+
+vi.mock("~/lib/notify", () => ({
+  default: {
+    success: toastSuccessMock,
+    error: toastErrorMock,
+    warning: vi.fn(),
+  },
+}))
+
+vi.mock(
+  "~/services/apiService/newApiFamily/default/keyManagement",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("~/services/apiService/newApiFamily/default/keyManagement")
+      >()
+
+    return {
+      ...actual,
+      createApiToken: (...args: any[]) => createApiTokenMock(...args),
+      fetchAccountAvailableModels: (...args: any[]) =>
+        fetchAccountAvailableModelsMock(...args),
+      fetchAccountTokens: (...args: any[]) => fetchAccountTokensMock(...args),
+      fetchCurrentUserGroup: vi.fn(async () => "vip"),
+      fetchUserGroups: (...args: any[]) => fetchUserGroupsMock(...args),
+      defaultKeyManagementImplementation: {
+        fetchAccountTokens: (...args: any[]) => fetchAccountTokensMock(...args),
+        createApiToken: (...args: any[]) => createApiTokenMock(...args),
+        updateApiToken: vi.fn(async () => true),
+        resolveApiTokenKey: vi.fn(),
+        deleteApiToken: vi.fn(),
+        fetchAccountAvailableModels: (...args: any[]) =>
+          fetchAccountAvailableModelsMock(...args),
+        fetchUserGroups: (...args: any[]) => fetchUserGroupsMock(...args),
+      },
+    }
+  },
+)
+
+const ACCOUNT = {
+  id: "acc-1",
+  name: "Example",
+  username: "tester",
+  siteType: "new-api",
+  baseUrl: "https://example.com",
+  token: "token",
+  userId: "1",
+  authType: AuthTypeEnum.AccessToken,
+  checkIn: buildCheckInConfig(),
+} as any
+
+const TOKEN = {
+  id: 1,
+  user_id: 1,
+  key: "sk-test",
+  status: 1,
+  name: "default",
+  created_time: 0,
+  accessed_time: 0,
+  expired_time: -1,
+  remain_quota: 0,
+  unlimited_quota: true,
+  used_quota: 0,
+  allow_ips: "",
+  model_limits_enabled: false,
+  model_limits: "",
+  group: "",
+} as any
+
+const ACCOUNT_SOURCE = createAccountSource(ACCOUNT)
+
+vi.mock("~/features/ModelList/catalog/useModelListData", () => ({
+  useModelListData: vi.fn(() => ({
+    accounts: [ACCOUNT],
+    profiles: [],
+    selectedSource: ACCOUNT_SOURCE,
+    currentAccount: ACCOUNT,
+    sourceCapabilities: ACCOUNT_SOURCE.capabilities,
+
+    selectedSourceValue: ACCOUNT_SOURCE.value,
+    setSelectedSourceValue: vi.fn(),
+    searchTerm: "",
+    setSearchTerm: vi.fn(),
+    selectedProvider: "filter:all",
+    setSelectedProvider: vi.fn(),
+    effectiveSelectedVendor: "filter:all",
+    shouldRepairSelectedVendor: false,
+    vendorCatalog: [],
+    selectedBillingMode: MODEL_LIST_BILLING_MODES.ALL,
+    setSelectedBillingMode: vi.fn(),
+    selectedGroups: [],
+    setSelectedGroups: vi.fn(),
+
+    // Display options
+    showRealPrice: false,
+    setShowRealPrice: vi.fn(),
+    showEndpointTypes: false,
+    setShowEndpointTypes: vi.fn(),
+
+    // Data state
+    pricingData: { data: [{ model_name: "gpt-4" }] },
+    pricingContexts: [],
+    isLoading: false,
+    dataFormatError: null,
+    loadErrorMessage: null,
+
+    filteredModels: [],
+    accountSummaryCountsByAccountId: new Map(),
+    baseFilteredModels: [],
+    availableGroups: [],
+
+    loadPricingData: vi.fn(),
+    allVendorsFilteredCount: 0,
+    accountQueryStates: [],
+    allAccountsFilterAccountIds: [],
+    setAllAccountsFilterAccountIds: vi.fn(),
+  })),
+}))
+
+vi.mock("~/features/ModelList/presentation/ModelDisplay", () => ({
+  ModelDisplay: ({ onOpenModelKeyDialog }: any) => (
+    <button
+      type="button"
+      onClick={() => onOpenModelKeyDialog(ACCOUNT, "gpt-4", ["vip"])}
+    >
+      Open key dialog
+    </button>
+  ),
+}))
+
+vi.mock("~/features/ModelList/catalog/AccountSelector", () => ({
+  AccountSelector: () => null,
+}))
+vi.mock("~/features/ModelList/catalog/AccountSummaryBar", () => ({
+  AccountSummaryBar: () => null,
+}))
+vi.mock("~/features/ModelList/filtering/ControlPanel", () => ({
+  ControlPanel: () => null,
+}))
+vi.mock("~/features/ModelList/presentation/Footer", () => ({
+  Footer: () => null,
+}))
+vi.mock("~/features/ModelList/presentation/StatusIndicator", () => ({
+  StatusIndicator: () => null,
+}))
+
+vi.mock("~/features/ModelList/catalog/ProviderTabs", async () => {
+  const { Tabs } = await import("~/components/ui")
+  return {
+    ProviderTabs: ({ children }: any) => (
+      <Tabs value="filter:all">{children}</Tabs>
+    ),
+  }
+})
+
+describe("Model List → ModelKeyDialog", () => {
+  beforeEach(() => {
+    fetchAccountTokensMock.mockReset()
+    createApiTokenMock.mockReset()
+    fetchAccountAvailableModelsMock.mockReset()
+    fetchUserGroupsMock.mockReset()
+    toastSuccessMock.mockReset()
+    toastErrorMock.mockReset()
+  })
+
+  it("opens dialog and creates a custom group key without model limits prefilled", async () => {
+    fetchAccountTokensMock.mockResolvedValue([])
+    fetchAccountAvailableModelsMock.mockResolvedValue(["gpt-4"])
+    fetchUserGroupsMock.mockResolvedValue({
+      vip: { desc: "vip", ratio: 1 },
+    })
+    createApiTokenMock.mockImplementationOnce(async (_request, values) => {
+      fetchAccountTokensMock.mockResolvedValue([{ ...TOKEN, ...values }])
+      return true
+    })
+
+    const user = userEvent.setup()
+
+    render(<ModelList />)
+
+    await user.click(
+      await screen.findByRole("button", { name: "Open key dialog" }),
+    )
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "modelList:keyDialog.createCustomKey",
+      }),
+    )
+
+    expect(
+      await screen.findByLabelText(/keyManagement:dialog.tokenName/),
+    ).toHaveValue("vip group (auto)")
+
+    const submit = screen.getByTestId(
+      KEY_MANAGEMENT_TEST_IDS.nativeEditorSubmitButton,
+    )
+    await waitFor(() => expect(submit).toBeEnabled())
+    await user.click(submit)
+
+    await waitFor(() => {
+      expect(createApiTokenMock).toHaveBeenCalledTimes(1)
+    })
+
+    expect(createApiTokenMock.mock.calls[0]?.[1]).toMatchObject({
+      name: "vip group (auto)",
+      model_limits_enabled: false,
+      model_limits: "",
+      group: "vip",
+    })
+    await waitFor(() => expect(submit).not.toBeInTheDocument())
+    expect(toastErrorMock).not.toHaveBeenCalled()
+  })
+})

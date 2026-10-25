@@ -1,0 +1,183 @@
+import type { AccountSiteType } from "~/constants/siteType"
+import { normalizeAccountLogin } from "~/services/accountLogin/configCodec"
+import { normalizeAccountSiteSupplementalAuth } from "~/services/accounts/accountSiteProfile/supplementalAuth"
+import { normalizeAccountSiteProfileUrlForStorage } from "~/services/accounts/accountSiteProfile/urls"
+import {
+  parseManualQuotaFromUsd,
+  resolveExchangeRate,
+} from "~/services/accounts/editing/accountFormValidation"
+import { normalizeAccountIdentity } from "~/services/accounts/identity/accountIdentity"
+import type { AccountDataCapability } from "~/services/apiAdapters/contracts/accountData"
+import type { AccountPersistenceIdentityInput } from "~/services/apiAdapters/contracts/accountPersistence"
+import { getSiteTypeCapabilities } from "~/services/apiAdapters/registry"
+import {
+  AuthTypeEnum,
+  type CheckInConfig,
+  type KimiOpenPlatformAuthConfig,
+  type SiteAccount,
+  type Sub2ApiAuthConfig,
+} from "~/types"
+import type { AccountLoginConfiguration } from "~/types/accountLogin"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+
+export const accountPersistenceLogger = createLogger("AccountOperations")
+
+export type TagIdsInput = string[] | undefined
+
+interface AccountPersistenceInput {
+  url: string
+  siteName: string
+  username: string
+  accessToken: string
+  userId: string
+  exchangeRate: string
+  notes: string
+  tagIds: TagIdsInput
+  /** Undefined preserves the current configuration; null explicitly clears it. */
+  loginChange?: AccountLoginConfiguration | null
+  checkInConfig: CheckInConfig
+  siteType: AccountSiteType
+  authType: AuthTypeEnum
+  cookieAuthSessionCookie: string
+  manualBalanceUsd?: string
+  excludeFromTotalBalance: boolean
+  excludeFromTodayIncome: boolean
+  sub2apiAuth?: Sub2ApiAuthConfig
+  kimiOpenPlatformAuth?: KimiOpenPlatformAuthConfig
+}
+
+export const requireAccountDataCapability = (
+  siteType: string,
+  accountData: AccountDataCapability | undefined,
+): AccountDataCapability => {
+  if (!accountData) {
+    throw new Error(`accountData is not implemented for ${siteType}`)
+  }
+
+  return accountData
+}
+
+/** Prepares provider-owned identity or uses the ordinary entered account identity. */
+export async function prepareAccountPersistenceIdentity(
+  params: AccountPersistenceIdentityInput & {
+    siteType: AccountSiteType
+  },
+) {
+  const persistence = getSiteTypeCapabilities(params.siteType).account
+    ?.persistence
+  return persistence
+    ? persistence.prepareIdentity(params)
+    : normalizeAccountIdentity(params.userId) ?? ""
+}
+
+/** Returns provider-controlled validation feedback when configured. */
+export function getCredentialValidationMessage(
+  siteType: AccountSiteType,
+  error: unknown,
+): string {
+  return (
+    getSiteTypeCapabilities(
+      siteType,
+    ).account?.persistence?.getValidationFailureMessage(error) ??
+    getErrorMessage(error)
+  )
+}
+
+/** Returns the provider's safe health diagnostic or the ordinary error message. */
+export function getAccountHealthFailureReason(
+  siteType: AccountSiteType,
+  error: unknown,
+): string {
+  return (
+    getSiteTypeCapabilities(
+      siteType,
+    ).account?.persistence?.getHealthFailureReason(error) ??
+    getErrorMessage(error)
+  )
+}
+
+/** Delegates diagnostic disclosure to the provider's persistence boundary. */
+export function getAccountOperationLogDetails(
+  siteType: AccountSiteType,
+  ordinaryDetails: unknown,
+  safeDetails: Record<string, unknown>,
+): unknown {
+  const persistence = getSiteTypeCapabilities(siteType).account?.persistence
+  return persistence
+    ? persistence.getOperationLogDetails(ordinaryDetails, safeDetails)
+    : ordinaryDetails
+}
+
+/** Normalizes tag ids from the account form into a trimmed, de-duplicated list. */
+function normalizeTagIdsInput(tagIds: TagIdsInput): string[] {
+  if (!tagIds || tagIds.length === 0) {
+    return []
+  }
+
+  return Array.from(
+    new Set(
+      tagIds
+        .map((id) => (typeof id === "string" ? id.trim() : String(id ?? "")))
+        .filter((id) => id.length > 0),
+    ),
+  )
+}
+
+/** Normalizes supplemental authentication data for the selected account site. */
+function normalizeSub2ApiAuthInput(
+  siteType: AccountSiteType,
+  sub2apiAuth: Sub2ApiAuthConfig | undefined,
+): Sub2ApiAuthConfig | undefined {
+  return normalizeAccountSiteSupplementalAuth({ siteType, sub2apiAuth })
+    .sub2apiAuth
+}
+
+/** Builds normalized account fields and request inputs shared by create and update. */
+export function buildAccountPersistenceContext(
+  input: AccountPersistenceInput & {
+    accountIdentity: SiteAccount["account_info"]["id"]
+    sessionCookieHeader: string
+  },
+) {
+  const manualQuota = parseManualQuotaFromUsd(input.manualBalanceUsd)
+
+  return {
+    sessionCookieHeader: input.sessionCookieHeader,
+    manualQuota,
+    requestBaseUrl: input.url.trim(),
+    requestAccountIdentity: normalizeAccountIdentity(input.userId) ?? "",
+    fields: {
+      ...(input.loginChange !== undefined
+        ? { login: normalizeAccountLogin(input.loginChange) }
+        : {}),
+      site_name: input.siteName.trim(),
+      site_url: normalizeAccountSiteProfileUrlForStorage({
+        siteType: input.siteType,
+        url: input.url,
+      }),
+      site_type: input.siteType,
+      authType: input.authType,
+      excludeFromTotalBalance: input.excludeFromTotalBalance === true,
+      excludeFromTodayIncome: input.excludeFromTodayIncome === true,
+      cookieAuth:
+        input.authType === AuthTypeEnum.Cookie
+          ? { sessionCookie: input.sessionCookieHeader.trim() }
+          : undefined,
+      sub2apiAuth: normalizeSub2ApiAuthInput(input.siteType, input.sub2apiAuth),
+      ...(input.kimiOpenPlatformAuth
+        ? { kimiOpenPlatformAuth: input.kimiOpenPlatformAuth }
+        : {}),
+      exchange_rate: resolveExchangeRate(input.exchangeRate),
+      notes: input.notes,
+      manualBalanceUsd:
+        manualQuota === undefined ? "" : input.manualBalanceUsd!.trim(),
+      tagIds: normalizeTagIdsInput(input.tagIds),
+      account_info: {
+        id: input.accountIdentity,
+        access_token: input.accessToken.trim(),
+        username: input.username.trim(),
+      },
+    },
+  }
+}

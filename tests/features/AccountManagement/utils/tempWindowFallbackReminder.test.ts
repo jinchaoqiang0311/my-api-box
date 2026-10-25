@@ -1,0 +1,140 @@
+import { describe, expect, it } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { getTempWindowFallbackIssue } from "~/features/AccountManagement/utils/tempWindowFallbackReminder"
+import {
+  SiteHealthStatus,
+  TEMP_WINDOW_HEALTH_STATUS_CODES,
+  type DisplaySiteData,
+} from "~/types"
+import { buildCompleteTodayStatsAvailability } from "~~/tests/test-utils/accountTodayStats"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+
+/**
+ * Build a DisplaySiteData object with overrides for test scenarios.
+ */
+function makeSite(overrides: Partial<DisplaySiteData>): DisplaySiteData {
+  return {
+    id: "acc-1",
+    name: "Example",
+    username: "user",
+    balance: { USD: 0, CNY: 0 },
+    todayConsumption: { USD: 0, CNY: 0 },
+    todayIncome: { USD: 0, CNY: 0 },
+    todayTokens: { upload: 0, download: 0 },
+    todayStatsAvailability: buildCompleteTodayStatsAvailability(),
+    health: {
+      status: SiteHealthStatus.Healthy,
+      reason: "ok",
+    },
+    siteType: SITE_TYPES.ONE_HUB,
+    baseUrl: "https://example.com",
+    token: "token",
+    userId: "1",
+    authType: "access_token" as any,
+    checkIn: buildCheckInConfig(),
+    ...overrides,
+  }
+}
+
+describe("tempWindowFallbackReminder", () => {
+  it("returns null for an empty site list", () => {
+    expect(getTempWindowFallbackIssue([])).toBeNull()
+  })
+
+  it("returns null when there is no relevant health code", () => {
+    const issue = getTempWindowFallbackIssue([
+      makeSite({
+        health: {
+          status: SiteHealthStatus.Warning,
+          reason: "other",
+          code: undefined,
+        },
+      }),
+    ])
+
+    expect(issue).toBeNull()
+  })
+
+  it("does not open settings reminders for invalid policy context", () => {
+    const issue = getTempWindowFallbackIssue([
+      makeSite({
+        health: {
+          status: SiteHealthStatus.Warning,
+          reason: "retry locally",
+          code: TEMP_WINDOW_HEALTH_STATUS_CODES.POLICY_CONTEXT_INVALID,
+        },
+      }),
+    ])
+
+    expect(issue).toBeNull()
+  })
+
+  it("returns an issue for TEMP_WINDOW_DISABLED and maps to the shield settings anchor", () => {
+    const issue = getTempWindowFallbackIssue([
+      makeSite({
+        id: "acc-2",
+        name: "Relay",
+        health: {
+          status: SiteHealthStatus.Warning,
+          reason: "disabled",
+          code: TEMP_WINDOW_HEALTH_STATUS_CODES.DISABLED,
+        },
+      }),
+    ])
+
+    expect(issue).not.toBeNull()
+    expect(issue?.settingsTab).toBe("refresh")
+    expect(issue?.settingsAnchor).toBe("shield-settings")
+    expect(issue?.accountName).toBe("Relay")
+  })
+
+  it("returns an issue for TEMP_WINDOW_PERMISSION_REQUIRED and maps to permissions tab", () => {
+    const issue = getTempWindowFallbackIssue([
+      makeSite({
+        id: "acc-3",
+        name: "Relay",
+        health: {
+          status: SiteHealthStatus.Warning,
+          reason: "perm",
+          code: TEMP_WINDOW_HEALTH_STATUS_CODES.PERMISSION_REQUIRED,
+        },
+      }),
+    ])
+
+    expect(issue).not.toBeNull()
+    expect(issue?.settingsTab).toBe("permissions")
+    expect(issue?.settingsAnchor).toBeUndefined()
+  })
+
+  it("returns the first matching issue when multiple sites are blocked", () => {
+    const issue = getTempWindowFallbackIssue([
+      makeSite({
+        id: "acc-10",
+        name: "First blocked",
+        health: {
+          status: SiteHealthStatus.Warning,
+          reason: "disabled",
+          code: TEMP_WINDOW_HEALTH_STATUS_CODES.DISABLED,
+        },
+      }),
+      makeSite({
+        id: "acc-11",
+        name: "Second blocked",
+        health: {
+          status: SiteHealthStatus.Warning,
+          reason: "perm",
+          code: TEMP_WINDOW_HEALTH_STATUS_CODES.PERMISSION_REQUIRED,
+        },
+      }),
+    ])
+
+    expect(issue).toEqual({
+      code: TEMP_WINDOW_HEALTH_STATUS_CODES.DISABLED,
+      accountId: "acc-10",
+      accountName: "First blocked",
+      settingsTab: "refresh",
+      settingsAnchor: "shield-settings",
+    })
+  })
+})

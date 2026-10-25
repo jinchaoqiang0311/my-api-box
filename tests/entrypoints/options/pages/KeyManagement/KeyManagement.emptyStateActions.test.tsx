@@ -1,0 +1,1083 @@
+import { act } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import type { Ref } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { type useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import KeyManagement from "~/entrypoints/options/pages/KeyManagement"
+import { KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE } from "~/features/KeyManagement/constants"
+import { KEY_MANAGEMENT_TEST_IDS } from "~/features/KeyManagement/testIds"
+import enKeyManagement from "~/locales/en/keyManagement.json"
+import { ACCOUNT_RUNTIME_KEY_SOURCES } from "~/services/accounts/keys/accountRuntimeKeys"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { type UserPreferences } from "~/services/preferences/preferencesSchema"
+import { API_CREDENTIAL_PROFILE_LINK_STATES } from "~/types/apiCredentialProfiles"
+import { buildNewApiKeyFacts } from "~~/tests/test-utils/accountKeyFixtures"
+import { render, screen, waitFor, within } from "~~/tests/test-utils/render"
+import {
+  createAccount,
+  createToken,
+} from "~~/tests/utils/keyManagementFactories"
+
+const {
+  sendRuntimeActionMessageMock,
+  tokenListPropsSpy,
+  useKeyManagementMock,
+  pushWithinOptionsPageMock,
+  replaceWithinOptionsPageMock,
+  openModelsPageMock,
+  openSettingsTabMock,
+  mockedUseUserPreferencesContext,
+  addTokenDialogPropsSpy,
+  accountSummaryBarPropsSpy,
+  getSiteTypeCapabilitiesMock,
+  openAccountKeyResourcesMock,
+  useApiCredentialProfileLinksMock,
+} = vi.hoisted(() => ({
+  sendRuntimeActionMessageMock: vi.fn(),
+  tokenListPropsSpy: vi.fn(),
+  useKeyManagementMock: vi.fn(),
+  pushWithinOptionsPageMock: vi.fn(),
+  replaceWithinOptionsPageMock: vi.fn(),
+  openModelsPageMock: vi.fn(),
+  openSettingsTabMock: vi.fn(),
+  mockedUseUserPreferencesContext: vi.fn(),
+  addTokenDialogPropsSpy: vi.fn(),
+  accountSummaryBarPropsSpy: vi.fn(),
+  getSiteTypeCapabilitiesMock: vi.fn(),
+  openAccountKeyResourcesMock: vi.fn(),
+  useApiCredentialProfileLinksMock: vi.fn(),
+}))
+
+vi.mock(
+  "~/features/ApiCredentialProfiles/associations/useApiCredentialProfileLinks",
+  () => ({
+    useApiCredentialProfileLinks: () => useApiCredentialProfileLinksMock(),
+  }),
+)
+
+vi.mock("~/utils/browser/runtimeMessages", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/runtimeMessages")>()
+
+  return { ...actual, sendRuntimeActionMessage: sendRuntimeActionMessageMock }
+})
+
+vi.mock("~/utils/navigation/optionsPage", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/navigation/optionsPage")>()
+
+  return {
+    ...actual,
+    pushWithinOptionsPage: pushWithinOptionsPageMock,
+    replaceWithinOptionsPage: replaceWithinOptionsPageMock,
+  }
+})
+vi.mock("~/utils/navigation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/navigation")>()
+
+  return {
+    ...actual,
+    openModelsPage: openModelsPageMock,
+    openSettingsTab: openSettingsTabMock,
+  }
+})
+
+vi.mock("~/features/KeyManagement/inventory/useKeyManagement", () => ({
+  useKeyManagement: (...args: unknown[]) => useKeyManagementMock(...args),
+}))
+
+vi.mock(
+  "~/features/KeyManagement/managedSite/useManagedSiteKeyStatuses",
+  () => ({
+    useManagedSiteKeyStatuses: () => {
+      const fixture = useKeyManagementMock.mock.results.at(-1)?.value
+      return {
+        states: fixture.managedSiteTokenStatuses ?? {},
+        supported: fixture.isManagedSiteChannelStatusSupported ?? true,
+        refreshing: fixture.isManagedSiteStatusRefreshing ?? false,
+        refresh: fixture.refreshManagedSiteTokenStatuses,
+        refreshKey: fixture.refreshManagedSiteTokenStatusForToken,
+        confirm: fixture.confirmManagedSiteTokenStatusWithChannelKey,
+      }
+    },
+  }),
+)
+
+vi.mock(
+  "~/features/ManagedSiteVerification/useNewApiManagedVerification",
+  () => ({
+    useNewApiManagedVerification: () => ({
+      dialogState: {
+        isOpen: false,
+        step: "logging-in",
+        request: null,
+        code: "",
+        errorMessage: undefined,
+        isBusy: false,
+        busyMessage: undefined,
+      },
+      setCode: vi.fn(),
+      closeDialog: vi.fn(),
+      openBaseUrl: vi.fn(),
+      openNewApiManagedVerification: vi.fn(),
+      submitCode: vi.fn(),
+      retryVerification: vi.fn(),
+      patchRequestConfig: vi.fn(),
+    }),
+  }),
+)
+
+vi.mock(
+  "~/features/ManagedSiteVerification/NewApiManagedVerificationDialog",
+  () => ({
+    NewApiManagedVerificationDialog: () => null,
+  }),
+)
+
+vi.mock(
+  "~/features/ManagedSiteVerification/loadNewApiChannelKeyWithVerification",
+  () => ({
+    loadNewApiChannelKeyWithVerification: vi.fn(),
+  }),
+)
+
+vi.mock("~/contexts/UserPreferencesContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/contexts/UserPreferencesContext")>()
+
+  return {
+    ...actual,
+    useUserPreferencesContext: () => mockedUseUserPreferencesContext(),
+  }
+})
+
+vi.mock("~/features/KeyManagement/inventory/AccountSelectorPanel", () => {
+  function MockAccountSelectorPanel(props: {
+    selectorOpen?: boolean
+    selectorTriggerRef?: Ref<HTMLButtonElement>
+    setSelectedAccount: (value: string) => void
+  }) {
+    const { selectorOpen, selectorTriggerRef, setSelectedAccount } = props
+
+    return (
+      <div>
+        <button
+          ref={selectorTriggerRef}
+          type="button"
+          role="combobox"
+          aria-expanded={selectorOpen}
+        >
+          Mock account selector
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedAccount("selected-account")}
+        >
+          select-account
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedAccount(KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE)}
+        >
+          select-all-accounts
+        </button>
+        <button type="button" onClick={() => setSelectedAccount("")}>
+          clear-account
+        </button>
+      </div>
+    )
+  }
+
+  return {
+    AccountSelectorPanel: MockAccountSelectorPanel,
+  }
+})
+
+vi.mock("~/features/KeyManagement/inventory/TokenList", () => ({
+  TokenList: (props: any) => {
+    tokenListPropsSpy(props)
+
+    return (
+      <div>
+        <button type="button" onClick={props.onAddAccount}>
+          trigger-add-account
+        </button>
+        <button type="button" onClick={props.onRequestAccountSelection}>
+          trigger-account-selection
+        </button>
+        {props.filteredTokens?.map((token: any) => (
+          <button
+            key={token.id}
+            type="button"
+            onClick={() => props.handleDeleteToken(token)}
+          >
+            trigger-delete-token-{token.id}
+          </button>
+        ))}
+      </div>
+    )
+  },
+}))
+
+vi.mock("~/features/KeyManagement/workspace/Footer", () => ({
+  Footer: () => null,
+}))
+
+vi.mock("~/features/KeyManagement/inventory/AccountSummaryBar", () => ({
+  AccountSummaryBar: (props: any) => {
+    accountSummaryBarPropsSpy(props)
+
+    return (
+      <div>
+        {props.items.map((item: any) => (
+          <button
+            key={item.accountId}
+            type="button"
+            onClick={() => props.onAccountClick?.(item.accountId)}
+          >
+            Summary {item.name}:{item.count}
+          </button>
+        ))}
+      </div>
+    )
+  },
+}))
+
+vi.mock("~/features/TokenProvisioning/creation/AddTokenDialog", () => ({
+  default: (props: any) => {
+    addTokenDialogPropsSpy(props)
+    return null
+  },
+}))
+
+vi.mock("~/services/apiAdapters/registry", () => ({
+  getSiteTypeCapabilities: getSiteTypeCapabilitiesMock,
+}))
+
+vi.mock("~/features/KeyManagement/repair", () => ({
+  RepairMissingKeysDialog: () => null,
+}))
+
+const createHookResult = (
+  overrides: Partial<Record<string, unknown>> = {},
+) => ({
+  displayData: [],
+  selectedAccount: "",
+  setSelectedAccount: vi.fn(),
+  searchTerm: "",
+  setSearchTerm: vi.fn(),
+  tokens: [],
+  entries: [],
+  filteredEntries: [],
+  isLoading: false,
+  visibleKeys: new Set(),
+  resolvingVisibleKeys: new Set(),
+  isAddTokenOpen: false,
+  editingToken: null,
+  tokenInventories: {},
+  tokenLoadProgress: null,
+  failedAccounts: [],
+  accountSummaryItems: [],
+  managedSiteTokenStatuses: {},
+  isManagedSiteChannelStatusSupported: true,
+  isManagedSiteStatusRefreshing: false,
+  allAccountsFilterAccountIds: [],
+  setAllAccountsFilterAccountIds: vi.fn(),
+  refreshServiceCredentials: vi.fn(),
+  filteredTokens: [],
+  getVisibleTokenKey: vi.fn(),
+  refreshManagedSiteTokenStatuses: vi.fn(),
+  refreshManagedSiteTokenStatusForToken: vi.fn(),
+  copyKey: vi.fn(),
+  toggleKeyVisibility: vi.fn(),
+  retryFailedAccounts: vi.fn(),
+  handleAddToken: vi.fn(),
+  handleCloseAddToken: vi.fn(),
+  handleEditToken: vi.fn(),
+  handleDeleteToken: vi.fn(),
+  ...overrides,
+})
+
+type UserPreferencesContextValue = ReturnType<typeof useUserPreferencesContext>
+type KeyManagementContextValue = Pick<
+  UserPreferencesContextValue,
+  | "preferences"
+  | "managedSiteType"
+  | "newApiBaseUrl"
+  | "newApiUserId"
+  | "newApiUsername"
+  | "newApiPassword"
+  | "newApiTotpSecret"
+>
+
+const createManagedSitePreferences = (
+  newApiOverrides: Partial<UserPreferences["newApi"]> = {},
+): UserPreferences => ({
+  ...DEFAULT_PREFERENCES,
+  managedSiteType: SITE_TYPES.NEW_API,
+  newApi: {
+    ...DEFAULT_PREFERENCES.newApi,
+    baseUrl: "https://managed.example",
+    adminToken: "managed-token",
+    userId: "1",
+    username: "admin",
+    password: "secret-password",
+    totpSecret: "JBSWY3DPEHPK3PXP",
+    ...newApiOverrides,
+  },
+})
+
+const createKeyManagementContextValue = (
+  preferences: UserPreferences = createManagedSitePreferences(),
+) =>
+  ({
+    preferences,
+    managedSiteType: SITE_TYPES.NEW_API,
+    newApiBaseUrl: preferences.newApi.baseUrl,
+    newApiUserId: preferences.newApi.userId,
+    newApiUsername: preferences.newApi.username ?? "",
+    newApiPassword: preferences.newApi.password ?? "",
+    newApiTotpSecret: preferences.newApi.totpSecret ?? "",
+  }) satisfies KeyManagementContextValue
+
+describe("KeyManagement empty-state actions", () => {
+  beforeEach(() => {
+    sendRuntimeActionMessageMock.mockReset()
+    tokenListPropsSpy.mockReset()
+    useKeyManagementMock.mockReset()
+    pushWithinOptionsPageMock.mockReset()
+    replaceWithinOptionsPageMock.mockReset()
+    openModelsPageMock.mockReset()
+    openSettingsTabMock.mockReset()
+    addTokenDialogPropsSpy.mockReset()
+    accountSummaryBarPropsSpy.mockReset()
+    getSiteTypeCapabilitiesMock.mockReset()
+    openAccountKeyResourcesMock.mockReset()
+    openAccountKeyResourcesMock.mockResolvedValue(null)
+    useApiCredentialProfileLinksMock.mockReturnValue({
+      links: [],
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+    getSiteTypeCapabilitiesMock.mockImplementation((siteType: string) => ({
+      siteType,
+      account:
+        siteType === SITE_TYPES.OPENROUTER
+          ? {
+              keyResourceManagement: {
+                open: openAccountKeyResourcesMock,
+              },
+            }
+          : siteType === SITE_TYPES.SHAREDCHAT
+            ? {
+                serviceCredential: {
+                  fetch: vi.fn(),
+                },
+              }
+            : {
+                keyResourceManagement: { open: openAccountKeyResourcesMock },
+              },
+    }))
+    mockedUseUserPreferencesContext.mockReturnValue(
+      createKeyManagementContextValue(),
+    )
+    sendRuntimeActionMessageMock.mockResolvedValue({ success: false })
+  })
+
+  it("resolves an association deep link to its account and passes the exact target to the list", async () => {
+    const account = createAccount({ id: "account-example", name: "Example" })
+    const setSelectedAccount = vi.fn()
+    const setSearchTerm = vi.fn()
+    const setAllAccountsFilterAccountIds = vi.fn()
+    const association = {
+      id: "association-example",
+      profileId: "profile-example",
+      locator: {
+        source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+        accountId: account.id,
+        siteType: account.siteType,
+        tokenId: 42,
+      },
+      state: API_CREDENTIAL_PROFILE_LINK_STATES.Active,
+      linkedBy: "user" as const,
+      createdAt: 1,
+      updatedAt: 1,
+    }
+    useApiCredentialProfileLinksMock.mockReturnValue({
+      links: [association],
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        setSelectedAccount,
+        setSearchTerm,
+        setAllAccountsFilterAccountIds,
+      }),
+    )
+
+    render(<KeyManagement routeParams={{ associationId: association.id }} />)
+
+    await waitFor(() => {
+      expect(setSelectedAccount).toHaveBeenCalledWith(account.id)
+      expect(setSearchTerm).toHaveBeenCalledWith("")
+      expect(setAllAccountsFilterAccountIds).toHaveBeenCalledWith([])
+      expect(replaceWithinOptionsPageMock).toHaveBeenCalledWith("#keys", {
+        associationId: association.id,
+        accountId: account.id,
+      })
+      expect(tokenListPropsSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          credentialProfileLinks: [association],
+          associationTarget: association,
+          canAssociateExistingCredential: false,
+        }),
+      )
+    })
+  })
+
+  it("maps an associated native scope key to its workspace route key", async () => {
+    const account = createAccount({
+      id: "native-account-example",
+      name: "Native example",
+      siteType: SITE_TYPES.OPENROUTER,
+    })
+    const scope = {
+      scopeKey: "workspace-opaque-id",
+      routeKey: "workspace-route",
+      displayName: "Example workspace",
+      isDefault: true,
+    }
+    openAccountKeyResourcesMock.mockResolvedValue({
+      resolveDefaultScope: vi.fn().mockResolvedValue(scope),
+      listScopes: vi.fn().mockResolvedValue([scope]),
+      openCollection: vi.fn().mockResolvedValue({
+        list: vi.fn().mockResolvedValue({ items: [] }),
+      }),
+    })
+    const association = {
+      id: "association-native-example",
+      profileId: "profile-example",
+      locator: {
+        source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountKeyResource,
+        ref: {
+          accountId: account.id,
+          siteType: SITE_TYPES.OPENROUTER,
+          scopeKey: scope.scopeKey,
+          resourceId: "resource-opaque-id",
+        },
+      },
+      state: API_CREDENTIAL_PROFILE_LINK_STATES.Active,
+      linkedBy: "user" as const,
+      createdAt: 1,
+      updatedAt: 1,
+    }
+    useApiCredentialProfileLinksMock.mockReturnValue({
+      links: [association],
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: account.id,
+      }),
+    )
+
+    render(<KeyManagement routeParams={{ associationId: association.id }} />)
+
+    await waitFor(() =>
+      expect(replaceWithinOptionsPageMock).toHaveBeenCalledWith("#keys", {
+        associationId: association.id,
+        accountId: account.id,
+        workspace: scope.routeKey,
+      }),
+    )
+  })
+
+  it("does not report a linked key as missing while its inventory is loading", async () => {
+    const account = createAccount({ id: "account-example", name: "Example" })
+    const association = {
+      id: "association-example",
+      profileId: "profile-example",
+      locator: {
+        source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+        accountId: account.id,
+        siteType: account.siteType,
+        tokenId: 42,
+      },
+      state: API_CREDENTIAL_PROFILE_LINK_STATES.Active,
+      linkedBy: "user" as const,
+      createdAt: 1,
+      updatedAt: 1,
+    }
+    useApiCredentialProfileLinksMock.mockReturnValue({
+      links: [association],
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+    const loadedState = createHookResult({
+      displayData: [account],
+      selectedAccount: account.id,
+      isLoading: false,
+    })
+    useKeyManagementMock.mockReturnValue(loadedState)
+
+    const view = render(
+      <KeyManagement routeParams={{ associationId: association.id }} />,
+    )
+
+    await waitFor(() => expect(tokenListPropsSpy).toHaveBeenCalled())
+    const reportTargetStatus =
+      tokenListPropsSpy.mock.lastCall?.[0].onAssociationTargetStatusChange
+
+    act(() => {
+      reportTargetStatus("missing")
+    })
+
+    expect(
+      await screen.findAllByText(
+        "keyManagement:credentialAssociation.target.missing",
+      ),
+    ).toHaveLength(2)
+
+    useKeyManagementMock.mockReturnValue({ ...loadedState, isLoading: true })
+    view.rerender(
+      <KeyManagement routeParams={{ associationId: association.id }} />,
+    )
+
+    const locatingMessages = await screen.findAllByText(
+      "keyManagement:credentialAssociation.target.locating",
+    )
+    expect(locatingMessages).toHaveLength(2)
+    expect(
+      locatingMessages
+        .find((message) => message.closest("[data-tone]"))
+        ?.closest("[data-tone]"),
+    ).toHaveAttribute("data-tone", "info")
+    expect(
+      screen.queryByText("keyManagement:credentialAssociation.target.missing"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "keyManagement:credentialAssociation.target.clear",
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("locates a confirmation candidate without treating it as a trusted link", async () => {
+    const account = createAccount({ id: "account-example", name: "Example" })
+    const association = {
+      id: "association-example",
+      profileId: "profile-example",
+      locator: {
+        source: ACCOUNT_RUNTIME_KEY_SOURCES.AccountToken,
+        accountId: account.id,
+        siteType: account.siteType,
+        tokenId: 42,
+      },
+      state: API_CREDENTIAL_PROFILE_LINK_STATES.NeedsConfirmation,
+      linkedBy: "user" as const,
+      createdAt: 1,
+      updatedAt: 1,
+    }
+    useApiCredentialProfileLinksMock.mockReturnValue({
+      links: [association],
+      isLoading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({ displayData: [account] }),
+    )
+
+    render(<KeyManagement routeParams={{ associationId: association.id }} />)
+
+    expect(
+      await screen.findAllByText(
+        "keyManagement:credentialAssociation.target.needsConfirmation",
+      ),
+    ).toHaveLength(2)
+    expect(tokenListPropsSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ associationTarget: association }),
+    )
+  })
+
+  it("offers incomplete managed-site setup as a lightweight inline hint", async () => {
+    const user = userEvent.setup()
+    useKeyManagementMock.mockReturnValue(createHookResult())
+    mockedUseUserPreferencesContext.mockReturnValue(
+      createKeyManagementContextValue(
+        createManagedSitePreferences({ adminToken: "", userId: "" }),
+      ),
+    )
+
+    expect(enKeyManagement.managedSiteSetupRecovery.description).toContain(
+      "self-hosted AI gateway",
+    )
+    expect(enKeyManagement.managedSiteSetupRecovery.description).toContain(
+      "gateway channels",
+    )
+    expect(enKeyManagement.managedSiteSetupRecovery.description).toContain(
+      "one unified AI API",
+    )
+    expect(enKeyManagement.managedSiteSetupRecovery.description).not.toContain(
+      "You can still",
+    )
+
+    render(<KeyManagement />)
+
+    const setupDescription = await screen.findByText(
+      "keyManagement:managedSiteSetupRecovery.description",
+    )
+    const setupHint = setupDescription.closest('[role="status"]')
+    const setupAction = screen.getByRole("button", {
+      name: "keyManagement:managedSiteSetupRecovery.configureManagedSite",
+    })
+
+    expect(setupHint).not.toBeNull()
+    expect(
+      within(setupHint as HTMLElement).queryByText(
+        "keyManagement:managedSiteSetupRecovery.title",
+      ),
+    ).not.toBeInTheDocument()
+    expect(setupAction.closest("p")).toBe(setupDescription.closest("p"))
+
+    await user.click(setupAction)
+
+    expect(openSettingsTabMock).toHaveBeenCalledWith("managedSite", {
+      preserveHistory: true,
+    })
+  })
+
+  it("does not show managed-site setup recovery for a complete configuration", () => {
+    useKeyManagementMock.mockReturnValue(createHookResult())
+
+    render(<KeyManagement />)
+
+    expect(
+      screen.queryByText("keyManagement:managedSiteSetupRecovery.title"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: "keyManagement:managedSiteSetupRecovery.configureManagedSite",
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("routes the no-account CTA to account management", async () => {
+    const user = userEvent.setup()
+
+    useKeyManagementMock.mockReturnValue(createHookResult())
+
+    render(<KeyManagement />)
+
+    expect(
+      await screen.findByText("keyManagement:unifiedApiGuidance.headerBridge"),
+    ).toBeVisible()
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "trigger-add-account",
+      }),
+    )
+
+    expect(pushWithinOptionsPageMock).toHaveBeenCalledWith("#account")
+  })
+
+  it("opens the account selector when the user needs to choose an account first", async () => {
+    const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView")
+    const user = userEvent.setup()
+    const account = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    const selectorTrigger = await screen.findByRole("combobox")
+
+    expect(selectorTrigger).toHaveAttribute("aria-expanded", "false")
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "trigger-account-selection",
+      }),
+    )
+
+    await waitFor(() =>
+      expect(selectorTrigger).toHaveAttribute("aria-expanded", "true"),
+    )
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "auto",
+      block: "nearest",
+    })
+    expect(scrollIntoView.mock.instances).toContain(selectorTrigger)
+  })
+
+  it("omits the model shortcut when the selected account has no supported model route", () => {
+    const account = createAccount({ id: "acc-1", name: "Account 1" })
+    getSiteTypeCapabilitiesMock.mockReturnValue({ account: {} })
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({ displayData: [account], selectedAccount: account.id }),
+    )
+    render(<KeyManagement />)
+    expect(
+      screen.queryByTestId(
+        KEY_MANAGEMENT_TEST_IDS.openSelectedAccountModelsButton,
+      ),
+    ).toBeNull()
+  })
+
+  it("opens the model list for the selected account from the title action", async () => {
+    getSiteTypeCapabilitiesMock.mockReturnValue({
+      account: { modelCatalog: {} },
+    })
+    const user = userEvent.setup()
+    const account = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: account.id,
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    await user.click(
+      within(
+        await screen.findByTestId(KEY_MANAGEMENT_TEST_IDS.titleActions),
+      ).getByTestId(KEY_MANAGEMENT_TEST_IDS.openSelectedAccountModelsButton),
+    )
+
+    expect(openModelsPageMock).toHaveBeenCalledWith(account.id)
+  })
+
+  it.each([
+    ["select-account", "selected-account", { accountId: "selected-account" }],
+    [
+      "select-all-accounts",
+      KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+      { accountId: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE },
+    ],
+    ["clear-account", "", undefined],
+  ])(
+    "replaces the key-management route when the user chooses %s",
+    async (buttonName, selectedValue, expectedParams) => {
+      const user = userEvent.setup()
+      const setSelectedAccount = vi.fn()
+      useKeyManagementMock.mockReturnValue(
+        createHookResult({ setSelectedAccount }),
+      )
+
+      render(<KeyManagement />)
+
+      await user.click(await screen.findByRole("button", { name: buttonName }))
+
+      expect(setSelectedAccount).toHaveBeenCalledWith(selectedValue)
+      expect(replaceWithinOptionsPageMock).toHaveBeenCalledWith(
+        "#keys",
+        expectedParams,
+      )
+    },
+  )
+
+  it("does not show the model-list title shortcut while viewing all accounts", async () => {
+    const account = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    expect(
+      within(
+        await screen.findByTestId(KEY_MANAGEMENT_TEST_IDS.titleActions),
+      ).queryByTestId(KEY_MANAGEMENT_TEST_IDS.openSelectedAccountModelsButton),
+    ).not.toBeInTheDocument()
+  })
+
+  it("preselects the filtered account in the add-token dialog while viewing all accounts", async () => {
+    const account = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+        allAccountsFilterAccountIds: [account.id],
+        isAddTokenOpen: true,
+      }),
+    )
+
+    render(<KeyManagement />)
+    await userEvent
+      .setup()
+      .click(await screen.findByTestId(KEY_MANAGEMENT_TEST_IDS.addTokenButton))
+
+    await waitFor(() => expect(addTokenDialogPropsSpy).toHaveBeenCalled())
+
+    expect(addTokenDialogPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      isOpen: true,
+      preSelectedAccountId: account.id,
+    })
+  })
+
+  it("disables token creation for a selected account without key-management capability", async () => {
+    const user = userEvent.setup()
+    const handleAddToken = vi.fn()
+    const account = createAccount({
+      id: "sharedchat-account",
+      name: "SharedChat",
+      siteType: SITE_TYPES.SHAREDCHAT,
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: account.id,
+        handleAddToken,
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    const addTokenButton = await screen.findByTestId(
+      KEY_MANAGEMENT_TEST_IDS.addTokenButton,
+    )
+
+    expect(addTokenButton).toBeDisabled()
+
+    await user.click(addTokenButton)
+
+    expect(handleAddToken).not.toHaveBeenCalled()
+    expect(tokenListPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      canCreateTokens: false,
+    })
+    expect(addTokenDialogPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      availableAccounts: [],
+      preSelectedAccountId: null,
+    })
+  })
+
+  it("enables the empty-state Create first key action for one loaded native account", async () => {
+    const openCreateEditor = vi.fn().mockResolvedValue(null)
+    const scope = {
+      scopeKey: "workspace-example",
+      routeKey: "default",
+      displayName: "Default workspace",
+      isDefault: true,
+    }
+    openAccountKeyResourcesMock.mockResolvedValue({
+      resolveDefaultScope: vi.fn().mockResolvedValue(scope),
+      listScopes: vi.fn().mockResolvedValue([scope]),
+      openCollection: vi.fn().mockResolvedValue({
+        list: vi.fn().mockResolvedValue({ items: [] }),
+      }),
+      openCreateEditor,
+    })
+    const account = createAccount({
+      id: "openrouter-account",
+      name: "OpenRouter account",
+      siteType: SITE_TYPES.OPENROUTER,
+    })
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: account.id,
+      }),
+    )
+
+    render(
+      <KeyManagement
+        routeParams={{ accountId: account.id, workspace: scope.routeKey }}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(tokenListPropsSpy.mock.lastCall?.[0]).toMatchObject({
+        canCreateTokens: true,
+      }),
+    )
+    await act(async () => {
+      tokenListPropsSpy.mock.lastCall?.[0].handleAddToken()
+    })
+    await waitFor(() => expect(openCreateEditor).toHaveBeenCalledTimes(1))
+  })
+
+  it("only offers key-management-capable accounts to the add-token dialog", async () => {
+    const keyManagedAccount = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+    const serviceCredentialAccount = createAccount({
+      id: "sharedchat-account",
+      name: "SharedChat",
+      siteType: SITE_TYPES.SHAREDCHAT,
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [keyManagedAccount, serviceCredentialAccount],
+        selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+        isAddTokenOpen: true,
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    await waitFor(() => expect(addTokenDialogPropsSpy).toHaveBeenCalled())
+
+    expect(addTokenDialogPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      availableAccounts: [keyManagedAccount],
+      preSelectedAccountId: null,
+    })
+    expect(tokenListPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      canCreateTokens: true,
+    })
+  })
+
+  it("keeps add-token disabled in all mode when no account can create tokens", async () => {
+    const user = userEvent.setup()
+    const handleAddToken = vi.fn()
+    const serviceCredentialAccount = createAccount({
+      id: "sharedchat-account",
+      name: "SharedChat",
+      siteType: SITE_TYPES.SHAREDCHAT,
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [serviceCredentialAccount],
+        selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+        handleAddToken,
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    const addTokenButton = await screen.findByTestId(
+      KEY_MANAGEMENT_TEST_IDS.addTokenButton,
+    )
+
+    expect(addTokenButton).toBeDisabled()
+
+    await user.click(addTokenButton)
+
+    expect(handleAddToken).not.toHaveBeenCalled()
+    expect(tokenListPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      canCreateTokens: false,
+    })
+    expect(addTokenDialogPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      availableAccounts: [],
+      preSelectedAccountId: null,
+    })
+  })
+
+  it("does not preselect an account in the add-token dialog when multiple accounts are filtered", async () => {
+    const accountA = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+    const accountB = createAccount({
+      id: "acc-2",
+      name: "Account 2",
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [accountA, accountB],
+        selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+        allAccountsFilterAccountIds: [accountA.id, accountB.id],
+        isAddTokenOpen: true,
+      }),
+    )
+
+    render(<KeyManagement />)
+    await userEvent
+      .setup()
+      .click(await screen.findByTestId(KEY_MANAGEMENT_TEST_IDS.addTokenButton))
+
+    await waitFor(() => expect(addTokenDialogPropsSpy).toHaveBeenCalled())
+
+    expect(addTokenDialogPropsSpy.mock.lastCall?.[0]).toMatchObject({
+      isOpen: true,
+      preSelectedAccountId: null,
+    })
+  })
+
+  it("toggles the all-accounts summary filter for the clicked account", async () => {
+    const user = userEvent.setup()
+    const account = createAccount({
+      id: "acc-1",
+      name: "Account 1",
+    })
+    const setAllAccountsFilterAccountIds = vi.fn()
+    const scope = {
+      scopeKey: "account",
+      displayName: "Account",
+      isDefault: true,
+    }
+    openAccountKeyResourcesMock.mockResolvedValue({
+      resolveDefaultScope: vi.fn().mockResolvedValue(scope),
+      listScopes: vi.fn().mockResolvedValue([scope]),
+      openCollection: vi.fn().mockResolvedValue({
+        list: vi.fn().mockResolvedValue({
+          items: [1, 2].map((id) =>
+            buildNewApiKeyFacts(account, createToken({ id })),
+          ),
+        }),
+      }),
+    })
+
+    useKeyManagementMock.mockReturnValue(
+      createHookResult({
+        displayData: [account],
+        selectedAccount: KEY_MANAGEMENT_ALL_ACCOUNTS_VALUE,
+        setAllAccountsFilterAccountIds,
+      }),
+    )
+
+    render(<KeyManagement />)
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: `Summary ${account.name}:2`,
+      }),
+    )
+
+    expect(setAllAccountsFilterAccountIds).toHaveBeenCalledWith(
+      expect.any(Function),
+    )
+
+    const toggleFilter = setAllAccountsFilterAccountIds.mock.lastCall?.[0]
+    expect(toggleFilter([])).toEqual([account.id])
+    expect(toggleFilter([account.id])).toEqual([])
+  })
+})

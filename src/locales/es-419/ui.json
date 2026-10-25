@@ -1,0 +1,713 @@
+{
+  "app": {
+    "name": "My API Box"
+  },
+  "billing": {
+    "notProvided": "No proporcionado",
+    "perCall": "Facturación por llamada",
+    "tokenBased": "Facturación por tokens"
+  },
+  "dialog": {
+    "aiToolbox": {
+      "actions": {
+        "export": "Exportar"
+      },
+      "appOptions": {
+        "claude": "Claude Code",
+        "claudedesktop": "Claude Desktop",
+        "codex": "Codex",
+        "dsh": "DeepSeek Harness",
+        "gemini": "Gemini CLI",
+        "grok": "Grok CLI",
+        "hermes": "Hermes",
+        "kimi": "Kimi Code",
+        "omp": "Oh My Pi",
+        "openclaw": "OpenClaw",
+        "opencode": "OpenCode",
+        "pi": "Pi"
+      },
+      "description": "Enviar esta configuración de proveedor directamente a AI Toolbox mediante deep link",
+      "descriptions": {
+        "apiFormat": "AI Toolbox reconstruye el proveedor para la app destino. Elige un protocolo solo cuando este proveedor no use el predeterminado de la app.",
+        "model": "Cuando están disponibles, los modelos se cargan desde /v1/models para seleccionarlos. También puedes escribir un id de modelo personalizado.",
+        "modelDiscoveryFailed": "No se pudo cargar la lista de modelos del proveedor. Ingresa un id de modelo manualmente o reintenta."
+      },
+      "fields": {
+        "apiFormat": "Protocolo de API",
+        "app": "App destino",
+        "baseUrl": "URL base de API",
+        "homepage": "URL de inicio",
+        "model": "Modelo predeterminado (opcional)",
+        "name": "Nombre del proveedor",
+        "notes": "Notas (opcional)"
+      },
+      "formatOptions": {
+        "anthropicMessages": "Anthropic Messages",
+        "automatic": "Automático (predeterminado de la app)",
+        "geminiNative": "Gemini Native",
+        "openAIChat": "OpenAI Chat Completions",
+        "openAIResponses": "OpenAI Responses"
+      },
+      "modelOptions": {
+        "none": "Sin modelo predeterminado"
+      },
+      "placeholders": {
+        "baseUrl": "https://example.com",
+        "homepage": "https://example.com",
+        "model": "p. ej. claude-3-opus",
+        "name": "p. ej. Acme Relay",
+        "notes": "Agregar notas de importación"
+      },
+      "title": "Exportar a AI Toolbox"
+    },
+    "bookmarkAccountImport": {
+      "actions": {
+        "allowAndScan": "Elegir marcadores e iniciar importación por lotes",
+        "backToScope": "Volver a la selección de marcadores",
+        "clearSearch": "Limpiar búsqueda de marcadores",
+        "clearSelected": "Limpiar selección",
+        "collapseAll": "Contraer todo",
+        "collapseFolder": "Contraer carpeta",
+        "expandAll": "Expandir todo",
+        "expandFolder": "Expandir carpeta",
+        "importSelected_one": "Agregar seleccionadas ({{count}})",
+        "importSelected_many": "Agregar seleccionadas ({{count}})",
+        "importSelected_other": "Agregar seleccionadas ({{count}})",
+        "invertSelected": "Invertir selección",
+        "openAddAccount": "Completar manualmente",
+        "retryFailed": "Reintentar pendientes",
+        "scanSelected": "Escanear rango seleccionado",
+        "selectAll": "Seleccionar todo"
+      },
+      "apiUnavailable": "Este navegador no expone marcadores nativos a la extensión.",
+      "bestEffortHelp": "Intentaremos agregarlas automáticamente. Algunos sitios pueden necesitar que inicies sesión, completes una verificación o agregues algunos datos.",
+      "bookmarkCount_one": "{{count}} marcador",
+      "bookmarkCount_many": "{{count}} marcadores",
+      "bookmarkCount_other": "{{count}} marcadores",
+      "description": "Agrega cuentas de tus sitios guardados en marcadores en un solo paso.",
+      "empty": "No se devolvieron marcadores del navegador.",
+      "failures": {
+        "detection": "Faltan algunos datos de la cuenta. Reintenta o completa manualmente.",
+        "login": "Inicia sesión en este sitio y vuelve a intentar agregarlo.",
+        "save": "Revisa y completa los datos de la cuenta antes de agregarla.",
+        "unknown": "La cuenta aún no se ha agregado. Reintenta o completa manualmente.",
+        "verification": "Este sitio requiere verificación. Elige «Completar manualmente» para continuar."
+      },
+      "folderCount_one": "{{count}} carpeta",
+      "folderCount_many": "{{count}} carpetas",
+      "folderCount_other": "{{count}} carpetas",
+      "importFailed": "No se pudo completar la importación. Inténtalo de nuevo.",
+      "importing": "Importando {{completed}} de {{total}} sitios seleccionados...",
+      "includeExisting": "Incluir sitios que ya tienen cuentas guardadas",
+      "initialSteps": {
+        "chooseScope": "Elegir carpetas de marcadores",
+        "review": "Revisar sitios por agregar",
+        "skipExisting": "Omitir cuentas existentes de forma predeterminada"
+      },
+      "initialValue": "Elige tus sitios de retransmisión guardados, revisa la lista y agrégalos juntos. Las cuentas existentes se omiten de forma predeterminada.",
+      "noCandidates": "No se encontraron URLs de marcadores web importables.",
+      "permissionDenied": "No se concedió el permiso de marcadores. Puedes intentarlo de nuevo sin cerrar este diálogo.",
+      "permissionNeeded": "El acceso a marcadores es opcional y solo se solicita para esta importación por lotes.",
+      "readFailed": "No se pudo leer el árbol de marcadores del navegador.",
+      "recoveryHelp": "Para las cuentas pendientes, inicia sesión y reintenta o elige «Completar manualmente».",
+      "reloadFailed": "La importación terminó, pero no se pudieron recargar los datos de cuenta. Actualiza la lista de cuentas e inténtalo de nuevo si las cuentas nuevas no son visibles.",
+      "resultSummary": "Agregadas {{success}}, pendientes {{failed}}, omitidas {{skipped}}.",
+      "scanning": "Escaneando marcadores del navegador...",
+      "scopeHelp": "El escaneo solo crea una vista previa. Puedes volver aquí para ajustar la selección antes de importar.",
+      "searchEmpty": "No hay ámbitos de marcadores coincidentes",
+      "searchLabel": "Buscar ámbitos de marcadores",
+      "searchPlaceholder": "Buscar marcadores...",
+      "selectedBookmarkCount_one": "{{count}} marcador seleccionado",
+      "selectedBookmarkCount_many": "{{count}} marcadores seleccionados",
+      "selectedBookmarkCount_other": "{{count}} marcadores seleccionados",
+      "status": {
+        "duplicate_one": "Omitido de forma predeterminada. Coincidencias con cuentas guardadas existentes: {{count}}",
+        "duplicate_many": "Omitido de forma predeterminada. Coincidencias con cuentas guardadas existentes: {{count}}",
+        "duplicate_other": "Omitido de forma predeterminada. Coincidencias con cuentas guardadas existentes: {{count}}",
+        "imported": "Importado",
+        "ready": "Por agregar"
+      },
+      "title": "Importar cuentas desde marcadores",
+      "untitledFolder": "Carpeta sin título"
+    },
+    "ccswitch": {
+      "actions": {
+        "export": "Exportar"
+      },
+      "appOptions": {
+        "claude": "Claude",
+        "codex": "Codex",
+        "gemini": "Gemini",
+        "grokbuild": "Grok CLI",
+        "hermes": "Hermes",
+        "openclaw": "OpenClaw",
+        "opencode": "OpenCode"
+      },
+      "description": "Enviar esta configuración de proveedor directamente a CC Switch mediante deep link",
+      "descriptions": {
+        "model": "Cuando están disponibles, los modelos se cargan desde /v1/models para seleccionarlos. También puedes escribir un id de modelo personalizado."
+      },
+      "fields": {
+        "app": "App destino",
+        "endpoint": "Endpoint de API",
+        "homepage": "URL de inicio",
+        "model": "Modelo predeterminado (opcional)",
+        "name": "Nombre del proveedor",
+        "notes": "Notas (opcional)"
+      },
+      "modelOptions": {
+        "none": "Sin modelo predeterminado"
+      },
+      "notices": {
+        "hermes": "CC Switch importa Hermes con el protocolo Chat Completions. Durante la exportación, el nombre del proveedor se convierte en un identificador válido que solo contiene letras minúsculas, números y guiones. Para usar otro formato, como Anthropic Messages o Codex Responses, ajústalo en CC Switch después de importar.",
+        "openclaw": "CC Switch actualmente no admite configurar formatos de API del servicio de IA OpenClaw mediante importación externa. Ajústalo en CC Switch después de importar si es necesario.",
+        "opencode": "CC Switch actualmente no admite configurar formatos de API del servicio de IA OpenCode mediante importación externa. Ajústalo en CC Switch después de importar si es necesario."
+      },
+      "placeholders": {
+        "endpoint": "https://example.com",
+        "homepage": "https://example.com",
+        "model": "p. ej. claude-3-opus",
+        "name": "p. ej. Acme Relay",
+        "notes": "Agregar notas de importación"
+      },
+      "title": "Exportar a CC Switch"
+    },
+    "claudeCodeRouter": {
+      "description": "Crea o actualiza un proveedor en Claude Code Router. Los modelos son obligatorios.",
+      "descriptions": {
+        "models": "Ingresa un modelo por línea o separalos con comas.",
+        "providerApiBaseUrl": "Debe ser el endpoint completo /v1/chat/completions.",
+        "restartAfterSave": "El router puede requerir reinicio para que los cambios de configuración surtan efecto."
+      },
+      "fields": {
+        "models": "Modelos",
+        "providerApiBaseUrl": "Endpoint de API del proveedor",
+        "providerName": "Nombre del proveedor",
+        "restartAfterSave": "Reiniciar después de guardar"
+      },
+      "placeholders": {
+        "modelsPicker": "Escribe para agregar modelos",
+        "providerApiBaseUrl": "https://example.com/v1/chat/completions",
+        "providerName": "p. ej. Mi Relay"
+      },
+      "title": "Importar a Claude Code Router"
+    },
+    "collapse": "Contraer",
+    "copyKey": {
+      "copied": "Copiado",
+      "copy": "Copiar",
+      "copyFailedManual": "Error al copiar, copia manualmente",
+      "createCustomKey": "Crear clave personalizada",
+      "createFailed": "No se pudo crear la clave: {{error}}",
+      "createKey": "Crear clave predeterminada",
+      "createNotSupported": "Esta cuenta no admite crear claves desde este diálogo.",
+      "createSuccess": "Clave creada",
+      "creatingKey": "Creando clave predeterminada...",
+      "defaultGroup": "Grupo predeterminado",
+      "disabled": "Deshabilitado",
+      "enabled": "Habilitado",
+      "getFailed": "No se pudo obtener",
+      "keyCopied": "Clave copiada al portapapeles",
+      "loadFailed": "No se pudo cargar la lista de claves: {{error}}",
+      "loading": "Cargando lista de claves...",
+      "noKeyFoundAfterCreate": "No se encontró ninguna clave después de crear una. Inténtalo de nuevo.",
+      "noKeys": "Aún no hay datos de claves",
+      "noKeysDescription": "Crea rápidamente una clave predeterminada o crea una clave personalizada con ajustes avanzados.",
+      "retry": "Reintentar",
+      "title": "Lista de claves",
+      "totalKeys_one": "Total {{count}} clave",
+      "totalKeys_many": "Total {{count}} claves",
+      "totalKeys_other": "Total {{count}} claves"
+    },
+    "cursorPlus": {
+      "actions": {
+        "copy": "Copiar configuración del proveedor",
+        "retry": "Reintentar detección de modelos"
+      },
+      "description": "Crea un proveedor de Cursor++ con esta clave compatible con OpenAI y elige los modelos que incluirás.",
+      "guidance": {
+        "description": "En Cursor++, abre la configuración de proveedores y agrega el objeto copiado al arreglo providers de ~/.ccursor/providers.json.",
+        "title": "Configuración manual"
+      },
+      "labels": {
+        "baseUrl": "URL base del proveedor",
+        "baseUrlDescription": "De forma predeterminada se usa el endpoint compatible con OpenAI de esta cuenta. Ajusta la ruta si el protocolo nativo seleccionado usa otra.",
+        "models": "Modelos",
+        "modelsDescription": "Los modelos detectados se seleccionan de forma predeterminada. Busca, elimina o ingresa varios ID de modelo.",
+        "protocol": "Protocolo de API",
+        "protocolDescription": "Cambia cómo Cursor++ llama al proveedor. La detección de modelos sigue usando el endpoint compatible con OpenAI de la cuenta.",
+        "providerName": "Nombre del proveedor"
+      },
+      "messages": {
+        "copyFailed": "No se pudo copiar la configuración del proveedor: {{error}}",
+        "copySuccess": "Configuración del proveedor de Cursor++ copiada",
+        "invalidBaseUrl": "Ingresa una URL base HTTP o HTTPS válida."
+      },
+      "placeholders": {
+        "models": "Ingresa un ID de modelo",
+        "searchModels": "Buscar o agregar modelos"
+      },
+      "protocols": {
+        "anthropic": "Anthropic Messages",
+        "gemini": "Gemini",
+        "openAIChat": "OpenAI Chat Completions",
+        "openAIResponses": "OpenAI Responses"
+      },
+      "status": {
+        "empty": "No se devolvieron modelos",
+        "error": "No se pudieron cargar los modelos",
+        "loaded_one": "{{count}} modelo encontrado",
+        "loaded_many": "{{count}} modelos encontrados",
+        "loaded_other": "{{count}} modelos encontrados",
+        "loading": "Cargando modelos disponibles...",
+        "manualRecovery": "Agrega uno o más ID de modelo abajo o reintenta la detección."
+      },
+      "title": "Exportar a Cursor++",
+      "warning": {
+        "description": "El JSON copiado contiene la clave API en texto sin formato. Mantenlo privado.",
+        "title": "Configuración confidencial"
+      }
+    },
+    "dedupeAccounts": {
+      "confirm": {
+        "confirmDelete": "Eliminar",
+        "description": "Esto eliminará {{deleteCount}} cuenta(s) en {{groups}} conjunto(s) duplicados.",
+        "title": "Eliminar cuentas duplicadas",
+        "warningOrder": "El orden manual se ajustará.",
+        "warningPinned_one": "Se eliminará {{count}} cuenta fijada.",
+        "warningPinned_many": "Se eliminarán {{count}} cuentas fijadas.",
+        "warningPinned_other": "Se eliminarán {{count}} cuentas fijadas."
+      },
+      "delete": "Eliminar",
+      "deleting": "Eliminando cuentas duplicadas...",
+      "description": "Encuentra duplicados exactos y posibles coincidencias entre dominios; revísalos antes de hacer cambios.",
+      "details": {
+        "accountId": "ID de cuenta",
+        "authType": "Tipo de autenticación",
+        "autoCheckin": "Check-in automático",
+        "checkinDetection": "Detección de check-in",
+        "createdAt": "Creado el",
+        "customCheckinUrl": "URL de check-in personalizada",
+        "excludeFromTotalBalance": "Excluir del saldo total",
+        "health": "Salud",
+        "healthReason": "Motivo",
+        "lastSync": "Última sincronización",
+        "notes": "Notas",
+        "quota": "Cuota",
+        "siteType": "Tipo de sitio",
+        "todayConsumption": "Consumo de hoy",
+        "todayRequests": "Solicitudes de hoy",
+        "todayTokens": "Tokens de hoy",
+        "updatedAt": "Actualizado el",
+        "userId": "ID de usuario"
+      },
+      "detailsToggle": {
+        "hide": "Ocultar info",
+        "show": "Más info"
+      },
+      "duplicateCount_one": "{{count}} cuenta",
+      "duplicateCount_many": "{{count}} cuentas",
+      "duplicateCount_other": "{{count}} cuentas",
+      "empty": "No se encontraron cuentas duplicadas exactas.",
+      "exactTitle": "Duplicados exactos",
+      "keep": "Conservar",
+      "manualPickHint": "Puedes elegir manualmente qué cuenta conservar en cada conjunto. Las elecciones manuales anulan la estrategia de conservación.",
+      "previewDelete": "Vista previa de eliminación",
+      "recommended": "Recomendado",
+      "sameCredential": "Misma clave de administración",
+      "strategy": {
+        "keepEnabled": "Conservar habilitada (si hay)",
+        "keepMostRecentlyUpdated": "Conservar la actualizada más recientemente",
+        "keepPinned": "Conservar fijada (si hay)"
+      },
+      "strategyLabel": "Estrategia de conservación",
+      "summary": "{{groups}} conjunto(s) duplicados · {{deleteCount}} cuenta(s) para eliminar",
+      "suspected": {
+        "deleteAccount": "Eliminar {{name}}",
+        "description": "Estas cuentas comparten un ID de usuario y un nombre de sitio o dominio raíz. El sitio puede haber cambiado de dominio. Las posibles coincidencias no se incluyen en la limpieza masiva; revisa cada cuenta antes de editarla o eliminarla.",
+        "review": "Ver y editar",
+        "reviewAccount": "Ver y editar {{name}}",
+        "sameDomain": "Mismo dominio raíz: {{domain}}",
+        "sameName": "Mismo nombre de sitio: {{name}}",
+        "title": "Posibles cuentas duplicadas"
+      },
+      "title": "Detectar cuentas duplicadas",
+      "unscannableHint_one": "{{count}} cuenta no se pudo escanear y fue omitida.",
+      "unscannableHint_many": "{{count}} cuentas no se pudieron escanear y fueron omitidas.",
+      "unscannableHint_other": "{{count}} cuentas no se pudieron escanear y fueron omitidas.",
+      "userId": "ID de usuario: {{userId}}"
+    },
+    "delete": {
+      "confirmDelete": "Confirmar eliminación",
+      "confirmDeletion": "Confirmación de eliminación",
+      "deleteFailed": "Error al eliminar: {{error}}",
+      "deleteSuccess": "La cuenta {{name}} se elimino correctamente.",
+      "deleting": "Eliminando cuenta {{name}}...",
+      "noResponse": "La operación de eliminación no devolvió un resultado exitoso",
+      "siteName": "Nombre del sitio",
+      "siteUrl": "URL del sitio",
+      "title": "Eliminar cuenta",
+      "username": "Nombre de usuario",
+      "warning": "Estás a punto de eliminar la cuenta {{accountName}}. Verifica antes de confirmar la eliminación de esta cuenta"
+    },
+    "expand": "Expandir",
+    "firefox": {
+      "confirm": "Confirmar",
+      "howOpenOptions": "Continuar en la página completa",
+      "howOpenSidebar": "Cómo abrir la barra lateral",
+      "limitation": "Limitación de función del navegador Firefox",
+      "openFailed": "No se pudo abrir el panel lateral ni la página completa. Inténtalo de nuevo.",
+      "openOptions": "Continuar en la página completa",
+      "openSidebar": "Abrir barra lateral",
+      "optionsInstruction": "Usa el botón de abajo para abrir la página completa de administración de cuentas de la extensión.",
+      "popupLimitation": "El popup de Firefox puede cerrarse al abrir otra página. Agrega cuentas en el panel lateral o en la página completa.",
+      "sidebarInstruction": "Usa el botón de abajo para continuar en el panel lateral. Si no se puede abrir, se abrirá la página completa.",
+      "warningTitle": "Recordatorio de limitación de función"
+    },
+    "kelivo": {
+      "actions": {
+        "copy": "Copiar código de importación móvil"
+      },
+      "baseUrlDescription": "Esta dirección se incluirá sin cambios en el código de importación.",
+      "description": "Revisa los campos del proveedor y luego escanea con Kelivo móvil o copia su código de importación.",
+      "desktopNotice": {
+        "description": "Kelivo para escritorio aún no permite importar proveedores. Usa los campos anteriores para agregarlo manualmente.",
+        "title": "Kelivo para escritorio requiere configuración manual"
+      },
+      "googleBaseUrlDescription": "Kelivo usa la dirección oficial de la API de Google para los proveedores de Google.",
+      "googleNotice": {
+        "description": "Kelivo no acepta una Base URL personalizada para proveedores de Google. Tu Base URL para otros protocolos se conservará si vuelves a cambiar.",
+        "title": "Google usa una dirección de API fija"
+      },
+      "mobileQrCode": {
+        "description": "Abre la importación de proveedores en Kelivo móvil y escanea este código QR.",
+        "title": "Escanear con Kelivo móvil"
+      },
+      "mobileQrCodeLabel": "Código QR para importar un proveedor en Kelivo móvil",
+      "protocolDescription": "Los códigos de importación de Kelivo no pueden incluir la opción OpenAI Responses. Importa como OpenAI Compatible y luego activa Responses en Kelivo si lo necesitas.",
+      "securityNotice": {
+        "description": "El código QR y el código de importación copiado contienen tu clave de API. No los compartas en chats, incidencias, registros ni repositorios.",
+        "title": "La importación móvil contiene tu clave de API"
+      },
+      "title": "Exportar a Kelivo móvil"
+    },
+    "kiloCode": {
+      "actions": {
+        "copyKiloV7Provider": "Copiar configuración del proveedor",
+        "copyLegacyApiConfigs": "Copiar apiConfigs heredado",
+        "createDefaultToken": "Crear token predeterminado",
+        "downloadKiloV7Settings": "Descargar ajustes de Kilo 7.x",
+        "downloadLegacySettings": "Descargar ajustes heredados",
+        "removeManualModel": "Quitar modelo manual",
+        "retryModels": "Reintentar detección de modelos"
+      },
+      "description": "Genera perfiles de proveedor de Kilo Code / Roo Code desde tus sitios y tokens seleccionados.",
+      "descriptions": {
+        "currentApiConfigName": "Usado como providerProfiles.currentApiConfigName en {{filename}}.",
+        "modelId": "Recomendado por API key (Kilo Code normalmente requiere un Model ID). Usa como predeterminado el primer modelo de la lista upstream de esta API key.",
+        "selectedSites": "Sitios seleccionados: {{sites}}, claves seleccionadas: {{keys}}."
+      },
+      "help": {
+        "kiloV7ApiKeyEditorNote": "Después de importar, Kilo Code puede mostrar vacío el campo de API key del provider. Es una limitación conocida del editor: las claves integradas importadas se guardan por separado del estado de autenticación del editor y siguen disponibles durante la ejecución.",
+        "kiloV7CatalogInstructions": "Cada API key seleccionada se convierte en un provider con un nombre legible. Incluye todos los ID de modelo normalizados detectados mediante esa API y cualquier ID ingresado manualmente para el provider; incluirlos no garantiza que cada modelo funcione en todos los flujos. Elige el model predeterminado y, si exportas varios providers, también el provider predeterminado.",
+        "kiloV7CopyInstructions": "Haz clic en “Copiar configuración del proveedor” para copiar un fragmento combinable de nivel superior que contiene provider y model. Combina ambos campos con tu JSON de ajustes; el fragmento copiado no es un archivo de importación completo.",
+        "kiloV7DownloadInstructions": "Haz clic en “Descargar ajustes de Kilo 7.x” y, en Kilo Code, importa el archivo kilo-settings.json descargado desde Ajustes → About Kilo Code → Import. Revisa los ajustes importados y guárdalos.",
+        "legacyCopyInstructions": "Haz clic en “Copiar apiConfigs heredado” y pega el contenido en providerProfiles.apiConfigs de los ajustes de Roo Code o Kilo Code 5.x.",
+        "legacyDownloadInstructions": "Si necesitas un archivo de ajustes completo, haz clic en “Descargar ajustes heredados” para obtener kilo-code-settings.json e impórtalo mediante la función de importación de ajustes de la versión correspondiente.",
+        "legacySingleModelInstructions": "Las exportaciones para Roo Code y Kilo Code 5.x heredados admiten un modelo por perfil. Selecciona el modelo que se usará antes de copiar o descargar.",
+        "perSiteDescription": "Selecciona sitios para cargar tokens automáticamente. El primer token queda preseleccionado y puedes seleccionar varios tokens por sitio.",
+        "perSiteTitle": "Exportación por sitio",
+        "usageTitle": "Usar la exportación"
+      },
+      "labels": {
+        "currentApiConfigName": "Perfil actual",
+        "defaultModel": "Modelo predeterminado",
+        "defaultProvider": "Proveedor predeterminado",
+        "exportTarget": "Destino de exportación",
+        "legacyModelId": "ID del modelo",
+        "modelId": "Model ID",
+        "providerProtocol": "Protocolo de API",
+        "selectedSites": "Sitios seleccionados",
+        "selectedTokens": "Tokens seleccionados"
+      },
+      "messages": {
+        "accountNotFound": "Cuenta no encontrada.",
+        "copiedExportConfig": "Configuración de exportación copiada al portapapeles",
+        "copyFailed": "Error al copiar",
+        "createTokenFailed": "No se pudo crear el token.",
+        "downloadedSettings": "Archivo de ajustes descargado",
+        "downloadFailed": "No se pudo descargar el archivo de ajustes",
+        "invalidProfile": "Este perfil tiene una URL base no válida o no tiene clave de API. Actualiza el perfil antes de exportar.",
+        "loadingTokens": "Cargando lista de tokens…",
+        "loadModelsFailed": "No se pudieron cargar los modelos upstream para esta API key.",
+        "loadTokensFailed": "No se pudieron cargar los tokens de este sitio.",
+        "modelIdRequiredDescription_one": "Selecciona o ingresa un Model ID para todas las API keys seleccionadas para habilitar la exportación (faltan: {{count}}).",
+        "modelIdRequiredDescription_many": "Selecciona o ingresa un Model ID para todas las API keys seleccionadas para habilitar la exportación (faltan: {{count}}).",
+        "modelIdRequiredDescription_other": "Selecciona o ingresa un Model ID para todas las API keys seleccionadas para habilitar la exportación (faltan: {{count}}).",
+        "modelIdRequiredTitle": "Model ID obligatorio",
+        "modelSearchLimited": "Se muestran los primeros {{visible}} de {{count}} modelos. Sigue escribiendo para reducir la lista.",
+        "noModelsDescription": "No se devolvieron modelos upstream para esta API key. Kilo Code normalmente requiere un Model ID; ingrésalo manualmente.",
+        "noModelsTitle": "Sin modelos",
+        "nothingToExportDescription": "Selecciona al menos un token/sitio exportable para habilitar copiar/descargar.",
+        "nothingToExportTitle": "Nada para exportar",
+        "noTokensDescription": "Este sitio se omitirá hasta que se cree un token.",
+        "noTokensTitle": "No hay tokens disponibles",
+        "settingsFileTooLargeMultiple": "Este archivo supera el límite de importación de Kilo Code. Selecciona menos proveedores o copia la configuración y combínala manualmente.",
+        "settingsFileTooLargeSingle": "Este archivo supera el límite de importación de Kilo Code. Copia la configuración y combínala manualmente.",
+        "tokenCreated": "Token creado",
+        "v7ProviderModelsRequired": "Ingresa un ID de modelo, reintenta la detección o deselecciona este proveedor."
+      },
+      "placeholders": {
+        "currentApiConfigName": "Seleccionar perfil actual",
+        "modelId": "Buscar o ingresar Model ID",
+        "selectSites": "Seleccionar sitios",
+        "selectTokens": "Seleccionar tokens"
+      },
+      "protocols": {
+        "anthropicMessages": "Anthropic Messages",
+        "openAICompatible": "OpenAI Compatible",
+        "openAIResponses": "OpenAI Responses"
+      },
+      "targets": {
+        "kiloV7": "Kilo Code 7.x",
+        "legacy": "Roo Code / Kilo Code 5.x (heredado)"
+      },
+      "title": "Exportar JSON de Kilo Code",
+      "warning": {
+        "description": "El JSON exportado contiene API keys en texto plano. Guárdalo de forma segura y no lo compartas.",
+        "title": "API keys en texto plano"
+      }
+    },
+    "tempWindowFallbackReminder": {
+      "actions": {
+        "neverRemind": "No recordar nunca",
+        "notNow": "Ahora no",
+        "openSettings": "Abrir ajustes"
+      },
+      "descriptionDisabledTempWindowOnly": "La actualización automática de {{accountName}} encontró una verificación del sitio, pero las tareas automáticas no pueden abrir páginas temporales. Activa esta opción en Ajustes > Actualización de datos.",
+      "descriptionDisabledWithCookieInterceptor": "La actualización automática de {{accountName}} encontró una verificación del sitio, pero las tareas automáticas no pueden abrir páginas temporales. Activa esta opción en Ajustes > Actualización de datos.",
+      "descriptionPermissionTempWindowOnly": "La actualización automática de {{accountName}} necesita abrir una página temporal para verificar el sitio. Concede el permiso necesario en Ajustes > Permisos.",
+      "descriptionPermissionWithCookieInterceptor": "La actualización automática de {{accountName}} necesita los permisos Cookies, Web Request y Web Request Blocking para verificar el sitio. Concédelos en Ajustes > Permisos.",
+      "titleTempWindowOnly": "La actualización automática necesita verificar el sitio",
+      "titleWithCookieInterceptor": "La actualización automática necesita verificar el sitio"
+    },
+    "updateLog": {
+      "autoOpenSetting": "Apertura automática del registro de cambios",
+      "disableAutoOpen": "No mostrar después de actualizaciones",
+      "enableAutoOpen": "Volver a habilitar después de actualizaciones",
+      "loading": "Cargando changelog…",
+      "missingSection": "No se pudo cargar la vista previa del changelog de v{{version}}. Puedes abrir el changelog completo.",
+      "openFullChangelog": "Abrir changelog completo",
+      "starPrompt": "¿Te resulta útil My API Box? Dale una estrella en GitHub para seguir las novedades",
+      "title": "Novedades",
+      "updatedTo": "Actualizado a v{{version}}"
+    }
+  },
+  "feedback": {
+    "bugReport": "Reportar un bug",
+    "clickAnywhereToClose": "Haz clic en cualquier lugar para cerrar",
+    "community": "Grupos de comunidad",
+    "communityUnavailable": "No se pudieron cargar los enlaces de la comunidad. Abre la página de la comunidad para ver las invitaciones actuales.",
+    "discussion": "Iniciar una discusión",
+    "featureRequest": "Solicitar una función",
+    "languageRequest": "Solicitar un idioma nuevo",
+    "openCommunityPage": "Abrir página de la comunidad",
+    "siteSupportRequest": "Solicitar soporte de sitio",
+    "sponsor": "Patrocinar",
+    "sponsorTitle": "Ver patrocinadores y apoyo",
+    "starOnGithub": "Dar una estrella en GitHub",
+    "trigger": "Comentarios",
+    "triggerTooltip": "Abrir accesos rapidos de comentarios",
+    "wechat": "Grupo de WeChat",
+    "wechatHelp": "¿La invitación venció o el grupo está lleno? Escanea el código QR personal de la imagen para agregar al contacto y pedir una invitación, o visita la página de la comunidad.",
+    "wechatUnavailable": "No se pudo cargar el código QR."
+  },
+  "modelListInput": {
+    "actions": {
+      "add": "Agregar modelo",
+      "remove": "Quitar modelo",
+      "reorder": "Reordenar modelo"
+    },
+    "description": "Ejemplo: gpt-4o-mini o moonshotai/kimi-k2:free, kimi-k2",
+    "placeholders": {
+      "alias": "Alias de modelo (opcional)",
+      "name": "Nombre del modelo, p. ej. claude"
+    },
+    "title": "Lista de modelos (nombre[, alias], uno por línea):"
+  },
+  "multiSelect": {
+    "cancelSelected": "Cancelar selección",
+    "chipCopied": "Copiado: {{value}}",
+    "clearInput": "Limpiar entrada",
+    "clearSelected": "Limpiar todos los valores seleccionados",
+    "copyChipValue": "Copiar {{value}}",
+    "copyError": "Error al copiar, inténtalo de nuevo",
+    "copySelectedValues": "Copiar valores seleccionados",
+    "copySuccess": "Valores seleccionados copiados",
+    "deselect": "Deseleccionar",
+    "deselectMatches": "Deseleccionar coincidencias",
+    "emptyWithQueryAllowCustom": "Presiona Enter para agregar \"{{value}}\"",
+    "filteredMatchCount_one": "{{count}} coincidencia",
+    "filteredMatchCount_many": "{{count}} coincidencias",
+    "filteredMatchCount_other": "{{count}} coincidencias",
+    "filteredResultsScope": "Estas acciones solo afectan los resultados del filtro actual",
+    "filteredSelectedCount_one": "{{count}} seleccionada",
+    "filteredSelectedCount_many": "{{count}} seleccionadas",
+    "filteredSelectedCount_other": "{{count}} seleccionadas",
+    "invert": "Invertir",
+    "invertMatches": "Invertir coincidencias",
+    "noOptions": "No hay opciones disponibles",
+    "noOptionsAllowCustom": "No hay opciones disponibles. Escribe para crear una",
+    "placeholder": "Seleccionar...",
+    "removeValue": "Quitar {{value}}",
+    "selectAll": "Seleccionar todo",
+    "selectAllMatches": "Seleccionar todas las coincidencias",
+    "selected": "Seleccionado"
+  },
+  "navigation": {
+    "about": "Acerca de",
+    "account": "Gestión de cuentas",
+    "apiCredentialProfiles": "Biblioteca de credenciales API",
+    "autoCheckin": "Check-in automático",
+    "autoCheckinRunNow": "Check-in rápido",
+    "balanceHistory": "Historial de saldos",
+    "basic": "Ajustes",
+    "batchCheckin": "Check-in por lotes",
+    "bookmark": "Gestión de marcadores",
+    "browserApiLab": "Laboratorio de API del navegador (Dev)",
+    "categories": {
+      "api": "API",
+      "automation": "Automatización",
+      "general": "General",
+      "insights": "Estadísticas",
+      "siteManagement": "Gestión de sitios",
+      "system": "Sistema"
+    },
+    "collapseSidebar": "Contraer barra lateral",
+    "expandSidebar": "Expandir barra lateral",
+    "externalCheckinAll": "Abrir todos los check-ins externos",
+    "externalCheckinAllHint": "Abrir check-ins externos pendientes. Ctrl/Cmd: abrir todos. Shift: abrir en ventana nueva. Ctrl/Cmd+Shift: abrir todos en ventana nueva.",
+    "importExport": "Importar/Exportar",
+    "keys": "Gestión de claves",
+    "managedSiteChannels": "Gestión de canales",
+    "managedSiteModelSync": "Sincronización de modelos",
+    "meshGradientLab": "Mesh Gradient Lab (Dev)",
+    "models": "Lista de modelos",
+    "overview": "Resumen",
+    "settings": "Ajustes",
+    "settingsOptions": "Opciones de ajustes",
+    "sidebarCollapsedHint": "Barra lateral contraída, solo se muestran íconos",
+    "siteAnnouncements": "Anuncios del sitio",
+    "starPromotionPreview": "Vista previa de promoción de Star (Dev)",
+    "toggleMenu": "Alternar menú",
+    "unifiedApiGuidancePreview": "Vista previa de guía Unified API (Dev)",
+    "usageAnalytics": "Analítica de uso"
+  },
+  "optionsSearch": {
+    "dialogDescription": "Buscar páginas, pestañas de ajustes y elementos de ajustes",
+    "dialogTitle": "Buscar ajustes",
+    "emptyDescription": "Prueba otro título, palabra clave o alias técnico.",
+    "emptyTitle": "No hay ajustes coincidentes",
+    "groups": {
+      "control": "Elementos de ajustes",
+      "page": "Páginas",
+      "recent": "Recientes",
+      "section": "Secciones",
+      "tab": "Pestañas de ajustes"
+    },
+    "idleDescription": "Escribe el nombre de un ajuste, palabra clave o alias técnico para empezar a buscar.",
+    "idleTitle": "Buscar en ajustes",
+    "open": "Abrir búsqueda de ajustes",
+    "placeholder": "Buscar ajustes..."
+  },
+  "pageTitle": {
+    "app": "My API Box",
+    "options": "Ajustes",
+    "popup": "Popup",
+    "sidepanel": "Barra lateral",
+    "template": "{{page}} | {{app}}"
+  },
+  "popupInterruption": {
+    "actions": {
+      "keepPopup": "Mantener popup",
+      "useOptions": "Continuar en la página completa",
+      "useSidepanel": "Continuar en el panel lateral"
+    },
+    "description": "El popup se cerró durante la detección automática de la cuenta. Continúa en el panel lateral; si no se puede abrir, se usará la página completa.",
+    "openFailed": "No se pudo abrir el panel lateral ni la página completa. Inténtalo de nuevo.",
+    "optionsDescription": "El popup se cerró durante la detección automática de la cuenta. Continúa agregando la cuenta en la página completa.",
+    "title": "La autodetección puede haberse interrumpido"
+  },
+  "repeatableInput": {
+    "actions": {
+      "add": "Agregar",
+      "remove": "Quitar",
+      "reorder": "Arrastrar para reordenar"
+    }
+  },
+  "resourceEditor": {
+    "configured": "Configurado",
+    "items_one": "{{count}} elemento",
+    "items_many": "{{count}} elementos",
+    "items_other": "{{count}} elementos",
+    "optional": "Opcional"
+  },
+  "searchableSelect": {
+    "empty": "No se encontraron resultados",
+    "noOptions": "No hay opciones disponibles",
+    "noOptionsAllowCustom": "No hay opciones disponibles. Escribe para crear una",
+    "searchPlaceholder": "Buscar...",
+    "useValue": "Usar \"{{value}}\""
+  },
+  "secretList": {
+    "add": "Agregar clave",
+    "clearedState": "Se borrará la clave guardada",
+    "collapse": "Contraer API Key {{number}}",
+    "configured": "Configurado",
+    "enableKey": "Habilitar esta clave",
+    "expand": "Expandir API Key {{number}}",
+    "hide": "Ocultar clave",
+    "keepPlaceholder": "Deja en blanco para conservar la clave guardada",
+    "loadFailed": "No se pudo cargar esta clave. Inténtalo de nuevo.",
+    "maskedOnly": "Solo está disponible el valor enmascarado de esta clave guardada.",
+    "newPlaceholder": "Ingresa la clave API",
+    "newState": "Nueva, sin guardar",
+    "previousDisableReason": "Motivo de la desactivación anterior: {{reason}}",
+    "remove": "Quitar clave",
+    "replacementState": "Se reemplazará la clave",
+    "restore": "Conservar clave guardada",
+    "retainedState": "Conservar clave guardada",
+    "row": "Clave API {{number}}",
+    "shortRow": "Clave {{number}}",
+    "show": "Mostrar clave",
+    "title": "Claves API"
+  },
+  "sidebarFooter": {
+    "community": "Comunidad",
+    "docs": "Docs",
+    "github": "GitHub",
+    "sponsor": "Patrocinar"
+  },
+  "starPromotion": {
+    "actions": {
+      "alreadyStarred": "Ya le di estrella",
+      "defer": "Cerrar",
+      "later": "Más tarde",
+      "star": "Dar estrella"
+    },
+    "cardDescription": "My API Box es totalmente de código abierto, y sigue adaptándose a más sitios mientras mejora la experiencia. Una estrella sostiene su mantenimiento y ayuda a que más gente que lo necesita lo encuentre.",
+    "cardTitle": "¿Te sirve My API Box?"
+  },
+  "textEntries": {
+    "add": "Agregar fila",
+    "editRows": "Editar filas",
+    "editText": "Editar como texto",
+    "headerName": "Nombre del encabezado",
+    "headerValue": "Valor",
+    "modelAlias": "Alias (opcional)",
+    "modelAliasPlaceholder": "Usar el nombre original",
+    "modelHelp": "Deja el alias vacío para usar el nombre original. Formato de texto: un modelo = alias por línea.",
+    "modelName": "Modelo original",
+    "remove": "Eliminar fila {{number}}"
+  }
+}

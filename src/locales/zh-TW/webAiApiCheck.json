@@ -1,0 +1,118 @@
+{
+  "confirmToast": {
+    "body": "是否開啟 AI API 測試面板，以檢查並測試 AI API 可用性？",
+    "enhancedInfo": "此提示由增強自動檢測觸發。若判斷有誤，建議回報問題；也可在設定中關閉增強自動檢測。",
+    "feedback": "回報問題",
+    "open": "開啟",
+    "settings": "開啟設定",
+    "title": "檢測到有效 AI API 網址和API Key"
+  },
+  "messages": {
+    "success": {
+      "settingsSaved": "AI API 檢測設定已儲存。"
+    }
+  },
+  "modal": {
+    "actions": {
+      "fetchingModels": "獲取中…",
+      "fetchModels": "獲取模型列表",
+      "hideKey": "隱藏 Key",
+      "openApiProfiles": "開啟 API 憑據庫",
+      "retry": "重試",
+      "running": "測試中…",
+      "runOne": "測試",
+      "saveToProfiles": "儲存到 API 憑據庫",
+      "saving": "儲存中…",
+      "showKey": "顯示 Key",
+      "stopping": "正在停止…",
+      "stopTest": "停止測試",
+      "test": "測試"
+    },
+    "candidates": {
+      "apiKey": "候選 Key {{index}}"
+    },
+    "errors": {
+      "fetchModelsFailed": "獲取模型列表失敗。",
+      "missingBaseUrlOrKey": "請先填寫 Base URL 與 API Key。",
+      "runProbeFailed": "探測失敗。",
+      "saveToProfilesFailed": "儲存到 API 憑據庫失敗"
+    },
+    "fields": {
+      "apiKey": "API Key",
+      "apiType": "API 型別",
+      "baseUrl": "Base URL",
+      "expiresAt": "到期日",
+      "modelId": "模型 ID",
+      "notes": "備註",
+      "sourceUrl": "來源網頁",
+      "tags": "標籤"
+    },
+    "hints": {
+      "expiresAt": "可選。用於記錄這枚金鑰預計失效的日期。",
+      "saveWithoutTest": "提示：只要填寫 Base URL 與 API Key 就能儲存到 API 憑據庫（無需先測試或獲取模型列表）。測試僅用於驗證可用性。",
+      "sourceUrl": "可選。記錄你從哪個頁面取得這份憑證，之後可一鍵回訪查看更新。",
+      "tags": "可選。與帳號/書籤共用全域標籤。"
+    },
+    "history": {
+      "empty": "暫無 Base URL 歷史",
+      "label": "最近使用的 Base URL",
+      "remove": "從 Base URL 歷史中移除",
+      "trigger": "從 Base URL 歷史中選擇"
+    },
+    "messages": {
+      "savedToProfiles": "已儲存 {{name}} 到 API 憑據庫",
+      "stoppingTest": "正在停止測試，目前請求會盡快中斷。",
+      "testStopped": "測試已停止，已完成的結果已保留，未開始的項目不會繼續執行。"
+    },
+    "optionalProfileFields": {
+      "hasInput": "已填寫可選儲存資訊",
+      "hint": "標籤、備註和到期日不會影響測試結果。",
+      "title": "儲存選項（可選）"
+    },
+    "placeholders": {
+      "notes": "可選備註",
+      "sourceUrl": "https://example.com/post",
+      "tags": "選擇標籤"
+    },
+    "privacyHint": "API Key 會被視為敏感資訊：預設隱藏，且除非你主動儲存到 API 憑據庫，否則不會持久化儲存任何資料。",
+    "probes": {
+      "notRunYet": "尚未執行"
+    },
+    "sourceText": {
+      "label": "用於提取的文字",
+      "placeholder": "將 Base URL 和 API Key 貼上到這裡，或使用右鍵選單從選中文字預填。"
+    },
+    "title": "AI API 功能可用性測試"
+  },
+  "settings": {
+    "autoDetect": {
+      "enable": "啟用自動檢測",
+      "enableDesc": "啟用後，擴充套件可能從複製操作中識別憑據，並在開啟彈窗前請求確認。",
+      "enhanced": {
+        "enable": "啟用增強自動檢測",
+        "enableDesc": "識別裸網域、非標準金鑰格式，以及複製內容中夾雜非法字元的金鑰。增強命中會在彈窗中提示並可快速關閉。"
+      },
+      "whitelist": {
+        "invalidMore": "…以及更多",
+        "invalidTitle": "無效規則",
+        "patterns": "URL 白名單規則",
+        "patternsDesc": "每行一個 JavaScript RegExp。匹配時預設使用不區分大小寫。無效規則會被忽略（視為不匹配）。",
+        "patternsPlaceholder": "^https://example\\.com/console"
+      }
+    },
+    "contextMenu": {
+      "enable": "在瀏覽器右鍵選單中顯示",
+      "enableDesc": "啟用後，在網頁右鍵選單中顯示“AI API 檢測”入口。"
+    },
+    "description": "手動右鍵選單始終可用。自動檢測為可選功能，僅在白名單頁面執行，並在開啟彈窗前請求確認。預設不會儲存提取到的 API Key。",
+    "keyCleanup": {
+      "invalidMore": "…以及更多",
+      "invalidTitle": "無效清理規則",
+      "patterns": "API Key 清理規則",
+      "patternsDesc": "如果複製到的 Key 夾帶提示詞、括號或分隔符，可以在這裡填寫要刪除的正規表示式規則。每行一條，儲存前會提示無效規則。",
+      "patternsPlaceholder": "\\[\\[刪除這裡\\]\\]\n【刪除這裡】\n<remove-this>\n(?:分隔符|separator|noise)\n[\\s\\-_.]+",
+      "save": "儲存清理規則"
+    },
+    "title": "網頁 AI API 功能可用性測試"
+  }
+}

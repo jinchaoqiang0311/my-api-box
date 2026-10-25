@@ -1,0 +1,356 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { Storage } from "@plasmohq/storage"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { USER_PREFERENCES_STORAGE_KEYS } from "~/services/core/storageKeys"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { type PreferenceWriteResult } from "~/services/preferences/preferencesStore"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { DEFAULT_AXON_HUB_CONFIG } from "~/types/axonHubConfig"
+import { DEFAULT_CLAUDE_CODE_HUB_CONFIG } from "~/types/claudeCodeHubConfig"
+import { DEFAULT_DONE_HUB_CONFIG } from "~/types/doneHubConfig"
+import { DEFAULT_OCTOPUS_CONFIG } from "~/types/octopusConfig"
+import { DEFAULT_SUB2API_MANAGED_SITE_CONFIG } from "~/types/sub2apiManagedSiteConfig"
+
+const expectSuccessfulWrite = async (write: Promise<PreferenceWriteResult>) => {
+  await expect(write).resolves.toMatchObject({
+    ok: true,
+    preferences: expect.any(Object),
+  })
+}
+
+describe("userPreferences managed-site helpers", () => {
+  const storage = new Storage({ area: "local" })
+
+  it("resets Magpie credentials without replacing other gateway configurations", async () => {
+    await expectSuccessfulWrite(
+      userPreferences.savePreferences({
+        magpie: { baseUrl: "https://magpie.test/web", webKey: "web-key" },
+      }),
+    )
+    const before = await userPreferences.getPreferences()
+    expect(before.magpie).toEqual({
+      baseUrl: "https://magpie.test/web",
+      webKey: "web-key",
+    })
+    await expectSuccessfulWrite(userPreferences.resetMagpieConfig())
+    const after = await userPreferences.getPreferences()
+    expect(after.magpie).toEqual(DEFAULT_PREFERENCES.magpie)
+    expect(after.newApi).toEqual(before.newApi)
+  })
+
+  it("updates and resets OmniRoute without replacing other site configuration", async () => {
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.OMNIROUTE),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateOmniRouteConfig({
+        baseUrl: "https://gateway.invalid",
+        token: "oma_test",
+      }),
+    )
+    const before = await userPreferences.getPreferences()
+    await expect(userPreferences.getManagedSiteConfig()).resolves.toEqual({
+      siteType: SITE_TYPES.OMNIROUTE,
+      config: { baseUrl: "https://gateway.invalid", token: "oma_test" },
+    })
+    await expectSuccessfulWrite(userPreferences.resetOmniRouteConfig())
+    const after = await userPreferences.getPreferences()
+    expect(after.omniroute).toEqual(DEFAULT_PREFERENCES.omniroute)
+    expect(after.newApi).toEqual(before.newApi)
+  })
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await storage.remove(USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES)
+  })
+
+  afterEach(async () => {
+    vi.useRealTimers()
+    await storage.remove(USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES)
+  })
+
+  it("selects and persists the config for each managed-site type", async () => {
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      structuredClone(DEFAULT_PREFERENCES),
+    )
+
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.VELOERA),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateVeloeraConfig({
+        baseUrl: "https://veloera.example.com",
+      }),
+    )
+
+    let managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.VELOERA)
+    expect(managedSite.config).toEqual(
+      expect.objectContaining({
+        baseUrl: "https://veloera.example.com",
+      }),
+    )
+
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.DONE_HUB),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateDoneHubConfig({
+        baseUrl: "https://done.example.com",
+        adminToken: "done-token",
+        userId: "done-user",
+      }),
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.DONE_HUB)
+    expect(managedSite.config).toEqual({
+      ...DEFAULT_PREFERENCES.doneHub,
+      baseUrl: "https://done.example.com",
+      adminToken: "done-token",
+      userId: "done-user",
+    })
+
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.OCTOPUS),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateOctopusConfig({
+        baseUrl: "https://octopus.example.com",
+        username: "octopus-user",
+        password: "octopus-pass",
+      }),
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.OCTOPUS)
+    expect(managedSite.config).toEqual({
+      ...DEFAULT_PREFERENCES.octopus,
+      baseUrl: "https://octopus.example.com",
+      username: "octopus-user",
+      password: "octopus-pass",
+    })
+
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.AXON_HUB),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateAxonHubConfig({
+        baseUrl: "https://axonhub.example.com",
+        email: "admin@example.com",
+        password: "secret",
+      }),
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.AXON_HUB)
+    expect(managedSite.config).toEqual({
+      ...DEFAULT_PREFERENCES.axonHub,
+      baseUrl: "https://axonhub.example.com",
+      email: "admin@example.com",
+      password: "secret",
+    })
+
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.CLAUDE_CODE_HUB),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateClaudeCodeHubConfig({
+        baseUrl: "https://cch.example.com",
+        adminToken: "admin-token",
+      }),
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.CLAUDE_CODE_HUB)
+    expect(managedSite.config).toEqual({
+      ...DEFAULT_PREFERENCES.claudeCodeHub,
+      baseUrl: "https://cch.example.com",
+      adminToken: "admin-token",
+    })
+
+    await expectSuccessfulWrite(
+      userPreferences.updateManagedSiteType(SITE_TYPES.SUB2API),
+    )
+    await expectSuccessfulWrite(
+      userPreferences.updateSub2ApiManagedSiteConfig({
+        baseUrl: "https://sub2api.example.com",
+        adminToken: "sub2api-admin-key",
+      }),
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.SUB2API)
+    expect(managedSite.config).toEqual({
+      baseUrl: "https://sub2api.example.com",
+      adminToken: "sub2api-admin-key",
+    })
+  })
+
+  it("falls back to New API when the selected registration has no config", async () => {
+    const preferences = structuredClone(DEFAULT_PREFERENCES)
+    preferences.managedSiteType = SITE_TYPES.VELOERA
+    Reflect.deleteProperty(preferences, "veloera")
+    const getPreferences = vi
+      .spyOn(userPreferences, "getPreferences")
+      .mockResolvedValueOnce(preferences)
+
+    try {
+      await expect(userPreferences.getManagedSiteConfig()).resolves.toEqual({
+        siteType: SITE_TYPES.VELOERA,
+        config: preferences.newApi,
+      })
+    } finally {
+      getPreferences.mockRestore()
+    }
+  })
+
+  it("falls back to default configs when optional managed-site settings are missing", async () => {
+    const missingManagedSiteType: any = {
+      ...structuredClone(DEFAULT_PREFERENCES),
+    }
+    delete missingManagedSiteType.managedSiteType
+
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      missingManagedSiteType,
+    )
+
+    let managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.NEW_API)
+    expect(managedSite.config).toEqual(DEFAULT_PREFERENCES.newApi)
+
+    const missingDoneHub: any = {
+      ...structuredClone(DEFAULT_PREFERENCES),
+      managedSiteType: SITE_TYPES.DONE_HUB,
+    }
+    delete missingDoneHub.doneHub
+
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      missingDoneHub,
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.DONE_HUB)
+    expect(managedSite.config).toEqual(DEFAULT_DONE_HUB_CONFIG)
+
+    const missingOctopus: any = {
+      ...structuredClone(DEFAULT_PREFERENCES),
+      managedSiteType: SITE_TYPES.OCTOPUS,
+    }
+    delete missingOctopus.octopus
+
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      missingOctopus,
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.OCTOPUS)
+    expect(managedSite.config).toEqual(DEFAULT_OCTOPUS_CONFIG)
+
+    const missingAxonHub: any = {
+      ...structuredClone(DEFAULT_PREFERENCES),
+      managedSiteType: SITE_TYPES.AXON_HUB,
+    }
+    delete missingAxonHub.axonHub
+
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      missingAxonHub,
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.AXON_HUB)
+    expect(managedSite.config).toEqual(DEFAULT_AXON_HUB_CONFIG)
+
+    const missingClaudeCodeHub: any = {
+      ...structuredClone(DEFAULT_PREFERENCES),
+      managedSiteType: SITE_TYPES.CLAUDE_CODE_HUB,
+    }
+    delete missingClaudeCodeHub.claudeCodeHub
+
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      missingClaudeCodeHub,
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.CLAUDE_CODE_HUB)
+    expect(managedSite.config).toEqual(DEFAULT_CLAUDE_CODE_HUB_CONFIG)
+
+    const missingSub2Api: any = {
+      ...structuredClone(DEFAULT_PREFERENCES),
+      managedSiteType: SITE_TYPES.SUB2API,
+    }
+    delete missingSub2Api.sub2apiManagedSite
+
+    await storage.set(
+      USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES,
+      missingSub2Api,
+    )
+
+    managedSite = await userPreferences.getManagedSiteConfig()
+    expect(managedSite.siteType).toBe(SITE_TYPES.SUB2API)
+    expect(managedSite.config).toEqual(DEFAULT_SUB2API_MANAGED_SITE_CONFIG)
+  })
+
+  it("restores managed-site configs to their defaults with dedicated reset helpers", async () => {
+    await storage.set(USER_PREFERENCES_STORAGE_KEYS.USER_PREFERENCES, {
+      ...structuredClone(DEFAULT_PREFERENCES),
+      managedSiteType: SITE_TYPES.OCTOPUS,
+      veloera: {
+        ...DEFAULT_PREFERENCES.veloera,
+        baseUrl: "https://veloera.example.com",
+      },
+      doneHub: {
+        ...DEFAULT_PREFERENCES.doneHub,
+        baseUrl: "https://done.example.com",
+        adminToken: "done-token",
+        userId: "done-user",
+      },
+      octopus: {
+        ...DEFAULT_PREFERENCES.octopus,
+        baseUrl: "https://octopus.example.com",
+        username: "octopus-user",
+        password: "octopus-pass",
+      },
+      axonHub: {
+        ...DEFAULT_PREFERENCES.axonHub,
+        baseUrl: "https://axonhub.example.com",
+        email: "admin@example.com",
+        password: "secret",
+      },
+      claudeCodeHub: {
+        ...DEFAULT_PREFERENCES.claudeCodeHub,
+        baseUrl: "https://cch.example.com",
+        adminToken: "admin-token",
+      },
+      sub2apiManagedSite: {
+        baseUrl: "https://sub2api.example.com",
+        adminToken: "sub2api-admin-key",
+      },
+    })
+
+    await expectSuccessfulWrite(userPreferences.resetVeloeraConfig())
+    await expectSuccessfulWrite(userPreferences.resetDoneHubConfig())
+    await expectSuccessfulWrite(userPreferences.resetOctopusConfig())
+    await expectSuccessfulWrite(userPreferences.resetAxonHubConfig())
+    await expectSuccessfulWrite(userPreferences.resetClaudeCodeHubConfig())
+    await expectSuccessfulWrite(userPreferences.resetSub2ApiManagedSiteConfig())
+
+    const preferences = await userPreferences.getPreferences()
+    expect(preferences.veloera).toEqual(DEFAULT_PREFERENCES.veloera)
+    expect(preferences.doneHub).toEqual(DEFAULT_PREFERENCES.doneHub)
+    expect(preferences.octopus).toEqual(DEFAULT_PREFERENCES.octopus)
+    expect(preferences.axonHub).toEqual(DEFAULT_PREFERENCES.axonHub)
+    expect(preferences.claudeCodeHub).toEqual(DEFAULT_PREFERENCES.claudeCodeHub)
+    expect(preferences.sub2apiManagedSite).toEqual(
+      DEFAULT_SUB2API_MANAGED_SITE_CONFIG,
+    )
+  })
+})

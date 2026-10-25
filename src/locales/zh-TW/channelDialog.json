@@ -1,0 +1,90 @@
+{
+  "actions": {
+    "create": "建立渠道",
+    "deselectAll": "全不選",
+    "hideKey": "隱藏金鑰",
+    "inverse": "反選",
+    "loadingRealKey": "正在載入真實 key...",
+    "loadRealKey": "載入真實 key",
+    "selectAll": "全選",
+    "showKey": "顯示金鑰",
+    "update": "儲存更改"
+  },
+  "description": {
+    "add": "為您管理的站點配置新的轉發渠道",
+    "edit": "更新渠道設定和路由資訊"
+  },
+  "fields": {
+    "baseUrl": {
+      "label": "基礎 URL",
+      "placeholder": "https://api.example.com"
+    },
+    "groups": {
+      "hint": "分組來源於您管理的站點",
+      "label": "渠道分組",
+      "placeholder": "選擇分組"
+    },
+    "key": {
+      "label": "API 金鑰",
+      "placeholder": "輸入上游提供商的 API 金鑰",
+      "realKeyHint": "當列表介面未回傳完整渠道 key 時，可在此載入真實 key；部分渠道類型可能還需要額外驗證。"
+    },
+    "models": {
+      "hint": "輸入搜尋或按 Enter 新增自定義模型名稱",
+      "label": "可用模型",
+      "placeholder": "選擇或輸入模型名稱"
+    },
+    "name": {
+      "label": "渠道名稱",
+      "placeholder": "輸入一個描述性的渠道名稱"
+    },
+    "priority": {
+      "label": "優先順序"
+    },
+    "status": {
+      "label": "狀態"
+    },
+    "type": {
+      "hint": "選擇此渠道將轉發到的上游提供商",
+      "label": "渠道型別",
+      "placeholder": "選擇渠道型別"
+    },
+    "weight": {
+      "label": "權重"
+    }
+  },
+  "opening": {
+    "loading": "正在載入渠道設定…"
+  },
+  "title": {
+    "add": "建立渠道",
+    "edit": "編輯渠道",
+    "view": "查看渠道"
+  },
+  "warnings": {
+    "channelExists": {
+      "actions": {
+        "continue": "繼續新增"
+      },
+      "description": "管理站點中已存在渠道 {{channelName}}。你仍可以繼續建立新渠道，但可能會造成重複路由。是否繼續？",
+      "title": "渠道已存在",
+      "warningTitle": "可能存在重複渠道"
+    },
+    "exactDuplicate": {
+      "description": "已確認管理站點中存在重複候選渠道 {{channelName}}。如需避免重複，請先調整名稱、模型或 key；若確認仍要保留重複渠道，也可以繼續建立。",
+      "title": "已確認存在重複渠道"
+    },
+    "modelsPrefillFailed": {
+      "description": "未能取得此金鑰的上游模型清單。你仍可繼續建立渠道，但請在儲存前手動填寫並確認模型。",
+      "title": "需要手動填寫模型"
+    },
+    "reviewSuggested": {
+      "description": "已發現與目前上游位址或模型設定接近的候選渠道，但尚不能自動確認是否為重複渠道。你仍可以繼續建立，請在儲存前檢查名稱、模型和 key。",
+      "title": "請檢查可能重複的渠道"
+    },
+    "verificationRequired": {
+      "description": "已發現候選渠道，但讀取真實渠道 key 前還需完成額外驗證，因此暫時無法自動確認是否重複。你仍可以繼續建立；若要精確去重，請先完成驗證後再重試。",
+      "title": "可能存在重複渠道，需驗證後才能精確確認"
+    }
+  }
+}

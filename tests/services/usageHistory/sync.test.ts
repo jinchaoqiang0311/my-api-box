@@ -1,0 +1,1106 @@
+import { http, HttpResponse } from "msw"
+import { afterEach, describe, expect, it, vi } from "vitest"
+
+import { type Storage } from "@plasmohq/storage"
+
+import { accountMutations } from "~/services/accounts/accountStorage/accountMutations"
+import { newApiFamilyRequests } from "~/services/apiService/newApiFamily/request"
+import { USAGE_HISTORY_LIMITS } from "~/services/history/usageHistory/constants"
+import { fingerprintLogItem } from "~/services/history/usageHistory/core"
+import { usageHistoryStorage } from "~/services/history/usageHistory/storage"
+import { syncUsageHistoryForAccount } from "~/services/history/usageHistory/sync"
+import { LogType } from "~/services/history/usageHistory/usageLogModel"
+import type { LogItem } from "~/services/history/usageHistory/usageLogModel"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { AuthTypeEnum, SiteHealthStatus, type SiteAccount } from "~/types"
+import {
+  USAGE_HISTORY_SCHEDULE_MODE,
+  type UsageHistoryPreferences,
+} from "~/types/usageHistory"
+import { getDayKeyFromUnixSeconds } from "~/utils/core/dayKey"
+import { server } from "~~/tests/msw/server"
+import { buildCheckInConfig } from "~~/tests/test-utils/checkIn"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+/**
+ * Create a fully populated Consume log item for usage-history sync tests.
+ */
+function createConsumeLogItem(
+  overrides: Partial<LogItem> & { created_at: number },
+): LogItem {
+  const { created_at, ...rest } = overrides
+  return {
+    id: rest.id ?? 1,
+    user_id: rest.user_id ?? 1,
+    created_at,
+    type: rest.type ?? LogType.Consume,
+    content: rest.content ?? "",
+    username: rest.username ?? "test",
+    token_name: rest.token_name ?? "",
+    model_name: rest.model_name ?? "gpt-4",
+    quota: rest.quota ?? 1,
+    prompt_tokens: rest.prompt_tokens ?? 1,
+    completion_tokens: rest.completion_tokens ?? 1,
+    use_time: rest.use_time ?? 0,
+    is_stream: rest.is_stream ?? false,
+    channel_id: rest.channel_id ?? 1,
+    channel_name: rest.channel_name ?? "",
+    token_id: rest.token_id ?? 1,
+    group: rest.group ?? "",
+    ip: rest.ip ?? "",
+    other: rest.other ?? "{}",
+    ...rest,
+  }
+}
+
+/**
+ * Create and persist a minimal New-API test account, returning its generated id.
+ */
+async function createTestAccount(
+  baseUrl: string,
+  siteType: SiteAccount["site_type"] = "new-api",
+): Promise<string> {
+  const accountData: Omit<
+    SiteAccount,
+    "id" | "created_at" | "updated_at" | "user_updated_at"
+  > = {
+    site_name: "Example",
+    site_url: baseUrl,
+    health: { status: SiteHealthStatus.Healthy },
+    site_type: siteType,
+    exchange_rate: 7.2,
+    account_info: {
+      id: "1",
+      access_token: "mock-token",
+      username: "tester",
+      quota: 0,
+      today_prompt_tokens: 0,
+      today_completion_tokens: 0,
+      today_quota_consumption: 0,
+      today_requests_count: 0,
+      today_income: 0,
+    },
+    last_sync_time: Date.now(),
+    notes: "",
+    tagIds: [],
+    disabled: false,
+    excludeFromTotalBalance: false,
+    excludeFromTodayIncome: false,
+    authType: AuthTypeEnum.AccessToken,
+    checkIn: buildCheckInConfig(),
+  }
+
+  return await accountMutations.addAccount(accountData)
+}
+
+describe("usageHistory sync (MSW)", () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it("syncs RelayFor pagination into model, key and daily history without duplicate ingestion", async () => {
+    const now = Date.UTC(2026, 9, 20, 12)
+    vi.spyOn(Date, "now").mockReturnValue(now)
+    const accountId = await createTestAccount(
+      "https://relayfor.xyz",
+      "relayfor",
+    )
+    const pages: number[] = []
+    server.use(
+      http.get("https://relayfor.xyz/api/user/logs", ({ request }) => {
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get("page"))
+        pages.push(page)
+        expect(url.searchParams.get("start_timestamp")).toBeTruthy()
+        expect(url.searchParams.get("sort_order")).toBe("desc")
+        return HttpResponse.json({
+          total_pages: 2,
+          items: [
+            {
+              id: page,
+              created_at: new Date(now - page * 1000).toISOString(),
+              model: "gpt-4o",
+              quota: 500000,
+              billing_detail: { refund_quota: page === 1 ? 100000 : 200000 },
+              prompt_tokens: 10,
+              completion_tokens: 5,
+              token_id: 7,
+              token_name: "Work",
+              duration_ms: 1000,
+            },
+          ],
+        })
+      }),
+    )
+    const config = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+    const params = {
+      accountId,
+      trigger: "manual" as const,
+      force: true,
+      timeZone: "UTC",
+      config,
+    }
+    await expect(syncUsageHistoryForAccount(params)).resolves.toMatchObject({
+      status: "success",
+      pagesFetched: 2,
+      ingestedCount: 2,
+    })
+    const store = await usageHistoryStorage.getAccountStore(accountId)
+    expect(store.daily["2026-10-20"]).toMatchObject({
+      requests: 2,
+      quotaConsumed: 700000,
+      totalTokens: 30,
+    })
+    expect(store.dailyByModel["gpt-4o"]?.["2026-10-20"]).toMatchObject({
+      requests: 2,
+    })
+    expect(store.tokenNamesById["7"]).toBe("Work")
+    await expect(syncUsageHistoryForAccount(params)).resolves.toMatchObject({
+      status: "success",
+      ingestedCount: 0,
+    })
+    expect(pages).toEqual([1, 2, 1, 2])
+  })
+
+  it.each([
+    [Number.NaN, 1],
+    [0, 1],
+    [-3, 1],
+    ["invalid", 1],
+    ["2.8", 2],
+    [1e100, 3],
+  ])("normalizes stored retention %s at commit time", async (raw, retained) => {
+    const now = Date.UTC(2026, 0, 10, 12)
+    vi.spyOn(Date, "now").mockReturnValue(now)
+    const accountId = await createTestAccount(
+      "https://history-retention.invalid",
+    )
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+    const preferences = await userPreferences.getPreferencesStrict()
+    vi.spyOn(userPreferences, "getPreferencesStrict").mockResolvedValue({
+      ...preferences,
+      usageHistory: { ...config, retentionDays: raw as number },
+    })
+    await usageHistoryStorage.updateAccountStore(accountId, (store) => {
+      store.daily["2026-01-01"] = {
+        requests: 1,
+        quotaConsumed: 1,
+        promptTokens: 1,
+        completionTokens: 1,
+        totalTokens: 2,
+      }
+    })
+    vi.spyOn(newApiFamilyRequests, "data").mockResolvedValue({
+      items: [0, 1, 2].map((daysAgo) =>
+        createConsumeLogItem({
+          id: daysAgo + 1,
+          created_at: now / 1000 - daysAgo * 86400,
+        }),
+      ),
+      total: 3,
+    })
+
+    await expect(
+      syncUsageHistoryForAccount({
+        accountId,
+        trigger: "manual",
+        force: true,
+        timeZone: "UTC",
+        config,
+      }),
+    ).resolves.toMatchObject({ status: "success", ingestedCount: retained })
+    const store = await usageHistoryStorage.getAccountStore(accountId)
+    expect(Object.keys(store.daily).sort()).toEqual(
+      retained === 3
+        ? ["2026-01-01", "2026-01-08", "2026-01-09", "2026-01-10"]
+        : retained === 2
+          ? ["2026-01-09", "2026-01-10"]
+          : ["2026-01-10"],
+    )
+  })
+
+  it.each([
+    [60, 3600000],
+    [2.9, 120000],
+    [0, 60000],
+    [-5, 60000],
+    [Number.NaN, 60000],
+  ])(
+    "waits for the normalized %s-minute interval before automatic sync",
+    async (syncIntervalMinutes, intervalMs) => {
+      const now = Date.UTC(2026, 0, 10, 12)
+      vi.spyOn(Date, "now").mockReturnValue(now)
+      const accountId = await createTestAccount(
+        "https://history-interval.invalid",
+      )
+      const config: UsageHistoryPreferences = {
+        enabled: true,
+        retentionDays: 30,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.ALARM,
+        syncIntervalMinutes,
+      }
+      const request = vi
+        .spyOn(newApiFamilyRequests, "data")
+        .mockResolvedValue({ items: [], total: 0 })
+      await usageHistoryStorage.updateAccountStore(accountId, (store) => {
+        store.status.lastSyncAt = now - intervalMs + 1
+      })
+      await expect(
+        syncUsageHistoryForAccount({ accountId, trigger: "alarm", config }),
+      ).resolves.toMatchObject({ status: "skipped" })
+      expect(request).not.toHaveBeenCalled()
+
+      await usageHistoryStorage.updateAccountStore(accountId, (store) => {
+        store.status.lastSyncAt = now - intervalMs
+      })
+      await expect(
+        syncUsageHistoryForAccount({ accountId, trigger: "alarm", config }),
+      ).resolves.toMatchObject({ status: "success" })
+      expect(request).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each(["get", "set"] as const)(
+    "does not report success when history %s fails",
+    async (operation) => {
+      const accountId = await createTestAccount(
+        "https://history-storage-failure.example.invalid",
+      )
+      vi.spyOn(newApiFamilyRequests, "data").mockResolvedValue({
+        items: [
+          createConsumeLogItem({
+            created_at: Math.floor(Date.now() / 1000) - 1,
+          }),
+        ],
+        total: 1,
+      })
+      const storage = (usageHistoryStorage as unknown as { storage: Storage })
+        .storage
+      vi.spyOn(storage, operation).mockRejectedValueOnce(
+        new Error(`history ${operation} failed`),
+      )
+      const result = await syncUsageHistoryForAccount({
+        accountId,
+        trigger: "manual",
+        force: true,
+      })
+      expect(result.status).toBe("error")
+      expect(result.ingestedCount).toBe(0)
+      const store = await usageHistoryStorage.getAccountStore(accountId)
+      expect(store.cursor.lastSeenCreatedAt).toBe(0)
+      expect(store.daily).toEqual({})
+    },
+  )
+
+  it("rejects a failed commit read after collecting logs", async () => {
+    const accountId = await createTestAccount(
+      "https://history-commit-read-failure.example.invalid",
+    )
+    const storage = (usageHistoryStorage as unknown as { storage: Storage })
+      .storage
+    vi.spyOn(newApiFamilyRequests, "data").mockImplementation(async () => {
+      vi.spyOn(storage, "get").mockRejectedValueOnce(
+        new Error("commit read failed"),
+      )
+      return {
+        items: [
+          createConsumeLogItem({
+            created_at: Math.floor(Date.now() / 1000) - 1,
+          }),
+        ],
+        total: 1,
+      }
+    })
+    expect(
+      await syncUsageHistoryForAccount({
+        accountId,
+        trigger: "manual",
+        force: true,
+      }),
+    ).toMatchObject({
+      status: "error",
+      ingestedCount: 0,
+      error: "commit read failed",
+    })
+    expect(
+      (await usageHistoryStorage.getAccountStore(accountId)).daily,
+    ).toEqual({})
+  })
+
+  it("skips non-consume items before interpreting their timestamp", async () => {
+    const accountId = await createTestAccount(
+      "https://history-non-consume.example.invalid",
+    )
+    vi.spyOn(newApiFamilyRequests, "data").mockResolvedValue({
+      items: [
+        createConsumeLogItem({ type: LogType.Topup, created_at: Number.NaN }),
+        createConsumeLogItem({ created_at: Math.floor(Date.now() / 1000) - 1 }),
+      ],
+      total: 2,
+    })
+    expect(
+      await syncUsageHistoryForAccount({
+        accountId,
+        trigger: "manual",
+        force: true,
+      }),
+    ).toMatchObject({ status: "success", ingestedCount: 1 })
+  })
+
+  it("reports a persistence error even when saving the error status also fails", async () => {
+    const accountId = await createTestAccount(
+      "https://history-double-write-failure.example.invalid",
+    )
+    vi.spyOn(newApiFamilyRequests, "data").mockResolvedValue({
+      items: [],
+      total: 0,
+    })
+    const storage = (usageHistoryStorage as unknown as { storage: Storage })
+      .storage
+    const write = vi
+      .spyOn(storage, "set")
+      .mockRejectedValue(new Error("history write failed"))
+    await expect(
+      syncUsageHistoryForAccount({ accountId, trigger: "manual", force: true }),
+    ).resolves.toMatchObject({ status: "error" })
+    expect(write).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps the latest retention policy when settings prune history during collection", async () => {
+    const accountId = await createTestAccount(
+      "https://history-retention-race.example.invalid",
+    )
+    const now = Math.floor(Date.now() / 1000)
+    const oldTimestamp = now - 10 * 24 * 60 * 60
+    const oldDay = getDayKeyFromUnixSeconds(oldTimestamp, "UTC")
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+    await userPreferences.savePreferences({ usageHistory: config })
+    await usageHistoryStorage.updateAccountStore(accountId, (store) => {
+      store.daily[oldDay] = {
+        requests: 1,
+        quotaConsumed: 1,
+        promptTokens: 1,
+        completionTokens: 1,
+        totalTokens: 2,
+      }
+    })
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let started!: () => void
+    const collecting = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    vi.spyOn(newApiFamilyRequests, "data").mockImplementation(async () => {
+      started()
+      await pending
+      return {
+        items: [
+          createConsumeLogItem({ created_at: now - 1 }),
+          createConsumeLogItem({ created_at: oldTimestamp }),
+        ],
+        total: 2,
+      }
+    })
+    const running = syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      timeZone: "UTC",
+      config,
+    })
+    await collecting
+    await userPreferences.savePreferences({
+      usageHistory: { ...config, retentionDays: 1 },
+    })
+    await usageHistoryStorage.pruneAllAccounts(1, "UTC")
+    release()
+    expect(await running).toMatchObject({ status: "success" })
+    const store = await usageHistoryStorage.getAccountStore(accountId)
+    expect(store.daily[oldDay]).toBeUndefined()
+    expect(
+      Object.values(store.daily).reduce(
+        (total, day) => total + day.requests,
+        0,
+      ),
+    ).toBe(1)
+  })
+
+  it("deduplicates overlapping collections against the cursor committed by the other sync", async () => {
+    const accountId = await createTestAccount(
+      "https://history-overlap.example.invalid",
+    )
+    const now = Math.floor(Date.now() / 1000)
+    const items = [
+      createConsumeLogItem({ id: 2, created_at: now - 1 }),
+      createConsumeLogItem({ id: 1, created_at: now - 2 }),
+    ]
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let started!: () => void
+    const collecting = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    vi.spyOn(newApiFamilyRequests, "data")
+      .mockImplementationOnce(async () => {
+        started()
+        await pending
+        return { items, total: items.length }
+      })
+      .mockResolvedValue({ items, total: items.length })
+    const params = {
+      accountId,
+      trigger: "manual" as const,
+      force: true,
+      timeZone: "UTC",
+    }
+    const first = syncUsageHistoryForAccount(params)
+    await collecting
+    const second = await syncUsageHistoryForAccount(params)
+    release()
+    const older = await first
+    expect(second).toMatchObject({ status: "success", ingestedCount: 2 })
+    expect(older).toMatchObject({ status: "success", ingestedCount: 0 })
+    const store = await usageHistoryStorage.getAccountStore(accountId)
+    expect(
+      Object.values(store.daily).reduce(
+        (total, day) => total + day.requests,
+        0,
+      ),
+    ).toBe(2)
+    expect(store.cursor.lastSeenCreatedAt).toBe(now - 1)
+  })
+
+  it("retains all current boundary fingerprints without recounting usage and discards them when the cursor advances", async () => {
+    const baseUrl = "https://usage-history-unlimited.example.invalid"
+    const accountId = await createTestAccount(baseUrl)
+    const createdAt = Math.floor(Date.now() / 1000) - 10
+    const items = Array.from({ length: 300 }, (_, index) =>
+      createConsumeLogItem({
+        id: index + 1,
+        created_at: createdAt,
+        quota: index + 1,
+      }),
+    )
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, ({ request }) => {
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get("p"))
+        const pageSize = Number(url.searchParams.get("page_size"))
+        const startTimestamp = Number(url.searchParams.get("start_timestamp"))
+        const filtered = items.filter(
+          (item) => item.created_at >= startTimestamp,
+        )
+        return HttpResponse.json({
+          success: true,
+          data: {
+            items: filtered.slice((page - 1) * pageSize, page * pageSize),
+            total: filtered.length,
+          },
+        })
+      }),
+    )
+    const params = {
+      accountId,
+      trigger: "manual" as const,
+      force: true,
+      timeZone: "UTC",
+      config: {
+        enabled: true,
+        retentionDays: 30,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+        syncIntervalMinutes: 60,
+      },
+    }
+
+    expect(await syncUsageHistoryForAccount(params)).toMatchObject({
+      status: "success",
+      ingestedCount: 300,
+    })
+    expect(
+      (await usageHistoryStorage.getAccountStore(accountId)).cursor
+        .fingerprintsAtLastSeenCreatedAt,
+    ).toHaveLength(300)
+    expect(await syncUsageHistoryForAccount(params)).toMatchObject({
+      status: "success",
+      ingestedCount: 0,
+    })
+
+    const nextItem = createConsumeLogItem({
+      id: 301,
+      created_at: createdAt + 1,
+    })
+    items.unshift(nextItem)
+    expect(await syncUsageHistoryForAccount(params)).toMatchObject({
+      status: "success",
+      ingestedCount: 1,
+    })
+    const advancedStore = await usageHistoryStorage.getAccountStore(accountId)
+    expect(advancedStore.cursor).toEqual({
+      lastSeenCreatedAt: createdAt + 1,
+      fingerprintsAtLastSeenCreatedAt: [fingerprintLogItem(nextItem)],
+    })
+    expect(
+      Object.values(advancedStore.daily).reduce(
+        (total, day) => total + day.requests,
+        0,
+      ),
+    ).toBe(301)
+    expect(await syncUsageHistoryForAccount(params)).toMatchObject({
+      status: "success",
+      ingestedCount: 0,
+    })
+  })
+
+  it("routes log pages through the New API-family request seam", async () => {
+    const baseUrl = "https://usage-history.example.invalid"
+    const accountId = await createTestAccount(baseUrl)
+    const dataSpy = vi
+      .spyOn(newApiFamilyRequests, "data")
+      .mockResolvedValue({ items: [], total: 0 })
+
+    await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      config: {
+        enabled: true,
+        retentionDays: 30,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+        syncIntervalMinutes: 60,
+      },
+    })
+
+    expect(dataSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl }),
+      expect.objectContaining({
+        endpoint: expect.stringContaining("/api/log/self?"),
+      }),
+    )
+    dataSpy.mockRestore()
+  })
+
+  it("skips disabled sync and mismatched scheduled triggers before loading accounts", async () => {
+    const disabledConfig: UsageHistoryPreferences = {
+      enabled: false,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    await expect(
+      syncUsageHistoryForAccount({
+        accountId: "missing-disabled",
+        trigger: "manual",
+        config: disabledConfig,
+      }),
+    ).resolves.toMatchObject({
+      accountId: "missing-disabled",
+      status: "skipped",
+      partial: false,
+    })
+
+    const afterRefreshConfig: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    await expect(
+      syncUsageHistoryForAccount({
+        accountId: "missing-after-refresh",
+        trigger: "afterRefresh",
+        config: afterRefreshConfig,
+      }),
+    ).resolves.toMatchObject({
+      accountId: "missing-after-refresh",
+      status: "skipped",
+      partial: false,
+    })
+
+    const alarmConfig: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+      syncIntervalMinutes: 60,
+    }
+
+    await expect(
+      syncUsageHistoryForAccount({
+        accountId: "missing-alarm",
+        trigger: "alarm",
+        config: alarmConfig,
+      }),
+    ).resolves.toMatchObject({
+      accountId: "missing-alarm",
+      status: "skipped",
+      partial: false,
+    })
+  })
+
+  it("returns an error when the requested account no longer exists", async () => {
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    const result = await syncUsageHistoryForAccount({
+      accountId: "missing-account",
+      trigger: "manual",
+      config,
+    })
+
+    expect(result.status).toBe("error")
+    expect(result.error).toBe("messages:storage.accountNotFound")
+  })
+
+  it("syncs /api/log/self with paging and is idempotent at the cursor boundary", async () => {
+    const baseUrl = "https://api.example.com"
+    const accountId = await createTestAccount(baseUrl)
+
+    const nowUnixSeconds = Math.floor(Date.now() / 1000)
+    const newestCreatedAt = nowUnixSeconds - 10
+
+    const dataset: LogItem[] = Array.from({ length: 101 }).map((_, index) => {
+      // Newest-first ordering (page 1 is newest).
+      const createdAt = newestCreatedAt - index
+      return createConsumeLogItem({
+        id: index + 1,
+        created_at: createdAt,
+        model_name: index % 2 === 0 ? "gpt-4" : "gpt-3.5-turbo",
+        quota: 1,
+        prompt_tokens: 1,
+        completion_tokens: 1,
+      })
+    })
+
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, ({ request }) => {
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get("p") ?? "1")
+        const pageSize = Number(url.searchParams.get("page_size") ?? "100")
+        const startTimestamp = Number(
+          url.searchParams.get("start_timestamp") ?? "0",
+        )
+        const endTimestamp = Number(
+          url.searchParams.get("end_timestamp") ?? String(nowUnixSeconds),
+        )
+
+        const filtered = dataset
+          .filter(
+            (item) =>
+              item.created_at >= startTimestamp &&
+              item.created_at <= endTimestamp,
+          )
+          .sort((a, b) => b.created_at - a.created_at)
+
+        const total = filtered.length
+        const startIndex = (page - 1) * pageSize
+        const items = filtered.slice(startIndex, startIndex + pageSize)
+
+        return HttpResponse.json({
+          success: true,
+          message: "",
+          data: {
+            items,
+            total,
+          },
+        })
+      }),
+    )
+
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    const first = await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      timeZone: "UTC",
+      config,
+    })
+
+    expect(first.status).toBe("success")
+    expect(first.pagesFetched).toBeGreaterThanOrEqual(1)
+
+    const storeAfterFirst = await usageHistoryStorage.getStore()
+    const accountStoreAfterFirst = atIndex(storeAfterFirst.accounts, accountId)
+    expect(accountStoreAfterFirst).toBeDefined()
+    expect(accountStoreAfterFirst.cursor.lastSeenCreatedAt).toBe(
+      newestCreatedAt,
+    )
+
+    const dayKey = getDayKeyFromUnixSeconds(newestCreatedAt, "UTC")
+    expect(atIndex(accountStoreAfterFirst.daily, dayKey)).toBeDefined()
+    expect(
+      atIndex(accountStoreAfterFirst.dailyByToken, "1")[dayKey],
+    ).toBeDefined()
+    expect(atIndex(accountStoreAfterFirst.latencyDaily, dayKey)).toBeDefined()
+    expect(
+      atIndex(accountStoreAfterFirst.latencyDailyByToken, "1")[dayKey],
+    ).toBeDefined()
+    expect(atIndex(accountStoreAfterFirst.latencyDaily, dayKey).count).toBe(
+      atIndex(accountStoreAfterFirst.daily, dayKey).requests,
+    )
+
+    const snapshotDaily = JSON.stringify(accountStoreAfterFirst.daily)
+    const snapshotDailyByToken = JSON.stringify(
+      accountStoreAfterFirst.dailyByToken,
+    )
+    const snapshotLatencyDaily = JSON.stringify(
+      accountStoreAfterFirst.latencyDaily,
+    )
+
+    // Second run: should not double-count boundary items.
+    const second = await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      timeZone: "UTC",
+      config,
+    })
+
+    expect(second.status).toBe("success")
+    const storeAfterSecond = await usageHistoryStorage.getStore()
+    expect(
+      JSON.stringify(atIndex(storeAfterSecond.accounts, accountId).daily),
+    ).toBe(snapshotDaily)
+    expect(
+      JSON.stringify(
+        atIndex(storeAfterSecond.accounts, accountId).dailyByToken,
+      ),
+    ).toBe(snapshotDailyByToken)
+    expect(
+      JSON.stringify(
+        atIndex(storeAfterSecond.accounts, accountId).latencyDaily,
+      ),
+    ).toBe(snapshotLatencyDaily)
+  })
+
+  it("ingests a new item at the same cursor timestamp (fingerprint boundary)", async () => {
+    const baseUrl = "https://api.example.com"
+    const accountId = await createTestAccount(baseUrl)
+
+    const nowUnixSeconds = Math.floor(Date.now() / 1000)
+    const cursorCreatedAt = nowUnixSeconds - 10
+
+    let dataset: LogItem[] = [
+      createConsumeLogItem({
+        id: 1,
+        created_at: cursorCreatedAt,
+        model_name: "gpt-4",
+        quota: 1,
+        prompt_tokens: 1,
+        completion_tokens: 1,
+      }),
+    ]
+
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, ({ request }) => {
+        const url = new URL(request.url)
+        const startTimestamp = Number(
+          url.searchParams.get("start_timestamp") ?? "0",
+        )
+        const endTimestamp = Number(
+          url.searchParams.get("end_timestamp") ?? String(nowUnixSeconds),
+        )
+        const page = Number(url.searchParams.get("p") ?? "1")
+        const pageSize = Number(url.searchParams.get("page_size") ?? "100")
+
+        const filtered = dataset
+          .filter(
+            (item) =>
+              item.created_at >= startTimestamp &&
+              item.created_at <= endTimestamp,
+          )
+          .sort((a, b) => b.created_at - a.created_at)
+
+        const total = filtered.length
+        const startIndex = (page - 1) * pageSize
+        const items = filtered.slice(startIndex, startIndex + pageSize)
+
+        return HttpResponse.json({
+          success: true,
+          message: "",
+          data: {
+            items,
+            total,
+          },
+        })
+      }),
+    )
+
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      timeZone: "UTC",
+      config,
+    })
+
+    // Add a new log at the same second as the cursor, but with a different fingerprint.
+    dataset = [
+      ...dataset,
+      createConsumeLogItem({
+        id: 2,
+        created_at: cursorCreatedAt,
+        model_name: "gpt-4",
+        quota: 2,
+        prompt_tokens: 2,
+        completion_tokens: 2,
+      }),
+    ]
+
+    const before = await usageHistoryStorage.getStore()
+    const dayKey = getDayKeyFromUnixSeconds(cursorCreatedAt, "UTC")
+    const beforeRequests =
+      atIndex(before.accounts, accountId).daily[dayKey]?.requests ?? 0
+
+    await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      timeZone: "UTC",
+      config,
+    })
+
+    const after = await usageHistoryStorage.getStore()
+    const afterRequests =
+      atIndex(after.accounts, accountId).daily[dayKey]?.requests ?? 0
+    expect(afterRequests).toBe(beforeRequests + 1)
+    expect(
+      atIndex(after.accounts, accountId).latencyDaily[dayKey]?.count ?? 0,
+    ).toBe(afterRequests)
+  })
+
+  it("marks unsupported endpoints and then respects the cooldown window", async () => {
+    const baseUrl = "https://api-unsupported.example.com"
+    const accountId = await createTestAccount(baseUrl)
+
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, () =>
+        HttpResponse.json(
+          { success: false, message: "not found" },
+          { status: 404 },
+        ),
+      ),
+    )
+
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    const first = await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      config,
+    })
+
+    expect(first.status).toBe("unsupported")
+    expect(first.error).toBeTruthy()
+
+    const storeAfterFailure =
+      await usageHistoryStorage.getAccountStore(accountId)
+    expect(storeAfterFailure.status.state).toBe("unsupported")
+    expect(storeAfterFailure.status.unsupportedUntil).toBeGreaterThan(
+      Date.now(),
+    )
+
+    const skipped = await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      config,
+    })
+
+    expect(skipped).toMatchObject({
+      accountId,
+      status: "skipped",
+      partial: false,
+    })
+  })
+
+  it("records generic fetch failures without marking the endpoint unsupported", async () => {
+    const baseUrl = "https://api-error.example.com"
+    const accountId = await createTestAccount(baseUrl)
+
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, () =>
+        HttpResponse.json(
+          { success: false, message: "forbidden" },
+          { status: 401 },
+        ),
+      ),
+    )
+
+    const config: UsageHistoryPreferences = {
+      enabled: true,
+      retentionDays: 30,
+      scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+      syncIntervalMinutes: 60,
+    }
+
+    const result = await syncUsageHistoryForAccount({
+      accountId,
+      trigger: "manual",
+      force: true,
+      config,
+    })
+
+    expect(result.status).toBe("error")
+    expect(result.error).toBeTruthy()
+
+    const store = await usageHistoryStorage.getAccountStore(accountId)
+    expect(store.status.state).toBe("error")
+    expect(store.status.unsupportedUntil).toBeUndefined()
+  })
+
+  it("keeps the item safety cap", async () => {
+    const baseUrl = "https://api-item-cap.example.com"
+    const accountId = await createTestAccount(baseUrl)
+    const nowUnixSeconds = Math.floor(Date.now() / 1000)
+    const originalMaxItems = USAGE_HISTORY_LIMITS.maxItems
+
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, () =>
+        HttpResponse.json({
+          success: true,
+          message: "",
+          data: {
+            items: [
+              createConsumeLogItem({ id: 1, created_at: nowUnixSeconds - 2 }),
+              createConsumeLogItem({ id: 2, created_at: nowUnixSeconds - 1 }),
+            ],
+          },
+        }),
+      ),
+    )
+
+    try {
+      ;(USAGE_HISTORY_LIMITS as { maxItems: number }).maxItems = 1
+
+      const result = await syncUsageHistoryForAccount({
+        accountId,
+        trigger: "manual",
+        force: true,
+        config: {
+          enabled: true,
+          retentionDays: 30,
+          scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+          syncIntervalMinutes: 60,
+        },
+      })
+
+      expect(result).toMatchObject({
+        accountId,
+        status: "success",
+        partial: true,
+        pagesFetched: 1,
+        itemsFetched: 1,
+        ingestedCount: 1,
+      })
+
+      const store = await usageHistoryStorage.getAccountStore(accountId)
+      expect(store.status.state).toBe("success")
+      expect(store.status.lastWarning).toContain("Reached safety limits")
+    } finally {
+      ;(USAGE_HISTORY_LIMITS as { maxItems: number }).maxItems =
+        originalMaxItems
+    }
+  })
+
+  it("keeps the page safety cap", async () => {
+    const baseUrl = "https://api-page-cap.example.com"
+    const accountId = await createTestAccount(baseUrl)
+    const nowUnixSeconds = Math.floor(Date.now() / 1000)
+    const originalMaxPages = USAGE_HISTORY_LIMITS.maxPages
+
+    const dataset: LogItem[] = Array.from({ length: 101 }).map((_, index) =>
+      createConsumeLogItem({
+        id: index + 1,
+        created_at: nowUnixSeconds - index - 1,
+      }),
+    )
+
+    server.use(
+      http.get(`${baseUrl}/api/log/self`, ({ request }) => {
+        const url = new URL(request.url)
+        const page = Number(url.searchParams.get("p") ?? "1")
+        const pageSize = Number(url.searchParams.get("page_size") ?? "100")
+        const startIndex = (page - 1) * pageSize
+        const items = dataset.slice(startIndex, startIndex + pageSize)
+
+        return HttpResponse.json({
+          success: true,
+          message: "",
+          data: {
+            items,
+            total: dataset.length,
+          },
+        })
+      }),
+    )
+
+    try {
+      ;(USAGE_HISTORY_LIMITS as { maxPages: number }).maxPages = 1
+
+      const result = await syncUsageHistoryForAccount({
+        accountId,
+        trigger: "manual",
+        force: true,
+        config: {
+          enabled: true,
+          retentionDays: 30,
+          scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.MANUAL,
+          syncIntervalMinutes: 60,
+        },
+      })
+
+      expect(result).toMatchObject({
+        accountId,
+        status: "success",
+        partial: true,
+        pagesFetched: 1,
+      })
+
+      const store = await usageHistoryStorage.getAccountStore(accountId)
+      expect(store.status.lastWarning).toContain("Reached safety limits")
+    } finally {
+      ;(USAGE_HISTORY_LIMITS as { maxPages: number }).maxPages =
+        originalMaxPages
+    }
+  })
+})

@@ -1,0 +1,1804 @@
+import userEvent from "@testing-library/user-event"
+import { I18nextProvider } from "react-i18next"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import SiteAnnouncementsPage from "~/entrypoints/options/pages/SiteAnnouncements"
+import {
+  DevPanelProvider,
+  useDevPanelSections,
+} from "~/features/DevPanel/DevPanelSectionsContext"
+import notify from "~/lib/notify"
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { SiteAnnouncementsMessageTypes } from "~/services/runtimeMessaging/messageTypes"
+import { sendSiteAnnouncementsMessage } from "~/services/siteAnnouncements/messaging"
+import type {
+  SiteAnnouncementCheckResult,
+  SiteAnnouncementRecord,
+  SiteAnnouncementSiteState,
+} from "~/types/siteAnnouncements"
+import { deepOverride } from "~/utils"
+import { showResultToast } from "~/utils/feedback/operationFeedback"
+import { openSettingsTab } from "~/utils/navigation"
+import { createResourceTestI18n } from "~~/tests/test-utils/i18n"
+import { act, render, screen, waitFor } from "~~/tests/test-utils/render"
+
+const {
+  sendSiteAnnouncementsMessageMock,
+  startProductAnalyticsActionMock,
+  trackProductAnalyticsActionStartedMock,
+  completeProductAnalyticsActionMock,
+  pushWithinOptionsPageMock,
+} = vi.hoisted(() => ({
+  sendSiteAnnouncementsMessageMock: vi.fn(),
+  startProductAnalyticsActionMock: vi.fn(),
+  trackProductAnalyticsActionStartedMock: vi.fn(),
+  completeProductAnalyticsActionMock: vi.fn(),
+  pushWithinOptionsPageMock: vi.fn(),
+}))
+
+vi.mock("~/services/siteAnnouncements/messaging", () => ({
+  sendSiteAnnouncementsMessage: sendSiteAnnouncementsMessageMock,
+}))
+
+vi.mock("~/services/accounts/accountStorage/accountQueries", () => ({
+  accountQueries: {
+    getAllAccounts: vi.fn(),
+  },
+}))
+
+vi.mock("~/utils/feedback/operationFeedback", () => ({
+  showResultToast: vi.fn(),
+}))
+
+vi.mock("~/utils/navigation", () => ({ openSettingsTab: vi.fn() }))
+vi.mock("~/utils/navigation/optionsPage", () => ({
+  pushWithinOptionsPage: pushWithinOptionsPageMock,
+}))
+
+vi.mock("~/services/productAnalytics/actions", () => ({
+  startProductAnalyticsAction: (...args: any[]) =>
+    startProductAnalyticsActionMock(...args),
+  trackProductAnalyticsActionStarted: (...args: any[]) =>
+    trackProductAnalyticsActionStartedMock(...args),
+}))
+
+const records: SiteAnnouncementRecord[] = [
+  {
+    id: "announcement-1",
+    siteKey: "site-1",
+    siteName: "Alpha API",
+    siteType: "new-api",
+    baseUrl: "https://alpha.example.com",
+    accountId: "account-1",
+    sourceScope: "site",
+    title: "",
+    content: "## Full maintenance window\n\n- Second line",
+    fingerprint: "fp-1",
+    firstSeenAt: 1735689600000,
+    lastSeenAt: 1735689600000,
+    notifiedAt: 1735689700000,
+    read: false,
+  },
+  {
+    id: "announcement-2",
+    siteKey: "site-2",
+    siteName: "Beta API",
+    siteType: "sub2api",
+    baseUrl: "https://beta.example.com",
+    accountId: "account-2",
+    sourceScope: "account",
+    title: "Beta update",
+    content: "**Beta full content**",
+    fingerprint: "fp-2",
+    firstSeenAt: 1735776000000,
+    lastSeenAt: 1735776000000,
+    createdAt: 1735775900000,
+    read: true,
+  },
+]
+
+const status: SiteAnnouncementSiteState[] = [
+  {
+    siteKey: "site-1",
+    siteName: "Alpha API",
+    siteType: "new-api",
+    baseUrl: "https://alpha.example.com",
+    accountId: "account-1",
+    sourceScope: "site",
+    status: "error",
+    lastCheckedAt: 1735690000000,
+    lastError: "timeout",
+    records: [records[0]!],
+  },
+  {
+    siteKey: "site-2",
+    siteName: "Beta API",
+    siteType: "sub2api",
+    baseUrl: "https://beta.example.com",
+    accountId: "account-2",
+    sourceScope: "account",
+    status: "success",
+    lastCheckedAt: 1735776200000,
+    records: [records[1]!],
+  },
+]
+
+/** Reports the dev panel sections the page under test registers. */
+function DevSectionProbe() {
+  const sections = useDevPanelSections()
+
+  return (
+    <div>
+      {sections.map((section) => (
+        <div key={section.id} data-testid={`dev-section-${section.id}`}>
+          <span>{section.title}</span>
+          {section.rows?.map((row) => (
+            <span key={row.id} data-testid={`dev-row-${row.id}`}>
+              {row.value}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Finds one overview counter button by its label key. */
+function getOverviewCounter(
+  labelKey: "summary.total" | "summary.unread",
+): HTMLElement {
+  const counter = screen.getByRole("button", {
+    name: new RegExp(`siteAnnouncements:${labelKey.replace(".", "\\.")}`),
+  })
+
+  return counter
+}
+
+describe("SiteAnnouncementsPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(userPreferences, "getPreferences").mockResolvedValue(
+      structuredClone(DEFAULT_PREFERENCES),
+    )
+    vi.mocked(accountQueries.getAllAccounts).mockResolvedValue([
+      {
+        id: "account-1",
+        disabled: false,
+      },
+    ] as any)
+    startProductAnalyticsActionMock.mockReturnValue({
+      complete: completeProductAnalyticsActionMock,
+    })
+    completeProductAnalyticsActionMock.mockResolvedValue(undefined)
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.CheckNow:
+            return {
+              success: true,
+              data: {
+                checked: 3,
+                created: 0,
+                notified: 0,
+                failed: 1,
+                unsupported: 1,
+                records: [],
+              },
+            }
+          default:
+            return { success: true }
+        }
+      },
+    )
+  })
+
+  it("retranslates load feedback without reloading announcements or repeating notifications", async () => {
+    sendSiteAnnouncementsMessageMock.mockRejectedValue(new Error("offline"))
+    const i18n = await createResourceTestI18n({
+      en: {
+        siteAnnouncements: (await import("~/locales/en/siteAnnouncements.json"))
+          .default,
+      },
+      "zh-CN": {
+        siteAnnouncements: (
+          await import("~/locales/zh-CN/siteAnnouncements.json")
+        ).default,
+      },
+    })
+    render(
+      <I18nextProvider i18n={i18n}>
+        <SiteAnnouncementsPage />
+      </I18nextProvider>,
+    )
+    expect(
+      await screen.findByText(i18n.t("siteAnnouncements:messages.loadFailed")),
+    ).toBeVisible()
+    const requests = sendSiteAnnouncementsMessageMock.mock.calls.length
+    const notifications = vi.mocked(showResultToast).mock.calls.length
+    await act(async () => {
+      await i18n.changeLanguage("zh-CN")
+    })
+    expect(
+      screen.getByText(i18n.t("siteAnnouncements:messages.loadFailed")),
+    ).toBeVisible()
+    expect(sendSiteAnnouncementsMessageMock).toHaveBeenCalledTimes(requests)
+    expect(showResultToast).toHaveBeenCalledTimes(notifications)
+  })
+
+  const expectCheckNowAnalyticsStarted = (surfaceId: string) => {
+    expect(startProductAnalyticsActionMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.SiteAnnouncements,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.CheckSiteAnnouncementsNow,
+      surfaceId,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(trackProductAnalyticsActionStartedMock).not.toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.SiteAnnouncements,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.CheckSiteAnnouncementsNow,
+      surfaceId,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+  }
+
+  const expectMarkAllReadAnalyticsStarted = () => {
+    expect(startProductAnalyticsActionMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.SiteAnnouncements,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.MarkAllAnnouncementsRead,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsSiteAnnouncementsPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(trackProductAnalyticsActionStartedMock).not.toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.SiteAnnouncements,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.MarkAllAnnouncementsRead,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsSiteAnnouncementsPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+  }
+
+  const expectMarkReadAnalyticsStarted = () => {
+    expect(startProductAnalyticsActionMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.SiteAnnouncements,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.MarkAnnouncementRead,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsSiteAnnouncementCard,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(trackProductAnalyticsActionStartedMock).not.toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.SiteAnnouncements,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.MarkAnnouncementRead,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsSiteAnnouncementCard,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+  }
+
+  const mockManualCheckResult = (checkResult: SiteAnnouncementCheckResult) => {
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.CheckNow:
+            return { success: true, data: checkResult }
+          default:
+            return { success: true }
+        }
+      },
+    )
+  }
+
+  it("renders overview, notification summary, and route-expanded announcement card", async () => {
+    render(
+      <SiteAnnouncementsPage routeParams={{ recordId: "announcement-1" }} />,
+    )
+
+    expect(
+      await screen.findByText("siteAnnouncements:title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("siteAnnouncements:overview.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("siteAnnouncements:summary.total"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("siteAnnouncements:summary.unread"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByPlaceholderText("siteAnnouncements:search.placeholder"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.pollingSettings",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", {
+        level: 2,
+        name: "Full maintenance window",
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it("shows cached announcements newest first across sites and preserves that order when searching", async () => {
+    const user = userEvent.setup()
+    const cachedRecords = [
+      {
+        ...records[0]!,
+        title: "Older notice",
+        createdAt: 1735689600000,
+        firstSeenAt: 1735862400000,
+      },
+      { ...records[1]!, title: "Newest notice", createdAt: 1735776000000 },
+    ]
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => ({
+        success: true,
+        data:
+          type === SiteAnnouncementsMessageTypes.ListRecords
+            ? cachedRecords
+            : status,
+      }),
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByRole("heading", { level: 3, name: "Newest notice" })
+    expect(
+      screen
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(["Newest notice", "Older notice"])
+    await user.type(
+      screen.getByPlaceholderText("siteAnnouncements:search.placeholder"),
+      "notice",
+    )
+    expect(
+      screen
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(["Newest notice", "Older notice"])
+  })
+
+  it("shows the selected site counts and list while the site filter is active", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "Alpha API" }))
+
+    // Alpha API holds one unread announcement of the two cached records.
+    expect(getOverviewCounter("summary.total")).toHaveTextContent("1")
+    expect(getOverviewCounter("summary.unread")).toHaveTextContent("1")
+    expect(
+      screen.getByRole("heading", { name: "Full maintenance window" }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Beta update")).not.toBeInTheDocument()
+
+    // The selected site narrows the counters, but "All sites" still advertises
+    // every cached announcement, matching the per-site counts below it.
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    expect(
+      screen.getByRole("option", {
+        name: /siteAnnouncements:filters\.allSites/,
+      }),
+    ).toHaveTextContent("2")
+  })
+
+  it("counts unread announcements inside the selected site scope", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+
+    // Beta API holds only a read announcement, so its unread count is zero.
+    await user.click(screen.getByRole("option", { name: "Beta API" }))
+
+    expect(getOverviewCounter("summary.total")).toHaveTextContent("1")
+    expect(getOverviewCounter("summary.unread")).toHaveTextContent("0")
+  })
+
+  it("narrows the list and reports the result count while searching", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.type(
+      screen.getByPlaceholderText("siteAnnouncements:search.placeholder"),
+      "beta",
+    )
+
+    expect(
+      screen.queryByText("Full maintenance window"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Beta update" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("siteAnnouncements:search.resultCount"),
+    ).toBeVisible()
+  })
+
+  it("keeps the manual check scope on site and read state while searching", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.type(
+      screen.getByPlaceholderText("siteAnnouncements:search.placeholder"),
+      "beta",
+    )
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      // Search only hides records; it must not rescope which accounts a check
+      // touches, so both cached sites are still checked.
+      const checkNowMessages = sendSiteAnnouncementsMessageMock.mock.calls
+        .filter(([type]) => type === SiteAnnouncementsMessageTypes.CheckNow)
+        .map(([, data]) => data)
+
+      expect(checkNowMessages.at(-1)).toEqual({
+        accountIds: ["account-1", "account-2"],
+      })
+    })
+  })
+
+  it("combines the site, read-state and search filters", async () => {
+    const user = userEvent.setup()
+    const accountMessage = {
+      ...records[1]!,
+      id: "account-message",
+      title: "Shared maintenance notice",
+      content: "Shared maintenance notice body",
+      read: false,
+    }
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: [...records, accountMessage] }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.type(
+      screen.getByPlaceholderText("siteAnnouncements:search.placeholder"),
+      "maintenance",
+    )
+    await user.click(
+      screen.getByRole("button", { name: /siteAnnouncements:summary\.unread/ }),
+    )
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "Beta API" }))
+
+    expect(
+      screen.getByRole("heading", { name: "Shared maintenance notice" }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Beta update")).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("Full maintenance window"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("keeps the overview counters on the site scope instead of the search scope", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.type(
+      screen.getByPlaceholderText("siteAnnouncements:search.placeholder"),
+      "beta",
+    )
+
+    // The list narrows to one record, but the overview still describes the
+    // selected site scope, so its counters stay at the site totals.
+    expect(
+      screen.getByRole("heading", { name: "Beta update" }),
+    ).toBeInTheDocument()
+    expect(getOverviewCounter("summary.total")).toHaveTextContent("2")
+    expect(getOverviewCounter("summary.unread")).toHaveTextContent("1")
+  })
+
+  it("keeps the unread counter clickable when it is already the active filter", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    const unreadCounter = getOverviewCounter("summary.unread")
+
+    await user.click(unreadCounter)
+    expect(unreadCounter).toHaveAttribute("aria-pressed", "true")
+
+    // Re-selecting the active counter is a no-op rather than an error.
+    await user.click(unreadCounter)
+    expect(unreadCounter).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.getByRole("heading", { name: "Full maintenance window" }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Beta update")).not.toBeInTheDocument()
+  })
+
+  it("moves the active counter highlight between the two statistics", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.click(getOverviewCounter("summary.unread"))
+
+    expect(getOverviewCounter("summary.unread")).toHaveClass("bg-primary-soft")
+    expect(getOverviewCounter("summary.total")).not.toHaveClass(
+      "bg-primary-soft",
+    )
+  })
+
+  it("routes the empty announcement setup state to account management when no account exists", async () => {
+    const user = userEvent.setup()
+    vi.mocked(accountQueries.getAllAccounts).mockResolvedValue([] as any)
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: [] }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: [] }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    expect(
+      await screen.findByText("siteAnnouncements:empty.noAccounts"),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:empty.addAccount",
+      }),
+    )
+
+    expect(pushWithinOptionsPageMock).toHaveBeenCalledWith(
+      `#${MENU_ITEM_IDS.ACCOUNT}`,
+    )
+  })
+
+  it("does not block announcement records when account setup lookup fails", async () => {
+    vi.mocked(accountQueries.getAllAccounts).mockRejectedValue(
+      new Error("account storage unavailable"),
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    expect(await screen.findByText("Alpha API")).toBeInTheDocument()
+    expect(
+      screen.queryByText("siteAnnouncements:messages.loadFailed"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("links the disabled page description to announcement polling settings", async () => {
+    const user = userEvent.setup()
+    vi.mocked(userPreferences.getPreferences).mockResolvedValueOnce(
+      deepOverride(structuredClone(DEFAULT_PREFERENCES), {
+        siteAnnouncementNotifications: {
+          enabled: false,
+        },
+      }),
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    expect(
+      screen.getByText("siteAnnouncements:description.disabledSummary"),
+    ).toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:description.pollingSettingsLink",
+      }),
+    )
+
+    expect(openSettingsTab).toHaveBeenCalledWith("siteAnnouncements", {
+      anchor: SETTINGS_ANCHORS.SITE_ANNOUNCEMENT_NOTIFICATIONS_ENABLED,
+      preserveHistory: true,
+    })
+  })
+
+  it("shows the configured automatic polling interval when polling is enabled", async () => {
+    vi.mocked(userPreferences.getPreferences).mockResolvedValueOnce(
+      deepOverride(structuredClone(DEFAULT_PREFERENCES), {
+        siteAnnouncementNotifications: {
+          enabled: true,
+          intervalMinutes: 45,
+        },
+      }),
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    expect(
+      screen.getByText("siteAnnouncements:description.enabledSummary"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("siteAnnouncements:description.enabledInterval"),
+    ).toBeInTheDocument()
+  })
+
+  it.each(["sub2api", "laozhang"] as const)(
+    "marks unread %s account messages read only when expanding details",
+    async (siteType) => {
+      const user = userEvent.setup()
+      const unreadAccountMessage = {
+        ...records[1]!,
+        id: "announcement-3",
+        siteType,
+        sourceScope: "account" as const,
+        canSyncRead: true,
+        read: false,
+      }
+
+      sendSiteAnnouncementsMessageMock.mockImplementation(
+        async (type: string) => {
+          switch (type) {
+            case SiteAnnouncementsMessageTypes.ListRecords:
+              return { success: true, data: [unreadAccountMessage] }
+            case SiteAnnouncementsMessageTypes.GetStatus:
+              return { success: true, data: [] }
+            default:
+              return { success: true }
+          }
+        },
+      )
+
+      render(<SiteAnnouncementsPage />)
+
+      await screen.findByText("Beta update")
+      await user.click(
+        screen.getByRole("button", {
+          name: /siteAnnouncements:actions\.expand/,
+        }),
+      )
+      await user.click(
+        screen.getByRole("button", {
+          name: /siteAnnouncements:actions\.collapse/,
+        }),
+      )
+
+      await waitFor(() => {
+        expect(sendSiteAnnouncementsMessage).toHaveBeenCalledWith(
+          SiteAnnouncementsMessageTypes.MarkRead,
+          { recordId: "announcement-3" },
+        )
+        expect(
+          sendSiteAnnouncementsMessageMock.mock.calls.filter(
+            ([type]) => type === SiteAnnouncementsMessageTypes.MarkRead,
+          ),
+        ).toHaveLength(1)
+      })
+    },
+  )
+
+  it("completes single-record mark-read analytics as success when the runtime succeeds", async () => {
+    const user = userEvent.setup()
+    let currentRecords = records
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: currentRecords }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.MarkRead:
+            currentRecords = currentRecords.map((record) =>
+              record.id === "announcement-1"
+                ? { ...record, read: true }
+                : record,
+            )
+            return { success: true }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByRole("heading", {
+      level: 3,
+      name: "Full maintenance window",
+    })
+    await user.click(
+      screen.getAllByRole("button", {
+        name: "siteAnnouncements:actions.markRead",
+      })[0]!,
+    )
+    expectMarkReadAnalyticsStarted()
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Success,
+      )
+      expect(sendSiteAnnouncementsMessage).toHaveBeenCalledWith(
+        SiteAnnouncementsMessageTypes.MarkRead,
+        { recordId: "announcement-1" },
+      )
+    })
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "siteAnnouncements:actions.markRead",
+        }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it("completes single-record mark-read analytics as failure when the runtime reports failure", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.MarkRead:
+            return { success: false, error: "mark rejected" }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByRole("heading", {
+      level: 3,
+      name: "Full maintenance window",
+    })
+    await user.click(
+      screen.getAllByRole("button", {
+        name: "siteAnnouncements:actions.markRead",
+      })[0]!,
+    )
+    expectMarkReadAnalyticsStarted()
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        { errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown },
+      )
+    })
+  })
+
+  it("shows a toast when the initial announcement load fails", async () => {
+    sendSiteAnnouncementsMessageMock.mockRejectedValueOnce(
+      new Error("network down"),
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await waitFor(() => {
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: false,
+        message: "network down",
+        errorFallback: "siteAnnouncements:messages.loadFailed",
+      })
+    })
+  })
+
+  it("shows a toast when the typed announcement list response is unsuccessful", async () => {
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: false, error: "list rejected" }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await waitFor(() => {
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: false,
+        message: "list rejected",
+        errorFallback: "siteAnnouncements:messages.loadFailed",
+      })
+    })
+    expect(
+      await screen.findByText("siteAnnouncements:messages.loadFailed"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("siteAnnouncements:empty.title"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows the load-error state when the typed announcement status response is unsuccessful", async () => {
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: false, error: "status rejected" }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await waitFor(() => {
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: false,
+        message: "status rejected",
+        errorFallback: "siteAnnouncements:messages.loadFailed",
+      })
+    })
+    expect(
+      await screen.findByText("siteAnnouncements:messages.loadFailed"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("Full maintenance window"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("disables manual checks while announcements are loading", async () => {
+    let resolveRecords!: (response: {
+      success: true
+      data: typeof records
+    }) => void
+    let resolveStatus!: (response: {
+      success: true
+      data: typeof status
+    }) => void
+    sendSiteAnnouncementsMessageMock.mockImplementation((type: string) => {
+      switch (type) {
+        case SiteAnnouncementsMessageTypes.ListRecords:
+          return new Promise((resolve) => {
+            resolveRecords = resolve
+          })
+        case SiteAnnouncementsMessageTypes.GetStatus:
+          return new Promise((resolve) => {
+            resolveStatus = resolve
+          })
+        default:
+          return Promise.resolve({ success: true })
+      }
+    })
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    const manualCheckButton = await screen.findByRole("button", {
+      name: "siteAnnouncements:actions.checkNow",
+    })
+    await waitFor(() => {
+      expect(manualCheckButton).toBeDisabled()
+    })
+
+    resolveRecords({ success: true, data: records })
+    resolveStatus({ success: true, data: status })
+    await waitFor(() => {
+      expect(manualCheckButton).toBeEnabled()
+    })
+  })
+
+  it("warns about unsupported sites and reloads after a manual check", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+    expectCheckNowAnalyticsStarted(
+      PRODUCT_ANALYTICS_SURFACE_IDS.OptionsSiteAnnouncementsPage,
+    )
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        {
+          errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+          insights: {
+            itemCount: 3,
+            successCount: 1,
+            failureCount: 1,
+          },
+        },
+      )
+      expect(notify.warning).toHaveBeenCalledWith(
+        "siteAnnouncements:messages.checkCompletedWithIssues",
+      )
+      expect(showResultToast).not.toHaveBeenCalled()
+    })
+    expect(
+      sendSiteAnnouncementsMessageMock.mock.calls.filter(
+        ([type]) => type === SiteAnnouncementsMessageTypes.ListRecords,
+      ),
+    ).toHaveLength(2)
+  })
+
+  it("shows success feedback when every manual announcement check succeeds", async () => {
+    const user = userEvent.setup()
+
+    mockManualCheckResult({
+      checked: 2,
+      created: 0,
+      notified: 0,
+      failed: 0,
+      unsupported: 0,
+      records: [],
+    })
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: true,
+        message: undefined,
+        successFallback: "siteAnnouncements:messages.checkCompleted",
+        errorFallback: "siteAnnouncements:messages.checkFailed",
+      })
+    })
+    expect(notify.warning).not.toHaveBeenCalled()
+    expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+      PRODUCT_ANALYTICS_RESULTS.Success,
+      {
+        insights: {
+          itemCount: 2,
+          successCount: 2,
+          failureCount: 0,
+        },
+      },
+    )
+  })
+
+  it("classifies an unsupported-only manual check as an actionable partial result", async () => {
+    const user = userEvent.setup()
+
+    mockManualCheckResult({
+      checked: 2,
+      created: 0,
+      notified: 0,
+      failed: 0,
+      unsupported: 1,
+      records: [],
+    })
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(notify.warning).toHaveBeenCalledWith(
+        "siteAnnouncements:messages.checkCompletedWithIssues",
+      )
+    })
+    expect(showResultToast).not.toHaveBeenCalled()
+    expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+      PRODUCT_ANALYTICS_RESULTS.Failure,
+      {
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unsupported,
+        insights: {
+          itemCount: 2,
+          successCount: 1,
+          failureCount: 0,
+        },
+      },
+    )
+  })
+
+  it("shows aggregate failure and unsupported status in the all-sites view", async () => {
+    render(<SiteAnnouncementsPage />)
+
+    expect(
+      await screen.findByText("siteAnnouncements:status.aggregateIssuesTitle"),
+    ).toBeVisible()
+    expect(
+      screen.getByText("siteAnnouncements:status.aggregateIssues"),
+    ).toBeVisible()
+  })
+
+  it("registers its fixture controls as a dev panel section on this page", async () => {
+    render(
+      <DevPanelProvider
+        surface="options"
+        page={MENU_ITEM_IDS.SITE_ANNOUNCEMENTS}
+      >
+        <SiteAnnouncementsPage />
+        <DevSectionProbe />
+      </DevPanelProvider>,
+    )
+
+    const section = await screen.findByTestId(
+      "dev-section-site-announcements-fixtures",
+    )
+    expect(section).toHaveTextContent("Site announcements")
+    await waitFor(() => {
+      expect(screen.getByTestId("dev-row-records")).toHaveTextContent("2")
+    })
+  })
+
+  it("separates the aggregate issues notice from the announcement list", async () => {
+    render(<SiteAnnouncementsPage />)
+
+    const notice = (
+      await screen.findByText("siteAnnouncements:status.aggregateIssuesTitle")
+    ).closest("[data-tone]")
+
+    expect(notice).toHaveClass("mb-density-4")
+    expect(notice?.nextElementSibling).toHaveClass("space-y-density-4")
+  })
+
+  it("checks all visible site accounts when no filters are selected", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      const checkNowMessages = sendSiteAnnouncementsMessageMock.mock.calls
+        .filter(([type]) => type === SiteAnnouncementsMessageTypes.CheckNow)
+        .map(([, data]) => data)
+
+      expect(checkNowMessages.at(-1)).toEqual({
+        accountIds: ["account-1", "account-2"],
+      })
+    })
+  })
+
+  it("checks only the selected site account", async () => {
+    const user = userEvent.setup()
+    const previous = sendSiteAnnouncementsMessageMock.getMockImplementation()!
+    sendSiteAnnouncementsMessageMock.mockImplementation(async (type: string) =>
+      type === SiteAnnouncementsMessageTypes.ListRecords
+        ? {
+            success: true,
+            data: [
+              ...records,
+              {
+                ...records[0],
+                id: "lz-notice",
+                siteName: "LaoZhang API",
+                siteType: "laozhang",
+                accountId: "lz-account",
+                siteKey: "lz-site",
+                content: "LaoZhang notice",
+              },
+            ],
+          }
+        : previous(type),
+    )
+    render(<SiteAnnouncementsPage />)
+    await screen.findByRole("heading", { name: "LaoZhang notice" })
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "LaoZhang API" }))
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+    expect(sendSiteAnnouncementsMessageMock).toHaveBeenCalledWith(
+      SiteAnnouncementsMessageTypes.CheckNow,
+      { accountIds: ["lz-account"] },
+    )
+  })
+
+  it("checks the selected LaoZhang site even before any announcement is cached", async () => {
+    const user = userEvent.setup()
+    const previous = sendSiteAnnouncementsMessageMock.getMockImplementation()!
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        if (type === SiteAnnouncementsMessageTypes.ListRecords)
+          return { success: true, data: [] }
+        if (type === SiteAnnouncementsMessageTypes.GetStatus)
+          return {
+            success: true,
+            data: [
+              ...status,
+              {
+                ...status[0],
+                siteKey: "lz-site",
+                siteName: "LaoZhang API",
+                siteType: "laozhang",
+                accountId: "lz-account",
+                records: [],
+              },
+            ],
+          }
+        return previous(type)
+      },
+    )
+    render(<SiteAnnouncementsPage />)
+    await screen.findByText("siteAnnouncements:empty.title")
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "LaoZhang API" }))
+
+    const buttons = screen.getAllByRole("button", {
+      name: "siteAnnouncements:actions.checkNow",
+    })
+    expect(buttons[0]).toBeEnabled()
+    await user.click(buttons[0]!)
+    expect(sendSiteAnnouncementsMessageMock).toHaveBeenCalledWith(
+      SiteAnnouncementsMessageTypes.CheckNow,
+      { accountIds: ["lz-account"] },
+    )
+  })
+
+  it("checks the selected site scope when manually checking filtered announcements", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "Alpha API" }))
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(sendSiteAnnouncementsMessage).toHaveBeenCalledWith(
+        SiteAnnouncementsMessageTypes.CheckNow,
+        { accountIds: ["account-1"] },
+      )
+    })
+  })
+
+  it("checks the visible site scope when the unread filter is selected", async () => {
+    const user = userEvent.setup()
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.click(getOverviewCounter("summary.unread"))
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      const checkNowMessages = sendSiteAnnouncementsMessageMock.mock.calls
+        .filter(([type]) => type === SiteAnnouncementsMessageTypes.CheckNow)
+        .map(([, data]) => data)
+
+      // Only Alpha API still has an unread announcement.
+      expect(checkNowMessages.at(-1)).toEqual({
+        accountIds: ["account-1"],
+      })
+    })
+  })
+
+  it("disables manual checks when read-state filters leave no visible announcements", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return {
+              success: true,
+              data: [
+                ...status,
+                {
+                  siteKey: "site-3",
+                  siteName: "Gamma API",
+                  siteType: "new-api",
+                  baseUrl: "https://gamma.example.com",
+                  accountId: "account-3",
+                  sourceScope: "site",
+                  status: "success",
+                  records: [],
+                },
+              ],
+            }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:overview.title")
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "Gamma API" }))
+
+    await user.click(getOverviewCounter("summary.unread"))
+
+    await waitFor(() => {
+      for (const button of screen.getAllByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      })) {
+        expect(button).toBeDisabled()
+      }
+    })
+
+    expect(
+      sendSiteAnnouncementsMessageMock.mock.calls.some(
+        ([type]) => type === SiteAnnouncementsMessageTypes.CheckNow,
+      ),
+    ).toBe(false)
+  })
+
+  it("keeps filtered empty copy when cached records exist without enabled accounts", async () => {
+    const user = userEvent.setup()
+    vi.mocked(accountQueries.getAllAccounts).mockResolvedValue([] as any)
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return {
+              success: true,
+              data: [
+                ...status,
+                {
+                  siteKey: "site-3",
+                  siteName: "Gamma API",
+                  siteType: "new-api",
+                  baseUrl: "https://gamma.example.com",
+                  accountId: "account-3",
+                  sourceScope: "site",
+                  status: "success",
+                  records: [],
+                },
+              ],
+            }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("combobox", {
+        name: "siteAnnouncements:filters.site",
+      }),
+    )
+    await user.click(screen.getByRole("option", { name: "Gamma API" }))
+
+    expect(
+      await screen.findByText("siteAnnouncements:empty.filtered"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("siteAnnouncements:empty.noAccounts"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows failure feedback when the manual check throws", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.CheckNow:
+            throw new Error("check failed")
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        { errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown },
+      )
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: false,
+        message: "check failed",
+        errorFallback: "siteAnnouncements:messages.checkFailed",
+      })
+    })
+  })
+
+  it("completes manual check analytics as failure when the runtime reports failure", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.CheckNow:
+            return {
+              success: false,
+              error: "check rejected",
+              data: {
+                checked: 2,
+                created: 0,
+                notified: 0,
+                failed: 2,
+                unsupported: 0,
+                records: [],
+              },
+            }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        {
+          errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+        },
+      )
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: false,
+        message: "check rejected",
+        successFallback: "siteAnnouncements:messages.checkCompleted",
+        errorFallback: "siteAnnouncements:messages.checkFailed",
+      })
+    })
+  })
+
+  it("uses local failure fallback copy when the manual check runtime error is blank", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.CheckNow:
+            return { success: false, error: "" }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      }),
+    )
+
+    await waitFor(() => {
+      expect(showResultToast).toHaveBeenCalledWith({
+        success: false,
+        message: undefined,
+        successFallback: "siteAnnouncements:messages.checkCompleted",
+        errorFallback: "siteAnnouncements:messages.checkFailed",
+      })
+    })
+  })
+
+  it("marks all records read for the current filter scope", async () => {
+    const user = userEvent.setup()
+    let currentRecords = records
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: currentRecords }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.MarkAllRead:
+            currentRecords = currentRecords.map((record) => ({
+              ...record,
+              read: true,
+            }))
+            return { success: true, data: 1 }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.markAllRead",
+      }),
+    )
+    expectMarkAllReadAnalyticsStarted()
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Success,
+        {
+          insights: {
+            itemCount: 1,
+          },
+        },
+      )
+      expect(sendSiteAnnouncementsMessage).toHaveBeenCalledWith(
+        SiteAnnouncementsMessageTypes.MarkAllRead,
+        { siteKey: undefined },
+      )
+    })
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "siteAnnouncements:actions.markAllRead",
+        }),
+      ).toBeDisabled()
+    })
+  })
+
+  it.each(["success", "rejected", "throws"])(
+    "marks every grouped source and reloads after a %s result",
+    async (outcome) => {
+      const user = userEvent.setup()
+      const accountMessage = {
+        ...records[0]!,
+        id: "account-message",
+        siteKey: "account-source",
+        accountId: "another-account",
+        sourceScope: "account" as const,
+        fingerprint: "account-fingerprint",
+        content: "Account message",
+      }
+      let currentRecords = [
+        records[0]!,
+        accountMessage,
+        { ...records[1]!, read: false },
+      ]
+      sendSiteAnnouncementsMessageMock.mockImplementation(
+        async (type: string, data?: { siteKey?: string }) => {
+          if (type === SiteAnnouncementsMessageTypes.ListRecords)
+            return { success: true, data: currentRecords }
+          if (type === SiteAnnouncementsMessageTypes.GetStatus)
+            return { success: true, data: status }
+          if (type === SiteAnnouncementsMessageTypes.MarkAllRead) {
+            if (data?.siteKey === "site-1" && outcome !== "success") {
+              if (outcome === "throws") throw new Error("source rejected")
+              return { success: false, error: "source rejected" }
+            }
+            currentRecords = currentRecords.map((record) =>
+              record.siteKey === data?.siteKey
+                ? { ...record, read: true }
+                : record,
+            )
+            return { success: true, data: 1 }
+          }
+          return { success: true }
+        },
+      )
+      render(<SiteAnnouncementsPage />)
+      await screen.findByRole("heading", { name: "Account message" })
+      await user.click(
+        screen.getByRole("combobox", {
+          name: "siteAnnouncements:filters.site",
+        }),
+      )
+      await user.click(screen.getByRole("option", { name: "Alpha API" }))
+      await user.click(
+        screen.getByRole("button", {
+          name: "siteAnnouncements:actions.markAllRead",
+        }),
+      )
+      await waitFor(() => {
+        expect(sendSiteAnnouncementsMessageMock).toHaveBeenCalledWith(
+          SiteAnnouncementsMessageTypes.MarkAllRead,
+          { siteKey: "account-source" },
+        )
+        expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+          outcome === "success"
+            ? PRODUCT_ANALYTICS_RESULTS.Success
+            : PRODUCT_ANALYTICS_RESULTS.Failure,
+          outcome === "success"
+            ? { insights: { itemCount: 2 } }
+            : { errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown },
+        )
+      })
+      const requests = sendSiteAnnouncementsMessageMock.mock.calls.filter(
+        ([type]) => type === SiteAnnouncementsMessageTypes.MarkAllRead,
+      )
+      expect(requests.map(([, data]) => data)).toEqual([
+        { siteKey: "site-1" },
+        { siteKey: "account-source" },
+      ])
+      await waitFor(() => {
+        expect(
+          screen.queryAllByText("siteAnnouncements:badges.unread"),
+        ).toHaveLength(outcome === "success" ? 0 : 1)
+        expect(
+          sendSiteAnnouncementsMessageMock.mock.calls.filter(
+            ([type]) => type === SiteAnnouncementsMessageTypes.ListRecords,
+          ),
+        ).toHaveLength(2)
+      })
+      expect(
+        currentRecords.find((record) => record.id === "account-message")?.read,
+      ).toBe(true)
+      expect(
+        currentRecords.find((record) => record.id === "announcement-2")?.read,
+      ).toBe(false)
+      if (outcome !== "success")
+        expect(showResultToast).toHaveBeenCalledWith({
+          success: false,
+          message: "source rejected",
+          errorFallback: "siteAnnouncements:messages.markAllReadFailed",
+        })
+    },
+  )
+
+  it("completes mark-all-read analytics as failure when the runtime reports failure", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.MarkAllRead:
+            return { success: false, error: "mark rejected" }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.markAllRead",
+      }),
+    )
+    expectMarkAllReadAnalyticsStarted()
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        { errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown },
+      )
+    })
+  })
+
+  it("completes mark-all-read analytics as failure when the runtime throws", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: records }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: status }
+          case SiteAnnouncementsMessageTypes.MarkAllRead:
+            throw new Error("mark failed")
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    await screen.findByText("siteAnnouncements:title")
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:actions.markAllRead",
+      }),
+    )
+    expectMarkAllReadAnalyticsStarted()
+
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        { errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown },
+      )
+    })
+  })
+
+  it("renders the empty announcement state when no records are available", async () => {
+    const user = userEvent.setup()
+
+    sendSiteAnnouncementsMessageMock.mockImplementation(
+      async (type: string) => {
+        switch (type) {
+          case SiteAnnouncementsMessageTypes.ListRecords:
+            return { success: true, data: [] }
+          case SiteAnnouncementsMessageTypes.GetStatus:
+            return { success: true, data: [] }
+          default:
+            return { success: true }
+        }
+      },
+    )
+
+    vi.mocked(userPreferences.getPreferences).mockResolvedValueOnce(
+      deepOverride(structuredClone(DEFAULT_PREFERENCES), {
+        siteAnnouncementNotifications: {
+          enabled: false,
+        },
+      }),
+    )
+
+    render(<SiteAnnouncementsPage />)
+
+    expect(
+      await screen.findByText("siteAnnouncements:empty.title"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "siteAnnouncements:empty.descriptionWhenPollingDisabled",
+      ),
+    ).toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", {
+        name: "siteAnnouncements:empty.pollingSettingsLink",
+      }),
+    )
+    expect(openSettingsTab).toHaveBeenCalledWith("siteAnnouncements", {
+      anchor: SETTINGS_ANCHORS.SITE_ANNOUNCEMENT_NOTIFICATIONS_ENABLED,
+      preserveHistory: true,
+    })
+
+    await user.click(
+      screen.getAllByRole("button", {
+        name: "siteAnnouncements:actions.checkNow",
+      })[1]!,
+    )
+    expectCheckNowAnalyticsStarted(
+      PRODUCT_ANALYTICS_SURFACE_IDS.OptionsSiteAnnouncementsEmptyState,
+    )
+    await waitFor(() => {
+      expect(completeProductAnalyticsActionMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Success,
+      )
+    })
+    await waitFor(() => {
+      expect(sendSiteAnnouncementsMessage).toHaveBeenCalledWith(
+        SiteAnnouncementsMessageTypes.CheckNow,
+        undefined,
+      )
+    })
+  })
+})
+
+vi.mock("~/lib/notify", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/lib/notify")>()
+  return { default: { ...actual.default, warning: vi.fn() } }
+})

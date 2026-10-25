@@ -1,0 +1,437 @@
+import { http, HttpResponse } from "msw"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { AUTO_CHECKIN_METHOD_IDS } from "~/constants/checkIn"
+import { SITE_TYPES } from "~/constants/siteType"
+import { autoCheckinMethodRegistry } from "~/services/checkin/autoCheckin/providers"
+import type { AutoCheckinProvider } from "~/services/checkin/autoCheckin/providers/contracts"
+import { voApiV2Provider } from "~/services/checkin/autoCheckin/providers/voapiV2"
+import { PROTECTION_BYPASS_USER_COMMANDS } from "~/services/protectionBypass/contracts"
+import type { SiteAccount } from "~/types"
+import { CHECKIN_RESULT_STATUS } from "~/types/autoCheckin"
+import { TEMP_WINDOW_REQUEST_SOURCES } from "~/types/tempWindowFetch"
+import { server } from "~~/tests/msw/server"
+import { userCommandExecution } from "~~/tests/services/protectionBypass/fixtures"
+import { createAutoCheckinMutationLifecycle } from "~~/tests/test-utils/autoCheckin"
+import { buildCheckInConfig } from "~~/tests/test-utils/factories"
+
+const {
+  mockResyncVoApiV2AuthToken,
+  mockUpdateAccount,
+  mockSubmitVoApiV2CheckIn,
+  mockFetchVoApiV2CheckInStats,
+} = vi.hoisted(() => ({
+  mockResyncVoApiV2AuthToken: vi.fn(),
+  mockUpdateAccount: vi.fn(),
+  mockSubmitVoApiV2CheckIn: vi.fn(),
+  mockFetchVoApiV2CheckInStats: vi.fn(),
+}))
+
+vi.mock("~/services/apiService/voapiV2/checkIn", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/apiService/voapiV2/checkIn")
+    >()
+
+  return {
+    ...actual,
+    submitVoApiV2CheckIn: (
+      ...args: Parameters<typeof actual.submitVoApiV2CheckIn>
+    ) => {
+      mockSubmitVoApiV2CheckIn(...args)
+      return actual.submitVoApiV2CheckIn(...args)
+    },
+    fetchVoApiV2CheckInStats: (
+      ...args: Parameters<typeof actual.fetchVoApiV2CheckInStats>
+    ) => {
+      mockFetchVoApiV2CheckInStats(...args)
+      return actual.fetchVoApiV2CheckInStats(...args)
+    },
+  }
+})
+
+vi.mock("~/services/apiService/voapiV2/tokenResync", () => ({
+  resyncVoApiV2AuthToken: mockResyncVoApiV2AuthToken,
+}))
+
+vi.mock("~/services/accounts/accountStorage/accountMutations", () => ({
+  accountMutations: {
+    updateAccount: mockUpdateAccount,
+  },
+}))
+
+const account = {
+  id: "account-1",
+  site_type: SITE_TYPES.VO_API_V2,
+  site_url: "https://example.invalid",
+  account_info: {
+    id: "7",
+    access_token: "jwt-dashboard",
+  },
+  checkIn: buildCheckInConfig({ automaticExecutionEnabled: true }),
+} as unknown as SiteAccount
+
+const DEFAULT_PROVIDER_CONTEXT = {
+  tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Background,
+  protectionBypassExecution: userCommandExecution(
+    PROTECTION_BYPASS_USER_COMMANDS.ManualCheckin,
+  ),
+} as const
+
+const checkInForTest = (
+  account: Parameters<typeof voApiV2Provider.checkIn>[0],
+  context: Parameters<
+    typeof voApiV2Provider.checkIn
+  >[1] = DEFAULT_PROVIDER_CONTEXT,
+) => voApiV2Provider.checkIn(account, context)
+
+describe("voApiV2Provider", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockResyncVoApiV2AuthToken.mockResolvedValue(null)
+    mockUpdateAccount.mockResolvedValue(true)
+  })
+
+  it("registers the VoAPI v2 auto-check-in provider", () => {
+    expect(
+      autoCheckinMethodRegistry.resolveById(
+        AUTO_CHECKIN_METHOD_IDS.VoApiV2DailyCheckIn,
+      )?.provider,
+    ).toBe(voApiV2Provider as AutoCheckinProvider)
+  })
+
+  it("accepts only a boolean GET status and treats malformed data as unknown", async () => {
+    server.use(
+      http.get("https://example.invalid/api/check_in/stats", () =>
+        HttpResponse.json({ code: 0, data: { todaySigned: false } }),
+      ),
+    )
+    await expect(
+      voApiV2Provider.detect!({ account, observedAt: 230 }),
+    ).resolves.toMatchObject({
+      detection: { outcome: "matched" },
+      status: { outcome: "known", today: "not_checked" },
+    })
+    expect(mockSubmitVoApiV2CheckIn).not.toHaveBeenCalled()
+
+    server.use(
+      http.get("https://example.invalid/api/check_in/stats", () =>
+        HttpResponse.json({ code: 0, data: {} }),
+      ),
+    )
+    await expect(
+      voApiV2Provider.detect!({ account, observedAt: 231 }),
+    ).resolves.toEqual({
+      outcome: "unknown",
+      reason: "invalid_response",
+      attemptedAt: 231,
+    })
+  })
+
+  it("propagates the discovery abort signal to the stats request", async () => {
+    server.use(
+      http.get(
+        "https://example.invalid/api/check_in/stats",
+        async () => new Promise<never>(() => undefined),
+      ),
+    )
+    const controller = new AbortController()
+
+    const detection = voApiV2Provider.detect!({
+      account,
+      observedAt: 232,
+      signal: controller.signal,
+    })
+
+    await vi.waitFor(() => {
+      expect(mockFetchVoApiV2CheckInStats).toHaveBeenCalled()
+    })
+    controller.abort()
+
+    expect(mockFetchVoApiV2CheckInStats).toHaveBeenCalledWith(
+      expect.objectContaining({ abortSignal: controller.signal }),
+    )
+    await expect(detection).resolves.toEqual({
+      outcome: "unknown",
+      reason: "invalid_response",
+      attemptedAt: 232,
+    })
+  })
+
+  it("propagates the popup source through VoAPI v2 check-in and stats requests", async () => {
+    server.use(
+      http.post("https://example.invalid/api/check_in", ({ request }) => {
+        expect(request.headers.get("authorization")).toBe("jwt-dashboard")
+        return HttpResponse.json({
+          code: 0,
+          data: { amount: "0.1", bonusAmount: "0" },
+        })
+      }),
+      http.get("https://example.invalid/api/check_in/stats", () =>
+        HttpResponse.json({ code: 0, data: { todaySigned: true } }),
+      ),
+    )
+
+    await expect(
+      checkInForTest(account, {
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Popup,
+        protectionBypassExecution: userCommandExecution(
+          PROTECTION_BYPASS_USER_COMMANDS.ManualCheckin,
+        ),
+      }),
+    ).resolves.toMatchObject({ status: CHECKIN_RESULT_STATUS.SUCCESS })
+    expect(mockSubmitVoApiV2CheckIn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Popup,
+      }),
+    )
+    expect(mockFetchVoApiV2CheckInStats).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Popup,
+      }),
+    )
+  })
+
+  it("treats repeated same-day sign-in as already checked", async () => {
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json({ code: 1, data: null, msg: "No action performed" }),
+      ),
+      http.get("https://example.invalid/api/check_in/stats", () =>
+        HttpResponse.json({ code: 0, data: { todaySigned: true } }),
+      ),
+    )
+
+    await expect(checkInForTest(account)).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.ALREADY_CHECKED,
+    })
+    expect(mockSubmitVoApiV2CheckIn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Background,
+      }),
+    )
+  })
+
+  it("does not treat protocol code 1 as already checked without status confirmation", async () => {
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json({ code: 1, data: null, msg: "Request rejected" }),
+      ),
+      http.get("https://example.invalid/api/check_in/stats", () =>
+        HttpResponse.json({ code: 0, data: { todaySigned: false } }),
+      ),
+    )
+
+    await expect(checkInForTest(account)).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.FAILED,
+    })
+  })
+
+  it("does not run without the saved dashboard JWT", () => {
+    expect(
+      voApiV2Provider.getReadiness({
+        ...account,
+        account_info: { ...account.account_info, access_token: "" },
+      } as SiteAccount),
+    ).toEqual({ ready: false, reason: "credentials_missing" })
+  })
+
+  it("leaves automatic-execution intent to the Module", () => {
+    expect(
+      voApiV2Provider.getReadiness({
+        ...account,
+        checkIn: {
+          ...account.checkIn,
+          automaticExecutionEnabled: false,
+        },
+      }),
+    ).toEqual({ ready: true })
+  })
+
+  it("reports failure when submit succeeds but final stats are not checked in", async () => {
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json({
+          code: 0,
+          data: { amount: "0.1", bonusAmount: "0" },
+        }),
+      ),
+      http.get("https://example.invalid/api/check_in/stats", () =>
+        HttpResponse.json({ code: 0, data: { todaySigned: false } }),
+      ),
+    )
+
+    await expect(checkInForTest(account)).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.FAILED,
+    })
+  })
+
+  it("returns a provider error result when an expired JWT cannot be resynced", async () => {
+    mockResyncVoApiV2AuthToken.mockResolvedValueOnce(null)
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json({
+          code: 2,
+          data: null,
+          msg: "Auth expire",
+        }),
+      ),
+    )
+
+    await expect(checkInForTest(account)).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.FAILED,
+    })
+    expect(mockResyncVoApiV2AuthToken).toHaveBeenCalledWith(
+      "https://example.invalid",
+      TEMP_WINDOW_REQUEST_SOURCES.Background,
+      DEFAULT_PROVIDER_CONTEXT.protectionBypassExecution,
+    )
+  })
+
+  it("keeps a failed token resync retryable after an authoritative 401", async () => {
+    const mutationLifecycle = createAutoCheckinMutationLifecycle()
+    mockResyncVoApiV2AuthToken.mockRejectedValueOnce(
+      new Error("dashboard token resync unavailable"),
+    )
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json({ code: 2, data: null, msg: "Auth expire" }),
+      ),
+    )
+
+    await expect(
+      checkInForTest(account, {
+        ...DEFAULT_PROVIDER_CONTEXT,
+        mutationLifecycle,
+      }),
+    ).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.FAILED,
+      rawMessage: "dashboard token resync unavailable",
+    })
+    expect(mutationLifecycle.dispatched).toBe(false)
+  })
+
+  it("keeps a failed auth persistence step retryable after an authoritative 401", async () => {
+    const mutationLifecycle = createAutoCheckinMutationLifecycle()
+    mockResyncVoApiV2AuthToken.mockResolvedValueOnce({
+      accessToken: "resynced-dashboard-token",
+      userId: "8",
+      username: "resynced-owner",
+      source: "existing_tab",
+    })
+    mockUpdateAccount.mockRejectedValueOnce(
+      new Error("account auth persistence unavailable"),
+    )
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json({ code: 2, data: null, msg: "Auth expire" }),
+      ),
+    )
+
+    await expect(
+      checkInForTest(account, {
+        ...DEFAULT_PROVIDER_CONTEXT,
+        mutationLifecycle,
+      }),
+    ).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.FAILED,
+      rawMessage: "account auth persistence unavailable",
+    })
+    expect(mutationLifecycle.dispatched).toBe(false)
+    expect(mockSubmitVoApiV2CheckIn).toHaveBeenCalledTimes(1)
+  })
+
+  it("reports generic backend failures without dashboard JWT re-sync", async () => {
+    server.use(
+      http.post("https://example.invalid/api/check_in", () =>
+        HttpResponse.json(
+          { code: 500, data: null, msg: "Backend unavailable" },
+          { status: 500 },
+        ),
+      ),
+    )
+
+    await expect(checkInForTest(account)).resolves.toMatchObject({
+      status: CHECKIN_RESULT_STATUS.FAILED,
+    })
+    expect(mockResyncVoApiV2AuthToken).not.toHaveBeenCalled()
+  })
+
+  it("re-syncs an expired dashboard JWT before retrying API check-in", async () => {
+    const postAuthorizations: (string | null)[] = []
+    const statsAuthorizations: (string | null)[] = []
+    mockResyncVoApiV2AuthToken.mockResolvedValueOnce({
+      accessToken: "resynced-dashboard-token",
+      userId: "8",
+      username: "resynced-owner",
+      source: "existing_tab",
+    })
+
+    server.use(
+      http.post("https://example.invalid/api/check_in", ({ request }) => {
+        const authorization = request.headers.get("authorization")
+        postAuthorizations.push(authorization)
+        if (authorization === "jwt-dashboard") {
+          return HttpResponse.json({
+            code: 2,
+            data: null,
+            msg: "Auth expire",
+          })
+        }
+
+        return HttpResponse.json({
+          code: 0,
+          data: { amount: "0.1", bonusAmount: "0" },
+        })
+      }),
+      http.get("https://example.invalid/api/check_in/stats", ({ request }) => {
+        statsAuthorizations.push(request.headers.get("authorization"))
+        return HttpResponse.json({ code: 0, data: { todaySigned: true } })
+      }),
+    )
+
+    await expect(
+      checkInForTest(account, {
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Popup,
+        protectionBypassExecution: userCommandExecution(
+          PROTECTION_BYPASS_USER_COMMANDS.ManualCheckin,
+        ),
+      }),
+    ).resolves.toMatchObject({ status: CHECKIN_RESULT_STATUS.SUCCESS })
+
+    expect(postAuthorizations).toEqual([
+      "jwt-dashboard",
+      "resynced-dashboard-token",
+    ])
+    expect(statsAuthorizations).toEqual(["resynced-dashboard-token"])
+    expect(mockResyncVoApiV2AuthToken).toHaveBeenCalledWith(
+      "https://example.invalid",
+      TEMP_WINDOW_REQUEST_SOURCES.Popup,
+      DEFAULT_PROVIDER_CONTEXT.protectionBypassExecution,
+    )
+    expect(mockSubmitVoApiV2CheckIn).toHaveBeenCalledTimes(2)
+    for (const [request] of mockSubmitVoApiV2CheckIn.mock.calls) {
+      expect(request).toMatchObject({
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Popup,
+        protectionBypassExecution:
+          DEFAULT_PROVIDER_CONTEXT.protectionBypassExecution,
+      })
+    }
+    expect(mockFetchVoApiV2CheckInStats).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tempWindowRequestSource: TEMP_WINDOW_REQUEST_SOURCES.Popup,
+      }),
+    )
+    expect(mockUpdateAccount).toHaveBeenCalledWith(
+      "account-1",
+      expect.objectContaining({
+        account_info: expect.objectContaining({
+          access_token: "resynced-dashboard-token",
+          id: "8",
+          username: "resynced-owner",
+        }),
+      }),
+      expect.any(Object),
+    )
+  })
+})

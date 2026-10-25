@@ -1,0 +1,944 @@
+{
+  "accountSummary": {
+    "keys_other": "{{count}} 個金鑰",
+    "loadFailed": "載入失敗",
+    "loading": "載入中",
+    "partialLoadFailed": "部分載入",
+    "title": "帳號概覽",
+    "unavailableAccounts_other": "無法載入金鑰 · {{count}}",
+    "unsupported": "不支援"
+  },
+  "actions": {
+    "collapseAll": "全部摺疊",
+    "copyKelivoImportCode": "匯出到 Kelivo 行動版",
+    "deleteKey": "刪除金鑰",
+    "details": "查看詳情",
+    "detailsFor": "查看 {{name}} 的詳情",
+    "editKey": "編輯金鑰",
+    "expandAll": "全部展開",
+    "exportToAiToolbox": "匯出到 AI Toolbox",
+    "exportToCCSwitch": "匯出到 CC Switch",
+    "exportToCursorPlus": "匯出 Cursor++ 提供者設定",
+    "exportToKiloCode": "匯出 Kilo Code 設定",
+    "hideKey": "隱藏金鑰",
+    "importToClaudeCodeRouter": "匯入到 Claude Code Router",
+    "importToManagedSite": "匯入到 {{site}}",
+    "openApiProfiles": "開啟 API 憑據庫",
+    "openSelectedAccountModels": "查看帳號模型",
+    "retryFailed": "重試失敗帳號",
+    "saveToApiProfiles": "儲存並關聯到 API 憑據庫",
+    "showKey": "顯示金鑰",
+    "useInCherry": "在 Cherry Studio 中使用",
+    "verifyApi": "驗證介面",
+    "verifyCliSupport": "驗證 CLI 相容性"
+  },
+  "actionToolbar": {
+    "apiCredential": "API 憑據",
+    "diagnostics": "診斷",
+    "integrationsAndExport": "整合與匯出",
+    "label": "金鑰操作",
+    "management": "管理",
+    "quickActions": "快速操作"
+  },
+  "allAccounts": "所有帳號",
+  "allAccountsFailed_other": "{{count}} 個帳號載入失敗，結果不完整",
+  "allAccountsLoading_other": "{{count}} 個載入中",
+  "allAccountsProgress": "已處理 {{completed}}/{{total}} 個帳號",
+  "batchApiCredentialProfiles": {
+    "actions": {
+      "open": "儲存到 API 憑據庫（{{selectedCount}}）"
+    }
+  },
+  "batchManagedSiteExport": {
+    "actions": {
+      "clearSelection": "清除選取",
+      "open": "批次匯入到 {{site}}（{{selectedCount}}）",
+      "refreshPreview": "重新整理預覽",
+      "retry": "重試失敗的金鑰",
+      "running": "正在匯入...",
+      "selectAll": "已選 {{selected}}/{{total}}",
+      "start": "開始匯入",
+      "verifyAndRefresh": "驗證並重新整理預覽",
+      "verifying": "正在驗證...",
+      "viewChannels": "檢視渠道"
+    },
+    "blockedDetails": {
+      "createdKeyReferenceAmbiguous": "無法安全比對新建立的金鑰。",
+      "createdKeyUnavailable": "新建立的金鑰已無法使用。",
+      "sourceAccountUnavailable": "來源帳號已無法使用。",
+      "sourceKeyInventoryUnavailable": "無法載入來源帳號的金鑰。"
+    },
+    "blockedReasons": {
+      "baseUrlRequired": "目標自建 AI 閘道需要 Base URL。",
+      "configMissing": "缺少自建 AI 閘道管理員設定。",
+      "inputPreparationFailed": "無法為此金鑰準備渠道資料。",
+      "keyRequired": "產生的渠道 Key 為空。",
+      "modelsRequired": "未解析到可用模型。",
+      "nameRequired": "產生的渠道名稱為空。",
+      "realKeyRequired": "目標自建 AI 閘道需要真實供應商 Key。",
+      "secretResolutionFailed": "無法解析真實金鑰。"
+    },
+    "confirm": {
+      "description": "將為 {{selectedCount}} 個已選金鑰建立渠道。已精確存在與被阻擋的項目不會建立。",
+      "title": "匯入已選金鑰"
+    },
+    "description": "建立到 {{site}} 前，先檢查 {{selectedCount}} 個已選金鑰。",
+    "fallbackLabels": {
+      "createdKey": "已建立的金鑰"
+    },
+    "fields": {
+      "baseUrl": "Base URL",
+      "editModelsLabel": "編輯 {{name}} 的模型列表",
+      "groups": "分組",
+      "models": "模型"
+    },
+    "gatewayDescription": "這會將帳號 Key 匯入為自建 AI 閘道渠道。匯入後，多個 Key 即可透過同一個 AI API 提供給客戶端使用。",
+    "importMode": {
+      "appendTo": "加入已有渠道：{{name}}",
+      "chooseTarget": "請選擇要加入金鑰的渠道",
+      "createNew": "新建一個渠道",
+      "grouped": "同站點金鑰合併到一個新渠道",
+      "independent": "每個金鑰新建一個渠道",
+      "keyCount_other": "{{count}} 個金鑰",
+      "label": "金鑰匯入方式",
+      "modelDifferences": "這些金鑰的模型清單不同，合併資源採用模型聯集，由目標閘道負責路由。",
+      "models": "模型：{{models}}",
+      "preserveSettings": "保留已有渠道的配置和模型設定，只加入尚未匯入的金鑰。",
+      "resourceName": "新渠道名稱",
+      "resultSummary": "金鑰結果：{{created}} 個已匯入，{{failed}} 個失敗，{{uncertain}} 個結果不確定，{{skipped}} 個已略過。",
+      "reuse": "優先加入已有渠道",
+      "reuseHelp": "同地址有可用渠道時加入金鑰；有多個渠道時選擇目標，沒有時合併新建。",
+      "reuseSummary": "已選擇 {{keyCount}} 個金鑰：新建 {{createCount}} 個渠道，加入 {{appendCount}} 個已有渠道。",
+      "saveFailed": "本次匯入已採用所選方式，但未能儲存偏好。",
+      "scheduling": "多個金鑰如何輪替由目標閘道決定，請按你的使用需求選擇。",
+      "summary": "已選擇 {{keyCount}} 個金鑰，將新建 {{resourceCount}} 個渠道。",
+      "target": "加入哪個渠道",
+      "unsupported": "此資源類型不支援多金鑰合併，將獨立建立。"
+    },
+    "loadingDescription": "正在為 {{selectedCount}} 個已選金鑰準備預覽。",
+    "messages": {
+      "batchDuplicate": "與本批次的 {{item}} 重複，已略過。",
+      "completed": "金鑰結果：{{created}} 個已匯入，{{failed}} 個失敗，{{uncertain}} 個結果不確定，{{skipped}} 個已略過。",
+      "duplicate": "已存在精確符合渠道：{{channel}}，不會重複建立。",
+      "executionFailed": "執行批次匯入失敗：{{error}}",
+      "targetChanged": "自建 AI 閘道目標已變更。請重新整理預覽或選擇正確目標後再匯入。",
+      "verificationFailed": "New API 驗證失敗：{{error}}"
+    },
+    "preview": {
+      "loadFailed": "載入預覽失敗：{{error}}",
+      "loading": "正在準備渠道預覽...",
+      "selected_other": "已選擇 {{count}} 個金鑰",
+      "summary": "預覽：可建立 {{ready}} 個，警告 {{warning}} 個，已略過 {{skipped}} 個，阻擋 {{blocked}} 個，共 {{total}} 個。"
+    },
+    "repairTrusted": {
+      "description": "這些金鑰剛剛建立完成。簡化審核會略過重複檢查與精確 Key 檢查；若要在匯入前再次核對，可以使用完整檢查。",
+      "useCompleteChecks": "使用完整檢查"
+    },
+    "results": {
+      "channelCreationFailed": "金鑰匯入失敗。",
+      "status": {
+        "failed": "失敗",
+        "notSelected": "未選擇",
+        "skipped": "已略過",
+        "success": "已匯入",
+        "uncertain": "需檢查"
+      },
+      "summary": "金鑰結果：{{created}} 個已匯入，{{failed}} 個失敗，{{uncertain}} 個結果不確定，{{skipped}} 個已略過。"
+    },
+    "selection": {
+      "accountGroup": "選擇帳號 {{name}} 目前可見密鑰",
+      "rowLabel": "選擇 {{name}} 用於批次匯入",
+      "visible": "目前可見已選 {{selected}}/{{total}}"
+    },
+    "status": {
+      "blocked": "已阻擋",
+      "ready": "可建立",
+      "skipped": "已略過",
+      "warning": "需確認"
+    },
+    "target": {
+      "change": "更換目標",
+      "title": "匯入到 {{site}}"
+    },
+    "title": "批次匯入到自建 AI 閘道",
+    "warnings": {
+      "backendSearchFailed": "重複檢查暫時無法連線目標後台。",
+      "dedupeUnsupported": "目前自建 AI 閘道無法可靠依 Base URL 檢查重複渠道。",
+      "exactVerificationUnavailable": "可能已有符合渠道，但無法確認精確 Key。建立前請檢查。",
+      "matchRequiresConfirmation": "發現相似渠道，請確認後再建立。",
+      "modelPrefillFailed": "模型預填失敗，將使用目前可用的模型列表。"
+    }
+  },
+  "batchSelection": {
+    "accountUnavailableReason": "此帳號沒有支援批次操作的金鑰。",
+    "eligibilityNotice_other": "目前有 {{count}} 個金鑰支援批次操作；其他金鑰不會參與。",
+    "unavailableReason": "此金鑰不支援批次操作。"
+  },
+  "createdKey": {
+    "subtitle": "{{name}} 已建立。現在可以複製金鑰，之後仍可再次顯示。",
+    "title": "金鑰已建立"
+  },
+  "createFirstKey": "建立第一個金鑰",
+  "credentialAssociation": {
+    "linked": "已關聯 API 憑據",
+    "needsConfirmation": "關聯待確認",
+    "reviewCredential": "查看待確認的憑據關聯",
+    "target": {
+      "clear": "返回金鑰列表",
+      "found": "已定位到關聯金鑰",
+      "loading": "正在載入憑據關聯…",
+      "locating": "正在定位關聯金鑰…",
+      "missing": "此憑據關聯已不存在。",
+      "needsConfirmation": "此憑據關聯需要確認後才能開啟。",
+      "retry": "重試",
+      "unavailable": "目前無法定位關聯金鑰，請檢查帳號連線後重試。"
+    },
+    "viewCredential": "查看關聯的 API 憑據"
+  },
+  "description": "管理各站點帳號的 API 金鑰，建立金鑰並查看設定與用量。",
+  "details": {
+    "empty": "沒有更多詳情",
+    "loading": "正在載入詳情",
+    "unavailable": "詳情暫時無法使用"
+  },
+  "dialog": {
+    "accountSelect": "選擇帳號",
+    "addToken": "新增 API 金鑰",
+    "advancedSettings": "高階設定",
+    "availableModels": "可用模型",
+    "basicInfo": "基本資訊",
+    "createNotSupported": "該帳號不支援建立 API 金鑰。",
+    "createToken": "建立金鑰",
+    "expiration": "過期時間",
+    "expirationPlaceholder": "留空表示永不過期",
+    "groupLabel": "分組",
+    "ipLimits": "IP 限制",
+    "ipPlaceholder": "留空表示不限制，多個 IP 用逗號分隔",
+    "modelLimits": "模型限制",
+    "quotaPlaceholder": "請輸入額度金額（美元）",
+    "quotaSettings": "額度設定",
+    "selectModels": "選擇模型",
+    "subnetLimits": "Subnet 限制",
+    "subnetPlaceholder": "留空表示不限制，輸入 subnet 或 CIDR",
+    "tokenName": "金鑰名稱",
+    "unlimitedQuota": "無限額度",
+    "warningText": "請妥善保管 API 金鑰，避免洩露",
+    "warningTitle": "注意事項"
+  },
+  "enabledCount_other": "啟用 {{count}} 個",
+  "exportMenu": {
+    "groups": {
+      "chatClients": "聊天用戶端",
+      "codingAgents": "程式設計 Agents",
+      "gateways": "閘道與路由工具"
+    }
+  },
+  "keyDetails": {
+    "channels": "渠道",
+    "createResponseOnlySecret": "此站點僅在建立時顯示完整金鑰。如果當時沒有儲存，請前往金鑰管理建立替代金鑰。",
+    "createTime": "建立時間：",
+    "defaultChannels": "站點預設渠道",
+    "expireTime": "過期時間：",
+    "followsAccountGroup": "跟隨帳號分組",
+    "group": "分組：",
+    "ipLimits": "IP 限制：",
+    "key": "金鑰：",
+    "lastUsedTime": "最近使用時間：",
+    "models": "模型限制：",
+    "neverExpires": "永不過期",
+    "note": "備註：",
+    "remainingQuota": "剩餘額度：",
+    "totalQuota": "總額度：",
+    "ungrouped": "未分組",
+    "usedQuota": "已用額度："
+  },
+  "knownTotalKeys_other": "已讀取 {{count}} 個金鑰",
+  "linkedCleanup": {
+    "description": "檢查所有使用此金鑰的渠道。多金鑰渠道僅移除對應憑證，沒有剩餘金鑰時才刪除渠道；檢查失敗時保留來源金鑰。",
+    "option": "同時清理目前管理站點中的關聯渠道",
+    "pending_other": "{{count}} 個渠道待清理",
+    "retry": "重試清理",
+    "retryDescription": "未完成的清理會保留以供重試。只有確認來源金鑰已刪除後，才會繼續清理。"
+  },
+  "loadError": {
+    "description": "無法讀取目前帳號的金鑰列表。可能是登入已失效、權限不足，或站點暫時無法連線。請先重新登入站點後再重試。\n\n錯誤資訊：{{error}}",
+    "openSite": "開啟站點",
+    "title": "金鑰列表載入失敗"
+  },
+  "managedSiteSetupRecovery": {
+    "configureManagedSite": "設定自建 AI 閘道",
+    "description": "完成自建 AI 閘道設定後，可將帳號 Key 匯入為閘道渠道，彙整成一個統一 AI API。"
+  },
+  "managedSiteStatus": {
+    "actions": {
+      "configureChecks": "設定管理站點校驗",
+      "refresh": "重新整理管理站點渠道狀態",
+      "refreshing": "正在重新整理管理站點渠道狀態",
+      "reviewChannels": "檢視候選渠道",
+      "verifyNow": "立即驗證"
+    },
+    "badges": {
+      "added": "已新增",
+      "checkFailed": "檢查失敗",
+      "checking": "檢查中",
+      "configMissing": "未設定",
+      "notAdded": "未新增",
+      "requiresConfirmation": "需確認",
+      "unknown": "未知",
+      "verificationUnavailable": "無法完整驗證"
+    },
+    "descriptions": {
+      "backendSearchFailed": "管理站點校驗暫時無法完成。",
+      "baseUrlSearchUnsupported": "該功能在目前的託管站點上不受支援，因為目前的託管站點不支援按基礎地址搜尋渠道。",
+      "configMissingOptional": "可選的管理站點渠道校驗尚未啟用；不影響金鑰檢視、複製或建立。",
+      "inputPreparationFailed": "無法準備可比對的渠道輸入，暫時無法完成校驗。",
+      "newApiRetrieveKeyHint": "對於 New API，完整的 key 比對依賴渠道 key，而檢視渠道 key 本身需要先完成 2FA 驗證，因此當前暫無法完成完整 key 比對。"
+    },
+    "label": "管理站台",
+    "pageUnsupported": "由於目前的託管站點暫不支援使用 URL 搜尋渠道，暫不提供管理站點渠道檢查功能。",
+    "recovery": {
+      "configureLogin": "請先在設定中填寫 New API 登入與兩步驗證輔助資訊，否則當前無法讀取渠道 key，也無法完成完整的 key 比對。",
+      "verificationRequired": "完整的 key 比對需要先完成一次短時有效的 New API 驗證，因為 New API 檢視渠道 key 本身就需要 2FA 驗證。"
+    },
+    "signals": {
+      "key": {
+        "matched": "Key 已命中",
+        "noMatch": "Key 未命中",
+        "notProvided": "Key 缺失",
+        "tooltipMatched": "在相同規範化 URL 範圍內，有渠道命中了該 key：{{channelName}}。",
+        "tooltipNoMatch": "存在可比較的渠道 key，但沒有任何一個命中當前 key。",
+        "tooltipNotProvided": "當前 token 沒有可用於比較的 key。",
+        "tooltipUnavailable": "由於後端沒有暴露可比較的渠道 key，當前無法完成 key 比對。",
+        "unavailable": "Key 不可比對"
+      },
+      "models": {
+        "contained": "模型包含命中",
+        "exact": "模型完全一致",
+        "noMatch": "模型未命中",
+        "notProvided": "模型缺失",
+        "similar": "模型相似命中",
+        "tooltipContained": "規範化後的模型集合與渠道 {{channelName}} 透過包含關係命中。",
+        "tooltipExact": "規範化後的模型集合與渠道 {{channelName}} 完全一致。",
+        "tooltipNoMatch": "在當前規範化 URL 範圍內，沒有確認到模型命中。",
+        "tooltipNotProvided": "當前 token 沒有可用於比較的模型列表。",
+        "tooltipSimilar": "規範化後的模型集合與渠道 {{channelName}} 透過相似度命中（{{score}}%）。",
+        "tooltipUnavailable": "由於沒有可比較的 URL 範圍，當前無法完成模型比對。",
+        "unavailable": "模型不可比對"
+      },
+      "url": {
+        "matched": "URL 已命中",
+        "noMatch": "URL 未找到",
+        "tooltipMatched_other": "在相同規範化 URL 範圍內找到了 {{count}} 個候選渠道。示例候選：{{channelName}}。",
+        "tooltipNoMatch": "在相同規範化 URL 範圍內未找到任何渠道。"
+      }
+    }
+  },
+  "messages": {
+    "batchSavedToApiProfiles": "已儲存所選金鑰到 API 憑據庫",
+    "batchSavedToApiProfilesNeedsConfirmation": "已儲存所選金鑰，請在 API 憑據庫中檢查標記的關聯。",
+    "batchSaveToApiProfilesFailed": "儲存所選金鑰到 API 憑據庫失敗",
+    "batchSaveToApiProfilesPartialFailed": "已儲存 {{savedCount}}/{{totalCount}} 個所選金鑰，{{failedCount}} 個未能儲存。",
+    "copyFailed": "複製失敗",
+    "keyCopied": "金鑰 {{name}} 已複製到剪貼簿",
+    "keyDeleted": "金鑰 {{name}} 已刪除",
+    "keyDeletedSimple": "金鑰已刪除",
+    "keySiteTypeMismatch": "該站點本身對應「{{suggestedType}}」，而帳號目前是「{{storedType}}」。請在「編輯帳號」把站點型別改為「{{suggestedType}}」後重試。",
+    "keyUpdated": "金鑰 {{name}} 已更新",
+    "keyUpdatedSimple": "金鑰已更新",
+    "loadFailed": "載入金鑰列表失敗",
+    "revealFailed": "顯示金鑰失敗",
+    "savedToApiProfiles": "已儲存 {{name}} 到 API 憑據庫",
+    "savedToApiProfilesNeedsConfirmation": "憑據已儲存，請在 API 憑據庫中檢查其金鑰關聯。",
+    "saveToApiProfilesFailed": "儲存到 API 憑據庫失敗",
+    "serviceCredentialCopied": "服務金鑰已複製到剪貼簿",
+    "serviceCredentialRotated": "服務金鑰已重置",
+    "serviceCredentialRotateFailed": "重置服務金鑰失敗",
+    "verifyApiFailed": "開啟介面驗證失敗",
+    "verifyCliSupportFailed": "開啟 CLI 相容性驗證失敗"
+  },
+  "native": {
+    "actions": {
+      "delete": "刪除金鑰",
+      "disable": "停用 API Key",
+      "edit": "編輯金鑰",
+      "enable": "啟用 API Key",
+      "revoke": "撤銷金鑰",
+      "rotate": "輪換 API Key"
+    },
+    "delete": {
+      "confirm": "刪除金鑰",
+      "description": "要永久刪除金鑰 {{name}} 嗎？刪除後無法復原。",
+      "feedback": {
+        "authenticationFailed": "請重新登入或更新此帳號的憑證，然後重試。",
+        "error": "無法刪除此金鑰。請重新整理後再試。",
+        "permissionDenied": "請使用有權查看與管理金鑰的憑證，然後重試。",
+        "unavailable": "服務暫時無法使用，請先重新整理再試。",
+        "uncertain": "金鑰狀態可能已變更。請先重新整理金鑰，再決定是否重試。"
+      },
+      "refresh": "重新整理金鑰",
+      "title": "刪除 API 金鑰？"
+    },
+    "detailsLoadFailed": "無法載入金鑰詳細資料。",
+    "editor": {
+      "actions": {
+        "cancel": "取消",
+        "save": "儲存金鑰"
+      },
+      "allowlistHelp": "以逗號或換行分隔，留空不限制。",
+      "allowWallet": "允許使用餘額",
+      "allowWalletHelp": "套餐額度用完後，此金鑰仍可從帳戶餘額扣費繼續使用。",
+      "budget5h": "5 小時預算（USD）",
+      "budgetDay": "單日預算（USD）",
+      "budgetMonth": "每月預算（USD）",
+      "budgetNextReset": "重設 {{time}}（北京時間）",
+      "budgetResetHelp": "0 表示不限。5 小時滾動恢復；日、週、月按北京時間重設，每週從週一開始。",
+      "budgetRolling": "滾動視窗",
+      "budgetsAndLimits": "預算與存取限制",
+      "budgetUsage": "已用 ${{used}} / ${{limit}} · 剩餘 ${{remaining}} · 預留 ${{reserved}}",
+      "budgetWeek": "每週預算（USD）",
+      "channel": "管道",
+      "dahl": {
+        "allocate": "分配 Token",
+        "amountHelp": "輸入整數 Token，或使用 K/M。可用：{{max}} Token。",
+        "amountInvalid": "請輸入不超過可用額度的有效數量。",
+        "amountPlaceholder": "例如 2.5M 或 500K",
+        "create": "建立金鑰",
+        "createdHelp": "{{name}} 已建立，尚未分配額度。可複製金鑰或分配 tokens 後開始使用，之後仍可再次顯示金鑰。",
+        "createHelp": "建立初始額度為 0 Token 的新金鑰。可填寫名稱，建立後複製金鑰或分配 tokens。",
+        "createTitle": "建立 API 金鑰",
+        "invalidAmount": "數量必須是正整數 Token，且不能超過 {{max}} Token。",
+        "keyAfter": "轉帳後金鑰額度",
+        "keyBalance": "此金鑰（Token）",
+        "manageTitle": "管理 Key",
+        "max": "全部",
+        "name": "Key 名稱",
+        "nameCached": "目前顯示本機快取名稱。開啟對應官網帳戶頁面後，會檢查官網名稱。",
+        "nameHelp": "開啟官網帳戶頁面時，名稱會與目前瀏覽器中的官網儲存同步。重新整理官網後即可看到變更。",
+        "nameInvalid": "名稱不能超過 128 個字元。",
+        "namePending": "已儲存在本機，等待同步。請開啟官網並登入此帳戶，再重新整理 Key 清單。",
+        "namePlaceholder": "選填名稱",
+        "nameSynced": "名稱已與官網同步，重新整理官網即可查看。",
+        "noKeyTokens": "此金鑰沒有可回收的 Token。",
+        "noPoolTokens": "帳戶池沒有可分配的 Token，請在官網儲值或從其他金鑰回收額度。",
+        "poolAfter": "轉帳後帳戶池",
+        "poolBalance": "帳戶池（Token）",
+        "rename": "重新命名",
+        "return": "回收 Token",
+        "revoke": "撤銷金鑰",
+        "revokeDescription": "撤銷 {{name}}？金鑰將停止使用，剩餘 Token 會退回帳戶池，官網會保留撤銷紀錄。此操作無法復原。",
+        "revokeTitle": "撤銷 API 金鑰",
+        "saveName": "儲存名稱",
+        "transferAmount": "轉帳 Token 數量"
+      },
+      "daya": {
+        "allowFast": "允許 Fast 模式",
+        "allowFastHelp": "允許 OpenAI 請求使用 Fast，是否計為 Fast 由系統規則決定。關閉後，所有 OpenAI 請求（包括 Flex）強制一般模式並按一般費率計費。",
+        "budget7d": "7 天額度（USD）",
+        "budgetHelp": "各時間視窗內的美元消費上限，0 表示不限制。",
+        "customKey": "自訂金鑰（選填）",
+        "customKeyHelp": "不填寫則自動產生。自訂金鑰至少 16 位，僅支援字母、數字、底線和連字號。",
+        "groupOrderHelp": "依此順序嘗試路由。可拖曳排序，或使用上下箭頭調整。",
+        "ipBlacklist": "IP 封鎖清單",
+        "ipWhitelist": "IP 允許清單"
+      },
+      "description": "描述（選填）",
+      "emrank": {
+        "expiration": "有效期",
+        "expirationOptions": {
+          "custom": "自訂時間",
+          "day": "一天",
+          "hour": "一小時",
+          "keep": "保留目前有效期限",
+          "month": "一個月（30 天）",
+          "never": "永不過期"
+        },
+        "quotaHelp": "1 M = 1,000,000 Token，最多 6 位小數；維持無限額度則不受限制。",
+        "quotaMToken": "額度（M Token）"
+      },
+      "excludeIps": "排除 IP",
+      "excludeIpsPlaceholder": "一行一個（支援 CIDR）",
+      "expiryDays": "有效期限（天）",
+      "feedback": {
+        "adminOnlyKeySettings": "該站點僅管理員可設定 IP 白名單等進階金鑰選項；請清除對應欄位後重試。",
+        "authenticationFailed": "請重新登入或更新此帳號的憑證，然後重試。",
+        "error": "請依照錯誤資訊處理後重試。",
+        "permissionDenied": "請使用有權查看與管理金鑰的憑證，然後重試。",
+        "title": "無法儲存金鑰",
+        "unavailable": "服務暫時無法使用，請稍後重試。",
+        "uncertain": "服務可能已套用此變更。請先重新整理金鑰確認目前狀態，再決定是否重試。"
+      },
+      "followAccountQuotaHelp": "-1 表示跟隨帳戶額度。",
+      "followsAccount": "跟隨帳戶",
+      "groupOnly": "僅使用選定分組",
+      "groupOnlyHelp": "開啟後此金鑰只在選定分組上呼叫，不再自動切換到其他分組。",
+      "independentQuotaUsd": "獨立額度（USD）",
+      "ipCidrAllowlist": "IP/CIDR 允許清單",
+      "issues": {
+        "inconsistentValue": "請檢查此值後重試。",
+        "invalidValue": "請輸入有效值。",
+        "outOfRange": "請輸入允許範圍內的值。",
+        "required": "此項為必填項。",
+        "unsupportedOption": "請選擇可用選項。"
+      },
+      "keyConcurrency": "Key 並行數",
+      "keyRateHelp": "0 表示跟隨帳戶限制。",
+      "keyRpm": "Key RPM",
+      "keyUnlimitedQuota": "Key 不限額",
+      "keyUnlimitedQuotaHelp": "仍受帳戶餘額或訂閱額度限制。",
+      "krill": {
+        "allowAnyIp": "允許任意 IP",
+        "allowAnyIpHelp": "停用已儲存的 IP 白名單，允許任意 IP 發起請求。",
+        "channels": "渠道",
+        "channelsHelp": "該金鑰可以使用的計費線路。"
+      },
+      "laozhang": {
+        "activateOnFirstUse": "首次使用時啟用",
+        "activationHelp": "0 表示不設定啟用後有效期；絕對到期時間仍由網站規則決定。",
+        "billingHybrid": "混合計費",
+        "billingRequest": "按次計費",
+        "billingRequestPriority": "按次優先",
+        "billingType": "計費方式",
+        "billingUsage": "按量計費",
+        "billingUsagePriority": "按量優先",
+        "discordProxy": "Discord 代理網址",
+        "fallbackGroups": "備用分組（按順序）",
+        "fallbackHelp": "備用分組按選擇順序嘗試；自動分組不使用備用分組。數量限制由網站決定。",
+        "mjApiKey": "MJ 翻譯 API 金鑰",
+        "mjBaseUrl": "MJ 翻譯介面網址",
+        "mjModel": "MJ 翻譯模型",
+        "mjTranslation": "啟用 MJ 翻譯",
+        "rateLimitDuration": "限制週期（秒）",
+        "rateLimitEnabled": "啟用流量限制",
+        "rateLimitMessage": "超出限制提示",
+        "rateLimitNum": "週期內請求次數",
+        "remark": "金鑰備註",
+        "retryAuto": "自動（跟隨全域）",
+        "retryBilling": "重試保持計費方式",
+        "retryOff": "關閉",
+        "retryOn": "開啟",
+        "validDuration": "啟用後有效天數"
+      },
+      "modelAllowlist": "模型允許清單",
+      "opening": {
+        "failed": "無法開啟金鑰編輯器",
+        "loading": "正在開啟金鑰編輯器...",
+        "retry": "重試"
+      },
+      "quotaCredits": "剩餘積分",
+      "quotaCreditsHelp": "額度用完後該金鑰將無法繼續使用。",
+      "quotaUsd": "額度（美元）",
+      "remainingCount": "剩餘次數",
+      "remainingCountPlaceholder": "此金鑰還能呼叫多少次",
+      "storageLocation": "儲存地域",
+      "storageLocationGlobal": "全球節點",
+      "storageLocationHelp": "此金鑰生成的圖片、影片等內容的存放節點。",
+      "storageLocationNone": "不轉存（使用原始連結）",
+      "storageLocationUnconfigured": "跟隨部署預設",
+      "title": {
+        "create": "建立 API 金鑰",
+        "edit": "編輯 API 金鑰"
+      },
+      "totalQuotaUsd": "總額度（美元）",
+      "unlimitedCount": "不限呼叫次數",
+      "unlimitedCountHelp": "關閉後依「剩餘次數」計滿即停；次數與額度分開計算。",
+      "unsaved": {
+        "description": "關閉後，本次修改不會儲存。",
+        "discard": "捨棄變更",
+        "keepEditing": "繼續編輯",
+        "title": "捨棄變更？"
+      }
+    },
+    "heading": "API 金鑰",
+    "lifecycle": {
+      "disableDescription": "暫時停用此 Key，之後可以重新啟用。",
+      "enableDescription": "使用現有設定重新啟用此 Key。",
+      "rotateDescription": "輪換後舊 Key 將立即失效。請複製新 Key 並更新用戶端，其他設定保持不變。"
+    },
+    "missing": "無可用資料",
+    "revoke": {
+      "description": "確定撤銷「{{name}}」嗎？金鑰將永久停用，記錄會保留，直到你將其刪除。",
+      "feedback": {
+        "error": "無法撤銷此金鑰，請重新整理後再試。"
+      },
+      "success": "金鑰已撤銷",
+      "title": "撤銷金鑰",
+      "working": "正在撤銷..."
+    },
+    "scope": {
+      "empty": "暫無可用作用域",
+      "error": "無法載入作用域",
+      "errorHelp": "請檢查帳戶存取權限後重試。",
+      "fallback": "請求的作用域無法使用，現已顯示預設作用域。",
+      "heading": "作用域",
+      "label": "選擇作用域",
+      "loading": "正在載入作用域…",
+      "partial": "部分作用域未能載入，已載入的作用域仍可使用。",
+      "placeholder": "請選擇作用域",
+      "retry": "重新載入作用域"
+    },
+    "status": {
+      "all": "全部",
+      "disabled": "已停用",
+      "enabled": "已啟用",
+      "expired": "已到期",
+      "unknown": "未知"
+    },
+    "statusFilter": {
+      "label": "金鑰狀態"
+    }
+  },
+  "noAccountsSupportKeyCreation": "目前檢視中的帳號都不支援建立 API 金鑰。請選擇其他帳號或新增受支援的帳號。",
+  "noKeys": "暫無金鑰資料",
+  "noMatchingKeys": "沒有找到匹配的金鑰",
+  "oneTimeKey": {
+    "close": "關閉",
+    "closeConfirm": {
+      "cancel": "返回查看金鑰",
+      "confirm": "仍然關閉",
+      "description": "如果尚未複製或儲存，請先返回處理此金鑰。",
+      "title": "關閉後將無法再次查看完整金鑰"
+    },
+    "copied": "完整金鑰已複製到剪貼簿",
+    "copiedAction": "已複製",
+    "copy": "複製完整金鑰",
+    "copyFailed": "複製完整金鑰失敗",
+    "keyLabel": "完整金鑰",
+    "subtitle": "金鑰 {{name}} 的完整值只會在本次操作後顯示。",
+    "subtitleUnnamed": "完整金鑰只會在本次操作後顯示。",
+    "title": "立即儲存完整金鑰",
+    "warningDescription": "關閉此對話框後，擴充功能將無法再次顯示完整金鑰。",
+    "warningTitle": "該金鑰只能查看一次"
+  },
+  "openRouter": {
+    "editor": {
+      "fields": {
+        "creator": {
+          "editHelp": "如需變更建立者，請建立新的金鑰。",
+          "help": "可選擇將此金鑰指派給工作區成員。",
+          "label": "建立者",
+          "placeholder": "無建立者"
+        },
+        "disabled": {
+          "help": "停用的金鑰在重新啟用前無法使用。",
+          "label": "停用金鑰"
+        },
+        "expiresAt": {
+          "editHelp": "如需變更到期時間，請建立新的金鑰。",
+          "help": "日期和時間按本地時區輸入，並以 UTC 儲存。",
+          "label": "過期時間"
+        },
+        "includeByokInLimit": {
+          "help": "將自帶金鑰用量計入此額度。",
+          "label": "計入 BYOK 用量"
+        },
+        "limit": {
+          "help": "額度為 0 USD 時將無法消費。",
+          "label": "限制額度"
+        },
+        "limitMode": {
+          "label": "用量限制"
+        },
+        "limitReset": {
+          "help": "選擇額度重設的頻率。",
+          "label": "重設週期"
+        },
+        "name": {
+          "help": "為此金鑰使用便於識別的名稱。",
+          "label": "金鑰名稱",
+          "placeholder": "生產環境金鑰"
+        },
+        "workspace": {
+          "editHelp": "如需變更工作區，請建立新的金鑰。",
+          "help": "選擇此金鑰所屬的工作區。",
+          "label": "工作區",
+          "placeholder": "選擇工作區"
+        }
+      },
+      "options": {
+        "creator": {
+          "empty": "此工作區沒有可用成員。",
+          "none": "無建立者",
+          "unavailable": "所選工作區無法指派成員。你可以不選擇成員直接建立金鑰。",
+          "unknown": "未知成員"
+        },
+        "limitMode": {
+          "limited": "限額",
+          "unlimited": "不限額"
+        },
+        "limitReset": {
+          "daily": "每天",
+          "monthly": "每月",
+          "none": "不重設",
+          "weekly": "每週"
+        },
+        "workspace": {
+          "unknown": "未知工作區"
+        }
+      },
+      "sections": {
+        "advanced": "進階設定",
+        "basic": "基本資訊",
+        "lifecycle": "有效期與狀態",
+        "spending": "用量限制"
+      },
+      "summary": "API 金鑰設定",
+      "summaryRules": {
+        "byok": {
+          "excluded": "不計入 BYOK 用量",
+          "included": "計入 BYOK 用量"
+        },
+        "expiresAt": "於本地時間 {{expiresAt}} 到期，並以 UTC 儲存",
+        "limit": "用量上限：{{limit}} USD",
+        "limitUnset": "尚未設定用量上限",
+        "neverExpires": "不會到期",
+        "reset": {
+          "daily": "每日重設",
+          "monthly": "每月重設",
+          "none": "不重設",
+          "weekly": "每週重設"
+        },
+        "unlimited": "無用量上限"
+      }
+    },
+    "list": {
+      "details": {
+        "byokUsage": "BYOK 用量",
+        "byokUsageDaily": "每日 BYOK 用量",
+        "byokUsageMonthly": "每月 BYOK 用量",
+        "byokUsageWeekly": "每週 BYOK 用量",
+        "createdAt": "建立時間",
+        "creator": "建立者",
+        "disabled": "已停用",
+        "expiresAt": "到期時間",
+        "includeByokInLimit": "計入 BYOK 用量",
+        "limit": "限額",
+        "limitMode": "限額模式",
+        "loadFailed": "無法載入金鑰詳細資料。",
+        "remaining": "剩餘",
+        "reset": "重設週期",
+        "updatedAt": "更新時間",
+        "usage": "用量",
+        "usageDaily": "每日用量",
+        "usageMonthly": "每月用量",
+        "usageWeekly": "每週用量",
+        "workspace": "工作區"
+      },
+      "values": {
+        "missing": "無可用資料",
+        "no": "否",
+        "unlimited": "不限額",
+        "yes": "是"
+      }
+    },
+    "workspace": {
+      "empty": "此帳號沒有可用的工作區。",
+      "error": "無法載入工作區",
+      "errorHelp": "請檢查帳號存取權限後重試。",
+      "fallback": "要求的工作區無法使用，現已顯示預設工作區。",
+      "heading": "工作區",
+      "label": "工作區",
+      "loading": "正在載入工作區...",
+      "partial": "部分工作區未能載入。",
+      "placeholder": "選擇工作區",
+      "retry": "重試載入工作區"
+    }
+  },
+  "pleaseAddAccount": "請先新增帳號",
+  "pleaseSelectAccount": "請選擇帳號",
+  "provisioning": {
+    "actions": {
+      "allGroups": "補齊所有群組",
+      "default": "補齊預設金鑰",
+      "hint": "僅建立缺少的項目，保留現有金鑰。",
+      "title": "補齊金鑰"
+    },
+    "cancelled": "已停止，已建立的金鑰會保留。",
+    "completed": "帳號金鑰補全完成：新建 {{created}} 個，已有金鑰涵蓋 {{covered}} 項。",
+    "continue": "繼續處理",
+    "creating": "正在補全帳號金鑰：已建立 {{created}} / {{total}}…",
+    "input": "{{label}} · {{current}} / {{total}}。填寫完所有參數後再建立金鑰。",
+    "preparing": "正在檢查帳號金鑰…",
+    "progress": "已建立 {{created}} / {{total}}，已有涵蓋：{{covered}}。",
+    "result": {
+      "cancelled": "金鑰補全已停止",
+      "covered": "已有涵蓋",
+      "created": "已建立",
+      "failed": "部分金鑰未能建立",
+      "next": "接下來",
+      "remaining": "未確認建立",
+      "resume": "可稍後重新補齊，現有金鑰會自動略過。",
+      "retained": "已建立和現有的金鑰均會保留。",
+      "uncertain": "部分金鑰需要核實"
+    }
+  },
+  "refreshTokenList": "重新整理金鑰列表",
+  "repairMissingKeys": {
+    "action": "檢查與修復",
+    "actions": {
+      "cancel": "取消檢查",
+      "rerun": "重新檢查",
+      "start": "開始檢查並補齊"
+    },
+    "deleteConfirm": {
+      "confirm": "刪除所選金鑰",
+      "description": "這些金鑰會同時從對應網站刪除，無法透過擴充功能恢復。請確認它們已不再需要。",
+      "more_other": "以及另外 {{count}} 個",
+      "title_other": "刪除 {{count}} 個異常金鑰？"
+    },
+    "description": "檢查所選帳號的全部可用分組，在支援自動建立時補齊缺少的可用金鑰，其他問題會在下方列出。",
+    "failureGuidance": {
+      "aborted": "操作在完成前已取消；準備好後可重新檢查。",
+      "authenticationFailed": "請重新登入或更新此帳號的憑證，然後重試。",
+      "configurationRequired": "請先完成此網站所需的設定，然後重新檢查金鑰。",
+      "invalidConfiguration": "請檢查此帳號儲存的網站設定，然後重新檢查金鑰。",
+      "mutationStateUncertain": "網站可能已套用這次變更；請先重新整理金鑰清單，再決定是否重試。",
+      "notFound": "對應的金鑰已不存在；請重新整理帳號後再次檢查。",
+      "permissionDenied": "請使用有權查看與管理金鑰的憑證，然後重試。",
+      "unavailable": "網站暫時無法存取，或傳回無法處理的回應；請稍後重試。",
+      "unexpected": "請重新檢查金鑰；如果仍然失敗，請依照網站回覆的資訊排查。",
+      "upstreamRejected": "網站拒絕了要求；請依照網站回覆的資訊處理後重試。",
+      "validationFailed": "請檢查並修正所需的金鑰設定，然後重試。"
+    },
+    "historyNote": "這裡顯示上次檢查結果；目前沒有正在執行的任務，可重新檢查。",
+    "initialNotice": "開始後會逐一檢查所選帳號的分組，並為支援自動建立的缺少分組補齊金鑰；已有可用金鑰的分組會略過。",
+    "invalidKeys": {
+      "badge": "異常",
+      "deleteFailed": "刪除異常金鑰失敗",
+      "deleteNeedsAttention": "已刪除 {{applied}} 個；{{rejected}} 個遭拒絕，{{uncertain}} 個需要核實",
+      "deleteSelected": "刪除所選",
+      "deleteSuccess_other": "已刪除 {{count}} 個異常金鑰",
+      "emptyDescription": "本次檢查未發現異常金鑰。",
+      "emptyTitle": "沒有異常金鑰",
+      "group": "原群組：{{name}}",
+      "reason": "原因：{{reason}}",
+      "reasons": {
+        "orphanedPlacement": "原因：此金鑰所屬的群組已不再可用。確認不再需要後，可將其刪除。"
+      },
+      "selectAll": "全選目前結果",
+      "selectedCount_other": "已選擇 {{count}} 個異常金鑰",
+      "unnamed": "未命名金鑰"
+    },
+    "inventoryIssues": {
+      "duplicateResourceRefs_other": "發現 {{count}} 筆重複的金鑰紀錄，無法安全確認對應金鑰。",
+      "inheritedAccountGroupUnavailable_other": "有 {{count}} 個金鑰使用帳號預設群組，但無法確認帳號目前的群組。",
+      "invalidRequirementPlacement_other": "有 {{count}} 個金鑰的群組資料與目前可用群組不一致。",
+      "partialFailure": "未能讀取全部金鑰，自動處理已停止；請依照帳號旁的網站回覆資訊處理後重試。",
+      "refreshFailed": "金鑰變更後無法確認最新結果；請重新整理金鑰清單後重試。",
+      "unknownCoverage_other": "有 {{count}} 個金鑰的狀態或有效期限無法辨識。",
+      "unknownPlacement_other": "有 {{count}} 個金鑰所屬的群組無法辨識。"
+    },
+    "managedSiteImport": {
+      "action_other": "檢視 {{count}} 個修復建立的金鑰",
+      "changeTarget": "變更目標",
+      "configMissing": "目前管理網站尚未設定。請開啟設定頁，完成後返回此處再次匯入。",
+      "configurationOpenFailed": "無法開啟管理網站設定。請前往「設定 > 管理網站」手動設定。",
+      "failed": "準備匯入修復建立的金鑰失敗，請再試一次。",
+      "nothingPending": "這些金鑰已在目前目標處理完成：對應渠道已建立或已精確存在。如需再次檢查，請使用一般匯入進行完整驗證。",
+      "openConfiguration": "開啟管理網站設定",
+      "receiptFailed": "匯入已完成，但無法更新修復結果。請重新整理結果以確認目前狀態。",
+      "target_other": "已找到 {{count}} 個修復建立的金鑰，可供 {{site}} 使用；進入檢視前會檢查目前可用性與既有匯入紀錄。",
+      "title": "匯入修復建立的金鑰",
+      "unavailable": "這些修復建立的金鑰目前無法匯入。請重新整理修復結果後再試。",
+      "useRegularImport": "使用一般匯入"
+    },
+    "messages": {
+      "cancelFailed": "取消檢查任務失敗",
+      "loadFailed": "載入修復進度失敗",
+      "startFailed": "啟動修復任務失敗"
+    },
+    "noMatchingResults": "沒有匹配的結果",
+    "outcomes": {
+      "blocked": "受阻",
+      "covered": "無需補齊",
+      "failed": "失敗",
+      "partial": "部分完成",
+      "repaired": "已補齊",
+      "skipped": "已跳過"
+    },
+    "previousResult": {
+      "backToSetup": "返回檢查",
+      "description": "可查看上次檢查結果；新的檢查會依目前設定執行。",
+      "title": "有上次檢查結果",
+      "view": "查看上次結果"
+    },
+    "progressChecked": "已檢查",
+    "progressLabel": "進度",
+    "remoteWriteNotice": "此操作可能會在對應網站建立新金鑰；不會自動刪除任何金鑰。",
+    "renameOption": {
+      "helper": "僅針對擴充功能自動建立的金鑰。檢查修復時，會讓名稱跟隨目前分組。",
+      "infoLabel": "查看金鑰名稱一致性說明",
+      "label": "保持金鑰名稱和分組一致",
+      "tooltip": "僅處理名稱符合自動建立樣式的金鑰，例如「user group (auto)」或「vip group (auto)」。修復後名稱會跟隨金鑰目前分組；其他名稱不會修改。"
+    },
+    "renameSummary": {
+      "accountApplied_other": "已同步名稱：{{count}}",
+      "accountRejected_other": "重新命名遭拒絕：{{count}}",
+      "accountUncertain_other": "重新命名需要核實：{{count}}"
+    },
+    "requirements": {
+      "blockedIncompleteInventory": "金鑰未完整載入",
+      "blockedInputRequired": "需手動設定",
+      "covered": "已有可用金鑰",
+      "coveredAfterUncertain": "重新整理後確認可用",
+      "created": "已建立新金鑰",
+      "rejected": "網站未執行",
+      "uncertain": "請先核實結果"
+    },
+    "resultsTitle": "結果",
+    "runningNote": "任務在後台執行；可關閉此對話框稍後查看，或在進度卡片中取消任務。",
+    "scope": {
+      "allSelected": "已選取全部帳號",
+      "label": "檢查帳號"
+    },
+    "searchLabel": "搜尋",
+    "searchPlaceholder": "搜尋帳號、金鑰名稱、群組、網域或網站類型...",
+    "skipReasons": {
+      "noneAuth": "無憑據（認證方式：無）",
+      "oneTimeKey": "此站點僅在建立時顯示完整金鑰，請手動建立並立即儲存完整金鑰",
+      "provisioningUnavailable": "此帳號不支援自動建立金鑰；如有需要，請前往對應網站手動建立。"
+    },
+    "status": {
+      "completed": "已完成",
+      "needsAttention": "需處理"
+    },
+    "summary": {
+      "completedNeedsAttention": "檢查完成，但有結果需要處理。請在下方查看具體原因。",
+      "completedWithSkipped": "檢查完成，部分帳號未自動處理。請在下方查看原因。",
+      "healthy": "檢查完成，未發現需要處理的問題。"
+    },
+    "title": "檢查帳號金鑰",
+    "views": {
+      "accountCoverage": "帳號結果",
+      "invalidKeys": "異常金鑰",
+      "label": "結果視圖"
+    }
+  },
+  "searchPlaceholder": "搜尋金鑰名稱...",
+  "selectAccount": "選擇帳號",
+  "selectAccountToContinue": "請先在上方選擇一個帳號，然後查看或建立金鑰。",
+  "serviceCredential": {
+    "authenticated": "已認證",
+    "baseUrl": "Base URL：",
+    "copy": "複製",
+    "notAuthenticated": "未認證",
+    "rotate": "重置",
+    "rotateUnsupported": "目前站點不支援重置服務金鑰",
+    "rotating": "重置中...",
+    "singleton": "服務金鑰"
+  },
+  "showingCount_other": "顯示 {{count}} 個",
+  "title": "金鑰管理",
+  "tools": {
+    "title": "金鑰工具"
+  },
+  "totalKeys_other": "總計 {{count}} 個金鑰",
+  "unifiedApiGuidance": {
+    "headerBridge": "可將金鑰匯入自建閘道，或匯出至用戶端使用。"
+  },
+  "unsupportedSource": {
+    "description": "目前帳號的站點類型已支援儲存帳號，但擴充功能尚未適配此站點的金鑰列表協議。你可以提交站點支援請求，協助我們補齊金鑰管理能力。",
+    "requestSiteSupport": "回報站點支援",
+    "supportRequestErrorMessage": "{{siteType}} 尚未實作金鑰管理",
+    "title": "此站點類型尚未支援金鑰管理"
+  }
+}

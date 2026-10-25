@@ -1,0 +1,683 @@
+import { fetchAnthropicModelIds } from "~/services/aiApi/anthropic"
+import { fetchGoogleModelIds } from "~/services/aiApi/google"
+import { fetchOpenAICompatibleModelIds } from "~/services/aiApi/openaiCompatible"
+import { apiCredentialProfilesStorage } from "~/services/apiCredentialProfiles/storage/profiles"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { type UserPreferences } from "~/services/preferences/preferencesSchema"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { resolveProductAnalyticsErrorCategoryFromError } from "~/services/productAnalytics/actions"
+import { PRODUCT_ANALYTICS_ERROR_CATEGORIES } from "~/services/productAnalytics/contracts"
+import { tagStorage } from "~/services/tags/tagStorage"
+import {
+  API_TYPES,
+  API_VERIFICATION_MODES,
+  API_VERIFICATION_PROBE_IDS,
+  API_VERIFICATION_PROBE_STATUSES,
+  runApiVerificationProbe,
+  type ApiVerificationApiType,
+  type ApiVerificationProbeId,
+  type ApiVerificationProbeResult,
+} from "~/services/verification/aiApiVerification"
+import {
+  getVerificationRequestProfileOptions,
+  isVerificationRequestProfile,
+} from "~/services/verification/aiApiVerification/requestProfiles"
+import {
+  buildSafeProbeFailureDiagnostics,
+  inferStructuredHttpStatus,
+  toSanitizedErrorSummary,
+} from "~/services/verification/aiApiVerification/utils"
+import { webAiApiCheckBaseUrlHistoryStorage } from "~/services/verification/webAiApiCheck/baseUrlHistory"
+import { WEB_AI_API_CHECK_BASE_URL_HISTORY_SUGGESTION_LIMIT } from "~/services/verification/webAiApiCheck/constants"
+import {
+  normalizeApiCheckBaseUrl,
+  normalizeGoogleFamilyBaseUrl,
+  normalizeOpenAiFamilyBaseUrl,
+} from "~/services/verification/webAiApiCheck/credentialExtraction/baseUrlCandidates"
+import { createApiCheckProbeRunRegistry } from "~/services/verification/webAiApiCheck/probeRunRegistry"
+import { createLogger } from "~/utils/core/logger"
+import { isHttpUrl } from "~/utils/core/urlParsing"
+import { isUrlAllowedByRegexList } from "~/utils/core/urlWhitelist"
+
+import { onWebAiApiCheckMessage, WebAiApiCheckMessageTypes } from "./messaging"
+import type {
+  ApiCheckCancelRunProbeRequest,
+  ApiCheckCancelRunProbeResponse,
+  ApiCheckCreateTagRequest,
+  ApiCheckCreateTagResponse,
+  ApiCheckFetchModelsRequest,
+  ApiCheckFetchModelsResponse,
+  ApiCheckGetBaseUrlHistorySuggestionsRequest,
+  ApiCheckGetBaseUrlHistorySuggestionsResponse,
+  ApiCheckListTagsRequest,
+  ApiCheckListTagsResponse,
+  ApiCheckRecordBaseUrlHistoryRequest,
+  ApiCheckRecordBaseUrlHistoryResponse,
+  ApiCheckRemoveBaseUrlHistoryRequest,
+  ApiCheckRemoveBaseUrlHistoryResponse,
+  ApiCheckRenameTagRequest,
+  ApiCheckRenameTagResponse,
+  ApiCheckRunProbeRequest,
+  ApiCheckRunProbeResponse,
+  ApiCheckSaveProfileRequest,
+  ApiCheckSaveProfileResponse,
+  ApiCheckShouldPromptRequest,
+  ApiCheckShouldPromptResponse,
+} from "./types"
+
+/**
+ * Unified logger scoped to Web AI API Check background handlers.
+ */
+const logger = createLogger("WebAiApiCheck")
+
+const probeRuns = createApiCheckProbeRunRegistry()
+
+/**
+ * Read Web AI API Check preferences with safe defaults.
+ */
+function getWebAiApiCheckPreferences(
+  prefs: UserPreferences,
+): NonNullable<UserPreferences["webAiApiCheck"]> {
+  return (
+    prefs.webAiApiCheck ??
+    DEFAULT_PREFERENCES.webAiApiCheck ?? {
+      enabled: true,
+      contextMenu: {
+        enabled: true,
+      },
+      autoDetect: {
+        enabled: true,
+        enhanced: { enabled: true },
+        urlWhitelist: { patterns: [] },
+      },
+      keyCleanup: {
+        removalPatterns: [],
+      },
+    }
+  )
+}
+
+/**
+ * Normalize a base URL for probe execution, keeping behavior consistent across api types.
+ */
+function normalizeProbeBaseUrl(params: {
+  apiType: ApiVerificationApiType
+  baseUrl: string
+}): string | null {
+  if (
+    params.apiType === API_TYPES.OPENAI_COMPATIBLE ||
+    params.apiType === API_TYPES.OPENAI ||
+    params.apiType === API_TYPES.ANTHROPIC
+  ) {
+    return normalizeOpenAiFamilyBaseUrl(params.baseUrl)
+  }
+
+  if (params.apiType === API_TYPES.GOOGLE) {
+    return normalizeGoogleFamilyBaseUrl(params.baseUrl)
+  }
+
+  return normalizeApiCheckBaseUrl(params.baseUrl)
+}
+
+/**
+ * Builds a stable, user-friendly default profile name for saved credentials.
+ */
+function buildDefaultProfileName(params: {
+  normalizedBaseUrl: string
+  pageUrl?: string
+}): string {
+  const { normalizedBaseUrl, pageUrl } = params
+
+  const hostname =
+    (() => {
+      try {
+        return new URL(normalizedBaseUrl).hostname
+      } catch {
+        return ""
+      }
+    })() ||
+    (() => {
+      try {
+        return pageUrl ? new URL(pageUrl).hostname : ""
+      } catch {
+        return ""
+      }
+    })()
+
+  if (hostname) {
+    return hostname
+  }
+
+  return "API Profile"
+}
+
+/**
+ * Creates the generic failure response used for unexpected handler errors.
+ */
+function toGenericFailureResponse() {
+  return { success: false as const, error: "Failed to handle request" }
+}
+
+/**
+ * Resolve whether content auto-detection can prompt on the current page.
+ */
+export async function resolveWebAiApiCheckShouldPromptMessage(
+  request: ApiCheckShouldPromptRequest,
+): Promise<ApiCheckShouldPromptResponse> {
+  try {
+    const { pageUrl } = request
+    if (!pageUrl?.trim()) {
+      return {
+        success: false,
+        error: "Missing pageUrl",
+      }
+    }
+
+    const prefs = await userPreferences.getPreferences()
+    const config = getWebAiApiCheckPreferences(prefs)
+    const patterns = config.autoDetect?.urlWhitelist?.patterns ?? []
+    const autoDetectEnabled = config.enabled && !!config.autoDetect?.enabled
+    const urlAllowed = isUrlAllowedByRegexList(pageUrl, patterns)
+    const shouldPrompt = autoDetectEnabled && urlAllowed
+    const enhancedShouldPrompt =
+      shouldPrompt && !!config.autoDetect?.enhanced?.enabled
+
+    return {
+      success: true,
+      shouldPrompt,
+      enhancedShouldPrompt,
+      apiKeyCleanupPatterns: config.keyCleanup?.removalPatterns ?? [],
+    }
+  } catch (error) {
+    logger.error("ApiCheck message handling failed", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return toGenericFailureResponse()
+  }
+}
+
+/**
+ * Resolve Base URL suggestions ranked for the current page origin.
+ */
+async function resolveWebAiApiCheckGetBaseUrlHistorySuggestionsMessage(
+  request: ApiCheckGetBaseUrlHistorySuggestionsRequest,
+): Promise<ApiCheckGetBaseUrlHistorySuggestionsResponse> {
+  try {
+    const suggestions = await webAiApiCheckBaseUrlHistoryStorage.getSuggestions(
+      {
+        pageUrl: request.pageUrl,
+        limit: request.limit,
+      },
+    )
+    return { success: true, suggestions }
+  } catch (error) {
+    logger.error("Failed to read Base URL history suggestions", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: false, error: "Failed to read Base URL history" }
+  }
+}
+
+/**
+ * Best-effort record of a user-confirmed Base URL usage.
+ */
+export async function resolveWebAiApiCheckRecordBaseUrlHistoryMessage(
+  request: ApiCheckRecordBaseUrlHistoryRequest,
+): Promise<ApiCheckRecordBaseUrlHistoryResponse> {
+  try {
+    if (request.baseUrl?.trim()) {
+      await webAiApiCheckBaseUrlHistoryStorage.recordUse({
+        baseUrl: request.baseUrl,
+        pageUrl: request.pageUrl,
+      })
+    }
+    const suggestions = await webAiApiCheckBaseUrlHistoryStorage.getSuggestions(
+      {
+        pageUrl: request.pageUrl,
+        limit: WEB_AI_API_CHECK_BASE_URL_HISTORY_SUGGESTION_LIMIT,
+      },
+    )
+    return { success: true, suggestions }
+  } catch (error) {
+    logger.error("Failed to record Base URL history", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: true }
+  }
+}
+
+/**
+ * Best-effort removal of a user-discarded Base URL history entry.
+ */
+export async function resolveWebAiApiCheckRemoveBaseUrlHistoryMessage(
+  request: ApiCheckRemoveBaseUrlHistoryRequest,
+): Promise<ApiCheckRemoveBaseUrlHistoryResponse> {
+  try {
+    if (request.baseUrl?.trim()) {
+      await webAiApiCheckBaseUrlHistoryStorage.removeBaseUrl({
+        baseUrl: request.baseUrl,
+      })
+    }
+    const suggestions = await webAiApiCheckBaseUrlHistoryStorage.getSuggestions(
+      {
+        pageUrl: request.pageUrl,
+        limit: WEB_AI_API_CHECK_BASE_URL_HISTORY_SUGGESTION_LIMIT,
+      },
+    )
+    return { success: true, suggestions }
+  } catch (error) {
+    logger.error("Failed to remove Base URL history", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: true }
+  }
+}
+
+/**
+ * List global tags for the API-check save metadata picker.
+ */
+async function resolveWebAiApiCheckListTagsMessage(
+  _request: ApiCheckListTagsRequest,
+): Promise<ApiCheckListTagsResponse> {
+  try {
+    const tags = await tagStorage.listTags()
+    return { success: true, tags }
+  } catch (error) {
+    logger.error("Failed to list tags for ApiCheck metadata", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: false, error: "Failed to list tags" }
+  }
+}
+
+/**
+ * Create a global tag from the API-check save metadata picker.
+ */
+async function resolveWebAiApiCheckCreateTagMessage(
+  request: ApiCheckCreateTagRequest,
+): Promise<ApiCheckCreateTagResponse> {
+  try {
+    const tag = await tagStorage.createTag(request.name)
+    return { success: true, tag }
+  } catch (error) {
+    logger.error("Failed to create tag from ApiCheck metadata", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: false, error: toSanitizedErrorSummary(error, []) }
+  }
+}
+
+/**
+ * Rename a global tag from the API-check save metadata picker.
+ */
+async function resolveWebAiApiCheckRenameTagMessage(
+  request: ApiCheckRenameTagRequest,
+): Promise<ApiCheckRenameTagResponse> {
+  try {
+    const tag = await tagStorage.renameTag(request.tagId, request.name)
+    return { success: true, tag }
+  } catch (error) {
+    logger.error("Failed to rename tag from ApiCheck metadata", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: false, error: toSanitizedErrorSummary(error, []) }
+  }
+}
+
+/**
+ * Fetch upstream model IDs for API-check credentials.
+ */
+export async function resolveWebAiApiCheckFetchModelsMessage(
+  request: ApiCheckFetchModelsRequest,
+): Promise<ApiCheckFetchModelsResponse> {
+  try {
+    const { apiType, baseUrl, apiKey } = request
+
+    if (!apiType || !baseUrl?.trim() || !apiKey?.trim()) {
+      return {
+        success: false,
+        error: "Missing apiType, baseUrl, or apiKey",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    const normalizedBaseUrl = normalizeProbeBaseUrl({ apiType, baseUrl })
+    if (!normalizedBaseUrl) {
+      return {
+        success: false,
+        error: "Invalid baseUrl",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    try {
+      const modelIds = await (async () => {
+        if (
+          apiType === API_TYPES.OPENAI_COMPATIBLE ||
+          apiType === API_TYPES.OPENAI
+        ) {
+          return await fetchOpenAICompatibleModelIds({
+            baseUrl: normalizedBaseUrl,
+            apiKey,
+          })
+        }
+
+        if (apiType === API_TYPES.GOOGLE) {
+          return await fetchGoogleModelIds({
+            baseUrl: normalizedBaseUrl,
+            apiKey,
+          })
+        }
+
+        if (apiType === API_TYPES.ANTHROPIC) {
+          return await fetchAnthropicModelIds({
+            baseUrl: normalizedBaseUrl,
+            apiKey,
+          })
+        }
+
+        throw new Error("Unsupported apiType")
+      })()
+
+      return {
+        success: true,
+        modelIds,
+      }
+    } catch (error) {
+      const message = toSanitizedErrorSummary(error, [apiKey])
+      const status = inferStructuredHttpStatus(error)
+      logger.error("Failed to fetch models", {
+        apiType,
+        baseUrl: normalizedBaseUrl,
+        message,
+        status,
+      })
+
+      return {
+        success: false,
+        error: message,
+        ...(typeof status === "number" ? { errorStatusCode: status } : {}),
+      }
+    }
+  } catch (error) {
+    logger.error("ApiCheck message handling failed", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return toGenericFailureResponse()
+  }
+}
+
+/**
+ * Run a single API verification probe for API-check credentials.
+ */
+export async function resolveWebAiApiCheckRunProbeMessage(
+  request: ApiCheckRunProbeRequest,
+): Promise<ApiCheckRunProbeResponse> {
+  try {
+    const {
+      runId,
+      apiType,
+      baseUrl,
+      apiKey,
+      modelId,
+      probeId,
+      mode = API_VERIFICATION_MODES.Streaming,
+      requestProfile,
+      requestProfileEnhanced,
+    } = request
+
+    if (!apiType || !baseUrl?.trim() || !apiKey?.trim() || !probeId) {
+      return {
+        success: false,
+        error: "Missing apiType, baseUrl, apiKey, or probeId",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    if (
+      mode !== API_VERIFICATION_MODES.Streaming &&
+      mode !== API_VERIFICATION_MODES.NonStreaming
+    ) {
+      return {
+        success: false,
+        error: "Invalid verification mode",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    if (
+      requestProfile !== undefined &&
+      !isVerificationRequestProfile(requestProfile)
+    ) {
+      return {
+        success: false,
+        error: "Invalid request profile",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    const normalizedBaseUrl = normalizeProbeBaseUrl({ apiType, baseUrl })
+    if (!normalizedBaseUrl) {
+      return {
+        success: false,
+        error: "Invalid baseUrl",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    try {
+      const result = await probeRuns.run(runId, (signal) =>
+        runApiVerificationProbe({
+          ...(requestProfile ? { requestProfile } : {}),
+          ...(requestProfileEnhanced === true
+            ? { requestProfileEnhanced: true }
+            : {}),
+          baseUrl: normalizedBaseUrl,
+          apiKey,
+          apiType,
+          modelId: modelId?.trim() || undefined,
+          probeId: probeId as ApiVerificationProbeId,
+          mode,
+          abortSignal: signal,
+        }),
+      )
+
+      return { success: true, result }
+    } catch (error) {
+      const message = toSanitizedErrorSummary(error, [apiKey])
+      const diagnostics = buildSafeProbeFailureDiagnostics(error, message)
+
+      logger.error("Probe execution failed", {
+        apiType,
+        probeId,
+        baseUrl: normalizedBaseUrl,
+        message,
+        status: diagnostics.summaryParams?.status,
+      })
+
+      const result: ApiVerificationProbeResult = {
+        id: probeId as ApiVerificationProbeId,
+        ...(isVerificationRequestProfile(requestProfile)
+          ? getVerificationRequestProfileOptions(
+              requestProfile,
+              requestProfileEnhanced === true,
+            )
+          : {}),
+        mode: probeId === API_VERIFICATION_PROBE_IDS.Models ? undefined : mode,
+        status: API_VERIFICATION_PROBE_STATUSES.Fail,
+        latencyMs: 0,
+        summary: message,
+        ...diagnostics,
+        input: {
+          apiType,
+          baseUrl: normalizedBaseUrl,
+        },
+      }
+
+      return { success: true, result }
+    }
+  } catch (error) {
+    logger.error("ApiCheck message handling failed", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return toGenericFailureResponse()
+  }
+}
+
+/**
+ * Abort a single in-flight API verification probe.
+ */
+export async function resolveWebAiApiCheckCancelRunProbeMessage(
+  request: ApiCheckCancelRunProbeRequest,
+): Promise<ApiCheckCancelRunProbeResponse> {
+  try {
+    const runId = typeof request.runId === "string" ? request.runId.trim() : ""
+    if (!runId) {
+      return { success: true, cancelled: false }
+    }
+
+    return { success: true, cancelled: probeRuns.cancel(runId) }
+  } catch (error) {
+    logger.error("ApiCheck cancel message handling failed", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return { success: true, cancelled: false }
+  }
+}
+
+/**
+ * Save API-check credentials as an API credential profile.
+ */
+export async function resolveWebAiApiCheckSaveProfileMessage(
+  request: ApiCheckSaveProfileRequest,
+): Promise<ApiCheckSaveProfileResponse> {
+  try {
+    const { apiType, baseUrl, apiKey, name, pageUrl } = request
+
+    if (!apiType || !baseUrl?.trim() || !apiKey?.trim()) {
+      return {
+        success: false,
+        error: "Missing apiType, baseUrl, or apiKey",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    const normalizedBaseUrl = normalizeProbeBaseUrl({ apiType, baseUrl })
+    if (!normalizedBaseUrl) {
+      return {
+        success: false,
+        error: "Invalid baseUrl",
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Validation,
+      }
+    }
+
+    const providedName = typeof name === "string" ? name.trim() : ""
+    const profileName =
+      providedName || buildDefaultProfileName({ normalizedBaseUrl, pageUrl })
+
+    const sourceUrl =
+      typeof request.sourceUrl === "string" && isHttpUrl(request.sourceUrl)
+        ? request.sourceUrl.trim()
+        : undefined
+
+    try {
+      const profile = await apiCredentialProfilesStorage.createProfile({
+        name: profileName,
+        apiType,
+        baseUrl: normalizedBaseUrl,
+        apiKey,
+        ...(sourceUrl !== undefined ? { sourceUrl } : {}),
+        ...(request.tagIds !== undefined ? { tagIds: request.tagIds } : {}),
+        ...(request.notes !== undefined ? { notes: request.notes } : {}),
+        ...(request.expiresAt !== undefined
+          ? { expiresAt: request.expiresAt }
+          : {}),
+      })
+
+      return {
+        success: true,
+        profileId: profile.id,
+        name: profile.name,
+        apiType: profile.apiType,
+        baseUrl: profile.baseUrl,
+      }
+    } catch (error) {
+      const message = toSanitizedErrorSummary(error, [apiKey])
+      logger.error("Failed to save ApiCheck credentials to profiles", {
+        apiType,
+        baseUrl: normalizedBaseUrl,
+        message,
+      })
+
+      return {
+        success: false,
+        error: message,
+        errorCategory: resolveProductAnalyticsErrorCategoryFromError(error),
+      }
+    }
+  } catch (error) {
+    logger.error("ApiCheck message handling failed", {
+      message: toSanitizedErrorSummary(error, []),
+    })
+    return toGenericFailureResponse()
+  }
+}
+
+let webAiApiCheckMessagingCleanup: Array<() => void> | null = null
+
+/**
+ * Register typed background listeners for Web AI API Check runtime RPCs.
+ */
+export function setupWebAiApiCheckMessagingListeners() {
+  if (webAiApiCheckMessagingCleanup) {
+    return
+  }
+
+  webAiApiCheckMessagingCleanup = [
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.ShouldPrompt,
+      async ({ data }) => resolveWebAiApiCheckShouldPromptMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.FetchModels,
+      async ({ data }) => resolveWebAiApiCheckFetchModelsMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.GetBaseUrlHistorySuggestions,
+      async ({ data }) =>
+        resolveWebAiApiCheckGetBaseUrlHistorySuggestionsMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.RecordBaseUrlHistory,
+      async ({ data }) => resolveWebAiApiCheckRecordBaseUrlHistoryMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.RemoveBaseUrlHistory,
+      async ({ data }) => resolveWebAiApiCheckRemoveBaseUrlHistoryMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.ListTags,
+      async ({ data }) => resolveWebAiApiCheckListTagsMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.CreateTag,
+      async ({ data }) => resolveWebAiApiCheckCreateTagMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.RenameTag,
+      async ({ data }) => resolveWebAiApiCheckRenameTagMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.RunProbe,
+      async ({ data }) => resolveWebAiApiCheckRunProbeMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.CancelRunProbe,
+      async ({ data }) => resolveWebAiApiCheckCancelRunProbeMessage(data),
+    ),
+    onWebAiApiCheckMessage(
+      WebAiApiCheckMessageTypes.SaveProfile,
+      async ({ data }) => resolveWebAiApiCheckSaveProfileMessage(data),
+    ),
+  ]
+}

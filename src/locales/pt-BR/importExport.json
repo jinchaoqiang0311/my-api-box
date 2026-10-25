@@ -1,0 +1,220 @@
+{
+  "description": "Faça backup, restaure e migre dados da extensão usando arquivos locais ou armazenamento em nuvem.",
+  "export": {
+    "accountData": "Dados das contas",
+    "accountDataDescription": "Exporte apenas contas, favoritos e etiquetas.",
+    "accountsExported": "Dados das contas exportados com sucesso",
+    "dataExported": "Dados exportados com sucesso",
+    "description": "Exporte os dados como um arquivo JSON para backup",
+    "exportFailed": "Falha na exportação. Tente novamente",
+    "fullBackup": "Exportação completa",
+    "fullBackupDescription": "Exporte contas, favoritos, etiquetas, credenciais de API, configurações de canais e preferências do usuário.",
+    "sensitiveDataNotice": "As exportações de contas e completas em JSON incluem credenciais em texto simples. Guarde os arquivos com segurança.",
+    "settingsExported": "Configurações do usuário exportadas com sucesso",
+    "title": "Exportar dados",
+    "userSettings": "Configurações do usuário",
+    "userSettingsDescription": "Exporte somente as configurações da interface e as preferências"
+  },
+  "import": {
+    "backupTime": "Data do backup",
+    "channelConfigMigrationDeferred": "Não foi possível concluir a migração da configuração de canais. Verifique as configurações do site gerenciado e tente novamente.",
+    "dataInvalid": "Erro no formato dos dados. Verifique o formato JSON",
+    "dataPreview": "Ver ou colar JSON",
+    "dataValid": "O formato dos dados está correto",
+    "description": "Restaure os dados de um arquivo de backup",
+    "downloadImportFailed": "Falha ao importar do WebDAV",
+    "formatError": "Erro no formato dos dados. Verifique o formato JSON",
+    "formatNotCorrect": "O formato dos dados está incorreto",
+    "importFailed": "Falha na importação: {{error}}",
+    "importOperationFailed": "Não foi possível concluir a importação. Tente novamente.",
+    "importSelectedSuccess": "Conteúdo selecionado importado com sucesso",
+    "importSuccess": "Dados importados com sucesso",
+    "noImportableData": "Nenhum dado que possa ser importado foi encontrado",
+    "pasteJsonData": "Cole os dados JSON ou importe usando o seletor de arquivos acima...",
+    "replaceWarning": "Alguns dados deste dispositivo serão substituídos. Se necessário, exporte primeiro um backup.",
+    "sections": {
+      "accounts": {
+        "description": "Inclui contas, favoritos e tags.",
+        "title": "Contas e favoritos"
+      },
+      "apiCredentialProfiles": {
+        "description": "Inclui URLs de API, chaves e observações salvas.",
+        "title": "Biblioteca de credenciais de API"
+      },
+      "channelConfigs": {
+        "description": "Inclui regras de canais, como filtros de modelos.",
+        "title": "Configuração de canais"
+      },
+      "label": "Escolha o que importar",
+      "preferences": {
+        "description": "Inclui tema, idioma, comportamento dos cliques e outras preferências.",
+        "title": "Configurações do usuário"
+      }
+    },
+    "sectionStrategy": {
+      "accounts": {
+        "merge": "Adicionar",
+        "replace": "Substituir"
+      },
+      "apiCredentialProfiles": {
+        "merge": "Adicionar",
+        "replace": "Substituir"
+      },
+      "channelConfigs": {
+        "merge": "Adicionar",
+        "replace": "Substituir",
+        "skip": "Ignorar"
+      },
+      "preferences": {
+        "replace": "Substituir",
+        "skip": "Ignorar"
+      }
+    },
+    "sectionStrategyHelp": {
+      "accounts": {
+        "merge": "Útil ao trazer contas de outro computador; as contas e os favoritos atuais serão mantidos.",
+        "replace": "Suas contas e seus favoritos atuais ficarão iguais aos da lista do backup."
+      },
+      "apiCredentialProfiles": {
+        "merge": "Adicione credenciais de API do backup; as credenciais atuais serão mantidas.",
+        "replace": "Sua biblioteca atual de credenciais de API ficará igual à do backup."
+      },
+      "channelConfigs": {
+        "merge": "Adicione ou atualize regras por canal; as regras mais recentes do backup serão aplicadas.",
+        "replace": "Sua configuração atual de canais ficará igual à do backup.",
+        "skip": "Mantenha as regras atuais dos canais."
+      },
+      "preferences": {
+        "replace": "Substitua as configurações atuais deste dispositivo pelas configurações do backup.",
+        "skip": "Mantenha o tema, o idioma e os hábitos atuais deste dispositivo."
+      }
+    },
+    "selectBackupFile": "Selecionar arquivo de backup",
+    "selectFileImport": "Selecione um arquivo ou insira os dados que deseja importar",
+    "title": "Importar dados",
+    "versionNotSupported": "Este backup foi criado por uma versão mais recente. Atualize o aplicativo antes de importá-lo."
+  },
+  "localBackup": {
+    "description": "Use arquivos JSON locais para fazer backup, migrar ou restaurar os dados do My API Box.",
+    "title": "Backup e migração local"
+  },
+  "title": "Importar/exportar",
+  "webdav": {
+    "autoSync": {
+      "autosaveDescription": "A estratégia e o interruptor de sincronização automática são salvos automaticamente. O intervalo é salvo ao sair do campo.",
+      "currentProvider": "Serviço de sincronização: {{provider}}",
+      "enable": "Ativar sincronização automática",
+      "enableDesc": "Quando ativada, os dados compartilhados serão sincronizados com o WebDAV nos intervalos definidos.",
+      "interval": "Intervalo de sincronização (segundos)",
+      "intervalDesc": "Defina a frequência da sincronização automática",
+      "intervalHint": "Tempo aproximado: {{minutes}} min",
+      "lastSync": "Última sincronização",
+      "strategy": "Estratégia de sincronização",
+      "strategyDesc": "Escolha como os dados devem ser sincronizados",
+      "strategyLocalFirst": "Local primeiro: os dados locais substituem os remotos",
+      "strategyMerge": "Mesclagem inteligente: mescla os dados locais e remotos com base nas datas",
+      "strategyRemoteFirst": "Remoto primeiro: os dados remotos substituem os locais",
+      "syncNow": "Sincronizar agora",
+      "title": "Sincronização automática"
+    },
+    "configDesc": "Escolha um serviço na nuvem para sincronizar dados compartilhados. As credenciais e configurações locais permanecem neste dispositivo.",
+    "connection": {
+      "title": "Configuração da conexão",
+      "webdavDescription": "Informe o endereço WebDAV e as credenciais usadas por este dispositivo."
+    },
+    "downloadImport": "Importar do WebDAV",
+    "encryption": {
+      "alwaysEncrypted": "Sempre criptografado",
+      "decryptAction": "Descriptografar e importar",
+      "decryptDialogDesc": "Estes dados de sincronização do WebDAV estão criptografados. Tente usar uma senha para importá-los.",
+      "decryptDialogTitle": "Descriptografar dados do WebDAV",
+      "decryptFailed": "Falha ao descriptografar",
+      "decryptPassword": "Senha",
+      "decryptPrompt": "Não foi possível descriptografar automaticamente. Insira sua senha.",
+      "enableDesc": "Opcional: criptografe os backups do WebDAV com uma senha. Se a criptografia estiver desativada, os backups enviados conterão as credenciais salvas em texto simples. Use criptografia ou armazene-os com segurança.",
+      "password": "Senha de criptografia",
+      "passwordDesc": "Usada para criptografar os backups enviados à nuvem e descriptografar os backups baixados.",
+      "passwordPlaceholder": "Insira a senha",
+      "savePassword": "Salvar senha para descriptografar futuramente",
+      "sharedPasswordDescription": "WebDAV e GitHub Gist compartilham esta senha de criptografia. Trocar de serviço não altera a senha.",
+      "title": "Criptografia de dados"
+    },
+    "gist": {
+      "autoSyncEnableDesc": "Quando ativada, os dados compartilhados serão sincronizados com o Secret Gist no intervalo escolhido.",
+      "configDesc": "Sincronize dados compartilhados por um GitHub Secret Gist criptografado. Um Secret Gist é um link não listado, não um mecanismo de controle de acesso.",
+      "downloadImport": "Importar do Secret Gist",
+      "encryptionDescription": "A sincronização com GitHub Gist exige uma senha de criptografia. Ela nunca é enviada ao GitHub nem incluída nos backups. Se você perdê-la, não será possível descriptografar o backup.",
+      "encryptionPasswordRequired": "Informe uma senha de criptografia antes de salvar ou sincronizar este Gist.",
+      "id": "ID ou URL do Gist",
+      "idDesc": "Opcional. Deixe em branco para criar um Gist automaticamente no primeiro envio.",
+      "idPlaceholder": "Por exemplo: a1b2c3d4 ou https://gist.github.com/...",
+      "openLink": "Abrir este Gist no GitHub",
+      "restorePolicyDescription": "O provedor de nuvem ativo sincroniza dados compartilhados, mas não é um backup completo do dispositivo. Credenciais da nuvem, senhas de criptografia, seleção de sincronização e atualização automática de contas permanecem neste dispositivo. Use a exportação/importação manual para migrar configurações locais.",
+      "testFailed": "Falha na conexão com o Secret Gist",
+      "testSuccess": "Conexão com o Secret Gist concluída",
+      "token": "Token do GitHub",
+      "tokenDesc": "Armazenado somente neste navegador; nunca é gravado em backups nem enviado ao My API Box. Use um token fine-grained apenas com leitura/escrita de Gists ou um token clássico com o escopo gist.",
+      "tokenPlaceholder": "Cole um token do GitHub",
+      "upload": "Enviar ao Secret Gist",
+      "uploadFailed": "Falha ao enviar para o GitHub Secret Gist",
+      "uploadSuccess": "Enviado para o GitHub Secret Gist"
+    },
+    "hidePassword": "Ocultar senha",
+    "manual": {
+      "confirmCancel": "Cancelar",
+      "confirmContinue": "Continuar",
+      "confirmDownloadDescription": "Os dados selecionados da nuvem serão gravados neste dispositivo. Os dados locais existentes nessas seções podem ser substituídos; esta ação não usa a mesclagem inteligente.",
+      "confirmDownloadTitle": "Restaurar os dados selecionados?",
+      "confirmUploadDescription": "Os dados locais selecionados serão gravados no backup ativo da nuvem. Os dados existentes nessas seções podem ser substituídos; esta ação não usa a mesclagem inteligente.",
+      "confirmUploadTitle": "Enviar os dados selecionados?",
+      "directionWarning": "Estas ações têm direção definida: enviar grava os dados locais selecionados na nuvem; restaurar grava os dados selecionados da nuvem neste dispositivo. Elas não usam a mesclagem inteligente."
+    },
+    "notSynced": "Não sincronizado",
+    "password": "Senha do WebDAV",
+    "provider": {
+      "description": "Esta seleção controla a sincronização manual e automática. Apenas um serviço fica ativo por vez.",
+      "githubGist": "GitHub Secret Gist",
+      "label": "Serviço de sincronização",
+      "webdav": "WebDAV"
+    },
+    "rebuildDialog": {
+      "cancel": "Agora não",
+      "confirm": "Recriar deste dispositivo",
+      "description": "O backup na nuvem está incompleto. Continuar a sincronização pode misturar os dados incorretamente. Você pode criar um novo backup na nuvem usando os dados deste dispositivo.",
+      "fullSelectionNote": "Esta recriação incluirá todos os dados sincronizáveis apenas neste envio. Seu escopo de sincronização salvo não será alterado.",
+      "title": "Seu backup na nuvem pode estar danificado",
+      "warningDescription": "A recriação substituirá o backup na nuvem pelos dados atuais deste dispositivo. Se faltarem contas, favoritos ou preferências neste dispositivo, faça o envio de outro dispositivo com dados completos ou importe primeiro um backup completo.",
+      "warningTitle": "Verifique se este dispositivo tem todos os dados"
+    },
+    "restorePolicy": {
+      "description": "O WebDAV serve para sincronizar dados compartilhados, não para fazer um backup completo do dispositivo. As configurações de conexão/criptografia do WebDAV, a seleção de sincronização e as configurações de atualização automática das contas deste dispositivo permanecem locais e não serão enviadas ao WebDAV nem substituídas por ele. Use a exportação/importação manual para migrar essas configurações locais do dispositivo."
+    },
+    "retrySave": "Falha ao salvar. Tentar novamente",
+    "showPassword": "Mostrar senha",
+    "syncData": {
+      "accounts": "Contas",
+      "apiCredentialProfiles": "Biblioteca de credenciais de API",
+      "bookmarks": "Favoritos",
+      "preferences": "Preferências",
+      "selectionRequired": "Selecione pelo menos um domínio de dados para sincronizar",
+      "title": "Dados da sincronização"
+    },
+    "syncError": "Falha na sincronização",
+    "syncFailed": "Falha na sincronização",
+    "syncing": "Sincronizando",
+    "syncSettings": {
+      "title": "Configurações de sincronização"
+    },
+    "syncSuccess": "Sincronização concluída",
+    "testConnection": "Testar conexão",
+    "testFailed": "Falha no teste de conexão",
+    "testSuccess": "Teste de conexão concluído",
+    "title": "Sincronização na nuvem",
+    "uploadBackup": "Enviar ao WebDAV",
+    "uploadFailed": "Falha ao enviar ao WebDAV",
+    "uploadSuccess": "Enviado ao WebDAV",
+    "username": "Nome de usuário do WebDAV",
+    "webdavUrl": "URL do WebDAV",
+    "webdavUrlExample": "Por exemplo: a URL completa do arquivo https://dav.example.com/{{filename}} ou a URL do diretório raiz do WebDAV"
+  }
+}

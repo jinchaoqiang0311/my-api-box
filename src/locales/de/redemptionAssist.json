@@ -1,0 +1,73 @@
+{
+  "accountSelect": {
+    "confirm": "Einlösung bestätigen",
+    "noResults": "Keine passenden Konten gefunden",
+    "noSupportedAccounts": "Keines deiner gespeicherten Konten unterstützt die automatische Einlösung. Löse den Code manuell auf der entsprechenden Website ein.",
+    "openSiteManual": "Website öffnen und manuell einlösen",
+    "title": "Wählen Sie ein Konto aus, das für die Einlösung verwendet werden soll",
+    "titleFallback": "Kein Konto stimmt mit dieser Website überein, bitte wählen Sie manuell eines aus",
+    "titleMultiple": "Mehrere Konten verfügbar, bitte wählen Sie eines zur Einlösung aus",
+    "unsupported": "Die automatische Einlösung wird für diesen Website-Typ nicht unterstützt"
+  },
+  "actions": {
+    "autoRedeem": "Automatisch einlösen"
+  },
+  "benefits": {
+    "burstCredits": "Burst-Punkte",
+    "groupQuota": "Gruppenkontingent",
+    "groupTimedQuota": "Befristetes Gruppenkontingent",
+    "quota": "Dauerkontingent",
+    "subscription": "Abonnement",
+    "subscriptionAdd": "Abo-Kontingent erweitert",
+    "subscriptionExtension": "Abo-Verlängerung",
+    "subscriptionReset": "Abo-Kontingent zurückgesetzt",
+    "subscriptionTrial": "Probeabo",
+    "timedBurstCredits": "Befristete Burst-Punkte",
+    "timedQuota": "Befristetes Kontingent"
+  },
+  "messages": {
+    "batchResultSummary": "Gesamt {{total}}. Erfolgreich {{success}}. Fehlgeschlagen {{failed}}.",
+    "batchResultTitle": "Einlösungsergebnisse",
+    "benefitsRedeemed": "Eingelöst: {{details}}",
+    "cancelled": "Abgebrochen",
+    "extensionDays": "Um {{days}} Tage verlängert",
+    "fallbackBenefit": "Ersatzvorteil verwendet",
+    "noAccountForUrl": "Für diese Website wurde kein passendes Konto gefunden. Bitte fügen Sie die Website als Konto in My API Box hinzu und versuchen Sie es dann erneut.",
+    "promptConfirm": "Auf dieser Seite wurde ein möglicher Einlösungscode {{code}} entdeckt. Versuchen Sie die automatische Einlösung für diese Website?",
+    "promptConfirmBatch_one": "{{count}} möglicher Einlösungscode wurde auf dieser Seite erkannt. Wählen Sie die Codes aus, die für diese Website automatisch eingelöst werden sollen.",
+    "promptConfirmBatch_other": "{{count}} mögliche Einlösungscodes wurden auf dieser Seite erkannt. Wählen Sie die Codes aus, die für diese Website automatisch eingelöst werden sollen.",
+    "promptSettingsLink": "Öffnen Sie die Einstellungen für den Einlösungsassistenten",
+    "promptTitle": "Einlösungshilfe",
+    "redeemFailed": "Einlösung fehlgeschlagen. Bitte versuchen Sie es später noch einmal.",
+    "redeemLoading": "Versuche einzulösen…",
+    "redeemSuccess": "Erfolgreich eingelöst. Gutgeschriebener Betrag: {{amount}}",
+    "selectAll": "Alles auswählen",
+    "success": {
+      "settingsSaved": "Die Einstellungen für die Einlösungshilfe wurden gespeichert"
+    },
+    "unsupportedSiteType": "Der Website-Typ dieses Kontos unterstützt keine automatische Einlösung. Wähle ein anderes Konto oder löse den Code manuell auf der Website ein."
+  },
+  "settings": {
+    "contextMenu": {
+      "enable": "Im Kontextmenü des Browsers anzeigen",
+      "enableDesc": "Fügt dem Browser-Kontextmenü ein Element „Einlösungshilfe“ hinzu."
+    },
+    "description": "Konfigurieren Sie, wie die Erweiterung Codes auf unterstützten Seiten erkennt und beim Einlösen unterstützt",
+    "enable": "Einlösungsunterstützung aktivieren",
+    "enableDesc": "Einlösecodes auf unterstützten Seiten automatisch erkennen und eine Einlöseaufforderung anzeigen",
+    "relaxedCodeValidation": "Einschränkungen des Codeformats lockern",
+    "relaxedCodeValidationDesc": "Wenn aktiviert, wird jeder 32-stellige Code als möglicher Einlösecode behandelt (keine Zeichensatzprüfung).",
+    "title": "Einlösungshilfe",
+    "urlWhitelist": {
+      "enable": "URL-Whitelist aktivieren",
+      "enableDesc": "Wenn aktiviert, wird die Einlösungshilfe nur auf URLs ausgeführt, die durch die folgenden Regeln zulässig sind.",
+      "includeAccountSiteUrls": "Konto-Website-URLs einschließen",
+      "includeAccountSiteUrlsDesc": "Alle Seiten unter dem Website-URL-Ursprung jedes Kontos zulassen.",
+      "includeCheckInAndRedeemUrls": "Check-in- und Einlöse-URLs einbeziehen",
+      "includeCheckInAndRedeemUrlsDesc": "Erlauben Sie die Check-in- und Einlöseseiten (benutzerdefiniert oder standardmäßig) für jedes Konto.",
+      "patterns": "Benutzerdefinierte Regex-Muster",
+      "patternsDesc": "Ein JavaScript RegExp-Muster pro Zeile. Es wird eine Übereinstimmung ohne Berücksichtigung der Groß- und Kleinschreibung angewendet.",
+      "patternsPlaceholder": "^https://example\\.com/console/topup"
+    }
+  }
+}

@@ -1,0 +1,156 @@
+import { describe, expect, it } from "vitest"
+
+import {
+  normalizeApiCheckBaseUrl,
+  normalizeGoogleFamilyBaseUrl,
+  normalizeOpenAiFamilyBaseUrl,
+} from "~/services/verification/webAiApiCheck/credentialExtraction/baseUrlCandidates"
+import { extractApiCheckCredentialsFromText } from "~/services/verification/webAiApiCheck/extractCredentials"
+import { buildApiKey } from "~~/tests/test-utils/factories"
+
+describe("webAiApiCheck utils", () => {
+  describe("normalizeApiCheckBaseUrl", () => {
+    it("adds https:// when missing and strips query/hash", () => {
+      expect(normalizeApiCheckBaseUrl("example.com/api?x=1#hash")).toBe(
+        "https://example.com/api",
+      )
+    })
+
+    it("returns null for non-http(s) urls", () => {
+      expect(normalizeApiCheckBaseUrl("chrome://extensions")).toBeNull()
+    })
+  })
+
+  describe("normalizeOpenAiFamilyBaseUrl", () => {
+    it("strips /v1 and preserves subpaths", () => {
+      expect(normalizeOpenAiFamilyBaseUrl("https://example.com/api/v1")).toBe(
+        "https://example.com/api",
+      )
+    })
+
+    it("strips endpoint suffixes after /v1", () => {
+      expect(
+        normalizeOpenAiFamilyBaseUrl(
+          "https://example.com/api/v1/chat/completions",
+        ),
+      ).toBe("https://example.com/api")
+    })
+
+    it("keeps the prefix before the last /v1 segment", () => {
+      expect(
+        normalizeOpenAiFamilyBaseUrl("https://example.com/v1/v1/models"),
+      ).toBe("https://example.com/v1")
+    })
+
+    it("strips from the last /v1 segment when nested", () => {
+      expect(
+        normalizeOpenAiFamilyBaseUrl(
+          "https://example.com/proxy/v1/openai/v1/chat/completions",
+        ),
+      ).toBe("https://example.com/proxy/v1/openai")
+    })
+  })
+
+  describe("normalizeGoogleFamilyBaseUrl", () => {
+    it("strips /v1beta and preserves subpaths", () => {
+      expect(
+        normalizeGoogleFamilyBaseUrl("https://example.com/api/v1beta"),
+      ).toBe("https://example.com/api")
+    })
+
+    it("strips endpoint suffixes after /v1beta", () => {
+      expect(
+        normalizeGoogleFamilyBaseUrl(
+          "https://example.com/api/v1beta/models/gemini-2.0-flash:predict",
+        ),
+      ).toBe("https://example.com/api")
+    })
+
+    it("keeps the prefix before the last /v1beta segment", () => {
+      expect(
+        normalizeGoogleFamilyBaseUrl(
+          "https://example.com/v1beta/v1beta/models",
+        ),
+      ).toBe("https://example.com/v1beta")
+    })
+
+    it("strips from the last /v1beta segment when nested", () => {
+      expect(
+        normalizeGoogleFamilyBaseUrl(
+          "https://example.com/proxy/v1beta/google/v1beta/models/gemini-2.0-flash",
+        ),
+      ).toBe("https://example.com/proxy/v1beta/google")
+    })
+  })
+
+  describe("extractApiCheckCredentialsFromText", () => {
+    it("returns nulls for empty input", () => {
+      expect(extractApiCheckCredentialsFromText("")).toEqual({
+        baseUrlCandidates: [],
+        apiKeyCandidates: [],
+        candidates: { baseUrls: [], apiKeys: [] },
+        summary: {
+          hasEnhancedBaseUrl: false,
+          hasEnhancedApiKey: false,
+          hasCleanup: false,
+          usesEnhancedResult: false,
+          autoPromptEligible: false,
+          enhancedAutoPromptEligible: false,
+        },
+        baseUrl: null,
+        apiKey: null,
+      })
+    })
+
+    it("extracts baseUrl + apiKey from labeled text", () => {
+      const apiKey = buildApiKey()
+      const result = extractApiCheckCredentialsFromText(
+        ["Base URL: https://example.com/api/v1", `API Key: ${apiKey}`].join(
+          "\n",
+        ),
+      )
+
+      expect(result.baseUrl).toBe("https://example.com/api")
+      expect(result.apiKey).toBe(apiKey)
+      expect(result.baseUrlCandidates).toContain("https://example.com/api/v1")
+    })
+
+    it("extracts credentials from a curl snippet", () => {
+      const apiKey = buildApiKey()
+      const result = extractApiCheckCredentialsFromText(
+        [
+          'curl "https://proxy.example.com/openai/v1/chat/completions" \\',
+          `  -H "Authorization: Bearer ${apiKey}" \\`,
+          '  -d \'{"model":"gpt-4o-mini"}\'',
+        ].join("\n"),
+      )
+
+      expect(result.baseUrl).toBe("https://proxy.example.com/openai")
+      expect(result.apiKey).toBe(apiKey)
+    })
+
+    it("includes Google-normalized base URLs for labeled Gemini endpoints", () => {
+      const result = extractApiCheckCredentialsFromText(
+        "Base URL: https://proxy.example.com/google/v1beta/models/gemini-2.0-flash:generateContent",
+      )
+
+      expect(result.baseUrlCandidates).toEqual([
+        "https://proxy.example.com/google",
+        "https://proxy.example.com/google/v1beta/models/gemini-2.0-flash:generateContent",
+      ])
+      expect(result.baseUrl).toBe("https://proxy.example.com/google")
+    })
+
+    it("includes Google-normalized base URLs for unlabeled Gemini endpoints", () => {
+      const result = extractApiCheckCredentialsFromText(
+        'curl "https://proxy.example.com/google/v1beta/models/gemini-2.0-flash:generateContent"',
+      )
+
+      expect(result.baseUrlCandidates).toEqual([
+        "https://proxy.example.com/google",
+        "https://proxy.example.com/google/v1beta/models/gemini-2.0-flash:generateContent",
+      ])
+      expect(result.baseUrl).toBe("https://proxy.example.com/google")
+    })
+  })
+})

@@ -1,0 +1,242 @@
+import userEvent from "@testing-library/user-event"
+import { describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { UnifiedApiGuidanceCard } from "~/features/UnifiedApiGuidance"
+import {
+  UNIFIED_API_GUIDANCE_SURFACES,
+  type UnifiedApiGuidanceSurface,
+} from "~/features/UnifiedApiGuidance/i18n"
+import {
+  buildUnifiedApiGuidanceModel,
+  UNIFIED_API_GUIDANCE_ACTION_KINDS,
+  type UnifiedApiGuidanceAction,
+} from "~/features/UnifiedApiGuidance/model"
+import { UNIFIED_API_GUIDANCE_TEST_IDS } from "~/features/UnifiedApiGuidance/testIds"
+import { UnifiedApiGuidanceUnavailableCard } from "~/features/UnifiedApiGuidance/UnifiedApiGuidanceCard"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { type UserPreferences } from "~/services/preferences/preferencesSchema"
+import { render, screen } from "~~/tests/test-utils/render"
+
+const basePreferences: UserPreferences = {
+  ...DEFAULT_PREFERENCES,
+  lastUpdated: 1,
+}
+
+const configuredNewApiPreferences: UserPreferences = {
+  ...basePreferences,
+  newApi: {
+    ...basePreferences.newApi,
+    baseUrl: "https://managed.example.invalid",
+    adminToken: "redacted-admin-token",
+    userId: "1",
+  },
+}
+
+describe("UnifiedApiGuidanceCard", () => {
+  it("shows completed steps when revisiting the setup guide", async () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 0,
+      keyAccessibleAccountCount: 0,
+      profileCount: 0,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+      guidanceState: {
+        schemaVersion: 1,
+        productTour: {},
+        gatewayGuidance: {
+          onboardingCompletedAt: 1,
+          dismissedAtBySurface: {},
+        },
+      },
+    })
+    renderCard(model)
+    expect(screen.getAllByRole("listitem")).toHaveLength(3)
+    expect(
+      screen.queryByText(
+        "optionsOverview:unifiedApiGuidance.stepper.states.current",
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "optionsOverview:unifiedApiGuidance.overview.completedDescription",
+      ),
+    ).toBeVisible()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("renders guidance notes and dispatches the primary action", async () => {
+    const user = userEvent.setup()
+    const onAction = vi.fn()
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 1,
+      profileCount: 1,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    renderCard(model, onAction)
+
+    expect(
+      screen.getByText("optionsOverview:unifiedApiGuidance.overview.title"),
+    ).toBeVisible()
+    expect(
+      screen.getByRole("list", {
+        name: "optionsOverview:unifiedApiGuidance.stepper.label",
+      }),
+    ).toBeVisible()
+    expect(screen.getAllByRole("listitem")).toHaveLength(3)
+    expect(
+      screen.getByText(
+        "optionsOverview:unifiedApiGuidance.stepper.steps.gatewayChannel.title",
+      ),
+    ).toHaveAttribute("aria-current", "step")
+    expect(
+      screen.getAllByText(
+        "optionsOverview:unifiedApiGuidance.stepper.states.completed",
+      ),
+    ).toHaveLength(2)
+    expect(
+      screen.getByText(
+        "optionsOverview:unifiedApiGuidance.stepper.states.current",
+      ),
+    ).toBeVisible()
+    expect(
+      screen.queryByText(
+        "optionsOverview:unifiedApiGuidance.stepper.states.upcoming",
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(UNIFIED_API_GUIDANCE_TEST_IDS.primaryAction),
+    ).toHaveAccessibleName(
+      "optionsOverview:unifiedApiGuidance.actions.addGatewayChannel",
+    )
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "optionsOverview:unifiedApiGuidance.actions.addGatewayChannel",
+      }),
+    )
+
+    expect(onAction).toHaveBeenCalledWith(model.primaryAction)
+    expect(model.primaryAction.kind).toBe(
+      UNIFIED_API_GUIDANCE_ACTION_KINDS.AddGatewayChannel,
+    )
+  })
+
+  it("offers an API credential as an alternative data source", async () => {
+    const user = userEvent.setup()
+    const onAction = vi.fn()
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 0,
+      keyAccessibleAccountCount: 0,
+      profileCount: 0,
+      preferences: basePreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    renderCard(model, onAction)
+    await user.click(
+      screen.getByRole("button", {
+        name: "optionsOverview:unifiedApiGuidance.actions.addApiCredential",
+      }),
+    )
+    expect(onAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: UNIFIED_API_GUIDANCE_ACTION_KINDS.AddApiCredential,
+      }),
+    )
+
+    expect(
+      screen.queryByText(
+        "optionsOverview:unifiedApiGuidance.modelSyncOptional",
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it("uses the requested surface for reusable guidance copy", async () => {
+    const model = buildUnifiedApiGuidanceModel({
+      enabledAccountCount: 1,
+      keyAccessibleAccountCount: 1,
+      profileCount: 1,
+      preferences: configuredNewApiPreferences,
+      managedSiteType: SITE_TYPES.NEW_API,
+    })
+
+    renderCard(model, vi.fn(), UNIFIED_API_GUIDANCE_SURFACES.Account)
+
+    expect(
+      screen.getByText("account:unifiedApiGuidance.headline"),
+    ).toBeVisible()
+    expect(
+      screen.getByRole("button", {
+        name: "account:unifiedApiGuidance.actions.addGatewayChannel",
+      }),
+    ).toBeVisible()
+    expect(
+      screen.queryByText("optionsOverview:unifiedApiGuidance.headline"),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole("list")).not.toBeInTheDocument()
+    expect(
+      screen.getByText("account:unifiedApiGuidance.boundaryNote"),
+    ).toBeVisible()
+  })
+
+  it("keeps retry focus while marking an in-progress setup check busy", async () => {
+    const user = userEvent.setup()
+    const onRetry = vi.fn()
+    const { rerender } = render(
+      <UnifiedApiGuidanceUnavailableCard
+        isRetrying={false}
+        onRetry={onRetry}
+      />,
+      {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      },
+    )
+    const retryButton = screen.getByRole("button", {
+      name: "optionsOverview:unifiedApiGuidance.unavailable.retry",
+    })
+    retryButton.focus()
+
+    rerender(<UnifiedApiGuidanceUnavailableCard isRetrying onRetry={onRetry} />)
+
+    expect(retryButton).toHaveFocus()
+    expect(retryButton).toHaveAttribute("aria-busy", "true")
+    expect(retryButton).toHaveAttribute("aria-disabled", "true")
+    expect(retryButton).not.toBeDisabled()
+    await user.keyboard("{Enter} ")
+    expect(onRetry).not.toHaveBeenCalled()
+    expect(retryButton).toHaveFocus()
+    rerender(
+      <UnifiedApiGuidanceUnavailableCard
+        isRetrying={false}
+        onRetry={onRetry}
+      />,
+    )
+    await user.keyboard("{Enter}")
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+})
+
+function renderCard(
+  model: ReturnType<typeof buildUnifiedApiGuidanceModel>,
+  onAction: (action: UnifiedApiGuidanceAction) => void = vi.fn(),
+  surface: UnifiedApiGuidanceSurface = UNIFIED_API_GUIDANCE_SURFACES.OptionsOverview,
+) {
+  return render(
+    <UnifiedApiGuidanceCard
+      model={model}
+      surface={surface}
+      onAction={onAction}
+    />,
+    {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    },
+  )
+}

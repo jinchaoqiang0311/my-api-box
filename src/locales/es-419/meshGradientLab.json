@@ -1,0 +1,27 @@
+{
+  "actions": {
+    "shuffleSeed": "Mezclar semilla"
+  },
+  "captions": {
+    "layoutIndex": "diseño #{{index}}",
+    "paletteIndex": "#{{index}}"
+  },
+  "labels": {
+    "layout": "Diseño",
+    "overlay": "Superposición",
+    "palette": "Paleta",
+    "seed": "Semilla",
+    "view": "Vista"
+  },
+  "summaryLayout_one": "{{count}} diseño",
+  "summaryLayout_many": "{{count}} diseños",
+  "summaryLayout_other": "{{count}} diseños",
+  "summaryPalette_one": "{{count}} paleta",
+  "summaryPalette_many": "{{count}} paletas",
+  "summaryPalette_other": "{{count}} paletas",
+  "title": "Mesh Gradient Lab (Dev)",
+  "view": {
+    "layouts": "Diseños",
+    "palettes": "Paletas"
+  }
+}

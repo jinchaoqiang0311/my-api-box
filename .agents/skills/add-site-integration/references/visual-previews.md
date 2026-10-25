@@ -1,0 +1,43 @@
+# CDP and UI image previews
+
+Use for site-specific UI validation and developer handoff. Save real screenshots from the tested build and display them directly so the developer can assess the result without opening a browser or reading a trace.
+
+For task before/after comparisons, use [task acceptance](../../../../docs/agents/task-acceptance.md#compare-changed-ui) for scope, baseline provenance and proportionate comparison tooling. Native-site versus extension comparison below answers workflow parity; it does not replace comparison with the extension's pre-change UI.
+
+## Capture useful states
+
+Select a small set of screenshots that answers the task's visual questions:
+
+| Workflow | Representative views |
+| --- | --- |
+| Account site | Saved account/balance or plan state; key dialog or inventory; aff/invite feedback when implemented |
+| Managed site | Connection settings; native resource list; editor/detail after the tested write |
+| Check-in | Detected method and today's state; manual/automatic result including reward/status |
+
+For editor work, select states from [the native workflow comparison](native-editor-parity.md): a configured ordinary form, meaningful type/mode or collection variants, and relevant recovery states. When accessible, compare native and extension views for the same task. Inspect placement, unnecessary fields/scrolling, grouping and defaults; saving images or passing assertions alone does not complete the usability review.
+
+Capture the actual current-worktree extension after data settles and the corresponding assertions pass. Also capture a relevant failure or blocked state when encountered. Prefer a focused panel/dialog screenshot when it shows the whole interaction; include a viewport screenshot when layout context matters. Keep enough context to identify the tested feature. Do not fabricate successful UI or change product data merely to improve a screenshot.
+
+Local developer screenshots are **unmasked by default** and stay outside Git, following [evidence storage](evidence-and-validation.md#retain-evidence-while-discovering-it). Do not apply automatic redaction to these previews. Capture intentionally; keep existing CI/real-site automatic screenshot and trace settings unchanged.
+
+## Persist capture in the runner
+
+Include capture at the meaningful checkpoints of the maintained site-specific CDP runner, with an explicit local evidence directory. Use stable state filenames and include run/build identity in the evidence index. For example, after asserting the intended dialog state:
+
+```javascript
+// Stabilize Framer Motion animations across all surfaces
+await page.emulateMedia({ reducedMotion: "reduce" })
+await dialog.waitFor({ state: "visible", timeout: 8000 })
+await dialog.screenshot({
+  path: path.join(evidenceDir, "02-key-dialog.png"),
+  animations: "disabled",
+})
+```
+
+Create and verify the local evidence directory before execution. Record the view, target account/deployment, commit/build/extension ID, capture time, viewport and associated assertion result. Avoid overwriting a previous run's images when their evidence is still relevant. Screenshot capture failures must be visible; retain the test result and explain the missing preview.
+
+## Show the developer the result
+
+Inspect representative final images with the available local-image tool (`view_image` in Codex) when visual judgment is needed, following the task-level checkpoints in [task acceptance](../../../../docs/agents/task-acceptance.md#compare-changed-ui). Batch minor refinements; do not reopen images after every edit or inspect every captured artifact. Agents prioritize the after image; baseline, comparison and diff images primarily serve developer review and need agent inspection only for a concrete unresolved question. Prefer side-by-side composite images ([BEFORE | AFTER] via `pnpm visual:compare` or image compositing) with clear status labels so reviewers can verify changes immediately without switching tabs. Return representative images through the tool's image output or inline Markdown images with absolute local paths. Include a short caption describing the observed state and a clickable artifact/index link; a path-only list is not a visual preview. Display during progress when it answers a current question, and reuse retained artifacts in the final handoff without another image-tool call. Do not claim to have inspected images merely retained for developer review.
+
+If the client cannot render local images, provide clickable PNG links and state that display limitation. If live access was unavailable, say which screenshot could not be obtained; a fixture or mocked screenshot must be labelled as such. Pictures complement behavior assertions and live readback; they do not establish authentication correctness, write preservation or cleanup alone.

@@ -1,0 +1,425 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import { newApiAuthBundleContentSessionExtractor } from "~/services/accountSiteOnboarding/contentSession/newApiAuthBundle"
+
+const NOW_SECONDS = 1_800_000_000
+const PAGE_ORIGIN = "https://panel.example.invalid"
+const INVALID_AUTH_BUNDLE_ERROR =
+  "New API dashboard session response is invalid"
+
+function createAuthBundle(overrides: Record<string, unknown> = {}) {
+  return {
+    success: true,
+    data: {
+      access_token: "dashboard-token-placeholder",
+      token_type: "Bearer",
+      access_expires_at: NOW_SECONDS + 900,
+      user: {
+        id: 42,
+        username: "example-user",
+      },
+      session: {
+        sid: "session-placeholder",
+        current: true,
+      },
+      ...overrides,
+    },
+  }
+}
+
+function createResponse(body: unknown, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: vi.fn().mockResolvedValue(body),
+  }
+}
+
+function createLocalStorageMock() {
+  return {
+    clear: vi.fn(),
+    getItem: vi.fn().mockReturnValue(null),
+    key: vi.fn().mockReturnValue(null),
+    removeItem: vi.fn(),
+    setItem: vi.fn(),
+    length: 0,
+  }
+}
+
+describe("newApiAuthBundleContentSessionExtractor", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    vi.spyOn(Date, "now").mockReturnValue(NOW_SECONDS * 1000)
+    vi.stubGlobal("location", { origin: PAGE_ORIGIN })
+    vi.stubGlobal("localStorage", createLocalStorageMock())
+  })
+
+  it("extracts known New API sites and registers discovery separately", () => {
+    expect(
+      newApiAuthBundleContentSessionExtractor.canExtract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).toBe(true)
+    expect(
+      newApiAuthBundleContentSessionExtractor.canExtract({
+        siteTypeHint: SITE_TYPES.ONE_API,
+      }),
+    ).toBe(false)
+    expect(
+      newApiAuthBundleContentSessionExtractor.canExtract({
+        siteTypeHint: SITE_TYPES.VELOERA,
+      }),
+    ).toBe(false)
+    expect(
+      newApiAuthBundleContentSessionExtractor.canExtract({
+        siteTypeHint: SITE_TYPES.UNKNOWN,
+        allowSessionProbe: true,
+      }),
+    ).toBe(false)
+    expect(newApiAuthBundleContentSessionExtractor.probe).toBeDefined()
+    expect(newApiAuthBundleContentSessionExtractor.canExtract({})).toBe(false)
+  })
+
+  it("reports refresh headers immediately even when the body is still pending", async () => {
+    const record = vi.fn()
+    let resolveBody!: (value: unknown) => void
+    const pendingBody = new Promise<unknown>((resolve) => {
+      resolveBody = resolve
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => pendingBody,
+      }),
+    )
+    const result = newApiAuthBundleContentSessionExtractor.extract({
+      siteTypeHint: SITE_TYPES.NEW_API,
+      diagnostics: { requestId: "detect-1", record, finish: vi.fn() },
+    })
+    await vi.waitFor(() =>
+      expect(record).toHaveBeenCalledWith(
+        "refresh_response",
+        expect.objectContaining({ status: 200 }),
+      ),
+    )
+    expect(record).toHaveBeenCalledWith("refresh_started")
+    resolveBody(createAuthBundle())
+    await result
+  })
+
+  it.each(["headers", "body"])(
+    "accepts refresh %s that complete after 15 seconds",
+    async (phase) => {
+      vi.useFakeTimers()
+      try {
+        let complete!: () => void
+        const pending = new Promise<unknown>((resolve) => {
+          complete = () =>
+            resolve(
+              phase === "headers"
+                ? createResponse(createAuthBundle())
+                : createAuthBundle(),
+            )
+        })
+        const fetchMock =
+          phase === "headers"
+            ? vi.fn().mockReturnValue(pending)
+            : vi
+                .fn()
+                .mockResolvedValue({
+                  ok: true,
+                  status: 200,
+                  json: () => pending,
+                })
+        vi.stubGlobal("fetch", fetchMock)
+        const observed = newApiAuthBundleContentSessionExtractor.probe!({
+          siteTypeHint: SITE_TYPES.UNKNOWN,
+        }).then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        )
+        await vi.advanceTimersByTimeAsync(16_000)
+        complete()
+        expect(await observed).toMatchObject({ value: { userId: "42" } })
+        expect(fetchMock).toHaveBeenCalledOnce()
+        expect(localStorage.setItem).not.toHaveBeenCalled()
+      } finally {
+        vi.useRealTimers()
+      }
+    },
+  )
+
+  it("records network failure without changing the extraction error", async () => {
+    const record = vi.fn()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("connection reset")),
+    )
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+        diagnostics: { requestId: "detect-2", record, finish: vi.fn() },
+      }),
+    ).rejects.toThrow("New API session refresh request failed")
+    expect(record).toHaveBeenCalledWith(
+      "refresh_failed",
+      expect.objectContaining({
+        reason: "network_error",
+        error: "connection reset",
+      }),
+    )
+  })
+
+  it("extracts a future, current AuthBundle from the actual page origin without writing storage", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(createResponse(createAuthBundle()))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        url: "https://message-origin.example.invalid/console",
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).resolves.toEqual({
+      userId: "42",
+      user: {
+        id: 42,
+        username: "example-user",
+      },
+      siteTypeHint: SITE_TYPES.NEW_API,
+      transientAuth: {
+        kind: "new_api_dashboard_bearer",
+        token: "dashboard-token-placeholder",
+        expiresAt: NOW_SECONDS + 900,
+        sessionId: "session-placeholder",
+        origin: PAGE_ORIGIN,
+      },
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${PAGE_ORIGIN}/api/user/auth/refresh`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+      }),
+    )
+    expect(fetchMock.mock.calls[0]?.[1]).not.toHaveProperty("redirect")
+    expect(localStorage.setItem).not.toHaveBeenCalled()
+    expect(localStorage.removeItem).not.toHaveBeenCalled()
+    expect(localStorage.clear).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["a non-object envelope", null],
+    ["an unsuccessful envelope", { success: false, data: {} }],
+    ["an unrelated object", { success: true, data: { greeting: "hello" } }],
+    [
+      "an unrelated generic user",
+      { success: true, data: { user: { id: "example-user" } } },
+    ],
+    [
+      "an unrelated generic session",
+      { success: true, data: { session: { state: "active" } } },
+    ],
+  ])("returns null for %s", async (_description, body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createResponse(body)))
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).resolves.toBeNull()
+  })
+
+  it.each([
+    [
+      "an incomplete token-marked response",
+      { success: true, data: { access_token: "token-placeholder" } },
+    ],
+    [
+      "an incomplete session-signature response",
+      { success: true, data: { session: { sid: "session-placeholder" } } },
+    ],
+    ["a non-Bearer token type", createAuthBundle({ token_type: "bearer" })],
+    ["a blank access token", createAuthBundle({ access_token: "   " })],
+    [
+      "a non-finite access expiry",
+      createAuthBundle({ access_expires_at: Number.NaN }),
+    ],
+    [
+      "an expired access token",
+      createAuthBundle({ access_expires_at: NOW_SECONDS }),
+    ],
+    ["a user without identity", createAuthBundle({ user: { name: "No ID" } })],
+    ["a blank session id", createAuthBundle({ session: { sid: " " } })],
+    [
+      "a non-current session",
+      createAuthBundle({
+        session: { sid: "session-placeholder", current: false },
+      }),
+    ],
+  ])("rejects %s", async (_description, body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createResponse(body)))
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).rejects.toThrow(INVALID_AUTH_BUNDLE_ERROR)
+  })
+
+  it("rejects a successful response that is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockRejectedValue(new SyntaxError("invalid JSON")),
+      }),
+    )
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).rejects.toThrow(INVALID_AUTH_BUNDLE_ERROR)
+  })
+
+  it("throws a controlled error when the refresh request is rejected", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("sensitive transport details")),
+    )
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).rejects.toEqual(new Error("New API session refresh request failed"))
+  })
+
+  it("throws a controlled error for other non-legacy HTTP failures", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createResponse(
+          {
+            message: "must-not-leak-server-details",
+            access_token: "must-not-leak-token",
+          },
+          500,
+        ),
+      ),
+    )
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).rejects.toEqual(new Error("New API session refresh failed (500)"))
+  })
+
+  it("falls back to status details when a controlled error response is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: vi.fn().mockRejectedValue(new SyntaxError("invalid JSON")),
+      }),
+    )
+
+    await expect(
+      newApiAuthBundleContentSessionExtractor.extract({
+        siteTypeHint: SITE_TYPES.NEW_API,
+      }),
+    ).rejects.toEqual(new Error("New API session refresh failed (401)"))
+  })
+
+  it.each([
+    ["only a code", { code: "AUTH_REQUIRED" }, "AUTH_REQUIRED"],
+    [
+      "only a message",
+      { message: "Session unavailable" },
+      "Session unavailable",
+    ],
+    [
+      "no public fields",
+      { success: false },
+      "New API session refresh failed (409)",
+    ],
+  ])(
+    "keeps useful upstream diagnostics for a controlled response with %s",
+    async (_description, body, expectedMessage) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(createResponse(body, 409)),
+      )
+
+      await expect(
+        newApiAuthBundleContentSessionExtractor.extract({
+          siteTypeHint: SITE_TYPES.NEW_API,
+        }),
+      ).rejects.toEqual(new Error(expectedMessage))
+    },
+  )
+
+  it.each([404, 405])(
+    "returns null for legacy-compatible HTTP %i responses",
+    async (status) => {
+      const response = createResponse({ unexpected: "body" }, status)
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response))
+
+      await expect(
+        newApiAuthBundleContentSessionExtractor.extract({
+          siteTypeHint: SITE_TYPES.NEW_API,
+        }),
+      ).resolves.toBeNull()
+      expect(response.json).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    [401, "AUTH_UNAUTHORIZED", "Unauthorized"],
+    [409, "AUTH_SESSION_MISMATCH", "Conflict"],
+    [429, "AUTH_SESSION_ISSUANCE_LIMIT", "Too Many Requests"],
+  ])(
+    "throws a controlled safe error for HTTP %i",
+    async (status, code, message) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          createResponse(
+            {
+              success: false,
+              code,
+              message,
+              data: {
+                access_token: "must-not-leak-token",
+                session: { sid: "must-not-leak-session" },
+              },
+            },
+            status,
+          ),
+        ),
+      )
+
+      let caught: unknown
+      try {
+        await newApiAuthBundleContentSessionExtractor.extract({
+          siteTypeHint: SITE_TYPES.NEW_API,
+        })
+      } catch (error) {
+        caught = error
+      }
+
+      expect(caught).toEqual(new Error(`${code}: ${message}`))
+      expect((caught as Error).message).not.toContain("must-not-leak-token")
+      expect((caught as Error).message).not.toContain("must-not-leak-session")
+    },
+  )
+})

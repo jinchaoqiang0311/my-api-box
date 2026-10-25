@@ -1,0 +1,379 @@
+import { ScanSearch } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { Badge, Button, ConfirmDialog, Modal } from "~/components/ui"
+import { ActionGroup } from "~/components/ui/ActionGroup"
+import { useAccountDataContext } from "~/features/AccountManagement/data/AccountDataContext"
+import { ACCOUNT_MANAGEMENT_TEST_IDS } from "~/features/AccountManagement/testIds"
+import toast from "~/lib/notify"
+import { accountMutations } from "~/services/accounts/accountStorage/accountMutations"
+import {
+  scanDuplicateAccounts,
+  type AccountDedupeKeepStrategy,
+} from "~/services/accounts/identity/accountDedupe"
+import { startProductAnalyticsAction } from "~/services/productAnalytics/actions"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import type { SiteAccount } from "~/types"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+
+import { DedupeAccountsConfirmDetails } from "./DedupeAccountsConfirmDetails"
+import { DedupeAccountsDialogBody } from "./DedupeAccountsDialogBody"
+import { SuspectedDuplicatesList } from "./SuspectedDuplicatesList"
+import type {
+  DedupeAccountsDialogGroup,
+  DedupeAccountsKeepChangeInput,
+} from "./types"
+import { buildDedupeAccountLabelMap } from "./utils"
+
+interface DedupeAccountsDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onReviewAccount?: (accountId: string) => void
+  onDeleteAccount?: (accountId: string) => void
+}
+
+const EMPTY_ACCOUNTS: SiteAccount[] = []
+const EMPTY_STRING_LIST: string[] = []
+const NOOP_ASYNC = async () => {}
+const EMPTY_KEEP_OVERRIDES: Record<string, string> = {}
+const EMPTY_DETAILS_OPEN_BY_ACCOUNT_ID: Record<string, true> = {}
+
+const logger = createLogger("DedupeAccountsDialog")
+
+/**
+ * Scan for duplicate accounts and provide a previewed, one-click cleanup flow.
+ */
+export default function DedupeAccountsDialog({
+  isOpen,
+  onClose,
+  onReviewAccount,
+  onDeleteAccount,
+}: DedupeAccountsDialogProps) {
+  const { t } = useTranslation(["ui", "account", "common", "messages"])
+  const accountData = useAccountDataContext()
+  const accounts = accountData.accounts ?? EMPTY_ACCOUNTS
+  const pinnedAccountIds = accountData.pinnedAccountIds ?? EMPTY_STRING_LIST
+  const orderedAccountIds = accountData.orderedAccountIds ?? EMPTY_STRING_LIST
+  const loadAccountData = accountData.loadAccountData ?? NOOP_ASYNC
+  const orderedIndexByAccountId = useMemo(() => {
+    const map = new Map<string, number>()
+    orderedAccountIds.forEach((id, index) => {
+      map.set(id, index)
+    })
+    return map
+  }, [orderedAccountIds])
+
+  const [strategy, setStrategy] =
+    useState<AccountDedupeKeepStrategy>("keepPinned")
+  const [keepOverridesByGroupId, setKeepOverridesByGroupId] =
+    useState<Record<string, string>>(EMPTY_KEEP_OVERRIDES)
+  const [detailsOpenByAccountId, setDetailsOpenByAccountId] = useState<
+    Record<string, true>
+  >(EMPTY_DETAILS_OPEN_BY_ACCOUNT_ID)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [isWorking, setIsWorking] = useState(false)
+
+  const scan = useMemo(
+    () =>
+      scanDuplicateAccounts({
+        accounts,
+        pinnedAccountIds,
+        strategy,
+      }),
+    [accounts, pinnedAccountIds, strategy],
+  )
+  const accountLabelById = useMemo(
+    () => buildDedupeAccountLabelMap(accounts),
+    [accounts],
+  )
+  const scanGroups = scan.groups
+
+  const groups = useMemo<DedupeAccountsDialogGroup[]>(() => {
+    return scanGroups.map((group) => {
+      const groupAccounts = group.accounts
+      const groupId = group.key.id
+      const recommendedKeepAccountId = group.keepAccountId
+      const manualKeepAccountId = keepOverridesByGroupId[groupId]
+      const resolvedManualKeepAccountId =
+        manualKeepAccountId &&
+        groupAccounts.some((account) => account.id === manualKeepAccountId)
+          ? manualKeepAccountId
+          : undefined
+      const keepAccountId =
+        resolvedManualKeepAccountId ?? recommendedKeepAccountId
+      const hasManualOverride = keepAccountId !== recommendedKeepAccountId
+
+      return {
+        ...group,
+        accounts: groupAccounts,
+        groupId,
+        keepAccountId,
+        deleteAccountIds: groupAccounts
+          .filter((account) => account.id !== keepAccountId)
+          .map((account) => account.id),
+        recommendedKeepAccountId,
+        hasManualOverride,
+      }
+    })
+  }, [keepOverridesByGroupId, scanGroups])
+
+  const handleKeepChange = (input: DedupeAccountsKeepChangeInput) => {
+    setKeepOverridesByGroupId((prev) => {
+      const existing = prev[input.groupId]
+
+      if (input.selectedAccountId === input.recommendedAccountId) {
+        if (!existing) return prev
+        const next = { ...prev }
+        delete next[input.groupId]
+        return next
+      }
+
+      if (existing === input.selectedAccountId) return prev
+      return { ...prev, [input.groupId]: input.selectedAccountId }
+    })
+  }
+
+  const idsToDelete = useMemo(
+    () =>
+      Array.from(new Set(groups.flatMap((group) => group.deleteAccountIds))),
+    [groups],
+  )
+
+  const pinnedToDeleteCount = useMemo(() => {
+    if (pinnedAccountIds.length === 0 || idsToDelete.length === 0) return 0
+    const pinned = new Set(pinnedAccountIds)
+    return idsToDelete.filter((id) => pinned.has(id)).length
+  }, [idsToDelete, pinnedAccountIds])
+
+  const orderedToDeleteCount = useMemo(() => {
+    if (orderedAccountIds.length === 0 || idsToDelete.length === 0) return 0
+    const ordered = new Set(orderedAccountIds)
+    return idsToDelete.filter((id) => ordered.has(id)).length
+  }, [idsToDelete, orderedAccountIds])
+
+  const handleClose = () => {
+    if (isWorking) return
+    setIsConfirmOpen(false)
+    setDetailsOpenByAccountId(EMPTY_DETAILS_OPEN_BY_ACCOUNT_ID)
+    onClose()
+  }
+
+  const toggleAccountDetails = (accountId: string) => {
+    setDetailsOpenByAccountId((prev) => {
+      if (prev[accountId]) {
+        const next = { ...prev }
+        delete next[accountId]
+        return next
+      }
+
+      return { ...prev, [accountId]: true }
+    })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (idsToDelete.length === 0) return
+
+    const cleanupInsights = {
+      itemCount: idsToDelete.length,
+      selectedCount: idsToDelete.length,
+    }
+    const tracker = startProductAnalyticsAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.DeleteAccount,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+
+    setIsWorking(true)
+    try {
+      const { deletedCount } = await toast.promise(
+        accountMutations.deleteAccounts(idsToDelete),
+        {
+          loading: t("ui:dialog.dedupeAccounts.deleting"),
+          success: (result) =>
+            t("messages:toast.success.duplicateCleanupSuccess", {
+              count: result.deletedCount,
+              groups: groups.length,
+            }),
+          error: (error) =>
+            t("messages:toast.error.duplicateCleanupFailed", {
+              error: getErrorMessage(error) || t("messages:errors.unknown"),
+            }),
+        },
+      )
+
+      setIsConfirmOpen(false)
+      if (deletedCount > 0) {
+        onClose()
+      }
+
+      await loadAccountData()
+
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Success, {
+        insights: {
+          ...cleanupInsights,
+          successCount: deletedCount,
+        },
+      })
+    } catch (error) {
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+        insights: cleanupInsights,
+      })
+      logger.error("handleConfirmDelete failed", {
+        error,
+        idsToDelete,
+        groupCount: groups.length,
+      })
+      // toast.promise handles the error toast
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        closeOnBackdropClick={!isWorking}
+        closeOnEsc={!isWorking}
+        showCloseButton={!isWorking}
+        size="lg"
+        title={t("ui:dialog.dedupeAccounts.title")}
+        header={
+          <div className="gap-y-density-1 flex min-w-0 flex-col gap-x-1 pr-8">
+            <div className="gap-y-density-2 flex items-center gap-x-2">
+              <ScanSearch className="text-theme-600 dark:text-theme-400 h-5 w-5 shrink-0" />
+              <h2 className="text-foreground text-lg font-semibold">
+                {t("ui:dialog.dedupeAccounts.title")}
+              </h2>
+            </div>
+            <p className="dark:text-secondary-foreground text-muted-foreground text-sm">
+              {t("ui:dialog.dedupeAccounts.description")}
+            </p>
+            <div className="mt-density-2 gap-y-density-2 flex flex-wrap gap-x-2">
+              <Badge variant="secondary">
+                {t("ui:dialog.dedupeAccounts.exactTitle")} · {groups.length}
+              </Badge>
+              <Badge
+                variant={scan.suspectedGroups.length ? "warning" : "secondary"}
+              >
+                {t("ui:dialog.dedupeAccounts.suspected.title")} ·{" "}
+                {scan.suspectedGroups.length}
+              </Badge>
+            </div>
+          </div>
+        }
+        footer={
+          <ActionGroup layout="stack-on-narrow">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleClose}
+              disabled={isWorking}
+            >
+              {t("common:actions.close")}
+            </Button>
+            {groups.length > 0 && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setIsConfirmOpen(true)}
+                disabled={isWorking || idsToDelete.length === 0}
+                data-testid={
+                  ACCOUNT_MANAGEMENT_TEST_IDS.dedupePreviewDeleteButton
+                }
+              >
+                {t("ui:dialog.dedupeAccounts.previewDelete")}
+              </Button>
+            )}
+          </ActionGroup>
+        }
+      >
+        {(groups.length > 0 ||
+          scan.unscannable.length > 0 ||
+          scan.suspectedGroups.length === 0) && (
+          <DedupeAccountsDialogBody
+            strategy={strategy}
+            onStrategyChange={setStrategy}
+            groups={groups}
+            accountLabelById={accountLabelById}
+            deleteCount={idsToDelete.length}
+            pinnedAccountIds={pinnedAccountIds}
+            orderedIndexByAccountId={orderedIndexByAccountId}
+            detailsOpenByAccountId={detailsOpenByAccountId}
+            onKeepChange={handleKeepChange}
+            onToggleDetails={toggleAccountDetails}
+            unscannableCount={scan.unscannable.length}
+            hasSuspectedGroups={scan.suspectedGroups.length > 0}
+            isWorking={isWorking}
+            t={t}
+          />
+        )}
+        <SuspectedDuplicatesList
+          onDeleteAccount={
+            onDeleteAccount
+              ? (accountId) => {
+                  if (!isWorking) onDeleteAccount(accountId)
+                }
+              : undefined
+          }
+          separated={groups.length > 0 || scan.unscannable.length > 0}
+          groups={scan.suspectedGroups}
+          accountLabelById={accountLabelById}
+          isWorking={isWorking}
+          onReviewAccount={
+            onReviewAccount
+              ? (accountId) => {
+                  if (isWorking) return
+                  onReviewAccount(accountId)
+                }
+              : undefined
+          }
+          t={t}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        intent="destructive"
+        isOpen={isConfirmOpen}
+        onClose={() => {
+          if (!isWorking) setIsConfirmOpen(false)
+        }}
+        title={t("ui:dialog.dedupeAccounts.confirm.title")}
+        description={t("ui:dialog.dedupeAccounts.confirm.description", {
+          deleteCount: idsToDelete.length,
+          groups: groups.length,
+        })}
+        cancelLabel={t("common:actions.cancel")}
+        confirmLabel={t("ui:dialog.dedupeAccounts.confirm.confirmDelete")}
+        workingLabel={t("ui:dialog.dedupeAccounts.deleting")}
+        onConfirm={() => void handleConfirmDelete()}
+        isWorking={isWorking}
+        size="lg"
+        confirmButtonTestId={
+          ACCOUNT_MANAGEMENT_TEST_IDS.dedupeConfirmDeleteButton
+        }
+        details={
+          <DedupeAccountsConfirmDetails
+            groups={groups}
+            accountLabelById={accountLabelById}
+            pinnedToDeleteCount={pinnedToDeleteCount}
+            orderedToDeleteCount={orderedToDeleteCount}
+            t={t}
+          />
+        }
+      />
+    </>
+  )
+}

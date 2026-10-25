@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Groups / 社区交流群
+    url: https://all-api-hub.qixing1217.top/#community
+    about: Join the WeChat group, multilingual Discord community, or Telegram group for discussion / 加入微信群、多语言 Discord 社区或 Telegram 群参与讨论
+  - name: GitHub Discussions / GitHub 讨论区
+    url: https://github.com/qixing-jk/all-api-hub/discussions
+    about: Ask questions and discuss ideas with the community / 向社区提问和讨论想法
+  - name: Documentation / 文档
+    url: https://all-api-hub.qixing1217.top/
+    about: Read the documentation to learn more about the project / 阅读文档以了解有关项目的更多信息

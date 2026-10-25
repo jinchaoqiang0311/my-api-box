@@ -1,0 +1,144 @@
+#!/usr/bin/env node
+import { spawnSync } from "node:child_process"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+import {
+  buildRealSiteE2eRuns,
+  filterRealSiteE2eMatrix,
+  normalizeRealSiteE2eCategory,
+} from "./real-site-e2e-matrix.mjs"
+import { loadLocalEnv } from "./utils/local-env.mjs"
+import { resolvePnpmInvocation } from "./utils/run-pnpm.mjs"
+
+loadLocalEnv()
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const firstArg = process.argv[2]
+
+if (firstArg === "--help" || firstArg === "-h") {
+  printUsage()
+  process.exit(0)
+}
+
+const { category, extraPlaywrightArgs } = parseArgs(process.argv.slice(2))
+
+if (category === "--help" || category === "-h") {
+  printUsage()
+  process.exit(0)
+}
+
+const normalizedCategory = normalizeRealSiteE2eCategory(category)
+const entries = filterRealSiteE2eMatrix(normalizedCategory)
+const builtVariants = new Set()
+
+for (const entry of buildRealSiteE2eRuns(entries)) {
+  const buildVariant = entry.build_variant ?? "default"
+  console.log(`\n=== Real-site E2E: ${entry.label} ===`)
+  runPnpm(
+    [
+      "exec",
+      "playwright",
+      "test",
+      ...entry.specs,
+      "--project=chromium",
+      "--reporter=list",
+      ...extraPlaywrightArgs,
+    ],
+    buildEntryEnv(entry, { skipBuild: builtVariants.has(buildVariant) }),
+  )
+  builtVariants.add(buildVariant)
+}
+
+/**
+ * Separate the optional category from Playwright flags, including `--` arguments.
+ * @param args Command-line arguments after the script name.
+ * @returns Selected category and arguments passed through to Playwright.
+ */
+function parseArgs(args) {
+  const separatorIndex = args.indexOf("--")
+  const ownArgs = separatorIndex === -1 ? args : args.slice(0, separatorIndex)
+  const separatorExtraArgs =
+    separatorIndex === -1 ? [] : args.slice(separatorIndex + 1)
+  const [firstArg, ...restArgs] = ownArgs
+  const firstArgIsPlaywrightFlag = firstArg?.startsWith("-") ?? false
+
+  return {
+    category: firstArg && !firstArgIsPlaywrightFlag ? firstArg : "all",
+    extraPlaywrightArgs: [
+      ...(firstArgIsPlaywrightFlag ? [firstArg, ...restArgs] : restArgs),
+      ...separatorExtraArgs,
+    ],
+  }
+}
+
+/**
+ * Build the environment for one matrix entry's Playwright run.
+ * @param entry Real-site E2E matrix entry.
+ * @param options Build options for this entry.
+ * @returns Environment variables for the spawned Playwright process.
+ */
+function buildEntryEnv(entry, options = {}) {
+  const env = {
+    ...process.env,
+    AAH_E2E_REAL_SITE_CATEGORY: entry.category,
+    AAH_E2E_BUILD_VARIANT: entry.build_variant ?? "default",
+  }
+
+  if (options.skipBuild) {
+    env.AAH_SKIP_E2E_BUILD = "1"
+  }
+
+  if (entry.kind === "managed-site") {
+    if (entry.managed_site_target)
+      env.AAH_E2E_MANAGED_SITE_TARGET = entry.managed_site_target
+    else delete env.AAH_E2E_MANAGED_SITE_TARGET
+  }
+
+  if (entry.kind === "webdav") {
+    env.AAH_E2E_WEBDAV_PROVIDER_PREFIX = entry.env_prefix
+    env.AAH_E2E_WEBDAV_PROVIDER_NAME = entry.provider_name
+    env.AAH_E2E_WEBDAV_ACCOUNT_PREFIX = entry.provider_account_prefix
+  }
+
+  return env
+}
+
+/**
+ * Run pnpm with fixed, repository-owned arguments, propagating failures.
+ * @param args pnpm arguments, never user input or Git paths.
+ * @param env Environment for the spawned process.
+ */
+function runPnpm(args, env) {
+  const invocation = resolvePnpmInvocation(args)
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: rootDir,
+    env,
+    stdio: "inherit",
+  })
+
+  if (result.status !== 0) {
+    if (result.error) {
+      console.error(result.error)
+    }
+    process.exit(result.status ?? 1)
+  }
+}
+
+/** Print the category commands and forwarding syntax without starting a run. */
+function printUsage() {
+  console.log(`Usage:
+  pnpm e2e:real-site
+  pnpm e2e:real-site:account
+  pnpm e2e:real-site:cloud-sync
+  pnpm e2e:real-site:managed-site
+  pnpm e2e:real-site:webdav
+  pnpm e2e:real-site:category account -- --headed
+
+Categories:
+  all
+  account
+  cloud-sync
+  managed-site
+  webdav`)
+}

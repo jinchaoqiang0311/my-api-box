@@ -1,0 +1,105 @@
+name: PR Checks Notify
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  checks: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  notify:
+    name: Notify when PR checks finish
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PR_CHECKS_NOTIFICATION_URLS: ${{ secrets.PR_CHECKS_NOTIFICATION_URLS }}
+
+    steps:
+      - name: Wait for PR checks
+        id: wait_for_checks
+        if: env.PR_CHECKS_NOTIFICATION_URLS != ''
+        uses: lewagon/wait-on-check-action@v1.7.0
+        continue-on-error: true
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          running-workflow-name: Notify when PR checks finish
+          wait-interval: 20
+          allowed-conclusions: success,skipped,neutral
+          fail-on-no-checks: false
+
+      - name: Build notification message
+        id: message
+        if: always() && env.PR_CHECKS_NOTIFICATION_URLS != ''
+        uses: actions/github-script@v9
+        env:
+          WAIT_OUTCOME: ${{ steps.wait_for_checks.outcome }}
+          WAIT_CONCLUSION: ${{ steps.wait_for_checks.conclusion }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const shortSha = pr.head.sha.slice(0, 7);
+            const checksUrl = `${pr.html_url}/checks`;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: pr.head.sha,
+              per_page: 100,
+            });
+
+            const ignoredCheckNames = new Set(["Notify when PR checks finish"]);
+            const relevantChecks = data.check_runs.filter(
+              (check) => !ignoredCheckNames.has(check.name),
+            );
+            const failedChecks = relevantChecks.filter(
+              (check) =>
+                check.status === "completed" &&
+                !["success", "skipped", "neutral"].includes(check.conclusion),
+            );
+            const passed =
+              process.env.WAIT_OUTCOME === "success" &&
+              process.env.WAIT_CONCLUSION === "success" &&
+              failedChecks.length === 0;
+            const status = passed ? "passed" : "failed";
+            const title = `PR checks ${status}: #${pr.number}`;
+            const failedSummary = failedChecks.length
+              ? [
+                  "",
+                  "Failed checks:",
+                  ...failedChecks.map((check) => `- ${check.name}: ${check.conclusion}`),
+                ]
+              : [];
+            const message = [
+              `${pr.title}`,
+              "",
+              `Status: ${status}`,
+              `Checks: ${relevantChecks.length}`,
+              `Commit: ${shortSha}`,
+              `Author: ${pr.user.login}`,
+              ...failedSummary,
+              `PR: ${pr.html_url}`,
+              `Checks: ${checksUrl}`,
+              `Notifier run: ${runUrl}`,
+            ].join("\n");
+
+            core.setOutput("title", title);
+            core.setOutput("message", message);
+
+      - name: Send external notification
+        if: always() && env.PR_CHECKS_NOTIFICATION_URLS != ''
+        uses: cstuder/apprise-ga@v3.1.0
+        continue-on-error: true
+        env:
+          APPRISE_URL: ${{ env.PR_CHECKS_NOTIFICATION_URLS }}
+        with:
+          title: ${{ steps.message.outputs.title }}
+          message: ${{ steps.message.outputs.message }}

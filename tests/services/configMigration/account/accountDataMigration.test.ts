@@ -1,0 +1,557 @@
+import { describe, expect, it } from "vitest"
+
+import { AUTO_CHECKIN_METHOD_IDS } from "~/constants/checkIn"
+import { SITE_TYPES } from "~/constants/siteType"
+import {
+  CURRENT_CONFIG_VERSION,
+  getConfigVersion,
+  migrateAccountConfig,
+  migrateAccountsConfig,
+  needsConfigMigration,
+} from "~/services/accounts/migrations/accountDataMigration"
+import type { SiteAccount } from "~/types"
+import { AuthTypeEnum, SiteHealthStatus } from "~/types"
+import { buildCheckInConfig } from "~~/tests/test-utils/factories"
+
+describe("accountDataMigration", () => {
+  // Helper to create a minimal SiteAccount fixture
+  type StoredAccountOverrides = Partial<Omit<SiteAccount, "checkIn">> & {
+    checkIn?: unknown
+    can_check_in?: boolean
+    supports_check_in?: boolean
+  }
+
+  const createSiteAccount = (
+    overrides: StoredAccountOverrides = {},
+  ): SiteAccount =>
+    ({
+      id: "test-account-1",
+      site_name: "Test Site",
+      site_url: "https://test.com",
+      health: { status: SiteHealthStatus.Healthy },
+      site_type: SITE_TYPES.UNKNOWN,
+      exchange_rate: 7.0,
+      account_info: {
+        id: "1",
+        access_token: "test-token",
+        username: "test-user",
+        quota: 1000,
+        today_prompt_tokens: 0,
+        today_completion_tokens: 0,
+        today_quota_consumption: 0,
+        today_requests_count: 0,
+        today_income: 0,
+      },
+      last_sync_time: Date.now(),
+      updated_at: Date.now(),
+      created_at: Date.now(),
+      authType: AuthTypeEnum.AccessToken,
+      // Note: checkIn is intentionally omitted to simulate old accounts
+      // It can be provided in overrides when needed
+      ...overrides,
+    }) as SiteAccount
+
+  describe("getConfigVersion", () => {
+    it("returns 0 when configVersion is undefined", () => {
+      const account = createSiteAccount({ configVersion: undefined })
+      expect(getConfigVersion(account)).toBe(0)
+    })
+
+    it("returns the actual configVersion when defined", () => {
+      const account = createSiteAccount({ configVersion: 1 })
+      expect(getConfigVersion(account)).toBe(1)
+    })
+
+    it("returns 0 for accounts without configVersion property", () => {
+      const account = createSiteAccount()
+      // Remove configVersion to simulate old account
+      delete (account as any).configVersion
+      expect(getConfigVersion(account)).toBe(0)
+    })
+  })
+
+  describe("needsConfigMigration", () => {
+    it("returns true when account version is less than current version", () => {
+      const account = createSiteAccount({ configVersion: 0 })
+      expect(needsConfigMigration(account)).toBe(true)
+    })
+
+    it("returns false when account version equals current version", () => {
+      const account = createSiteAccount({
+        configVersion: CURRENT_CONFIG_VERSION,
+      })
+      expect(needsConfigMigration(account)).toBe(false)
+    })
+
+    it("returns false when account version is greater than current version", () => {
+      const account = createSiteAccount({
+        configVersion: CURRENT_CONFIG_VERSION + 1,
+      })
+      expect(needsConfigMigration(account)).toBe(false)
+    })
+
+    it("returns true when configVersion is undefined (version 0)", () => {
+      const account = createSiteAccount({ configVersion: undefined })
+      expect(needsConfigMigration(account)).toBe(true)
+    })
+  })
+
+  describe("migrateAccountConfig", () => {
+    it("migrates account from version 0 to current version", () => {
+      const oldAccount = createSiteAccount({
+        configVersion: 0,
+        site_type: SITE_TYPES.NEW_API,
+        supports_check_in: true,
+        can_check_in: false,
+      })
+
+      const migrated = migrateAccountConfig(oldAccount)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.disabled).toBe(false)
+      expect(migrated.excludeFromTotalBalance).toBe(false)
+      expect(migrated.excludeFromTodayIncome).toBe(false)
+      expect(migrated.checkIn).toBeDefined()
+      expect(migrated.checkIn.automaticExecutionEnabled).toBe(true)
+      expect(migrated.checkIn.selection.methodId).toBe(
+        AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn,
+      )
+      expect(
+        migrated.checkIn.methodKnowledge.methods[
+          AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn
+        ]?.status,
+      ).toMatchObject({ outcome: "known", today: "checked" })
+      // Legacy fields should be removed
+      expect(migrated).not.toHaveProperty("supports_check_in")
+      expect(migrated).not.toHaveProperty("can_check_in")
+    })
+
+    it("migrates version 1 custom check-in fields into checkIn.customCheckIn", () => {
+      const legacyV1Account = createSiteAccount({
+        configVersion: 1,
+        checkIn: {
+          enableDetection: true,
+          isCheckedInToday: true,
+          lastCheckInDate: "2000-01-01",
+          customCheckInUrl: "https://custom.example.com/checkin",
+          customRedeemUrl: "https://custom.example.com/redeem",
+          openRedeemWithCheckIn: false,
+        } as any,
+      })
+
+      const migrated = migrateAccountConfig(legacyV1Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.disabled).toBe(false)
+      expect(migrated.excludeFromTotalBalance).toBe(false)
+      expect(migrated.excludeFromTodayIncome).toBe(false)
+      expect(migrated.checkIn?.customCheckIn).toEqual({
+        url: "https://custom.example.com/checkin",
+        redeemUrl: "https://custom.example.com/redeem",
+        openRedeemWithCheckIn: false,
+        isCheckedInToday: true,
+        lastCheckInDate: "2000-01-01",
+      })
+
+      // Legacy keys should not survive on the migrated shape.
+      expect((migrated.checkIn as any).customCheckInUrl).toBeUndefined()
+      expect((migrated.checkIn as any).customRedeemUrl).toBeUndefined()
+      expect((migrated.checkIn as any).openRedeemWithCheckIn).toBeUndefined()
+    })
+
+    it("ensures disabled flag exists when migrating version 2 to current version", () => {
+      const legacyV2Account = createSiteAccount({
+        configVersion: 2,
+      })
+
+      // Simulate pre-disabled storage where the field was absent.
+      delete (legacyV2Account as any).disabled
+
+      const migrated = migrateAccountConfig(legacyV2Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.disabled).toBe(false)
+      expect(migrated.excludeFromTotalBalance).toBe(false)
+    })
+
+    it("preserves disabled=true when migrating version 2 to current version", () => {
+      const legacyV2Account = createSiteAccount({
+        configVersion: 2,
+        disabled: true,
+      })
+
+      const migrated = migrateAccountConfig(legacyV2Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.disabled).toBe(true)
+      expect(migrated.excludeFromTotalBalance).toBe(false)
+    })
+
+    it("ensures excludeFromTotalBalance exists when migrating version 3 to current version", () => {
+      const legacyV3Account = createSiteAccount({
+        configVersion: 3,
+      })
+
+      // Simulate pre-exclusion storage where the field was absent.
+      delete (legacyV3Account as any).excludeFromTotalBalance
+
+      const migrated = migrateAccountConfig(legacyV3Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.excludeFromTotalBalance).toBe(false)
+    })
+
+    it("preserves excludeFromTotalBalance=true when migrating version 3 to current version", () => {
+      const legacyV3Account = createSiteAccount({
+        configVersion: 3,
+        excludeFromTotalBalance: true,
+      })
+
+      const migrated = migrateAccountConfig(legacyV3Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.excludeFromTotalBalance).toBe(true)
+    })
+
+    it("drops sub2apiAuth when refreshToken is empty when migrating version 4 to current version", () => {
+      const legacyV4Sub2Api = createSiteAccount({
+        configVersion: 4,
+        site_type: "sub2api",
+        sub2apiAuth: { refreshToken: "   " } as any,
+      })
+
+      const migrated = migrateAccountConfig(legacyV4Sub2Api)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.sub2apiAuth).toBeUndefined()
+    })
+
+    it("normalizes sub2apiAuth refreshToken and tokenExpiresAt when migrating version 4 to current version", () => {
+      const legacyV4Sub2Api = createSiteAccount({
+        configVersion: 4,
+        site_type: "sub2api",
+        sub2apiAuth: {
+          refreshToken: "  token  ",
+          tokenExpiresAt: "1700",
+        } as any,
+      })
+
+      const migrated = migrateAccountConfig(legacyV4Sub2Api)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.sub2apiAuth).toEqual({
+        refreshToken: "token",
+        tokenExpiresAt: 1700,
+      })
+    })
+
+    it("drops sub2apiAuth for non-sub2api accounts when migrating version 4 to current version", () => {
+      const legacyV4NonSub2Api = createSiteAccount({
+        configVersion: 4,
+        site_type: SITE_TYPES.UNKNOWN,
+        sub2apiAuth: { refreshToken: "token" } as any,
+      })
+
+      const migrated = migrateAccountConfig(legacyV4NonSub2Api)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.sub2apiAuth).toBeUndefined()
+    })
+
+    it("ensures excludeFromTodayIncome exists when migrating version 5 to current version", () => {
+      const legacyV5Account = createSiteAccount({
+        configVersion: 5,
+      })
+
+      delete (legacyV5Account as any).excludeFromTodayIncome
+
+      const migrated = migrateAccountConfig(legacyV5Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.excludeFromTodayIncome).toBe(false)
+    })
+
+    it("preserves excludeFromTodayIncome=true when migrating version 5 to current version", () => {
+      const legacyV5Account = createSiteAccount({
+        configVersion: 5,
+        excludeFromTodayIncome: true,
+      })
+
+      const migrated = migrateAccountConfig(legacyV5Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.excludeFromTodayIncome).toBe(true)
+    })
+
+    it("migrates version 1 site check-in status into selected method knowledge", () => {
+      const legacyV1Account = createSiteAccount({
+        configVersion: 1,
+        site_type: SITE_TYPES.NEW_API,
+        checkIn: {
+          enableDetection: true,
+          isCheckedInToday: false,
+          lastCheckInDate: "2000-01-02",
+        } as any,
+      })
+
+      const migrated = migrateAccountConfig(legacyV1Account)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.disabled).toBe(false)
+      expect(migrated.excludeFromTotalBalance).toBe(false)
+      expect(
+        migrated.checkIn.methodKnowledge.methods[
+          AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn
+        ]?.status,
+      ).toMatchObject({ today: "not_checked" })
+      expect((migrated.checkIn as any).isCheckedInToday).toBeUndefined()
+      expect((migrated.checkIn as any).lastCheckInDate).toBeUndefined()
+    })
+
+    it("leaves account unchanged when already at current version", () => {
+      const currentAccount = createSiteAccount({
+        configVersion: CURRENT_CONFIG_VERSION,
+        checkIn: buildCheckInConfig(),
+      })
+
+      const migrated = migrateAccountConfig(currentAccount)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated.checkIn).toEqual(currentAccount.checkIn)
+    })
+
+    it("handles account with version higher than current version", () => {
+      const futureAccount = createSiteAccount({
+        configVersion: CURRENT_CONFIG_VERSION + 1,
+        checkIn: buildCheckInConfig({
+          automaticExecutionEnabled: true,
+          customCheckIn: { url: "https://custom.example.invalid" },
+        }),
+      })
+
+      const migrated = migrateAccountConfig(futureAccount)
+
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION + 1)
+      expect(migrated.checkIn).toEqual(futureAccount.checkIn)
+    })
+
+    it("preserves all other account properties during migration", () => {
+      const oldAccount = createSiteAccount({
+        configVersion: 0,
+        supports_check_in: true,
+        can_check_in: true,
+        notes: "Test notes",
+        site_name: "Custom Site Name",
+      })
+
+      const migrated = migrateAccountConfig(oldAccount)
+
+      // Check that non-migration properties are preserved
+      expect(migrated.id).toBe(oldAccount.id)
+      expect(migrated.site_name).toBe(oldAccount.site_name)
+      expect(migrated.notes).toBe(oldAccount.notes)
+      expect(migrated.account_info).toEqual(oldAccount.account_info)
+    })
+
+    it("creates a copy and does not mutate the original account", () => {
+      const oldAccount = createSiteAccount({
+        configVersion: 0,
+        supports_check_in: true,
+        can_check_in: false,
+      })
+
+      const migrated = migrateAccountConfig(oldAccount)
+
+      // Original should be unchanged
+      expect(oldAccount.configVersion).toBe(0)
+      expect(oldAccount).toHaveProperty("supports_check_in")
+      expect(oldAccount).toHaveProperty("can_check_in")
+
+      // Migrated should have the changes
+      expect(migrated.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migrated).not.toHaveProperty("supports_check_in")
+      expect(migrated).not.toHaveProperty("can_check_in")
+    })
+  })
+
+  describe("migrateAccountsConfig", () => {
+    it("migrates all accounts that need migration", () => {
+      const accounts = [
+        createSiteAccount({
+          id: "account-1",
+          configVersion: 0,
+          supports_check_in: true,
+          can_check_in: true,
+        }),
+        createSiteAccount({
+          id: "account-2",
+          configVersion: 0,
+          supports_check_in: false,
+        }),
+        createSiteAccount({
+          id: "account-3",
+          configVersion: CURRENT_CONFIG_VERSION,
+          checkIn: buildCheckInConfig(),
+        }),
+      ]
+
+      const result = migrateAccountsConfig(accounts)
+
+      expect(result.migratedCount).toBe(2)
+      expect(result.accounts).toHaveLength(3)
+
+      // Check migrated accounts
+      const migratedAccount1 = result.accounts.find((a) => a.id === "account-1")
+      const migratedAccount2 = result.accounts.find((a) => a.id === "account-2")
+      const unchangedAccount = result.accounts.find((a) => a.id === "account-3")
+
+      expect(migratedAccount1?.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migratedAccount1).not.toHaveProperty("supports_check_in")
+      expect(migratedAccount1).not.toHaveProperty("can_check_in")
+
+      expect(migratedAccount2?.configVersion).toBe(CURRENT_CONFIG_VERSION)
+      expect(migratedAccount2).not.toHaveProperty("supports_check_in")
+      expect(migratedAccount2).not.toHaveProperty("can_check_in")
+
+      expect(unchangedAccount?.configVersion).toBe(CURRENT_CONFIG_VERSION)
+    })
+
+    it("returns migratedCount of 0 when no accounts need migration", () => {
+      const accounts = [
+        createSiteAccount({
+          id: "account-1",
+          configVersion: CURRENT_CONFIG_VERSION,
+          disabled: false,
+        }),
+        createSiteAccount({
+          id: "account-2",
+          configVersion: CURRENT_CONFIG_VERSION + 1,
+          disabled: false,
+        }),
+      ]
+
+      const result = migrateAccountsConfig(accounts)
+
+      expect(result.migratedCount).toBe(0)
+      expect(result.accounts).toEqual(accounts)
+    })
+
+    it("handles empty array of accounts", () => {
+      const result = migrateAccountsConfig([])
+
+      expect(result.migratedCount).toBe(0)
+      expect(result.accounts).toEqual([])
+    })
+
+    it("preserves order of accounts", () => {
+      const accounts = [
+        createSiteAccount({
+          id: "first",
+          configVersion: CURRENT_CONFIG_VERSION,
+          disabled: false,
+        }),
+        createSiteAccount({
+          id: "second",
+          configVersion: 0,
+          supports_check_in: true,
+        }),
+        createSiteAccount({
+          id: "third",
+          configVersion: CURRENT_CONFIG_VERSION,
+          disabled: false,
+        }),
+      ]
+
+      const result = migrateAccountsConfig(accounts)
+
+      expect(result.accounts.map((a) => a.id)).toEqual([
+        "first",
+        "second",
+        "third",
+      ])
+      expect(result.migratedCount).toBe(1)
+    })
+
+    it("handles mixed scenarios with complex account data", () => {
+      const accounts = [
+        createSiteAccount({
+          id: "complex-1",
+          configVersion: 0,
+          site_type: SITE_TYPES.NEW_API,
+          supports_check_in: true,
+          can_check_in: false,
+          notes: "Already checked in",
+          site_name: "Site A",
+        }),
+        createSiteAccount({
+          id: "complex-2",
+          configVersion: 0,
+          site_type: SITE_TYPES.NEW_API,
+          supports_check_in: true,
+          can_check_in: true,
+          notes: "Can check in",
+          site_name: "Site B",
+        }),
+        createSiteAccount({
+          id: "complex-3",
+          configVersion: 0,
+          supports_check_in: false,
+          notes: "No check-in support",
+          site_name: "Site C",
+        }),
+        createSiteAccount({
+          id: "already-migrated",
+          configVersion: CURRENT_CONFIG_VERSION,
+          disabled: false,
+          checkIn: buildCheckInConfig({
+            automaticExecutionEnabled: true,
+            customCheckIn: { url: "https://custom.example.invalid/checkin" },
+          }),
+          notes: "Modern account",
+          site_name: "Site D",
+        }),
+      ]
+
+      const result = migrateAccountsConfig(accounts)
+
+      expect(result.migratedCount).toBe(3)
+
+      const migrated1 = result.accounts.find((a) => a.id === "complex-1")
+      const migrated2 = result.accounts.find((a) => a.id === "complex-2")
+      const migrated3 = result.accounts.find((a) => a.id === "complex-3")
+      const unchanged = result.accounts.find((a) => a.id === "already-migrated")
+
+      // Verify specific migration scenarios
+      expect(
+        migrated1?.checkIn.methodKnowledge.methods[
+          AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn
+        ]?.status,
+      ).toMatchObject({ outcome: "known", today: "checked" }) // was can_check_in: false
+
+      expect(
+        migrated2?.checkIn.methodKnowledge.methods[
+          AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn
+        ]?.status,
+      ).toMatchObject({ outcome: "known", today: "not_checked" }) // was can_check_in: true
+
+      expect(migrated3?.checkIn.methodKnowledge.methods).toEqual({})
+      expect(migrated3?.checkIn.selection.methodId).toBeUndefined()
+
+      // Ensure all legacy fields are removed from migrated accounts
+      expect(migrated1).not.toHaveProperty("supports_check_in")
+      expect(migrated1).not.toHaveProperty("can_check_in")
+      expect(migrated2).not.toHaveProperty("supports_check_in")
+      expect(migrated2).not.toHaveProperty("can_check_in")
+      expect(migrated3).not.toHaveProperty("supports_check_in")
+      expect(migrated3).not.toHaveProperty("can_check_in")
+
+      // Unchanged account should remain the same
+      expect(unchanged?.checkIn).toEqual(
+        buildCheckInConfig({
+          automaticExecutionEnabled: true,
+          customCheckIn: { url: "https://custom.example.invalid/checkin" },
+        }),
+      )
+    })
+  })
+})

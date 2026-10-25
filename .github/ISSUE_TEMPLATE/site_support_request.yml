@@ -1,0 +1,114 @@
+name: Site Support Request / 站点适配反馈
+description: Report a site that My API Box cannot auto-detect or does not support well / 反馈无法自动识别或尚未良好适配的站点
+title: "[Site Support]: "
+labels: ["site-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping expand site compatibility. Before submitting, please check whether the site is publicly reachable and avoid sharing secrets such as API keys, tokens, cookies, or private account data.
+
+        The most useful reports usually include: the site URL, whether you were logged in, what you tried in the extension, the visible error message, the upstream project or public documentation if you know it, and the capabilities you expect My API Box to support.
+
+        感谢您帮助扩展站点兼容性。提交前请先确认该站点可公开访问，并避免填写 API Key、Token、Cookie 或私密账号数据。
+
+        最有帮助的信息通常包括：站点地址、是否已登录、您在扩展中尝试了什么、界面显示的错误提示、已知的上游项目或公开文档，以及您希望 My API Box 支持哪些能力。
+
+  - type: input
+    id: site-url
+    attributes:
+      label: Site URL / 站点地址
+      description: The site URL where auto-detect failed or support is incomplete. / 自动识别失败或适配不完整的站点地址。
+      placeholder: https://example.com
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version / 扩展版本
+      description: If this was opened from the extension, this should be filled with your installed version. Store releases may be out of sync, so this helps us tell whether the latest version may already support the site. / 如果从扩展内打开，这里应已填写您当时安装的版本。各商店发布版本可能不同，这有助于判断最新版是否可能已经支持该站点。
+      placeholder: 3.49.1
+
+  - type: dropdown
+    id: site-operation-model
+    attributes:
+      label: Site operation model / 站点运营性质
+      description: This helps us understand priority, compatibility expectations, and whether the site may have custom rules. Existing prefilled links can leave this as "Not sure". / 这有助于我们判断优先级、兼容预期，以及站点是否可能存在定制规则。旧的外部预填链接可保持“不确定”。
+      default: 3
+      options:
+        - Commercial / 商业
+        - Public-benefit / 公益
+        - Semi-commercial / 半商业
+        - Not sure / 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: failure-scenario
+    attributes:
+      label: What failed? / 遇到了什么问题？
+      description: Tell us what you clicked and what happened. / 请说明您点击了什么，以及实际发生了什么。
+      placeholder: |
+        I clicked Auto Detect while logged in, but the extension reported...
+        我已登录该站点并点击自动识别，但插件提示...
+    validations:
+      required: true
+
+  - type: input
+    id: failure-type
+    attributes:
+      label: Failure Type / 失败类型
+      description: If this was opened from the extension, this may already be filled. / 如果从扩展内打开，这里可能已自动填写。
+      placeholder: unknown
+
+  - type: textarea
+    id: failure-message
+    attributes:
+      label: Failure Message / 失败提示
+      description: Copy the visible error message if one was shown. / 如果界面显示了错误提示，请复制到这里。
+      placeholder: Auto-detect failed...
+
+  - type: dropdown
+    id: login-state
+    attributes:
+      label: Were you logged in? / 是否已登录？
+      options:
+        - Yes / 是
+        - No / 否
+        - Not sure / 不确定
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: requested-capabilities
+    attributes:
+      label: Capabilities needed / 希望支持的能力
+      description: |
+        For check-in issues only, prefer [Check-in support](https://github.com/qixing-jk/all-api-hub/issues/new?template=checkin_adaptation.md). If several capabilities are affected, include them together in this form.
+        仅反馈签到问题，建议使用[签到适配](https://github.com/qixing-jk/all-api-hub/issues/new?template=checkin_adaptation.md)；涉及多项能力时，可继续在本表中一起反馈。
+      options:
+        - label: Refresh balance or quota / 刷新余额或额度
+        - label: Manage API keys / 管理 API Key
+        - label: Model list / 模型列表
+        - label: Model pricing / 模型价格
+        - label: Check-in flow / 签到流程
+        - label: Redeem flow / 兑换流程
+
+  - type: textarea
+    id: site-info
+    attributes:
+      label: Site type or upstream project / 站点类型或上游项目
+      description: If you know whether this is One API, New API, Veloera, OneHub, DoneHub, Sub2API, or another fork, please tell us. / 如果您知道它属于 One API、New API、Veloera、OneHub、DoneHub、Sub2API 或其他分支，请告诉我们。
+      placeholder: |
+        New API fork, version unknown
+        New API 分支，版本不确定
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context / 其他信息
+      description: Screenshots, redacted network details, or any public docs/source links can help. / 截图、脱敏网络信息、公开文档或源码链接会有帮助。
+      placeholder: |
+        Anything else that may help us reproduce or understand this site...
+        任何可能帮助我们复现或理解该站点的信息...

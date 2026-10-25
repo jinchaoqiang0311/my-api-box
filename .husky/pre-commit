@@ -1,0 +1,8 @@
+echo "🔍 Running staged validation..."
+
+pnpm run validate:staged || {
+  echo "❌ Staged validation failed"
+  exit 1
+}
+
+echo "✅ All checks passed!"

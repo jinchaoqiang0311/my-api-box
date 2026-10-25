@@ -1,0 +1,649 @@
+import { accountPresentation } from "~/services/accounts/accountStorage/accountPresentation"
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { accountRefresh } from "~/services/accounts/accountStorage/accountRefresh"
+import {
+  resolveAccountSiteRouteUrl,
+  SITE_ROUTE_KINDS,
+} from "~/services/accounts/utils/siteRouteResolver"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { createAutomaticProtectionBypassExecution } from "~/services/protectionBypass/client"
+import {
+  PROTECTION_BYPASS_AUTOMATIC_TRIGGERS,
+  PROTECTION_BYPASS_FEATURES,
+  PROTECTION_BYPASS_SURFACES,
+} from "~/services/protectionBypass/contracts"
+import { redeemService } from "~/services/redemption/redeemService"
+import { isPossibleRedemptionCode } from "~/services/redemption/utils/redemptionCode"
+import { searchAccounts } from "~/services/search/accountSearch"
+import type { DisplaySiteData } from "~/types"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+import { tryParseOrigin } from "~/utils/core/urlParsing"
+import {
+  buildOriginWhitelistPattern,
+  buildUrlPrefixWhitelistPattern,
+  isUrlAllowedByRegexList,
+} from "~/utils/core/urlWhitelist"
+import { t } from "~/utils/i18n/core"
+
+import {
+  onRedemptionAssistMessage,
+  RedemptionAssistMessageTypes,
+  type RedemptionAssistUpdateSettingsRequest,
+} from "./redemptionAssistMessaging"
+
+/**
+ * Unified logger scoped to the redemption assist background service.
+ */
+const logger = createLogger("RedemptionAssist")
+
+/** Loads picker-only support metadata outside the background startup path. */
+async function toRedemptionAccountCandidates(accounts: DisplaySiteData[]) {
+  const { toRedemptionAccountCandidate } = await import(
+    "~/services/redemption/accountCandidate"
+  )
+  return accounts.map(toRedemptionAccountCandidate)
+}
+
+/**
+ * After a successful redeem, attempt to refresh the account data to reflect any changes.
+ * @param accountId ID of the account that was redeemed against.
+ */
+async function bestEffortRefreshAccountAfterSuccessfulRedeem(
+  accountId: string,
+) {
+  try {
+    const result = await accountRefresh.refreshAccount(accountId, true, {
+      protectionBypassExecution: createAutomaticProtectionBypassExecution(
+        PROTECTION_BYPASS_FEATURES.RedemptionAssist,
+        PROTECTION_BYPASS_AUTOMATIC_TRIGGERS.BackgroundRecovery,
+        PROTECTION_BYPASS_SURFACES.Background,
+      ),
+    })
+    if (result?.refreshed !== true) {
+      logger.debug("Post-redeem refresh did not refresh", {
+        accountId,
+        refreshed: result?.refreshed ?? null,
+      })
+    }
+  } catch (error) {
+    logger.warn("Post-redeem refresh failed", {
+      accountId,
+      error,
+    })
+  }
+}
+
+interface RedemptionAssistRuntimeSettings {
+  enabled: boolean
+  relaxedCodeValidation: boolean
+  urlWhitelist?: {
+    enabled: boolean
+    patterns: string[]
+    includeAccountSiteUrls: boolean
+    includeCheckInAndRedeemUrls: boolean
+  }
+}
+
+export type RedemptionAssistShouldPromptRequest = {
+  url: string
+  codes: string[]
+}
+
+export type RedemptionAssistShouldPromptResponse =
+  | {
+      success: true
+      promptableCodes: string[]
+    }
+  | {
+      success: false
+      error?: string
+    }
+
+export type RedemptionAssistMutationResponse =
+  | { success: true }
+  | { success: false; error: string }
+
+export type RedemptionAssistAutoRedeemRequest = {
+  accountId: string
+  code: string
+}
+
+export type RedemptionAssistAutoRedeemByUrlRequest = {
+  url: string
+  code: string
+}
+
+export type RedemptionAssistRedeemResponse =
+  | {
+      success: true
+      data:
+        | Awaited<ReturnType<RedemptionAssistService["autoRedeem"]>>
+        | Awaited<ReturnType<RedemptionAssistService["autoRedeemByUrl"]>>
+    }
+  | {
+      success: false
+      error: string
+    }
+
+/**
+ * Provides code redemption assistance in background/context scripts.
+ * Responsibilities:
+ * - Tracks runtime enable flag from preferences.
+ * - Determines whether to prompt based on URL/hostname and code validity.
+ * - Delegates actual redeem actions to redeemService.
+ */
+class RedemptionAssistService {
+  private initialized = false
+  private settings: RedemptionAssistRuntimeSettings = {
+    enabled: true,
+    relaxedCodeValidation: true,
+  }
+
+  private derivedPatternsCache: {
+    fetchedAt: number
+    patterns: string[]
+    key: string
+  } | null = null
+
+  private static readonly DERIVED_PATTERNS_TTL_MS = 30_000
+
+  /**
+   * Initialize from stored preferences (idempotent).
+   *
+   * Safe to call multiple times; loads enable flag from user preferences.
+   */
+  async initialize() {
+    if (this.initialized) {
+      return
+    }
+
+    try {
+      const prefs = await userPreferences.getPreferences()
+      this.settings.enabled = prefs.redemptionAssist?.enabled ?? true
+      this.settings.relaxedCodeValidation =
+        prefs.redemptionAssist?.relaxedCodeValidation ?? true
+      if (prefs.redemptionAssist?.urlWhitelist) {
+        this.settings.urlWhitelist = prefs.redemptionAssist.urlWhitelist
+      }
+    } catch (error) {
+      logger.warn("Failed to load preferences", error)
+    }
+
+    this.initialized = true
+    logger.info("Service initialized", this.settings)
+  }
+
+  /**
+   * Update runtime flags without persisting.
+   * @param settings Runtime-only toggle overrides.
+   * @param settings.enabled Whether redemption assist is enabled at runtime.
+   * @param settings.relaxedCodeValidation Whether to loosen code validation rules.
+   * @param settings.urlWhitelist Optional URL whitelist configuration used to gate feature activation.
+   */
+  updateRuntimeSettings(settings: {
+    enabled?: boolean
+    relaxedCodeValidation?: boolean
+    urlWhitelist?: RedemptionAssistRuntimeSettings["urlWhitelist"]
+  }) {
+    const next: RedemptionAssistRuntimeSettings = {
+      ...this.settings,
+      enabled:
+        typeof settings.enabled === "boolean"
+          ? settings.enabled
+          : this.settings.enabled,
+      relaxedCodeValidation:
+        typeof settings.relaxedCodeValidation === "boolean"
+          ? settings.relaxedCodeValidation
+          : this.settings.relaxedCodeValidation,
+      urlWhitelist: settings.urlWhitelist
+        ? {
+            ...(this.settings.urlWhitelist ?? {
+              enabled: true,
+              patterns: [],
+              includeAccountSiteUrls: true,
+              includeCheckInAndRedeemUrls: true,
+            }),
+            ...settings.urlWhitelist,
+          }
+        : this.settings.urlWhitelist,
+    }
+    this.settings = next
+    this.derivedPatternsCache = null
+    logger.info("Runtime settings updated", this.settings)
+  }
+
+  /**
+   * Ensure preferences are loaded before decision flows.
+   */
+  private async ensureInitialized() {
+    if (!this.initialized) {
+      await this.initialize()
+    }
+  }
+
+  /**
+   * Fetch accounts and convert to display data used by search/filter utilities.
+   */
+  private async getDisplayAccounts(): Promise<DisplaySiteData[]> {
+    const siteAccounts = await accountQueries.getAllAccounts()
+    const displayAccounts =
+      accountPresentation.convertToDisplayData(siteAccounts)
+    return displayAccounts.filter((account) => account.disabled !== true)
+  }
+
+  /**
+   * Extracts the URL origin (protocol + host) from a URL string.
+   */
+  private getOrigin(url: string): string | null {
+    return tryParseOrigin(url)
+  }
+
+  private getRuntimeWhitelist() {
+    const whitelist = this.settings.urlWhitelist
+    if (!whitelist) {
+      return null
+    }
+    return {
+      enabled: whitelist.enabled,
+      patterns: Array.isArray(whitelist.patterns) ? whitelist.patterns : [],
+      includeAccountSiteUrls: !!whitelist.includeAccountSiteUrls,
+      includeCheckInAndRedeemUrls: !!whitelist.includeCheckInAndRedeemUrls,
+    }
+  }
+
+  private async getDerivedWhitelistPatterns(
+    options: {
+      includeAccountSiteUrls: boolean
+      includeCheckInAndRedeemUrls: boolean
+    },
+    now: number = Date.now(),
+  ): Promise<string[]> {
+    const cacheKey = `${options.includeAccountSiteUrls ? 1 : 0}:${
+      options.includeCheckInAndRedeemUrls ? 1 : 0
+    }`
+    const cached = this.derivedPatternsCache
+    if (
+      cached &&
+      cached.key === cacheKey &&
+      now - cached.fetchedAt < RedemptionAssistService.DERIVED_PATTERNS_TTL_MS
+    ) {
+      return cached.patterns
+    }
+
+    if (
+      !options.includeAccountSiteUrls &&
+      !options.includeCheckInAndRedeemUrls
+    ) {
+      this.derivedPatternsCache = {
+        fetchedAt: now,
+        patterns: [],
+        key: cacheKey,
+      }
+      return []
+    }
+
+    const accounts = await this.getDisplayAccounts()
+    const patterns: string[] = []
+
+    if (options.includeAccountSiteUrls) {
+      for (const account of accounts) {
+        const pattern = buildOriginWhitelistPattern(account.baseUrl)
+        if (pattern) patterns.push(pattern)
+      }
+    }
+
+    if (options.includeCheckInAndRedeemUrls) {
+      for (const account of accounts) {
+        const origin = this.getOrigin(account.baseUrl)
+        if (!origin) continue
+
+        const resolvedCheckInUrl =
+          account.checkIn?.customCheckIn?.url ||
+          (await resolveAccountSiteRouteUrl(
+            { baseUrl: origin, siteType: account.siteType },
+            SITE_ROUTE_KINDS.CheckIn,
+          ))
+        const resolvedRedeemUrl =
+          account.checkIn?.customCheckIn?.redeemUrl ||
+          (await resolveAccountSiteRouteUrl(
+            { baseUrl: origin, siteType: account.siteType },
+            SITE_ROUTE_KINDS.Redeem,
+          ))
+
+        const checkInPattern = resolvedCheckInUrl
+          ? buildOriginWhitelistPattern(resolvedCheckInUrl)
+          : null
+        if (checkInPattern) patterns.push(checkInPattern)
+
+        const redeemPattern = resolvedRedeemUrl
+          ? buildUrlPrefixWhitelistPattern(resolvedRedeemUrl)
+          : null
+        if (redeemPattern) patterns.push(redeemPattern)
+      }
+    }
+
+    const unique = Array.from(new Set(patterns))
+    this.derivedPatternsCache = {
+      fetchedAt: now,
+      patterns: unique,
+      key: cacheKey,
+    }
+    return unique
+  }
+
+  private async isUrlAllowedByWhitelist(url: string): Promise<boolean> {
+    const whitelist = this.getRuntimeWhitelist()
+    if (!whitelist || !whitelist.enabled) {
+      return true
+    }
+
+    const userPatterns = whitelist.patterns
+      .map((p) => (p ?? "").trim())
+      .filter(Boolean)
+
+    const derivedPatterns = await this.getDerivedWhitelistPatterns({
+      includeAccountSiteUrls: whitelist.includeAccountSiteUrls,
+      includeCheckInAndRedeemUrls: whitelist.includeCheckInAndRedeemUrls,
+    })
+
+    const combined = [...userPatterns, ...derivedPatterns]
+
+    // If there are no patterns at all, treat as allow-all (safe default).
+    if (!combined.length) {
+      return true
+    }
+
+    return isUrlAllowedByRegexList(url, combined)
+  }
+
+  /**
+   * Normalize and extract hostname; returns null if URL is invalid.
+   * @param url Candidate URL.
+   * @returns Lowercased hostname or null on parse failure.
+   */
+  private getHostname(url: string): string | null {
+    try {
+      const u = new URL(url)
+      return u.hostname.toLowerCase()
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Filters codes to those eligible for redemption prompts.
+   * @param params Wrapper object containing URL, redemption codes and tab id.
+   * @param params.url Page URL where the potential redemption codes were found.
+   * @param params.codes Candidate redemption codes extracted from the page.
+   * @param params.tabId Optional tab identifier used for telemetry.
+   * @returns List of codes that pass validation and whitelist checks.
+   */
+  async filterPromptableCodes(params: {
+    url: string
+    codes: string[]
+    tabId?: number
+  }): Promise<string[]> {
+    await this.ensureInitialized()
+
+    if (!this.settings.enabled) {
+      return []
+    }
+
+    const checks = await Promise.all(
+      params.codes.map(async (code) => {
+        const result = await this.evaluatePromptability({
+          url: params.url,
+          code,
+          tabId: params.tabId,
+        })
+        return result.shouldPrompt ? code : null
+      }),
+    )
+
+    return checks.filter((code): code is string => Boolean(code))
+  }
+
+  /**
+   * Evaluates prompt eligibility for a single code after initialization.
+   */
+  private async evaluatePromptability(params: {
+    url: string
+    code: string
+    tabId?: number
+  }): Promise<{ shouldPrompt: boolean; reason?: string }> {
+    if (!this.settings.enabled) {
+      return { shouldPrompt: false, reason: "disabled" }
+    }
+
+    const { code } = params
+
+    const possible = isPossibleRedemptionCode(code, {
+      relaxedCharset: this.settings.relaxedCodeValidation,
+    })
+
+    if (!possible) {
+      return { shouldPrompt: false, reason: "invalid_code" }
+    }
+
+    const urlAllowed = await this.isUrlAllowedByWhitelist(params.url)
+    if (!urlAllowed) {
+      return { shouldPrompt: false, reason: "url_not_allowed" }
+    }
+
+    return { shouldPrompt: true }
+  }
+
+  /**
+   * Redeem a code for a specific account directly.
+   * @param accountId Target account id.
+   * @param code Redemption code.
+   */
+  async autoRedeem(accountId: string, code: string) {
+    // Delegate to redeemService which handles i18n and error messages
+    const redeemResult = await redeemService.redeemCodeForAccount(
+      accountId,
+      code,
+    )
+
+    if (redeemResult.success) {
+      await bestEffortRefreshAccountAfterSuccessfulRedeem(accountId)
+    }
+
+    return redeemResult
+  }
+
+  /**
+   * Attempt redemption by inferring account from URL + code.
+   * Flow:
+   * 1) Parse hostname; fail fast if invalid.
+   * 2) Use account search to find candidates by hostname.
+   * 3) Filter candidates whose customCheckInUrl matches the same domain.
+   *    - Single match: auto redeem.
+   *    - Multiple: ask frontend to choose.
+   *    - None: return all accounts for manual search.
+   */
+  async autoRedeemByUrl(url: string, code: string) {
+    await this.ensureInitialized()
+    const hostname = this.getHostname(url)
+
+    if (!hostname) {
+      return {
+        success: false,
+        code: "INVALID_URL",
+        message: t("redemptionAssist:messages.noAccountForUrl"),
+      }
+    }
+
+    const displayAccounts = await this.getDisplayAccounts()
+
+    // First, use accountSearch to get candidates related to this hostname
+    const searchResults = searchAccounts(displayAccounts, hostname)
+
+    // Then, narrow down to accounts whose customCheckInUrl shares the same domain
+    const sameDomainCandidates = searchResults
+      .map((result) => result.account)
+      .filter((account) => {
+        const customCheckInUrl = account.checkIn?.customCheckIn?.url
+        if (!customCheckInUrl) return false
+        const accountHost = this.getHostname(customCheckInUrl)
+        return accountHost === hostname
+      })
+
+    const [account] = sameDomainCandidates
+    if (sameDomainCandidates.length === 1 && account) {
+      // Single clear match – auto redeem
+      const redeemResult = await redeemService.redeemCodeForAccount(
+        account.id,
+        code,
+      )
+
+      if (redeemResult.success) {
+        await bestEffortRefreshAccountAfterSuccessfulRedeem(account.id)
+      }
+
+      // Flatten the result so it matches the RedeemResult shape used elsewhere
+      return {
+        ...redeemResult,
+        selectedAccount: account,
+      }
+    }
+
+    if (sameDomainCandidates.length > 1) {
+      // Multiple matches – let the content script show a selector
+      return {
+        success: false,
+        code: "MULTIPLE_ACCOUNTS",
+        candidates: await toRedemptionAccountCandidates(sameDomainCandidates),
+      }
+    }
+
+    // No valid match by hostname + customCheckInUrl – return all accounts for manual search
+    return {
+      success: false,
+      code: "NO_ACCOUNTS",
+      candidates: [],
+      allAccounts: await toRedemptionAccountCandidates(displayAccounts),
+      message: t("redemptionAssist:messages.noAccountForUrl"),
+    }
+  }
+}
+
+export const redemptionAssistService = new RedemptionAssistService()
+
+/**
+ * Converts unexpected Redemption Assist runtime errors to the legacy failure shape.
+ */
+function toRedemptionAssistFailure(error: unknown) {
+  logger.error("Message handling failed", error)
+  return { success: false as const, error: getErrorMessage(error) }
+}
+
+/**
+ * Applies runtime preference updates received from typed Redemption Assist messages.
+ */
+export async function updateRedemptionAssistRuntimeSettings(
+  request: RedemptionAssistUpdateSettingsRequest,
+): Promise<RedemptionAssistMutationResponse> {
+  try {
+    redemptionAssistService.updateRuntimeSettings(request.settings || {})
+    return { success: true }
+  } catch (error) {
+    return toRedemptionAssistFailure(error)
+  }
+}
+
+/**
+ * Resolves which detected redemption codes should prompt in the current tab.
+ */
+export async function resolveRedemptionAssistShouldPromptMessage(
+  request: RedemptionAssistShouldPromptRequest,
+  sender?: browser.runtime.MessageSender,
+): Promise<RedemptionAssistShouldPromptResponse> {
+  try {
+    const { url, codes } = request
+    if (!url || !Array.isArray(codes) || codes.length === 0) {
+      return { success: false, error: "Missing url or codes" }
+    }
+    const promptableCodes = await redemptionAssistService.filterPromptableCodes(
+      {
+        url,
+        codes,
+        tabId: sender?.tab?.id,
+      },
+    )
+    return {
+      success: true,
+      promptableCodes,
+    }
+  } catch (error) {
+    return toRedemptionAssistFailure(error)
+  }
+}
+
+/**
+ * Redeems a code against a specific saved account from a typed runtime request.
+ */
+export async function resolveRedemptionAssistAutoRedeemMessage(
+  request: RedemptionAssistAutoRedeemRequest,
+): Promise<RedemptionAssistRedeemResponse> {
+  try {
+    const { accountId, code } = request
+    if (!accountId || !code) {
+      return { success: false, error: "Missing accountId or code" }
+    }
+    const result = await redemptionAssistService.autoRedeem(accountId, code)
+    return { success: true, data: result }
+  } catch (error) {
+    return toRedemptionAssistFailure(error)
+  }
+}
+
+/**
+ * Resolves the matching account from a URL and redeems the supplied code.
+ */
+export async function resolveRedemptionAssistAutoRedeemByUrlMessage(
+  request: RedemptionAssistAutoRedeemByUrlRequest,
+): Promise<RedemptionAssistRedeemResponse> {
+  try {
+    const { url, code } = request
+    if (!url || !code) {
+      return { success: false, error: "Missing url or code" }
+    }
+    const result = await redemptionAssistService.autoRedeemByUrl(url, code)
+    return { success: true, data: result }
+  } catch (error) {
+    return toRedemptionAssistFailure(error)
+  }
+}
+
+let redemptionAssistMessagingCleanup: Array<() => void> | null = null
+
+/**
+ * Register typed background listeners for Redemption Assist runtime RPCs.
+ */
+export function setupRedemptionAssistMessagingListeners() {
+  if (redemptionAssistMessagingCleanup) {
+    return
+  }
+
+  redemptionAssistMessagingCleanup = [
+    onRedemptionAssistMessage(
+      RedemptionAssistMessageTypes.UpdateSettings,
+      async ({ data }) => updateRedemptionAssistRuntimeSettings(data),
+    ),
+    onRedemptionAssistMessage(
+      RedemptionAssistMessageTypes.ShouldPrompt,
+      async ({ data, sender }) =>
+        resolveRedemptionAssistShouldPromptMessage(data, sender),
+    ),
+    onRedemptionAssistMessage(
+      RedemptionAssistMessageTypes.AutoRedeem,
+      async ({ data }) => resolveRedemptionAssistAutoRedeemMessage(data),
+    ),
+    onRedemptionAssistMessage(
+      RedemptionAssistMessageTypes.AutoRedeemByUrl,
+      async ({ data }) => resolveRedemptionAssistAutoRedeemByUrlMessage(data),
+    ),
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "all-api-hub-docs",
+  "description": "A VuePress project",
+  "version": "0.0.1",
+  "packageManager": "pnpm@12.6.0",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=12 <13"
+  },
+  "scripts": {
+    "docs:dev": "pnpm run docs:generate-changelog-index && vuepress dev docs",
+    "docs:clean-dev": "pnpm run docs:generate-changelog-index && vuepress dev docs --clean-cache",
+    "docs:build": "pnpm run docs:generate-changelog-index && vuepress build docs",
+    "docs:check-links": "node scripts/check-doc-links.mjs",
+    "docs:generate-changelog-index": "node scripts/changelog-index.mjs",
+    "docs:check-changelog-index": "node scripts/changelog-index.mjs --check",
+    "docs:test": "node --test scripts/*.test.mjs",
+    "docs:check": "pnpm run docs:test && pnpm run docs:check-links && pnpm run docs:build",
+    "docs:update-package": "pnpm dlx vp-update"
+  },
+  "devDependencies": {
+    "@vuepress/bundler-vite": "2.0.0-rc.24",
+    "@vuepress/plugin-sitemap": "2.0.0-rc.112",
+    "@vuepress/theme-default": "2.0.0-rc.112",
+    "sass-embedded": "^1.86.0",
+    "vue": "^3.5.13",
+    "vuepress": "2.0.0-rc.24"
+  }
+}

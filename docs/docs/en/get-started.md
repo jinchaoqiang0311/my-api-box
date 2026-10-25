@@ -1,0 +1,127 @@
+# Getting Started
+
+In just a few minutes, you can start your journey of intelligent AI asset management. My API Box can help you automatically sync quotas, perform daily check-ins, and integrate with your favorite AI tools with one click.
+
+## 1. Installation
+
+For the best experience (including automatic updates), we **strongly recommend installing from each browser's official store**.
+
+| Channel | Download Link | Current Version | Users |
+|---|---|---|---|
+| Chrome Store | [Chrome Store](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome version](https://img.shields.io/chrome-web-store/v/YOUR-CHROME-EXTENSION-ID?label=Chrome&logo=googlechrome&style=flat)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/YOUR-CHROME-EXTENSION-ID?label=Chrome%20Users)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) |
+| Edge Store | [Edge Store](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge version](https://img.shields.io/badge/dynamic/json?label=Edge&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2FYOUR-EDGE-EXTENSION-ID&logo=microsoftedge&style=flat)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge Add-ons Users](https://img.shields.io/badge/dynamic/json?label=Edge%20Users&query=$.activeInstallCount&url=https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/YOUR-EDGE-EXTENSION-ID)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) |
+| Firefox Store | [Firefox Store](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Firefox version](https://img.shields.io/amo/v/YOUR-AMO-SLUG?label=Firefox&logo=firefoxbrowser&style=flat)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Mozilla Add-on Users](https://img.shields.io/amo/users/YOUR-AMO-SLUG?label=Firefox%20Users)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
+
+<details>
+<summary>📦 Manual Installation, Safari, or Mobile? (Click to expand)</summary>
+
+- **GitHub Stable**: Use [GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases) when you cannot install a store build or Chrome Web Store compatible build, or need to temporarily install a published fix manually. Manual installations do not auto-update like the store build. You can Star / Watch the repository to receive new version notifications.
+- **Nightly pre-release**: For early access and testing. It may be less stable than the store build. Nightly is also a manual installation channel and does not auto-update.
+- **Safari (Mac)**: Requires installation via Xcode. See the [Safari Installation Guide](./safari-install.md).
+- **QQ / 360 / Brave / Vivaldi / Opera, etc.**: Installation paths differ across Chromium browsers. Brave, Vivaldi, and Opera can usually try Chrome Web Store first; if a store path is unavailable, use manual loading. See the [Other Browser Installation Guide](./other-browser-install.md).
+- **Mobile**: Supports Edge mobile, Firefox Android, Kiwi, etc. See [Mobile FAQ](./faq.md#mobile-browser-support).
+
+</details>
+
+<a id="add-site"></a>
+## 2. Add Your First Account
+
+This is the most crucial step for using the plugin. We **highly recommend using the "Auto-Recognize" feature**, which is as simple as scanning a QR code to log in.
+
+### 2.1 Auto-Recognize (Recommended)
+
+::: tip First Step
+Open and log in to your AI proxy station website in your browser first.
+:::
+
+1. Click the plugin icon in the top-right corner of your browser to open the main page.
+2. Click **`Add Account`**.
+3. Enter the URL of the site in the dialog that appears.
+4. Click **`Auto-Recognize`**.
+5. After confirming the information is correct, click **`Confirm Addition`**.
+
+::: tip Don't have an account yet?
+If you are looking for stable, efficient, and highly compatible AI relay services, try our partners:
+
+- [Qiniu Cloud AI](https://s.qiniu.com/qE3eai): An enterprise MaaS platform with one-stop access to 150+ mainstream global models. Enterprise users can claim 12 million free tokens.
+- [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. My API Box users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
+- [PackyCode](https://www.packyapi.ai/register?aff=all-api-hub): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
+- [Xingchen AI](https://ai.centos.hk): 1:1 top-up ratio, invoicing support, and Claude pricing as low as 40% of the standard price. [Setup guide](./sponsor-guides/xingchen.md)
+- [AICodeMirror](https://www.aicodemirror.ai/register?invitecode=7IQNR8): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.
+- [Suixiang AI Relay](https://sui-xiang.com/): API relay services for Claude, Codex, Gemini, and more, with pay-as-you-go billing, daily check-in test credits, redundant routes, and automatic failover. [Setup guide](./service-guides/suixiang.md)
+- [APIMart](https://go.apimart.ai/gh-all-api-hub): A low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee.
+- [88API Token Aggregation Platform](https://88api.ai/register?aff=XcTj): A one-stop multi-model API platform operated by a Hong Kong company, with a unified API for text, image, speech, and video models. Supports adding and switching providers in CC Switch, major international payment methods, and invoicing. Register through the dedicated link for bonus credits.
+- [Dola Seed on BytePlus ModelArk](https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub): Register through BytePlus ModelArk to get 500,000 free inference tokens per model.
+:::
+
+> **Shield Bypass Tip**: If the site has Cloudflare verification (5-second shield), the plugin will automatically pop up a window to assist with bypassing it. Once verified, it will continue the recognition process automatically.
+
+<a id="manual-addition"></a>
+### 2.2 Manual Addition (Alternative)
+
+If auto-detection fails, click **"Manual Add"**, select the site type, and enter the account information yourself. See the [manual account addition guide](./add-account.md#manual-addition) for the required fields, where to find the Access Token, and important precautions.
+
+---
+
+## 3. Supported Site Types
+
+No matter which architecture you use, there is a good chance we support it:
+- **Account-site compatible architectures**: New API, One API, Sub2API, One-Hub, Veloera, Done-Hub, and more.
+- **Specialized account platforms and compatible implementations**: [OpenRouter](https://openrouter.ai/), [AnyRouter](https://anyrouter.top/register?aff=tDKX), [AgentRouter](https://agentrouter.org/register?aff=TUX6), [AIHubMix](https://aihubmix.com/?aff=W3DN), Super-API, v-api, Neo-API, and more.
+- **Self-hosted admin backends**: New API, Sub2API, AxonHub, Claude Code Hub, [Octopus](https://github.com/bestruirui/octopus), Veloera, Done-Hub, and more, for backend management, migration, and partial model sync.
+
+::: tip Compatibility Tip
+Relay sites built on account-site compatible architectures can usually be added as accounts. AxonHub, Octopus, Claude Code Hub, and similar systems are mainly used as self-hosted admin backends. For a complete compatibility list, please check [Supported Sites and System Types](./supported-sites.md).
+:::
+
+<a id="quick-export-sites"></a>
+## 4. Quick Export and Integration
+
+After adding an account, you can "push" these configurations to other AI tools with one click, eliminating the need for manual copy-pasting.
+
+1. Go to the **`Key Management`** page.
+2. Find the key you want to export. To import it into your configured self-hosted site, select that site's icon directly in the actions area. For other tools, select **`Export`** and choose a target from **Chat clients**, **Coding agents**, or **Gateways and routing tools**.
+3. Follow the dialog instructions to launch the application, copy or download the configuration, or import it through the target management API.
+
+> For a complete list, please see [Supported Export Tools and Integration Targets](./supported-export-tools.md).
+
+---
+
+## 5. In-depth Guide to Core Features
+
+### 📊 Asset Dashboard & Statistics
+- **[Settings Page Overview (Main Dashboard)](./options-overview.md)**: View account status, API Credential Library, today's usage, and to-do items all in one screen.
+- **[Overview & Real-time Refresh](./auto-refresh.md)**: Centrally view balances, usage, and health status across multiple sites.
+- **[Balance History](./balance-history.md)**: Visualize asset change trends with historical data.
+- **[Usage Analytics](./usage-analytics.md)**: Multi-dimensional analysis of consumption, model distribution, and latency.
+
+### 🔑 Key Management & Quick Integration
+- **[Token Management](./key-management.md)**: Centrally manage site tokens, with support for one-click completion.
+- **[API Credential Library](./api-credential-profiles.md)**: Save `Base URL + API Key` without needing an account, then copy, verify, and view models from it.
+- **[Web API Sniffing](./web-ai-api-check.md)**: Quickly identify and test API configurations within a webpage.
+
+### ⚡ Automation & Information Tracking
+- **[Auto Check-in Flow](./auto-checkin.md)**: Schedule daily check-ins for detected, supported accounts, run them immediately, and review the latest results.
+- **[Site Announcements](./site-announcements.md)**: Fetch announcements from saved sites in the background and centrally review maintenance, model changes, pricing updates, and other messages.
+- **[Redemption Assistant](./redemption-assist.md)**: Automatically recognize redemption codes on webpages and claim them with one click.
+- **[Bookmark Management](./bookmark-management.md)**: Centrally collect console links, documentation, recharge portals, and more.
+
+### 🛡️ Stability & Security Protection
+- **[Cloudflare Bypass Assistant](./cloudflare-helper.md)**: Helps a flow continue when webpage verification is required.
+- **[WebDAV Sync & Encryption](./webdav-sync.md)**: Supports cross-device encrypted backups, ensuring data is never lost.
+
+### 🔔 Notification Channels
+- **[Task notifications](./task-notifications.md)**: Enable them in **`Settings → General → Notifications`** to receive background task result reminders through browser system notifications, Telegram Bot, Feishu Bot, DingTalk Bot, WeCom Bot, ntfy, or generic webhook delivery.
+
+### 🛠️ Self-hosted Site Operation Tools
+- **[Self-hosted Site Management](./self-hosted-site-management.md)**: Directly add, delete, modify, and query channels within the plugin.
+- **[Model Sync & Redirection](./managed-site-model-sync.md)**: Batch sync upstream models and configure mapping logic.
+
+---
+
+## 6. Other Information
+
+- [Frequently Asked Questions FAQ](./faq.md)
+- [Changelog](./changelog.md)
+- [Permissions Explanation](./permissions.md)
+- [Data Import and Export](./data-management.md)

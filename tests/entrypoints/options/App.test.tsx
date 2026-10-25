@@ -1,0 +1,449 @@
+import { act } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { lazy, Suspense } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { DEV_MENU_ITEM_IDS } from "~/constants/devOptionsMenuIds"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import App from "~/entrypoints/options/App"
+import { OPTIONS_TEST_IDS } from "~/entrypoints/options/testIds"
+import {
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_PAGE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { createDeferred } from "~~/tests/test-utils/deferred"
+import { render, screen, waitFor } from "~~/tests/test-utils/render"
+
+const {
+  mockedHandleMenuItemChange,
+  mockedOptionsSearchDialog,
+  mockedUseProductAnalyticsPageView,
+  mockedUseSearchHotkeys,
+  mockedPreloadOptionsPage,
+  mockUseHashNavigationState,
+  mockedUpdateAppearance,
+} = vi.hoisted(() => ({
+  mockedUpdateAppearance: vi.fn(),
+  mockedHandleMenuItemChange: vi.fn(),
+  mockedOptionsSearchDialog: vi.fn(),
+  mockedUseProductAnalyticsPageView: vi.fn(),
+  mockedUseSearchHotkeys: vi.fn(),
+  mockedPreloadOptionsPage: vi.fn(),
+  mockUseHashNavigationState: {
+    activeMenuItem: "overview",
+    routeParams: { source: "test" },
+    refreshKey: 7,
+  },
+}))
+
+vi.mock("~/components/AppLayout", () => ({
+  AppLayout: ({ children }: { children: ReactNode }) => children,
+}))
+
+vi.mock("~/features/OptionsMenu/OptionsPageTransition", () => ({
+  OptionsPageTransition: ({
+    children,
+    fallback,
+    arrivalAnchor,
+  }: {
+    children: ReactNode
+    fallback: ReactNode
+    arrivalAnchor?: boolean
+  }) => (
+    <div data-testid="options-page-transition">
+      <span data-testid="options-page-transition-arrival-anchor">
+        {String(Boolean(arrivalAnchor))}
+      </span>
+      <Suspense fallback={fallback}>{children}</Suspense>
+    </div>
+  ),
+}))
+
+vi.mock("~/contexts/FeatureGuidanceContext", () => ({
+  useFeatureGuidanceContext: () => ({
+    state: {
+      schemaVersion: 1,
+      productTour: {},
+      gatewayGuidance: { dismissedAtBySurface: {} },
+    },
+    completeProductTour: vi.fn(),
+    dismissProductTour: vi.fn(),
+  }),
+}))
+
+vi.mock("~/components/PopupInterruptionHintBanner", () => ({
+  default: () => <div>PopupInterruptionHintBanner</div>,
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", () => ({
+  useUserPreferencesContext: () => ({
+    managedSiteType: "new-api",
+    preferences: {
+      autoCheckin: {
+        globalEnabled: true,
+      },
+    },
+    showTodayCashflow: true,
+    updateAppearance: mockedUpdateAppearance,
+  }),
+}))
+
+vi.mock("~/entrypoints/options/hooks/useHashNavigation", () => ({
+  useHashNavigation: () => ({
+    activeMenuItem: mockUseHashNavigationState.activeMenuItem,
+    routeParams: mockUseHashNavigationState.routeParams,
+    handleMenuItemChange: mockedHandleMenuItemChange,
+    refreshKey: mockUseHashNavigationState.refreshKey,
+  }),
+}))
+
+vi.mock("~/hooks/analytics/useProductAnalyticsPageView", () => ({
+  useProductAnalyticsPageView: mockedUseProductAnalyticsPageView,
+}))
+
+vi.mock("~/entrypoints/options/components/Header", () => ({
+  default: ({
+    onSearchOpen,
+    onTitleClick,
+  }: {
+    onSearchOpen: () => void
+    onTitleClick: () => void
+  }) => (
+    <div>
+      <button onClick={onSearchOpen}>open search</button>
+      <button onClick={onTitleClick}>go overview</button>
+    </div>
+  ),
+}))
+
+vi.mock("~/entrypoints/options/components/Sidebar", () => ({
+  default: ({
+    onMenuItemClick,
+    onCollapseToggle,
+    isCollapsed,
+    isCollapsePending,
+  }: {
+    onMenuItemClick: (itemId: string) => void
+    onCollapseToggle: () => void
+    isCollapsed: boolean
+    isCollapsePending: boolean
+  }) => (
+    <>
+      <button onClick={() => onMenuItemClick(MENU_ITEM_IDS.ACCOUNT)}>
+        sidebar account
+      </button>
+      <button
+        onClick={onCollapseToggle}
+        disabled={isCollapsePending}
+        aria-expanded={!isCollapsed}
+      >
+        toggle sidebar
+      </button>
+    </>
+  ),
+}))
+
+vi.mock("~/entrypoints/options/pages/BasicSettings", () => ({
+  default: () => <div>basic settings fallback</div>,
+}))
+
+vi.mock("~/features/OptionsSearch/useOptionsSearch", () => ({
+  useOptionsSearchContext: (context: Record<string, unknown>) => ({
+    ...context,
+    sidePanelSupported: true,
+  }),
+}))
+
+vi.mock("~/features/OptionsSearch/useSearchHotkeys", () => ({
+  useSearchHotkeys: mockedUseSearchHotkeys,
+}))
+
+vi.mock("~/features/OptionsSearch/OptionsSearchDialog", () => ({
+  OptionsSearchDialog: (props: Record<string, unknown>) => {
+    mockedOptionsSearchDialog(props)
+
+    return props.open ? (
+      <div role="dialog">
+        <button
+          onClick={() =>
+            (
+              props.onPageNavigate as (
+                pageId: string,
+                params?: Record<string, string | undefined>,
+              ) => void
+            )("bookmark", { anchor: "bookmarks" })
+          }
+        >
+          navigate bookmark
+        </button>
+        <button
+          onClick={() => (props.onOpenChange as (open: boolean) => void)(false)}
+        >
+          close dialog
+        </button>
+      </div>
+    ) : null
+  },
+}))
+
+vi.mock("~/entrypoints/options/constants", () => ({
+  preloadOptionsPage: mockedPreloadOptionsPage,
+  menuItems: Object.values(MENU_ITEM_IDS).map((id) => {
+    const MockPage = ({
+      routeParams,
+      refreshKey,
+    }: {
+      routeParams: Record<string, string>
+      refreshKey: number
+    }) => (
+      <div>
+        <div>source:{routeParams.source}</div>
+        <div>refresh:{refreshKey}</div>
+      </div>
+    )
+
+    return {
+      id,
+      component:
+        id === MENU_ITEM_IDS.OVERVIEW
+          ? lazy(async () => ({ default: MockPage }))
+          : MockPage,
+    }
+  }),
+}))
+
+describe("options App", () => {
+  it("falls back to settings for a locked developer deep link", async () => {
+    mockUseHashNavigationState.activeMenuItem =
+      DEV_MENU_ITEM_IDS.BROWSER_API_LAB
+    render(<App />, {
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+    expect(await screen.findByText("basic settings fallback")).toBeVisible()
+  })
+  beforeEach(() => {
+    mockedHandleMenuItemChange.mockReset()
+    mockedOptionsSearchDialog.mockReset()
+    mockedUseProductAnalyticsPageView.mockReset()
+    mockedUseSearchHotkeys.mockReset()
+    mockedPreloadOptionsPage.mockReset().mockResolvedValue(undefined)
+    mockedUpdateAppearance.mockReset().mockResolvedValue({ ok: true })
+    mockUseHashNavigationState.activeMenuItem = "overview"
+    mockUseHashNavigationState.routeParams = { source: "test" }
+    mockUseHashNavigationState.refreshKey = 7
+  })
+
+  it("reports a failed layout save without changing the saved collapse state and allows retry", async () => {
+    const user = userEvent.setup()
+    mockUseHashNavigationState.activeMenuItem = MENU_ITEM_IDS.BASIC
+    const pending = createDeferred<{ ok: boolean }>()
+    mockedUpdateAppearance.mockReturnValueOnce(pending.promise)
+    render(<App />, {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+    const toggle = screen.getByRole("button", { name: "toggle sidebar" })
+    await user.click(toggle)
+    expect(mockedUpdateAppearance).toHaveBeenCalledExactlyOnceWith({
+      sidebarCollapsed: true,
+    })
+    expect(toggle).toBeDisabled()
+    await act(async () => pending.resolve({ ok: false }))
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "settings:appearance.saveFailed",
+    )
+    expect(toggle).toBeEnabled()
+    expect(toggle).toHaveAttribute("aria-expanded", "true")
+
+    await user.click(toggle)
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    )
+    expect(mockedUpdateAppearance).toHaveBeenCalledTimes(2)
+    expect(mockedUpdateAppearance).toHaveBeenLastCalledWith({
+      sidebarCollapsed: true,
+    })
+  })
+
+  it("shows the lazy page fallback and wires the search dialog interactions", async () => {
+    const user = userEvent.setup()
+
+    render(<App />, {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+
+    expect(screen.getByLabelText("common:status.loading")).toBeInTheDocument()
+    expect(await screen.findByText("source:test")).toBeInTheDocument()
+    expect(screen.getByText("refresh:7")).toBeInTheDocument()
+    expect(mockedUseProductAnalyticsPageView).toHaveBeenCalledWith({
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      pageId: PRODUCT_ANALYTICS_PAGE_IDS.OptionsOverview,
+    })
+
+    await user.click(screen.getByText("open search"))
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+
+    await user.click(screen.getByText("navigate bookmark"))
+    expect(mockedHandleMenuItemChange).toHaveBeenCalledWith("bookmark", {
+      anchor: "bookmarks",
+    })
+
+    await user.click(screen.getByText("go overview"))
+    expect(mockedHandleMenuItemChange).toHaveBeenCalledWith(
+      MENU_ITEM_IDS.OVERVIEW,
+    )
+  })
+
+  it("opens the search dialog from the registered hotkey callback", async () => {
+    render(<App />, {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+
+    const hotkeyRegistration = mockedUseSearchHotkeys.mock.calls[0]?.[0] as
+      | { onOpen: () => void }
+      | undefined
+    act(() => {
+      hotkeyRegistration?.onOpen()
+    })
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+  })
+
+  it("preloads the active page and ignores a failed preload", async () => {
+    mockUseHashNavigationState.activeMenuItem = MENU_ITEM_IDS.ACCOUNT
+    mockedPreloadOptionsPage.mockRejectedValueOnce(
+      new Error("account page chunk unavailable"),
+    )
+
+    render(<App />, {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+
+    expect(mockedPreloadOptionsPage).toHaveBeenCalledExactlyOnceWith(
+      MENU_ITEM_IDS.ACCOUNT,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId(OPTIONS_TEST_IDS.app)).toBeInTheDocument(),
+    )
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  })
+
+  it("preloads a clicked page and ignores a failed preload", async () => {
+    const user = userEvent.setup()
+
+    render(<App />, {
+      withReleaseUpdateStatusProvider: false,
+      withThemeProvider: false,
+      withUserPreferencesProvider: false,
+    })
+    mockedPreloadOptionsPage.mockClear()
+    mockedPreloadOptionsPage.mockRejectedValueOnce(
+      new Error("account page chunk unavailable"),
+    )
+
+    await user.click(screen.getByRole("button", { name: "sidebar account" }))
+
+    expect(mockedPreloadOptionsPage).toHaveBeenCalledExactlyOnceWith(
+      MENU_ITEM_IDS.ACCOUNT,
+    )
+    expect(mockedHandleMenuItemChange).toHaveBeenCalledWith(
+      MENU_ITEM_IDS.ACCOUNT,
+    )
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [MENU_ITEM_IDS.OVERVIEW, PRODUCT_ANALYTICS_PAGE_IDS.OptionsOverview],
+    [
+      MENU_ITEM_IDS.ACCOUNT,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsAccountManagement,
+    ],
+    [
+      MENU_ITEM_IDS.BOOKMARK,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsBookmarkManagement,
+    ],
+    [MENU_ITEM_IDS.KEYS, PRODUCT_ANALYTICS_PAGE_IDS.OptionsKeyManagement],
+    [
+      MENU_ITEM_IDS.MANAGED_SITE_CHANNELS,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsManagedSiteChannels,
+    ],
+    [MENU_ITEM_IDS.MODELS, PRODUCT_ANALYTICS_PAGE_IDS.OptionsModelList],
+    [
+      MENU_ITEM_IDS.USAGE_ANALYTICS,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsUsageAnalytics,
+    ],
+    [
+      MENU_ITEM_IDS.BALANCE_HISTORY,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsBalanceHistory,
+    ],
+    [
+      MENU_ITEM_IDS.API_CREDENTIAL_PROFILES,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsApiCredentialProfiles,
+    ],
+    [
+      MENU_ITEM_IDS.SITE_ANNOUNCEMENTS,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsSiteAnnouncements,
+    ],
+    [
+      MENU_ITEM_IDS.IMPORT_EXPORT,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsImportExport,
+    ],
+    [MENU_ITEM_IDS.AUTO_CHECKIN, PRODUCT_ANALYTICS_PAGE_IDS.OptionsAutoCheckin],
+    [
+      MENU_ITEM_IDS.MANAGED_SITE_MODEL_SYNC,
+      PRODUCT_ANALYTICS_PAGE_IDS.OptionsManagedSiteModelSync,
+    ],
+    [MENU_ITEM_IDS.ABOUT, PRODUCT_ANALYTICS_PAGE_IDS.OptionsAbout],
+    ["unknown-menu-id", PRODUCT_ANALYTICS_PAGE_IDS.OptionsBasicSettings],
+  ])(
+    "maps active menu item %s to options analytics page id %s",
+    async (activeMenuItem, pageId) => {
+      mockUseHashNavigationState.activeMenuItem = activeMenuItem
+
+      render(<App />, {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      })
+
+      expect(screen.getByTestId(OPTIONS_TEST_IDS.app)).toBeInTheDocument()
+      expect(mockedUseProductAnalyticsPageView).toHaveBeenCalledWith({
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        pageId,
+      })
+      if (activeMenuItem === "unknown-menu-id") {
+        expect(mockedPreloadOptionsPage).not.toHaveBeenCalled()
+      }
+    },
+  )
+
+  it.each([
+    [{ source: "test" }, "false"],
+    [{ source: "test", anchor: "bookmarks" }, "true"],
+    [{ source: "test", highlight: "webdav" }, "true"],
+  ])(
+    "tells the page transition whether route params %o target an anchor",
+    async (routeParams, expected) => {
+      mockUseHashNavigationState.routeParams = routeParams
+
+      render(<App />, {
+        withReleaseUpdateStatusProvider: false,
+        withThemeProvider: false,
+        withUserPreferencesProvider: false,
+      })
+
+      expect(
+        screen.getByTestId("options-page-transition-arrival-anchor"),
+      ).toHaveTextContent(expected)
+    },
+  )
+})

@@ -1,0 +1,131 @@
+import { useEffect, useState } from "react"
+
+import { isDevMenuItemId } from "~/constants/devOptionsMenuIds"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { isDevUnlocked } from "~/utils/core/devMode"
+import {
+  pushWithinOptionsPage,
+  replaceWithinOptionsPage,
+} from "~/utils/navigation/optionsPage"
+
+import { menuItems } from "../constants"
+
+/**
+ * Parses the current location hash + search params into page + param map.
+ * @returns Active page id and query params.
+ */
+function parseHash() {
+  const hash = window.location.hash.slice(1) // 去掉 #
+
+  const params: Record<string, string> = {}
+  const searchParams = new URLSearchParams(window.location.search)
+  for (const [key, value] of searchParams.entries()) {
+    params[key] = value
+  }
+
+  if (!hash) {
+    return { page: MENU_ITEM_IDS.OVERVIEW, params, shouldCanonicalize: true }
+  }
+
+  const [page, ...paramParts] = hash.split("?")
+
+  if (paramParts.length > 0) {
+    const paramString = paramParts.join("?")
+    const urlParams = new URLSearchParams(paramString)
+    for (const [key, value] of urlParams.entries()) {
+      params[key] = value
+    }
+  }
+
+  return {
+    page: page || MENU_ITEM_IDS.OVERVIEW,
+    params,
+    shouldCanonicalize: !page,
+  }
+}
+
+/**
+ * Updates the hash (and query params) while staying within the options page.
+ * @param page Menu id to navigate to.
+ * @param params Optional query parameters.
+ */
+function updateHash(page: string, params?: Record<string, string | undefined>) {
+  const hash = `#${page}`
+  const normalizedParams = Object.fromEntries(
+    Object.entries(params ?? {}).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  )
+  pushWithinOptionsPage(hash, normalizedParams)
+}
+
+/**
+ * Resolves unknown route ids to the default Overview page.
+ */
+function getCanonicalPage(page: string) {
+  const isDev = isDevUnlocked()
+  const found = menuItems.find((item) => item.id === page)
+  if (!found) return MENU_ITEM_IDS.OVERVIEW
+  if (!isDev && isDevMenuItemId(found.id)) return MENU_ITEM_IDS.OVERVIEW
+  return page
+}
+
+/**
+ * Hook that synchronizes menu navigation with the URL hash/query parameters.
+ * Exposes current page, params, a handler to change pages, and refreshKey bumps.
+ */
+export function useHashNavigation() {
+  const [activeMenuItem, setActiveMenuItem] = useState<string>(() =>
+    getCanonicalPage(parseHash().page),
+  )
+  const [routeParams, setRouteParams] = useState<Record<string, string>>(
+    () => parseHash().params,
+  )
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // 初始化路由
+  useEffect(() => {
+    const applyUrlState = () => {
+      const { page, params, shouldCanonicalize } = parseHash()
+      const validPage = getCanonicalPage(page)
+      if (shouldCanonicalize || page !== validPage) {
+        replaceWithinOptionsPage(`#${validPage}`, params)
+        return
+      }
+
+      if (params.refresh === "true") {
+        setRefreshKey((prev) => prev + 1)
+      }
+      setActiveMenuItem(validPage)
+      setRouteParams(params)
+    }
+
+    // Listen to both hash/search-only changes and browser history traversal.
+    window.addEventListener("hashchange", applyUrlState)
+    window.addEventListener("popstate", applyUrlState)
+    applyUrlState()
+
+    return () => {
+      window.removeEventListener("hashchange", applyUrlState)
+      window.removeEventListener("popstate", applyUrlState)
+    }
+  }, [])
+
+  // 切换菜单项
+  const handleMenuItemChange = (
+    itemId: string,
+    params?: Record<string, string | undefined>,
+  ) => {
+    setActiveMenuItem(itemId)
+    setRouteParams(
+      Object.fromEntries(
+        Object.entries(params ?? {}).filter(
+          (entry): entry is [string, string] => entry[1] !== undefined,
+        ),
+      ),
+    )
+    updateHash(itemId, params)
+  }
+
+  return { activeMenuItem, routeParams, handleMenuItemChange, refreshKey }
+}

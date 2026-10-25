@@ -1,0 +1,389 @@
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import {
+  buildPageControlDefinition,
+  buildPageSectionDefinition,
+} from "~/features/OptionsSearch/registryHelpers"
+import type { OptionsSearchItemDefinition } from "~/features/OptionsSearch/types"
+
+import {
+  IMPORT_EXPORT_TARGET_IDS,
+  WEBDAV_AUTO_SYNC_TARGET_IDS,
+  WEBDAV_TARGET_IDS,
+} from "./searchTargets"
+
+export const importExportPageSearchSections: OptionsSearchItemDefinition[] = [
+  buildPageSectionDefinition(
+    "section:import-export-export",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "export-section",
+    "importExport:export.title",
+    430,
+    {
+      descriptionKey: "importExport:export.description",
+      keywords: ["backup", "export"],
+    },
+  ),
+  buildPageSectionDefinition(
+    "section:import-export-import",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "import-section",
+    "importExport:import.title",
+    431,
+    {
+      descriptionKey: "importExport:import.description",
+      keywords: ["backup", "import", "restore"],
+    },
+  ),
+  buildPageSectionDefinition(
+    "section:import-export-webdav",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "webdav",
+    "importExport:webdav.title",
+    432,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["cloud", "webdav", "gist", "github", "backup", "sync"],
+    },
+  ),
+  buildPageSectionDefinition(
+    "section:import-export-webdav-auto-sync",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "webdav-auto-sync",
+    "importExport:webdav.syncSettings.title",
+    433,
+    {
+      keywords: ["cloud", "webdav", "gist", "github", "auto sync", "schedule"],
+    },
+  ),
+]
+
+export const importExportPageSearchControls: OptionsSearchItemDefinition[] = [
+  buildPageControlDefinition(
+    "control:import-export-webdav-provider",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.provider,
+    "importExport:webdav.provider.label",
+    739,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["sync", "provider", "webdav", "gist", "github"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-github-gist-token",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.gistToken,
+    "importExport:webdav.gist.token",
+    739.1,
+    {
+      descriptionKey: "importExport:webdav.gist.tokenDesc",
+      keywords: ["github", "gist", "token", "secret"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-github-gist-id",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.gistId,
+    "importExport:webdav.gist.id",
+    739.2,
+    {
+      descriptionKey: "importExport:webdav.gist.idDesc",
+      keywords: ["github", "gist", "id", "url"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-github-gist-create",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.gistUpload,
+    "importExport:webdav.gist.upload",
+    739.3,
+    {
+      descriptionKey: "importExport:webdav.gist.configDesc",
+      keywords: ["github", "gist", "create", "upload", "backup"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:export-full-backup",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "export-full-backup",
+    "importExport:export.fullBackup",
+    740,
+    {
+      descriptionKey: "importExport:export.fullBackupDescription",
+      keywords: ["export", "backup"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:export-account-data",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "export-account-data",
+    "importExport:export.accountData",
+    741,
+    {
+      descriptionKey: "importExport:export.accountDataDescription",
+      keywords: ["export", "accounts"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:export-user-settings",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "export-user-settings",
+    "importExport:export.userSettings",
+    742,
+    {
+      descriptionKey: "importExport:export.userSettingsDescription",
+      keywords: ["export", "settings", "preferences"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-backup-file",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "import-backup-file",
+    "importExport:import.selectBackupFile",
+    743,
+    {
+      descriptionKey: "importExport:import.description",
+      keywords: ["import", "file", "json"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-data-preview",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "import-data-preview",
+    "importExport:import.dataPreview",
+    744,
+    {
+      descriptionKey: "importExport:import.pasteJsonData",
+      keywords: ["import", "json", "preview"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-backup-action",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    "import-backup-action",
+    "common:actions.import",
+    744.5,
+    {
+      descriptionKey: "importExport:import.description",
+      keywords: ["import", "restore", "backup"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-content-selection",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    IMPORT_EXPORT_TARGET_IDS.importMode,
+    "importExport:import.sections.label",
+    744.55,
+    {
+      descriptionKey: "importExport:import.description",
+      keywords: [
+        "import",
+        "append",
+        "merge",
+        "replace",
+        "skip",
+        "overwrite",
+        "restore",
+      ],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-webdav-url",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.url,
+    "importExport:webdav.webdavUrl",
+    744.6,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: [
+        "webdav",
+        "webdav url",
+        "import export webdav url",
+        "url",
+        "backup",
+      ],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-webdav-username",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.username,
+    "importExport:webdav.username",
+    744.7,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "username"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-webdav-password",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.password,
+    "importExport:webdav.password",
+    744.8,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "password"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:import-export-webdav-auto-sync-enable",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_AUTO_SYNC_TARGET_IDS.enable,
+    "importExport:webdav.autoSync.enable",
+    744.9,
+    {
+      descriptionKey: "importExport:webdav.autoSync.enableDesc",
+      keywords: ["webdav", "auto sync"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-sync-data",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.syncData,
+    "importExport:webdav.syncData.title",
+    746,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "sync data"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-sync-data-accounts",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.syncDataAccounts,
+    "importExport:webdav.syncData.accounts",
+    746.1,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "sync data", "accounts"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-sync-data-bookmarks",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.syncDataBookmarks,
+    "importExport:webdav.syncData.bookmarks",
+    746.2,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "sync data", "bookmarks"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-sync-data-api-credential-profiles",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.syncDataApiCredentialProfiles,
+    "importExport:webdav.syncData.apiCredentialProfiles",
+    746.3,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: [
+        "webdav",
+        "sync data",
+        "api credential profiles",
+        "credential profiles",
+      ],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-sync-data-preferences",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.syncDataPreferences,
+    "importExport:webdav.syncData.preferences",
+    746.4,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "sync data", "preferences", "settings"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-encryption-enable",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.encryption,
+    "importExport:webdav.encryption.title",
+    746.5,
+    {
+      descriptionKey:
+        "importExport:webdav.encryption.sharedPasswordDescription",
+      keywords: ["webdav", "gist", "github", "encryption", "backup encryption"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-encryption-password",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.encryptionPassword,
+    "importExport:webdav.encryption.password",
+    747,
+    {
+      descriptionKey: "importExport:webdav.encryption.passwordDesc",
+      keywords: ["webdav", "gist", "github", "encryption", "password"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-test-connection",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.testConnection,
+    "importExport:webdav.testConnection",
+    749,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "test connection"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-upload-backup",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.uploadBackup,
+    "importExport:webdav.uploadBackup",
+    750,
+    {
+      descriptionKey: "importExport:webdav.configDesc",
+      keywords: ["webdav", "upload", "backup"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-download-import",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_TARGET_IDS.downloadImport,
+    "importExport:webdav.downloadImport",
+    751,
+    {
+      descriptionKey: "importExport:import.description",
+      keywords: ["webdav", "download", "import"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-auto-sync-interval",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_AUTO_SYNC_TARGET_IDS.interval,
+    "importExport:webdav.autoSync.interval",
+    752,
+    {
+      descriptionKey: "importExport:webdav.autoSync.intervalDesc",
+      keywords: ["webdav", "auto sync", "interval"],
+      isVisible: (context) => context.webdavAutoSyncEnabled,
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-auto-sync-strategy",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_AUTO_SYNC_TARGET_IDS.strategy,
+    "importExport:webdav.autoSync.strategy",
+    753,
+    {
+      descriptionKey: "importExport:webdav.autoSync.strategyDesc",
+      keywords: ["webdav", "auto sync", "strategy"],
+    },
+  ),
+  buildPageControlDefinition(
+    "control:webdav-auto-sync-sync-now",
+    MENU_ITEM_IDS.IMPORT_EXPORT,
+    WEBDAV_AUTO_SYNC_TARGET_IDS.syncNow,
+    "importExport:webdav.autoSync.syncNow",
+    755,
+    {
+      keywords: ["webdav", "auto sync", "sync now"],
+    },
+  ),
+]

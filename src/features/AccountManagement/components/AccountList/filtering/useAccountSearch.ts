@@ -1,0 +1,323 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+
+import { compareAccountDisplayNames } from "~/services/accounts/utils/accountDisplayName"
+import {
+  normalizeSearchText,
+  normalizeSearchUrl,
+  searchAccounts,
+  type SearchResult,
+} from "~/services/search/accountSearch"
+import type { DisplaySiteData } from "~/types"
+
+export interface HighlightFragment {
+  text: string
+  highlighted: boolean
+}
+
+export interface SearchResultWithHighlight extends SearchResult {
+  highlights: {
+    name?: HighlightFragment[]
+    baseUrl?: HighlightFragment[]
+    customCheckInUrl?: HighlightFragment[]
+    customRedeemUrl?: HighlightFragment[]
+    username?: HighlightFragment[]
+    tags?: HighlightFragment[]
+  }
+}
+
+interface TokenInfo {
+  original: string
+  normalizedText: string
+  normalizedUrl: string
+}
+
+/**
+ * Normalizes a literal text field for matching/highlighting.
+ */
+function normalizeTextForMatching(value: string): string {
+  return normalizeSearchText(value)
+}
+
+/**
+ * Normalizes URL-like fields for matching/highlighting.
+ */
+function normalizeUrlForMatching(value: string): string {
+  return normalizeSearchUrl(value)
+}
+
+/**
+ * Escapes special regex characters so they can be used in a generated pattern.
+ * @param value 需要转义的文本
+ * @returns 转义后的文本
+ */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/**
+ * Builds highlight fragments by splitting text with provided tokens, preserving order.
+ * @param text 原始文本
+ * @param tokens 匹配的 token 列表
+ * @returns 含有高亮标记的片段数组
+ */
+function createHighlightFragments(
+  text: string,
+  tokens: TokenInfo[],
+): HighlightFragment[] {
+  if (!text || tokens.length === 0) {
+    return [{ text: text || "", highlighted: false }]
+  }
+
+  const uniqueTokens = Array.from(
+    new Set(tokens.map((token) => token.original).filter(Boolean)),
+  )
+
+  if (uniqueTokens.length === 0) {
+    return [{ text, highlighted: false }]
+  }
+
+  const pattern = uniqueTokens.map(escapeRegex).join("|")
+  const regex = new RegExp(`(${pattern})`, "gi")
+
+  const fragments: HighlightFragment[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      fragments.push({
+        text: text.substring(lastIndex, match.index),
+        highlighted: false,
+      })
+    }
+
+    fragments.push({
+      text: match[0],
+      highlighted: true,
+    })
+
+    lastIndex = match.index + match[0].length
+  }
+
+  if (lastIndex < text.length) {
+    fragments.push({
+      text: text.substring(lastIndex),
+      highlighted: false,
+    })
+  }
+
+  return fragments.length > 0 ? fragments : [{ text, highlighted: false }]
+}
+
+/**
+ * Creates highlight metadata for each matched field in the search results.
+ * @param results 原始搜索结果
+ * @param query 用户查询
+ * @returns 附带高亮信息的搜索结果
+ */
+function generateHighlights(
+  results: SearchResult[],
+  query: string,
+): SearchResultWithHighlight[] {
+  const tokenInfos: TokenInfo[] = query
+    .trim()
+    .split(/\s+/)
+    .map((token) => ({
+      original: token,
+      normalizedText: normalizeTextForMatching(token),
+      normalizedUrl: normalizeUrlForMatching(token),
+    }))
+    .filter(
+      (token) =>
+        token.normalizedText.length > 0 || token.normalizedUrl.length > 0,
+    )
+
+  return results.map((result) => {
+    const highlights: SearchResultWithHighlight["highlights"] = {}
+
+    if (result.matchedFields.includes("name")) {
+      const normalizedName = normalizeTextForMatching(result.account.name)
+      const nameTokens = tokenInfos.filter((token) =>
+        normalizedName.includes(token.normalizedText),
+      )
+
+      if (nameTokens.length > 0) {
+        highlights.name = createHighlightFragments(
+          result.account.name,
+          nameTokens,
+        )
+      }
+    }
+
+    if (result.matchedFields.includes("baseUrl")) {
+      const normalizedUrl = normalizeUrlForMatching(result.account.baseUrl)
+      const urlTokens = tokenInfos.filter((token) =>
+        normalizedUrl.includes(token.normalizedUrl),
+      )
+
+      if (urlTokens.length > 0) {
+        highlights.baseUrl = createHighlightFragments(
+          result.account.baseUrl,
+          urlTokens,
+        )
+      }
+    }
+
+    if (result.matchedFields.includes("customCheckInUrl")) {
+      const customCheckInUrl = result.account.checkIn?.customCheckIn?.url
+      if (customCheckInUrl) {
+        const normalizedCheckIn = normalizeUrlForMatching(customCheckInUrl)
+        const checkInTokens = tokenInfos.filter((token) =>
+          normalizedCheckIn.includes(token.normalizedUrl),
+        )
+
+        if (checkInTokens.length > 0) {
+          highlights.customCheckInUrl = createHighlightFragments(
+            customCheckInUrl,
+            checkInTokens,
+          )
+        }
+      }
+    }
+
+    if (result.matchedFields.includes("customRedeemUrl")) {
+      const customRedeemUrl = result.account.checkIn?.customCheckIn?.redeemUrl
+      if (customRedeemUrl) {
+        const normalizedRedeem = normalizeUrlForMatching(customRedeemUrl)
+        const redeemTokens = tokenInfos.filter((token) =>
+          normalizedRedeem.includes(token.normalizedUrl),
+        )
+
+        if (redeemTokens.length > 0) {
+          highlights.customRedeemUrl = createHighlightFragments(
+            customRedeemUrl,
+            redeemTokens,
+          )
+        }
+      }
+    }
+
+    if (result.matchedFields.includes("username")) {
+      const { username } = result.account
+      if (username) {
+        const normalizedUsername = normalizeTextForMatching(username)
+        const usernameTokens = tokenInfos.filter((token) =>
+          normalizedUsername.includes(token.normalizedText),
+        )
+
+        if (usernameTokens.length > 0) {
+          highlights.username = createHighlightFragments(
+            username,
+            usernameTokens,
+          )
+        }
+      }
+    }
+
+    if (result.matchedFields.includes("tags")) {
+      const tags = result.account.tags || []
+      if (tags.length > 0) {
+        const joined = tags.join(", ")
+        const normalizedTags = normalizeTextForMatching(joined)
+        const tagTokens = tokenInfos.filter((token) =>
+          normalizedTags.includes(token.normalizedText),
+        )
+
+        if (tagTokens.length > 0) {
+          highlights.tags = createHighlightFragments(joined, tagTokens)
+        }
+      }
+    }
+
+    return {
+      ...result,
+      highlights,
+    }
+  })
+}
+
+/**
+ * 搜索账号列表并提供高亮信息、去抖和清空逻辑。
+ * @param accounts 可用账号数据
+ * @param initialQuery 初始查询字符串
+ * @param initialQueryRevision 外部强制重新应用初始查询的版本号；变化时即使查询串相同也会重新应用
+ * @returns 查询状态、结果及工具函数
+ */
+export function useAccountSearch(
+  accounts: DisplaySiteData[],
+  initialQuery?: string,
+  initialQueryRevision?: number,
+) {
+  const normalizedInitialQuery = initialQuery ?? ""
+  const [query, setQuery] = useState(() => normalizedInitialQuery)
+  const [debouncedQuery, setDebouncedQuery] = useState(
+    () => normalizedInitialQuery,
+  )
+  const lastAppliedInitialQuery = useRef(normalizedInitialQuery)
+  const lastAppliedInitialRevision = useRef(initialQueryRevision)
+
+  useEffect(() => {
+    if (
+      lastAppliedInitialQuery.current !== normalizedInitialQuery ||
+      lastAppliedInitialRevision.current !== initialQueryRevision
+    ) {
+      setQuery(normalizedInitialQuery)
+      setDebouncedQuery(normalizedInitialQuery)
+      lastAppliedInitialQuery.current = normalizedInitialQuery
+      lastAppliedInitialRevision.current = initialQueryRevision
+    }
+  }, [normalizedInitialQuery, initialQueryRevision])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query)
+    }, 150)
+
+    return () => clearTimeout(timer)
+  }, [query])
+
+  const searchResults = useMemo(() => {
+    if (!debouncedQuery.trim()) {
+      return []
+    }
+
+    const results = searchAccounts(accounts, debouncedQuery)
+
+    return results.sort((a, b) => {
+      if (a.score !== b.score) {
+        return b.score - a.score
+      }
+
+      const aTime = a.account.last_sync_time ?? 0
+      const bTime = b.account.last_sync_time ?? 0
+      if (aTime !== bTime) {
+        return bTime - aTime
+      }
+
+      return compareAccountDisplayNames(a.account, b.account)
+    })
+  }, [accounts, debouncedQuery])
+
+  const resultsWithHighlights = useMemo(() => {
+    if (searchResults.length === 0 || !debouncedQuery.trim()) {
+      return []
+    }
+
+    return generateHighlights(searchResults, debouncedQuery)
+  }, [searchResults, debouncedQuery])
+
+  const clearSearch = useCallback(() => {
+    setQuery("")
+    setDebouncedQuery("")
+    lastAppliedInitialQuery.current = ""
+  }, [])
+
+  return {
+    query,
+    setQuery,
+    debouncedQuery,
+    searchResults: resultsWithHighlights,
+    clearSearch,
+    inSearchMode: query.trim().length > 0,
+  }
+}

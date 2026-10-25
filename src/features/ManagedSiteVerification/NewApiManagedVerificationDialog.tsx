@@ -1,0 +1,539 @@
+import type { TFunction } from "i18next"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import {
+  ActionGroup,
+  Button,
+  Input,
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+  Modal,
+  WorkflowTransitionButton,
+} from "~/components/ui"
+import { SETTINGS_ANCHORS } from "~/constants/settingsAnchors"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import {
+  NEW_API_MANAGED_VERIFICATION_STEPS,
+  type NewApiManagedVerificationConfigUpdate,
+  type NewApiManagedVerificationStep,
+  type OpenNewApiManagedVerificationParams,
+} from "~/features/ManagedSiteVerification/useNewApiManagedVerification"
+import { PREFERENCE_WRITE_FAILURE_TYPES } from "~/services/preferences/preferencesStore"
+import { getErrorMessage } from "~/utils/core/error"
+import { openSettingsTabInNewTab } from "~/utils/navigation"
+
+const NEW_API_VERIFICATION_CODE_LENGTH = 6
+
+const normalizeVerificationCode = (value: string) =>
+  value.replace(/\D/g, "").slice(0, NEW_API_VERIFICATION_CODE_LENGTH)
+
+const getDialogTitle = (
+  t: TFunction,
+  request: OpenNewApiManagedVerificationParams | null,
+) =>
+  request?.kind === "token"
+    ? t("newApiManagedVerification:dialog.title.token")
+    : request?.kind === "channel"
+      ? t("newApiManagedVerification:dialog.title.channel")
+      : t("newApiManagedVerification:dialog.title.settings")
+
+const getStepBodyCopy = (
+  t: TFunction,
+  request: OpenNewApiManagedVerificationParams | null,
+  step: NewApiManagedVerificationStep,
+) => {
+  switch (step) {
+    case NEW_API_MANAGED_VERIFICATION_STEPS.CREDENTIALS_MISSING:
+      return t("newApiManagedVerification:dialog.body.credentialsMissing")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.LOGIN_2FA:
+      return t("newApiManagedVerification:dialog.body.loginTwoFactor")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.SECURE_VERIFICATION:
+      return t("newApiManagedVerification:dialog.body.secureVerification")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.PASSKEY_MANUAL:
+      return t("newApiManagedVerification:dialog.body.passkeyManual")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ACTIVE_LIMIT:
+      return t("newApiManagedVerification:dialog.body.sessionActiveLimit")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ACTIVE_LIMIT_CLEANUP:
+      return t(
+        "newApiManagedVerification:dialog.body.sessionActiveLimitCleanup",
+      )
+    case NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ISSUANCE_LIMIT:
+      return t("newApiManagedVerification:dialog.body.sessionIssuanceLimit")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.SUCCESS:
+      return request?.kind === "token"
+        ? t("newApiManagedVerification:dialog.body.successToken", {
+            label: request.label ?? "",
+          })
+        : request?.kind === "channel"
+          ? t("newApiManagedVerification:dialog.body.successChannel", {
+              label: request.label ?? "",
+            })
+          : t("newApiManagedVerification:dialog.body.successSettings")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.FAILURE:
+      return t("newApiManagedVerification:dialog.body.failure")
+    case NEW_API_MANAGED_VERIFICATION_STEPS.LOGGING_IN:
+    default:
+      return t("newApiManagedVerification:dialog.body.loggingIn")
+  }
+}
+
+export interface NewApiManagedVerificationDialogProps {
+  isOpen: boolean
+  step: NewApiManagedVerificationStep
+  request: OpenNewApiManagedVerificationParams | null
+  code: string
+  errorMessage?: string
+  isBusy?: boolean
+  busyMessage?: string
+  onCodeChange: (value: string) => void
+  onClose: () => void
+  onSubmit: () => void | Promise<void>
+  onRetry: () => void | Promise<void>
+  onOpenSite: () => void
+  onUpdateRequestConfig: (
+    updates: NewApiManagedVerificationConfigUpdate,
+  ) => void
+}
+
+/**
+ * Reusable modal that renders the New API login/session verification states and
+ * delegates the actual actions to the shared controller hook.
+ */
+export function NewApiManagedVerificationDialog(
+  props: NewApiManagedVerificationDialogProps,
+) {
+  const { t } = useTranslation(["newApiManagedVerification", "settings"])
+  const {
+    newApiBaseUrl,
+    newApiUsername,
+    newApiPassword,
+    updateNewApiBaseUrl,
+    updateNewApiUsername,
+    updateNewApiPassword,
+  } = useUserPreferencesContext()
+  const [quickBaseUrl, setQuickBaseUrl] = useState(newApiBaseUrl)
+  const [quickUsername, setQuickUsername] = useState(newApiUsername)
+  const [quickPassword, setQuickPassword] = useState(newApiPassword)
+  const [quickConfigFailure, setQuickConfigFailure] = useState<
+    | { kind: "required" | "stale" | "save" }
+    | { kind: "diagnostic"; message: string }
+    | null
+  >(null)
+  const quickConfigError = !quickConfigFailure
+    ? null
+    : quickConfigFailure.kind === "required"
+      ? t("dialog.messages.completeRequiredConfig")
+      : quickConfigFailure.kind === "stale"
+        ? t("settings:messages.preferencesChangedExternally")
+        : quickConfigFailure.kind === "diagnostic" && quickConfigFailure.message
+          ? quickConfigFailure.message
+          : t("dialog.messages.quickConfigSaveFailed")
+  const [isSavingQuickConfig, setIsSavingQuickConfig] = useState(false)
+
+  const header = (
+    <div className="gap-y-density-1 flex flex-col gap-x-1 pr-8">
+      <div className="text-foreground text-lg font-semibold">
+        {getDialogTitle(t, props.request)}
+      </div>
+      <p className="text-muted-foreground text-sm">
+        {getStepBodyCopy(t, props.request, props.step)}
+      </p>
+    </div>
+  )
+
+  const isCodeEntryStep =
+    props.step === NEW_API_MANAGED_VERIFICATION_STEPS.LOGIN_2FA ||
+    props.step === NEW_API_MANAGED_VERIFICATION_STEPS.SECURE_VERIFICATION
+  const normalizedCode = useMemo(
+    () => normalizeVerificationCode(props.code),
+    [props.code],
+  )
+  const isCodeComplete =
+    normalizedCode.length === NEW_API_VERIFICATION_CODE_LENGTH
+  const shouldShowSettingsAction =
+    props.step === NEW_API_MANAGED_VERIFICATION_STEPS.CREDENTIALS_MISSING ||
+    (props.step === NEW_API_MANAGED_VERIFICATION_STEPS.FAILURE &&
+      !props.request?.config.baseUrl.trim())
+  const shouldShowRetryAction =
+    (props.step === NEW_API_MANAGED_VERIFICATION_STEPS.FAILURE &&
+      !shouldShowSettingsAction) ||
+    props.step ===
+      NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ACTIVE_LIMIT_CLEANUP
+  const shouldShowLimitOpenSiteAction =
+    props.step === NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ACTIVE_LIMIT ||
+    props.step ===
+      NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ACTIVE_LIMIT_CLEANUP ||
+    props.step === NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ISSUANCE_LIMIT
+  const shouldShowQuickConfig = shouldShowSettingsAction && !props.isBusy
+  const needsBaseUrl = useMemo(
+    () =>
+      props.step === NEW_API_MANAGED_VERIFICATION_STEPS.FAILURE &&
+      !props.request?.config.baseUrl.trim(),
+    [props.request?.config.baseUrl, props.step],
+  )
+  const needsCredentials =
+    props.step === NEW_API_MANAGED_VERIFICATION_STEPS.CREDENTIALS_MISSING
+
+  useEffect(() => {
+    if (!props.isOpen) {
+      return
+    }
+
+    setQuickBaseUrl(newApiBaseUrl)
+    setQuickUsername(newApiUsername)
+    setQuickPassword(newApiPassword)
+    setQuickConfigFailure(null)
+  }, [newApiBaseUrl, newApiPassword, newApiUsername, props.isOpen, props.step])
+
+  const handleSaveQuickConfig = async () => {
+    const nextBaseUrl = quickBaseUrl.trim()
+    const nextUsername = quickUsername.trim()
+    const requestConfigUpdates: NewApiManagedVerificationConfigUpdate = {}
+
+    if (needsBaseUrl && !nextBaseUrl) {
+      setQuickConfigFailure({ kind: "required" })
+      return
+    }
+
+    if (needsCredentials && (!nextUsername || !quickPassword)) {
+      setQuickConfigFailure({ kind: "required" })
+      return
+    }
+
+    if (needsBaseUrl) {
+      requestConfigUpdates.baseUrl = nextBaseUrl
+    }
+
+    if (needsCredentials) {
+      requestConfigUpdates.username = nextUsername
+      requestConfigUpdates.password = quickPassword
+    }
+
+    setIsSavingQuickConfig(true)
+    setQuickConfigFailure(null)
+
+    try {
+      if (needsBaseUrl && nextBaseUrl !== newApiBaseUrl) {
+        const writeResult = await updateNewApiBaseUrl(nextBaseUrl)
+        if (!writeResult.ok) {
+          setQuickConfigFailure({
+            kind:
+              writeResult.reason.type === PREFERENCE_WRITE_FAILURE_TYPES.Stale
+                ? "stale"
+                : "save",
+          })
+          return
+        }
+      }
+
+      if (needsCredentials && nextUsername !== newApiUsername) {
+        const writeResult = await updateNewApiUsername(nextUsername)
+        if (!writeResult.ok) {
+          setQuickConfigFailure({
+            kind:
+              writeResult.reason.type === PREFERENCE_WRITE_FAILURE_TYPES.Stale
+                ? "stale"
+                : "save",
+          })
+          return
+        }
+      }
+
+      if (needsCredentials && quickPassword !== newApiPassword) {
+        const writeResult = await updateNewApiPassword(quickPassword)
+        if (!writeResult.ok) {
+          setQuickConfigFailure({
+            kind:
+              writeResult.reason.type === PREFERENCE_WRITE_FAILURE_TYPES.Stale
+                ? "stale"
+                : "save",
+          })
+          return
+        }
+      }
+
+      if (Object.keys(requestConfigUpdates).length > 0) {
+        props.onUpdateRequestConfig(requestConfigUpdates)
+      }
+
+      await Promise.resolve(props.onRetry())
+    } catch (error) {
+      setQuickConfigFailure({
+        kind: "diagnostic",
+        message: getErrorMessage(error),
+      })
+    } finally {
+      setIsSavingQuickConfig(false)
+    }
+  }
+
+  const footer = (
+    <ActionGroup>
+      {props.step === NEW_API_MANAGED_VERIFICATION_STEPS.PASSKEY_MANUAL ? (
+        <>
+          <WorkflowTransitionButton
+            variant="outline"
+            onClick={props.onOpenSite}
+            disabled={props.isBusy}
+          >
+            {t("dialog.actions.openSite")}
+          </WorkflowTransitionButton>
+          <Button onClick={props.onRetry} disabled={props.isBusy}>
+            {t("dialog.actions.retryAfterPasskey")}
+          </Button>
+        </>
+      ) : null}
+
+      {shouldShowRetryAction ? (
+        <Button onClick={props.onRetry} disabled={props.isBusy}>
+          {props.step ===
+          NEW_API_MANAGED_VERIFICATION_STEPS.SESSION_ACTIVE_LIMIT_CLEANUP
+            ? t("dialog.actions.cleanupOwnedSessionAndRetry")
+            : t("dialog.actions.retry")}
+        </Button>
+      ) : null}
+
+      {shouldShowLimitOpenSiteAction ? (
+        <WorkflowTransitionButton
+          variant="outline"
+          onClick={props.onOpenSite}
+          disabled={props.isBusy}
+        >
+          {t("dialog.actions.openSite")}
+        </WorkflowTransitionButton>
+      ) : null}
+
+      {isCodeEntryStep ? (
+        <Button
+          onClick={props.onSubmit}
+          disabled={props.isBusy || !isCodeComplete}
+        >
+          {props.step === NEW_API_MANAGED_VERIFICATION_STEPS.LOGIN_2FA
+            ? t("dialog.actions.submitLoginCode")
+            : t("dialog.actions.submitVerificationCode")}
+        </Button>
+      ) : null}
+
+      <Button
+        variant={isCodeEntryStep ? "outline" : "secondary"}
+        onClick={props.onClose}
+        disabled={props.isBusy}
+      >
+        {t("dialog.actions.close")}
+      </Button>
+    </ActionGroup>
+  )
+
+  return (
+    <Modal
+      isOpen={props.isOpen}
+      onClose={props.onClose}
+      header={header}
+      footer={footer}
+      closeOnBackdropClick={!props.isBusy}
+      closeOnEsc={!props.isBusy}
+    >
+      <div className="space-y-density-4">
+        {props.isBusy ? (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="border-primary-soft-border bg-primary-soft text-primary-soft-foreground py-density-2 rounded-lg border px-3 text-sm"
+          >
+            {props.busyMessage || t("dialog.messages.starting")}
+          </div>
+        ) : null}
+
+        {props.errorMessage ? (
+          <div
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+            className="border-destructive-border bg-destructive-soft text-destructive-soft-foreground py-density-2 rounded-lg border px-3 text-sm"
+          >
+            {props.errorMessage}
+          </div>
+        ) : null}
+
+        {shouldShowSettingsAction ? (
+          <div className="border-border bg-surface-subtle/80 dark:border-border-subtle dark:bg-background/40 py-density-6 flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center">
+            <p className="text-muted-foreground dark:text-secondary-foreground text-sm">
+              {t("dialog.hints.openSettingsShortcut")}
+            </p>
+            {quickConfigError ? (
+              <div
+                role="alert"
+                aria-live="assertive"
+                aria-atomic="true"
+                className="border-destructive-border bg-destructive-soft text-destructive-soft-foreground mt-density-4 py-density-2 w-full rounded-lg border px-3 text-left text-sm"
+              >
+                {quickConfigError}
+              </div>
+            ) : null}
+            {shouldShowQuickConfig ? (
+              <div className="mt-density-4 space-y-density-3 w-full max-w-md text-left">
+                {needsBaseUrl ? (
+                  <div className="space-y-density-2">
+                    <label
+                      htmlFor="new-api-quick-base-url"
+                      className="text-secondary-foreground block text-sm font-medium"
+                    >
+                      {t("settings:newApi.fields.baseUrlLabel")}
+                    </label>
+                    <Input
+                      id="new-api-quick-base-url"
+                      type="text"
+                      value={quickBaseUrl}
+                      onChange={(event) => setQuickBaseUrl(event.target.value)}
+                      placeholder={t(
+                        "settings:newApi.fields.baseUrlPlaceholder",
+                      )}
+                    />
+                  </div>
+                ) : null}
+                {needsCredentials ? (
+                  <>
+                    <div className="space-y-density-2">
+                      <label
+                        htmlFor="new-api-quick-username"
+                        className="text-secondary-foreground block text-sm font-medium"
+                      >
+                        {t("settings:newApi.fields.usernameLabel")}
+                      </label>
+                      <Input
+                        id="new-api-quick-username"
+                        type="text"
+                        value={quickUsername}
+                        onChange={(event) =>
+                          setQuickUsername(event.target.value)
+                        }
+                        placeholder={t(
+                          "settings:newApi.fields.usernamePlaceholder",
+                        )}
+                      />
+                    </div>
+                    <div className="space-y-density-2">
+                      <label
+                        htmlFor="new-api-quick-password"
+                        className="text-secondary-foreground block text-sm font-medium"
+                      >
+                        {t("settings:newApi.fields.passwordLabel")}
+                      </label>
+                      <Input
+                        id="new-api-quick-password"
+                        type="password"
+                        revealable
+                        revealLabels={{
+                          show: t("settings:newApi.fields.showPassword"),
+                          hide: t("settings:newApi.fields.hidePassword"),
+                        }}
+                        value={quickPassword}
+                        onChange={(event) =>
+                          setQuickPassword(event.target.value)
+                        }
+                        placeholder={t(
+                          "settings:newApi.fields.passwordPlaceholder",
+                        )}
+                      />
+                    </div>
+                  </>
+                ) : null}
+                <div className="gap-y-density-2 pt-density-1 flex flex-wrap justify-center gap-x-2">
+                  <Button
+                    onClick={() => void handleSaveQuickConfig()}
+                    disabled={props.isBusy}
+                    loading={isSavingQuickConfig}
+                  >
+                    {isSavingQuickConfig
+                      ? t("common:status.saving")
+                      : t("dialog.actions.saveAndRetry")}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {isCodeEntryStep ? (
+          <div className="space-y-density-2">
+            <label
+              htmlFor="new-api-verification-code"
+              className="text-secondary-foreground block text-sm font-medium"
+            >
+              {t("dialog.fields.codeLabel")}
+            </label>
+            <div className="border-border bg-surface-subtle/80 dark:border-border-subtle dark:bg-background/40 py-density-4 rounded-xl border px-4">
+              <div className="flex justify-center">
+                <InputOTP
+                  id="new-api-verification-code"
+                  value={normalizedCode}
+                  onChange={(value) =>
+                    props.onCodeChange(normalizeVerificationCode(value))
+                  }
+                  maxLength={NEW_API_VERIFICATION_CODE_LENGTH}
+                  pattern={REGEXP_ONLY_DIGITS}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  disabled={props.isBusy}
+                  pasteTransformer={normalizeVerificationCode}
+                  aria-describedby="new-api-verification-code-hint"
+                  aria-label={t("dialog.fields.codeLabel")}
+                  containerClassName="justify-center"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator className="text-faint-foreground" />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+            <p
+              id="new-api-verification-code-hint"
+              className="text-muted-foreground text-xs"
+            >
+              {props.request?.config.totpSecret?.trim()
+                ? t("dialog.hints.manualFallback")
+                : t("dialog.hints.configureTotp", {
+                    section: t("settings:tabs.managedSite"),
+                    provider: t("settings:newApi.title"),
+                  })}
+            </p>
+            {!props.request?.config.totpSecret?.trim() ? (
+              <WorkflowTransitionButton
+                variant="link"
+                size="sm"
+                className="h-auto min-h-0 p-0"
+                disabled={props.isBusy}
+                onClick={() =>
+                  void openSettingsTabInNewTab("managedSite", {
+                    anchor: SETTINGS_ANCHORS.NEW_API_TOTP_SECRET,
+                  })
+                }
+              >
+                {t("dialog.actions.configureTotp")}
+              </WorkflowTransitionButton>
+            ) : null}
+          </div>
+        ) : null}
+
+        {props.step === NEW_API_MANAGED_VERIFICATION_STEPS.PASSKEY_MANUAL ? (
+          <p className="text-muted-foreground text-sm">
+            {t("dialog.hints.passkey")}
+          </p>
+        ) : null}
+      </div>
+    </Modal>
+  )
+}

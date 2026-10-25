@@ -1,0 +1,3873 @@
+import { CSS, type Transform } from "@dnd-kit/utilities"
+import userEvent from "@testing-library/user-event"
+import React from "react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import {
+  DATA_TYPE_BALANCE,
+  DATA_TYPE_CHECK_IN_REQUIREMENT,
+  DATA_TYPE_CREATED_AT,
+  DATA_TYPE_HEALTH_STATUS,
+} from "~/constants"
+import { AUTO_CHECKIN_METHOD_IDS } from "~/constants/checkIn"
+import AccountList from "~/features/AccountManagement/components/AccountList"
+import * as accountListDndRuntimeLoader from "~/features/AccountManagement/components/AccountList/ordering/loadAccountListDndRuntime"
+import * as inviteLinkCopyWorkflow from "~/features/AccountManagement/inviteLinkCopyWorkflow"
+import {
+  ACCOUNT_MANAGEMENT_TEST_IDS,
+  getAccountManagementSelectionCheckboxTestId,
+  getAccountManagementSortButtonTestId,
+} from "~/features/AccountManagement/testIds"
+import enAccount from "~/locales/en/account.json"
+import { createCompatibilityCheckInConfig } from "~/services/checkin/autoCheckin/configuration/compatibilityConfig"
+import { mergeCompatibilityCheckInStatus } from "~/services/checkin/autoCheckin/state"
+import {
+  INVITE_LINK_FAILURE_REASONS,
+  InviteLinkError,
+} from "~/services/inviteLinks/errors"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FAILURE_REASONS,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SOURCE_KINDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { SiteHealthStatus } from "~/types"
+import {
+  ACCOUNT_TODAY_METRIC_REASONS,
+  ACCOUNT_TODAY_METRIC_STATUSES,
+} from "~/types/accountTodayStats"
+import { openSettingsTab } from "~/utils/navigation"
+import { buildCompleteTodayStatsAvailability } from "~~/tests/test-utils/accountTodayStats"
+import { buildDisplaySiteData, buildTag } from "~~/tests/test-utils/factories"
+import { testI18n } from "~~/tests/test-utils/i18n"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "~~/tests/test-utils/render"
+
+type SortableMockState = {
+  attributes: Record<string, unknown>
+  listeners: Record<string, unknown>
+  setNodeRef: ReturnType<typeof vi.fn>
+  setActivatorNodeRef: ReturnType<typeof vi.fn>
+  transform: Transform | null
+  transition: string | undefined
+  isDragging: boolean
+}
+
+const TEST_IDS = vi.hoisted(() => ({
+  dndContext: "dnd-context",
+  sortableContext: "sortable-context",
+  virtuoso: "virtuoso",
+  singleTagFilter: "single-tag-filter",
+  multiTagFilter: "multi-tag-filter",
+  accountRow: "account-row",
+  accountFilterBar: "account-filter-bar",
+}))
+
+const {
+  mockUseAccountDataContext,
+  mockUseUserPreferencesContext,
+  handleAddAccountClickMock,
+  handleDeleteAccountMock,
+  handleDeleteAccountsMock,
+  fetchDisplayAccountInviteLinkMock,
+  handleSetAccountsDisabledMock,
+  startProductAnalyticsActionMock,
+  clipboardWriteTextMock,
+  toastDefaultMock,
+  toastErrorMock,
+  toastSuccessMock,
+  trackProductAnalyticsActionStartedMock,
+  trackProductAnalyticsActionCompletedMock,
+  canFetchDisplayAccountInviteLinkMock,
+  dndState,
+  sortableKeyboardCoordinatesMock,
+  sortableReturnState,
+  useSensorMock,
+  useSortableMock,
+} = vi.hoisted(() => ({
+  mockUseAccountDataContext: vi.fn(),
+  mockUseUserPreferencesContext: vi.fn(),
+  handleAddAccountClickMock: vi.fn(),
+  handleDeleteAccountMock: vi.fn(),
+  handleDeleteAccountsMock: vi.fn(),
+  fetchDisplayAccountInviteLinkMock: vi.fn(),
+  handleSetAccountsDisabledMock: vi.fn(),
+  startProductAnalyticsActionMock: vi.fn(),
+  clipboardWriteTextMock: vi.fn(),
+  toastDefaultMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
+  trackProductAnalyticsActionStartedMock: vi.fn(),
+  trackProductAnalyticsActionCompletedMock: vi.fn(),
+  canFetchDisplayAccountInviteLinkMock: vi.fn(),
+  dndState: {
+    onDragEnd: undefined as ((event: any) => void) | undefined,
+  },
+  sortableKeyboardCoordinatesMock: vi.fn(),
+  sortableReturnState: {
+    current: {
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
+      transform: null,
+      transition: undefined,
+      isDragging: false,
+    } as SortableMockState,
+  },
+  useSensorMock: vi.fn(),
+  useSortableMock: vi.fn(),
+}))
+
+vi.mock("~/utils/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/utils/navigation")>()),
+  openSettingsTab: vi.fn(),
+}))
+
+vi.mock("@dnd-kit/core", () => ({
+  closestCenter: vi.fn(),
+  DndContext: ({
+    children,
+    onDragEnd,
+  }: {
+    children: React.ReactNode
+    onDragEnd: (event: any) => void
+  }) => {
+    dndState.onDragEnd = onDragEnd
+    return <div data-testid={TEST_IDS.dndContext}>{children}</div>
+  },
+  KeyboardSensor: vi.fn(),
+  PointerSensor: vi.fn(),
+  useSensor: useSensorMock,
+  useSensors: () => [],
+}))
+
+vi.mock("react-virtuoso", () => ({
+  Virtuoso: ({
+    components,
+    computeItemKey,
+    customScrollParent,
+    data,
+    itemContent,
+    useWindowScroll,
+  }: {
+    components?: { List?: React.ComponentType<any> }
+    computeItemKey?: (index: number, item: any) => React.Key
+    customScrollParent?: HTMLElement
+    data: any[]
+    itemContent: (index: number, item: any) => React.ReactNode
+    useWindowScroll?: boolean
+  }) => {
+    const List = components?.List ?? ((props: any) => <div {...props} />)
+
+    return (
+      <div
+        data-testid={TEST_IDS.virtuoso}
+        data-custom-scroll-parent={customScrollParent ? "true" : "false"}
+        data-window-scroll={String(Boolean(useWindowScroll))}
+      >
+        <List>
+          {data.map((item, index) => (
+            <React.Fragment
+              key={computeItemKey?.(index, item) ?? String(index)}
+            >
+              {itemContent(index, item)}
+            </React.Fragment>
+          ))}
+        </List>
+      </div>
+    )
+  },
+}))
+
+vi.mock("@dnd-kit/sortable", () => ({
+  arrayMove: (array: any[], from: number, to: number) => {
+    const next = array.slice()
+    const [item] = next.splice(from, 1)
+    next.splice(to, 0, item)
+    return next
+  },
+  SortableContext: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid={TEST_IDS.sortableContext}>{children}</div>
+  ),
+  sortableKeyboardCoordinates: sortableKeyboardCoordinatesMock,
+  verticalListSortingStrategy: vi.fn(),
+  useSortable: (options: any) => {
+    useSortableMock(options)
+    return sortableReturnState.current
+  },
+}))
+
+vi.mock("~/components/ui", async () => {
+  const { Modal } = await import("~/components/ui/Dialog/Modal")
+  interface MockInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    clearButtonLabel?: string
+    leftIcon?: React.ReactNode
+    onClear?: () => void
+    rightIcon?: React.ReactNode
+  }
+
+  const MockInput = React.forwardRef<HTMLInputElement, MockInputProps>(
+    function MockInput(
+      {
+        clearButtonLabel: _clearButtonLabel,
+        leftIcon,
+        onClear: _onClear,
+        rightIcon,
+        ...props
+      },
+      ref,
+    ) {
+      return (
+        <div>
+          {leftIcon}
+          <input ref={ref} {...props} />
+          {rightIcon}
+        </div>
+      )
+    },
+  )
+
+  const MockTagFilter = ({ mode, options, value, onChange, allLabel }: any) => {
+    const isSingleMode = mode === "single"
+
+    const handleAllClick = () => {
+      onChange(isSingleMode ? null : [])
+    }
+
+    const handleOptionClick = (optionValue: string) => {
+      if (isSingleMode) {
+        onChange(value === optionValue ? null : optionValue)
+        return
+      }
+
+      const current = Array.isArray(value) ? value : []
+      onChange(
+        current.includes(optionValue)
+          ? current.filter((item) => item !== optionValue)
+          : [...current, optionValue],
+      )
+    }
+
+    return (
+      <div
+        data-testid={
+          isSingleMode ? TEST_IDS.singleTagFilter : TEST_IDS.multiTagFilter
+        }
+      >
+        <button type="button" onClick={handleAllClick}>
+          {allLabel}
+        </button>
+        {options.map((option: any) => (
+          <button
+            key={option.value}
+            type="button"
+            disabled={option.disabled}
+            onClick={() => handleOptionClick(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  return {
+    Modal,
+    Button: ({
+      children,
+      loading,
+      leftIcon,
+      rightIcon,
+      analyticsAction: _analyticsAction,
+      ...props
+    }: any) => (
+      <button type="button" {...props}>
+        {!loading && leftIcon}
+        {children}
+        {rightIcon}
+      </button>
+    ),
+    Card: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    CardContent: ({ children }: any) => <div>{children}</div>,
+    CardList: ({ children, dividers: _dividers, ...props }: any) => (
+      <div {...props}>{children}</div>
+    ),
+    Checkbox: ({ checked, onCheckedChange, ...props }: any) => (
+      <input
+        type="checkbox"
+        checked={Boolean(checked)}
+        onChange={(event) => onCheckedChange?.(event.target.checked)}
+        {...props}
+      />
+    ),
+    ConfirmDialog: ({
+      isOpen,
+      title,
+      description,
+      confirmLabel,
+      cancelLabel,
+      onConfirm,
+      onClose,
+      details,
+    }: any) =>
+      isOpen ? (
+        <div>
+          <div>{title}</div>
+          <div>{description}</div>
+          {details}
+          <button type="button" onClick={onClose}>
+            {cancelLabel}
+          </button>
+          <button type="button" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+        </div>
+      ) : null,
+    EmptyState: ({ title, description, action }: any) => (
+      <div>
+        <div>{title}</div>
+        {description ? <div>{description}</div> : null}
+        {action ? (
+          <button type="button" onClick={action.onClick}>
+            {action.label}
+          </button>
+        ) : null}
+      </div>
+    ),
+    IconButton: ({ children, ...props }: any) => (
+      <button type="button" {...props}>
+        {children}
+      </button>
+    ),
+    Input: MockInput,
+    TagFilter: MockTagFilter,
+    CompactTagFilter: MockTagFilter,
+  }
+})
+
+vi.mock("~/contexts/UserPreferencesContext", () => ({
+  UserPreferencesProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
+  useUserPreferencesContext: () => mockUseUserPreferencesContext(),
+}))
+
+vi.mock("~/features/AccountManagement/actions/AccountActionsContext", () => ({
+  useAccountActionsContext: () => ({
+    handleDeleteAccount: handleDeleteAccountMock,
+    handleDeleteAccounts: handleDeleteAccountsMock,
+    handleSetAccountsDisabled: handleSetAccountsDisabledMock,
+  }),
+}))
+
+vi.mock("~/features/AccountManagement/data/AccountDataContext", () => ({
+  useAccountDataContext: () => mockUseAccountDataContext(),
+}))
+
+vi.mock("~/features/AccountManagement/opening/useAddAccountHandler", () => ({
+  useAddAccountHandler: () => ({
+    handleAddAccountClick: handleAddAccountClickMock,
+  }),
+}))
+
+vi.mock("~/services/productAnalytics/actions", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/services/productAnalytics/actions")>()
+  return {
+    ...actual,
+    startProductAnalyticsAction: startProductAnalyticsActionMock,
+    trackProductAnalyticsActionStarted: trackProductAnalyticsActionStartedMock,
+    trackProductAnalyticsActionCompleted:
+      trackProductAnalyticsActionCompletedMock,
+  }
+})
+
+vi.mock("~/lib/notify", () => ({
+  default: Object.assign(toastDefaultMock, {
+    success: toastSuccessMock,
+    warning: toastDefaultMock,
+    error: toastErrorMock,
+  }),
+}))
+
+vi.mock("~/hooks/useMediaQuery", () => ({
+  useIsDesktop: () => false,
+  useIsSmallScreen: () => false,
+}))
+
+vi.mock("~/services/accounts/utils/apiServiceRequest", () => ({
+  canFetchDisplayAccountInviteLink: (...args: unknown[]) =>
+    canFetchDisplayAccountInviteLinkMock(...args),
+  fetchDisplayAccountInviteLink: (...args: unknown[]) =>
+    fetchDisplayAccountInviteLinkMock(...args),
+}))
+
+vi.mock(
+  "~/features/AccountManagement/components/AccountList/rows/AccountListItem",
+  () => ({
+    default: ({ site, onDeleteWithDialog, onCopyKey }: any) => (
+      <>
+        <div data-testid={TEST_IDS.accountRow}>{site.name}</div>
+        <button
+          aria-label={`Delete ${site.name}`}
+          onClick={() => onDeleteWithDialog(site)}
+        >
+          Delete account
+        </button>
+        <button
+          aria-label={`Copy key ${site.name}`}
+          onClick={() => onCopyKey(site)}
+        >
+          Copy key
+        </button>
+      </>
+    ),
+  }),
+)
+
+vi.mock("~/features/AccountManagement/components/CopyKeyDialog", () => ({
+  default: ({ isOpen, onClose }: any) =>
+    isOpen ? <button onClick={onClose}>Close key dialog</button> : null,
+}))
+
+vi.mock("~/features/AccountManagement/components/DelAccountDialog", () => ({
+  default: ({ isOpen, onClose, onDeleted }: any) =>
+    isOpen ? (
+      <div role="dialog" aria-label="Delete account">
+        <button onClick={onClose}>Cancel account deletion</button>
+        <button onClick={onDeleted}>Complete account deletion</button>
+      </div>
+    ) : null,
+}))
+
+vi.mock(
+  "~/features/AccountManagement/components/NewcomerSponsorRecommendationsSection",
+  () => ({
+    NewcomerSponsorRecommendationsSection: () => (
+      <div data-testid="newcomer-sponsor-recommendations" />
+    ),
+  }),
+)
+
+vi.mock(
+  "~/features/AccountManagement/components/AccountList/filtering/AccountFilterBar",
+  () => ({
+    default: ({
+      disabledOptions,
+      siteTypeOptions,
+      refreshOptions,
+      checkInOptions,
+      onDisabledChange,
+      onSiteTypeChange,
+      onRefreshChange,
+      onCheckInChange,
+    }: any) => (
+      <div data-testid={TEST_IDS.accountFilterBar}>
+        {disabledOptions.map((option: any) => (
+          <button
+            key={`disabled-${option.value}`}
+            type="button"
+            data-count={option.count}
+            onClick={() => onDisabledChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+        {siteTypeOptions.map((option: any) => (
+          <button
+            key={`site-type-${option.value}`}
+            type="button"
+            data-count={option.count}
+            onClick={() => onSiteTypeChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+        {refreshOptions.map((option: any) => (
+          <button
+            key={`refresh-${option.value}`}
+            type="button"
+            data-count={option.count}
+            onClick={() => onRefreshChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+        {checkInOptions.map((option: any) => (
+          <button
+            key={`check-in-${option.value}`}
+            type="button"
+            data-count={option.count}
+            onClick={() => onCheckInChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    ),
+  }),
+)
+
+/**
+ * Creates an account data context value for tests.
+ */
+function createAccountDataContextValue(
+  overrides: Record<string, unknown> = {},
+) {
+  const checkedInNewApi = (checked: boolean, observedAt: number) => {
+    const config = createCompatibilityCheckInConfig({
+      siteType: "new-api",
+      supported: true,
+      automaticExecutionEnabled: true,
+    })
+    return mergeCompatibilityCheckInStatus({
+      config,
+      methodId: AUTO_CHECKIN_METHOD_IDS.NewApiDailyCheckIn,
+      isCheckedInToday: checked,
+      observedAt,
+    })
+  }
+  const enabledAlpha = buildDisplaySiteData({
+    id: "enabled-alpha",
+    name: "Enabled Alpha",
+    disabled: false,
+    tagIds: ["team-a"],
+    tags: ["Team A"],
+    siteType: "one-api",
+    health: { status: SiteHealthStatus.Healthy },
+    last_sync_time: 1700000000000,
+    checkIn: createCompatibilityCheckInConfig({
+      siteType: "one-api",
+      supported: false,
+      automaticExecutionEnabled: true,
+      customCheckIn: {
+        url: "https://check-in.example.invalid/alpha",
+        isCheckedInToday: true,
+      },
+    }),
+    balance: { USD: 12, CNY: 0 },
+  })
+  const disabledBeta = buildDisplaySiteData({
+    id: "disabled-beta",
+    name: "Disabled Beta",
+    disabled: true,
+    tagIds: ["team-a"],
+    tags: ["Team A"],
+    siteType: "new-api",
+    health: { status: SiteHealthStatus.Error },
+    last_sync_time: 1700000001000,
+    checkIn: checkedInNewApi(true, Date.now() - 24 * 60 * 60 * 1000),
+    balance: { USD: 34, CNY: 0 },
+  })
+  const enabledGamma = buildDisplaySiteData({
+    id: "enabled-gamma",
+    name: "Enabled Gamma",
+    disabled: false,
+    tagIds: ["team-b"],
+    tags: ["Team B"],
+    siteType: "one-api",
+    health: { status: SiteHealthStatus.Warning },
+    last_sync_time: 1700000002000,
+    checkIn: createCompatibilityCheckInConfig({
+      siteType: "one-api",
+      supported: false,
+      automaticExecutionEnabled: false,
+      customCheckIn: {
+        url: "https://check-in.example.invalid/gamma",
+        isCheckedInToday: false,
+      },
+    }),
+    balance: { USD: 56, CNY: 0 },
+  })
+  const unsyncedDelta = buildDisplaySiteData({
+    id: "unsynced-delta",
+    name: "Unsynced Delta",
+    disabled: false,
+    tagIds: ["team-b"],
+    tags: ["Team B"],
+    siteType: "sub2api",
+    health: { status: SiteHealthStatus.Unknown },
+    last_sync_time: undefined,
+    checkIn: createCompatibilityCheckInConfig({
+      siteType: "sub2api",
+      supported: false,
+      automaticExecutionEnabled: false,
+      customCheckIn: {
+        url: "",
+        isCheckedInToday: false,
+      },
+    }),
+    balance: { USD: 78, CNY: 0 },
+  })
+
+  return {
+    sortedData: [enabledAlpha, disabledBeta, enabledGamma, unsyncedDelta],
+    displayData: [enabledAlpha, disabledBeta, enabledGamma, unsyncedDelta],
+    isInitialLoad: false,
+    handleSort: vi.fn(),
+    clearSortConfig: vi.fn(),
+    sortField: "name",
+    sortOrder: "asc",
+    handleReorder: vi.fn(),
+    orderedAccountIds: [],
+    pinnedAccountIds: [],
+    isPinFeatureEnabled: false,
+    tags: [
+      buildTag({ id: "team-a", name: "Team A" }),
+      buildTag({ id: "team-b", name: "Team B" }),
+    ],
+    tagCountsById: {
+      "team-a": 2,
+      "team-b": 1,
+    },
+    isManualSortFeatureEnabled: false,
+    detectedAccount: null,
+    getAccountContextBoost: vi.fn(() => undefined),
+    ...overrides,
+  }
+}
+
+async function renderBulkInviteLinkSelection(
+  accounts: Array<ReturnType<typeof buildDisplaySiteData>>,
+  selectedIds = accounts.map((account) => account.id),
+) {
+  mockUseAccountDataContext.mockReturnValue(
+    createAccountDataContextValue({
+      sortedData: accounts,
+      displayData: accounts,
+      tags: [],
+      tagCountsById: {},
+    }),
+  )
+
+  const user = userEvent.setup()
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    get: () => ({
+      writeText: clipboardWriteTextMock,
+    }),
+  })
+  const renderResult = render(<AccountList />)
+
+  await user.click(screen.getByRole("button", { name: "account:bulk.manage" }))
+  for (const accountId of selectedIds) {
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId(accountId),
+      ),
+    )
+  }
+
+  return {
+    ...renderResult,
+    copyInviteLinks: async () =>
+      user.click(await getBulkAction(user, "copyInviteLinks")),
+    user,
+  }
+}
+
+/** Finds direct bulk actions or opens the compact selection menu. */
+async function getBulkAction(
+  user: ReturnType<typeof userEvent.setup>,
+  key: string,
+) {
+  const toolbar = within(screen.getByTestId("account-bulk-toolbar"))
+  const directAction = toolbar.queryByRole("button", {
+    name: new RegExp(`account:bulk.${key}`),
+  })
+  if (directAction) return directAction
+  await user.click(
+    toolbar.getByRole("button", { name: "account:bulk.selectionScope" }),
+  )
+  return screen.getByRole("menuitem", {
+    name: new RegExp(`account:bulk.${key}`),
+  })
+}
+
+describe("AccountList", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    dndState.onDragEnd = undefined
+    sortableReturnState.current = {
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
+      transform: null,
+      transition: undefined,
+      isDragging: false,
+    }
+    handleDeleteAccountsMock.mockResolvedValue({
+      deletedCount: 0,
+      deletedIds: [],
+    })
+    handleSetAccountsDisabledMock.mockResolvedValue({
+      updatedCount: 0,
+      updatedIds: [],
+    })
+    canFetchDisplayAccountInviteLinkMock.mockImplementation(
+      (account: { siteType?: string }) => account.siteType === "new-api",
+    )
+    fetchDisplayAccountInviteLinkMock.mockImplementation(
+      async (account: { id: string; baseUrl: string }) =>
+        `${account.baseUrl}/register?aff=${account.id}`,
+    )
+    clipboardWriteTextMock.mockResolvedValue(undefined)
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({
+        writeText: clipboardWriteTextMock,
+      }),
+    })
+    mockUseUserPreferencesContext.mockReturnValue({
+      showTodayCashflow: true,
+    })
+    mockUseAccountDataContext.mockReturnValue(createAccountDataContextValue())
+    startProductAnalyticsActionMock.mockImplementation((context) => {
+      trackProductAnalyticsActionStartedMock(context)
+      return {
+        complete: (
+          result: unknown = PRODUCT_ANALYTICS_RESULTS.Success,
+          options: Record<string, unknown> = {},
+        ) => {
+          trackProductAnalyticsActionCompletedMock({
+            ...context,
+            result,
+            ...options,
+          })
+        },
+      }
+    })
+  })
+
+  afterEach(() => {
+    testI18n.removeResourceBundle("en", "account")
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it("shows a loading skeleton instead of the empty state during the initial load", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [],
+        displayData: [],
+        isInitialLoad: true,
+      }),
+    )
+    render(<AccountList />)
+
+    expect(screen.queryByText("account:emptyState")).not.toBeInTheDocument()
+  })
+
+  it("groups the account action and secondary sponsor guidance in one panel", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [],
+        displayData: [],
+      }),
+    )
+
+    render(<AccountList />)
+
+    const addAccountButton = screen.getByRole("button", {
+      name: "account:addFirstAccount",
+    })
+    expect(addAccountButton).not.toHaveAttribute(
+      "data-testid",
+      ACCOUNT_MANAGEMENT_TEST_IDS.addAccountButton,
+    )
+    const sponsorRecommendations = screen.getByTestId(
+      "newcomer-sponsor-recommendations",
+    )
+    const emptyAccountPanel = screen.getByRole("region", {
+      name: "account:emptyState",
+    })
+
+    expect(
+      screen.getByText("account:emptyStateDescription"),
+    ).toBeInTheDocument()
+    expect(emptyAccountPanel).toContainElement(addAccountButton)
+    expect(emptyAccountPanel).toContainElement(sponsorRecommendations)
+    expect(
+      addAccountButton.compareDocumentPosition(sponsorRecommendations),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it("can hide the empty-state action while retaining onboarding guidance", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({ sortedData: [], displayData: [] }),
+    )
+    render(<AccountList showAddAccountAction={false} />)
+
+    expect(
+      screen.queryByRole("button", { name: "account:addFirstAccount" }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText("account:emptyStateDescription")).toBeVisible()
+    expect(screen.getByTestId("newcomer-sponsor-recommendations")).toBeVisible()
+  })
+
+  it("tracks the empty-state create-account action before opening the dialog", async () => {
+    const user = userEvent.setup()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [],
+        displayData: [],
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:addFirstAccount" }),
+    )
+
+    expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenCreateAccountDialog,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(handleAddAccountClickMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("renders the created-time sort option in the unified menu", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton),
+    )
+    expect(
+      screen.getByTestId(
+        getAccountManagementSortButtonTestId(DATA_TYPE_CREATED_AT),
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("closes account dialogs and dispatches deletion only after confirmation", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "Delete Enabled Alpha" }),
+    )
+    await user.click(
+      screen.getByRole("button", { name: "Cancel account deletion" }),
+    )
+    expect(handleDeleteAccountMock).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole("dialog", { name: "Delete account" }),
+    ).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", { name: "Delete Enabled Alpha" }),
+    )
+    await user.click(
+      screen.getByRole("button", { name: "Complete account deletion" }),
+    )
+    expect(handleDeleteAccountMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "enabled-alpha" }),
+    )
+    expect(
+      screen.queryByRole("dialog", { name: "Delete account" }),
+    ).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", { name: "Copy key Enabled Alpha" }),
+    )
+    await user.click(screen.getByRole("button", { name: "Close key dialog" }))
+    expect(
+      screen.queryByRole("button", { name: "Close key dialog" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("renders current and related accounts before unrelated pins", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        pinnedAccountIds: ["enabled-alpha", "disabled-beta"],
+        getAccountContextBoost: (id: string) =>
+          id === "enabled-gamma"
+            ? "current-site"
+            : id === "unsynced-delta" || id === "disabled-beta"
+              ? "open-tabs"
+              : undefined,
+      }),
+    )
+    render(<AccountList />)
+    expect(
+      screen.getAllByTestId(TEST_IDS.accountRow).map((row) => row.textContent),
+    ).toEqual([
+      "Enabled Gamma",
+      "Unsynced Delta",
+      "Enabled Alpha",
+      "Disabled Beta",
+    ])
+  })
+
+  it("restores pin groups during manual reorder", async () => {
+    const user = userEvent.setup()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        pinnedAccountIds: ["enabled-alpha"],
+        isManualSortFeatureEnabled: true,
+        getAccountContextBoost: (id: string) =>
+          id === "enabled-gamma" ? "current-site" : undefined,
+      }),
+    )
+    render(<AccountList />)
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)[0]).toHaveTextContent(
+      "Enabled Gamma",
+    )
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)[0]).toHaveTextContent(
+      "Enabled Alpha",
+    )
+  })
+
+  it("keeps search results in pin groups despite browsing context", async () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        pinnedAccountIds: ["enabled-alpha"],
+        getAccountContextBoost: (id: string) =>
+          id === "enabled-gamma" ? "current-site" : undefined,
+      }),
+    )
+    render(<AccountList initialSearchQuery="Enabled" />)
+    await waitFor(() =>
+      expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(2),
+    )
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)[0]).toHaveTextContent(
+      "Enabled Alpha",
+    )
+  })
+
+  it("renders one continuous list in pinned, normal, disabled order", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        pinnedAccountIds: ["enabled-alpha"],
+      }),
+    )
+
+    render(<AccountList />)
+
+    expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0)
+    const rows = screen.getAllByTestId(TEST_IDS.accountRow)
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "Enabled Alpha",
+      "Enabled Gamma",
+      "Unsynced Delta",
+      "Disabled Beta",
+    ])
+    expect(atIndex(rows, 0).closest(".relative")).toHaveClass(
+      "bg-surface-subtle",
+    )
+    expect(atIndex(rows, 1).closest(".relative")).toHaveClass("border-t-4")
+    expect(atIndex(rows, 3).closest(".relative")).toHaveClass("opacity-40")
+    expect(document.querySelector(".space-y-0")).toBeInTheDocument()
+  })
+
+  it("hides the all-tags chip when no account tags exist", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    expect(
+      screen.queryByTestId(TEST_IDS.multiTagFilter),
+    ).not.toBeInTheDocument()
+  })
+
+  it("offers account-name sorting alongside check-in and health sorting", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton),
+    ).toHaveAttribute("aria-haspopup", "menu")
+
+    await user.click(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton),
+    )
+    expect(
+      screen.getByTestId(getAccountManagementSortButtonTestId("name")),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        getAccountManagementSortButtonTestId(DATA_TYPE_CHECK_IN_REQUIREMENT),
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByTestId(
+        getAccountManagementSortButtonTestId(DATA_TYPE_HEALTH_STATUS),
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("selects name from the user sort menu", async () => {
+    const user = userEvent.setup()
+    const handleSort = vi.fn()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        handleSort,
+        sortField: DATA_TYPE_BALANCE,
+      }),
+    )
+    render(<AccountList />)
+    await user.click(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton),
+    )
+    await user.click(
+      screen.getByRole("menuitemradio", {
+        name: "account:list.header.account",
+      }),
+    )
+    expect(handleSort).toHaveBeenCalledWith("name")
+  })
+
+  it.each([
+    ["custom_check_in_url", "settings:sorting.customCheckInUrl"],
+    ["custom_redeem_url", "settings:sorting.customRedeemUrl"],
+  ] as const)("selects %s from the user sort menu", async (field, label) => {
+    const user = userEvent.setup()
+    const handleSort = vi.fn()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({ handleSort }),
+    )
+    render(<AccountList />)
+    await user.click(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton),
+    )
+    await user.click(screen.getByRole("menuitemradio", { name: label }))
+    expect(handleSort).toHaveBeenCalledWith(field)
+  })
+
+  it.each(["asc", "desc"] as const)(
+    "keeps the active %s sort control actionable",
+    async (sortOrder) => {
+      const user = userEvent.setup()
+      const handleSort = vi.fn()
+
+      mockUseAccountDataContext.mockReturnValue(
+        createAccountDataContextValue({
+          handleSort,
+          sortField: DATA_TYPE_BALANCE,
+          sortOrder,
+        }),
+      )
+
+      render(<AccountList />)
+
+      expect(
+        screen.getByTestId(
+          ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton,
+        ),
+      ).toHaveAttribute("aria-haspopup", "menu")
+
+      await user.click(
+        screen.getByTestId(
+          ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortDirectionButton,
+        ),
+      )
+
+      expect(handleSort).toHaveBeenCalledWith(DATA_TYPE_BALANCE)
+    },
+  )
+
+  it("opens sorting priority settings from the account list", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "settings:sorting.title" }),
+    )
+
+    expect(openSettingsTab).toHaveBeenCalledWith("accountManagement", {
+      anchor: "sorting-priority",
+      preserveHistory: true,
+    })
+  })
+
+  it("shows a clear sort action when field sorting is active", async () => {
+    const user = userEvent.setup()
+    const clearSortConfig = vi.fn()
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        sortField: "name",
+        sortOrder: "asc",
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.accountListClearSortButton,
+      ),
+    )
+
+    expect(clearSortConfig).toHaveBeenCalledTimes(1)
+  })
+
+  it("hides the clear sort action when field sorting has been cleared", () => {
+    const clearSortConfig = vi.fn()
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        sortField: null,
+        sortOrder: "asc",
+      }),
+    )
+
+    render(<AccountList />)
+
+    expect(
+      screen.queryByRole("button", { name: "account:list.clearSort" }),
+    ).not.toBeInTheDocument()
+    expect(clearSortConfig).not.toHaveBeenCalled()
+  })
+
+  it("hides the clear sort action while search mode is active", () => {
+    const clearSortConfig = vi.fn()
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        sortField: "name",
+        sortOrder: "asc",
+      }),
+    )
+
+    render(<AccountList initialSearchQuery="Alpha" />)
+
+    expect(
+      screen.queryByRole("button", { name: "account:list.clearSort" }),
+    ).not.toBeInTheDocument()
+    expect(clearSortConfig).not.toHaveBeenCalled()
+  })
+
+  it("virtualizes normal browsing and keeps dnd inactive until reorder is requested", () => {
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        isManualSortFeatureEnabled: true,
+      }),
+    )
+
+    render(<AccountList />)
+
+    expect(screen.getByTestId(TEST_IDS.virtuoso)).toHaveAttribute(
+      "data-window-scroll",
+      "true",
+    )
+    expect(screen.queryByTestId(TEST_IDS.dndContext)).not.toBeInTheDocument()
+    expect(useSortableMock).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole("button", { name: "account:list.dragHandle" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    ).toBeEnabled()
+    expect(
+      screen.getByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.accountListBulkManageButton,
+      ),
+    ).toBeEnabled()
+  })
+
+  it("enters an explicit unvirtualized reorder mode next to bulk management", async () => {
+    const user = userEvent.setup()
+    const handleReorder = vi.fn()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        handleReorder,
+        isManualSortFeatureEnabled: true,
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(screen.queryByTestId(TEST_IDS.virtuoso)).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", { name: "account:list.dragHandle" }),
+    ).toHaveLength(4)
+    expect(
+      screen.getByRole("button", { name: "account:list.reorderDone" }),
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    ).toBeDisabled()
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorderDone" }),
+    )
+
+    expect(screen.getByTestId(TEST_IDS.virtuoso)).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "account:list.dragHandle" }),
+    ).not.toBeInTheDocument()
+    expect(handleReorder).not.toHaveBeenCalled()
+  })
+
+  it("restores virtual browsing when the dnd runtime fails to load", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(
+      accountListDndRuntimeLoader,
+      "loadAccountListDndRuntime",
+    ).mockRejectedValueOnce(new Error("dnd load failed"))
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({ isManualSortFeatureEnabled: true }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:list.reorderLoadFailed",
+      )
+    })
+    expect(screen.getByTestId(TEST_IDS.virtuoso)).toBeInTheDocument()
+    expect(screen.queryByTestId(TEST_IDS.dndContext)).not.toBeInTheDocument()
+  })
+
+  it("keeps the detected account highlighted in browsing and reorder modes", async () => {
+    const user = userEvent.setup()
+    const contextValue = createAccountDataContextValue({
+      detectedAccount: { id: "enabled-alpha" },
+      isManualSortFeatureEnabled: true,
+    })
+    mockUseAccountDataContext.mockReturnValue(contextValue)
+
+    render(<AccountList />)
+
+    expect(
+      screen.getByText("Enabled Alpha").closest(".border-l-primary"),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+    await screen.findByTestId(TEST_IDS.dndContext)
+
+    expect(
+      screen.getByText("Enabled Alpha").closest(".border-l-primary"),
+    ).toBeInTheDocument()
+  })
+
+  it("loads reorder controls after StrictMode replays mount effects", async () => {
+    const user = userEvent.setup()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({ isManualSortFeatureEnabled: true }),
+    )
+
+    render(
+      <React.StrictMode>
+        <AccountList />
+      </React.StrictMode>,
+    )
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "account:list.reorderDone" }),
+    ).not.toBeDisabled()
+  })
+
+  it("uses the supplied popup scroller for virtualized browsing", () => {
+    const scrollParent = document.createElement("div")
+
+    render(<AccountList virtualScrollParent={scrollParent} />)
+
+    expect(screen.getByTestId(TEST_IDS.virtuoso)).toHaveAttribute(
+      "data-custom-scroll-parent",
+      "true",
+    )
+    expect(screen.getByTestId(TEST_IDS.virtuoso)).toHaveAttribute(
+      "data-window-scroll",
+      "false",
+    )
+  })
+
+  it("preserves the visible order and lets field sorting replace reorder mode", async () => {
+    const user = userEvent.setup()
+    const clearSortConfig = vi.fn()
+    const handleSort = vi.fn()
+    const contextValue = createAccountDataContextValue({
+      clearSortConfig,
+      handleSort,
+      isManualSortFeatureEnabled: true,
+      isPinFeatureEnabled: true,
+      orderedAccountIds: ["enabled-gamma", "enabled-alpha"],
+      pinnedAccountIds: ["disabled-beta"],
+    })
+    contextValue.sortedData = [...contextValue.sortedData].reverse()
+    mockUseAccountDataContext.mockReturnValue(contextValue)
+
+    render(<AccountList />)
+    const orderBeforeReorder = screen
+      .getAllByTestId(TEST_IDS.accountRow)
+      .map((row) => row.textContent)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    const rows = await screen.findAllByTestId(TEST_IDS.accountRow)
+    expect(rows.map((row) => row.textContent)).toEqual(orderBeforeReorder)
+    await user.click(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListSortMenuButton),
+    )
+    expect(
+      screen.getByTestId(
+        getAccountManagementSortButtonTestId(DATA_TYPE_CHECK_IN_REQUIREMENT),
+      ),
+    ).toBeEnabled()
+    expect(
+      screen.getByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.accountListClearSortButton,
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSortButtonTestId(DATA_TYPE_BALANCE),
+      ),
+    )
+    expect(handleSort).toHaveBeenCalledWith(DATA_TYPE_BALANCE)
+    expect(clearSortConfig).not.toHaveBeenCalled()
+    expect(screen.queryByTestId(TEST_IDS.dndContext)).not.toBeInTheDocument()
+  })
+
+  it("keeps popup reorder discoverable with a hoverable disabled explanation", async () => {
+    const user = userEvent.setup()
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({ isManualSortFeatureEnabled: true }),
+    )
+
+    render(
+      <AccountList reorderUnavailableReason="account:list.reorderUnavailableInPopup" />,
+    )
+
+    const reorderButton = screen.getByRole("button", {
+      name: "account:list.reorder",
+    })
+    expect(reorderButton).toHaveAttribute("aria-disabled", "true")
+    expect(reorderButton).toHaveAccessibleDescription(
+      "account:list.reorderUnavailableInPopup",
+    )
+    await user.hover(reorderButton)
+    expect(
+      await screen.findByRole("tooltip", {
+        name: "account:list.reorderUnavailableInPopup",
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it("keeps a successful drag in place and activates manual ordering", async () => {
+    const user = userEvent.setup()
+    const clearSortConfig = vi.fn()
+    const handleReorder = vi.fn().mockResolvedValue(undefined)
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        isManualSortFeatureEnabled: true,
+        handleReorder,
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(dndState.onDragEnd).toBeTypeOf("function")
+
+    act(() => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "enabled-gamma" },
+      })
+    })
+
+    expect(handleReorder).toHaveBeenCalledWith([
+      "enabled-gamma",
+      "enabled-alpha",
+      "unsynced-delta",
+      "disabled-beta",
+    ])
+    expect(
+      screen.getAllByTestId(TEST_IDS.accountRow).map((row) => row.textContent),
+    ).toEqual([
+      "Enabled Gamma",
+      "Enabled Alpha",
+      "Unsynced Delta",
+      "Disabled Beta",
+    ])
+    await waitFor(() => {
+      expect(clearSortConfig).toHaveBeenCalledOnce()
+      expect(toastSuccessMock).toHaveBeenCalledWith(
+        "account:list.reorderSuccessFieldSortCleared",
+        { id: "account-reorder" },
+      )
+    })
+  })
+
+  it("keeps fixed account sections in separate reorder groups", async () => {
+    const user = userEvent.setup()
+    const clearSortConfig = vi.fn()
+    const handleReorder = vi.fn().mockResolvedValue(undefined)
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        handleReorder,
+        isManualSortFeatureEnabled: true,
+        pinnedAccountIds: ["enabled-alpha", "enabled-gamma"],
+      }),
+    )
+
+    render(<AccountList />)
+    const previousOrder = screen
+      .getAllByTestId(TEST_IDS.accountRow)
+      .map((row) => row.textContent)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "account:list.reorderGroupHint",
+    )
+
+    act(() => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "unsynced-delta" },
+      })
+    })
+
+    expect(handleReorder).not.toHaveBeenCalled()
+    expect(clearSortConfig).not.toHaveBeenCalled()
+    expect(
+      screen.getAllByTestId(TEST_IDS.accountRow).map((row) => row.textContent),
+    ).toEqual(previousOrder)
+    expect(toastDefaultMock).toHaveBeenCalledWith(
+      "account:list.reorderGroupBoundary",
+      {
+        id: "account-reorder-boundary",
+      },
+    )
+  })
+
+  it("reorders pinned accounts within one contiguous group", async () => {
+    const user = userEvent.setup()
+    const handleReorder = vi.fn().mockResolvedValue(undefined)
+    const contextValue = createAccountDataContextValue({
+      handleReorder,
+      isManualSortFeatureEnabled: true,
+      pinnedAccountIds: ["enabled-alpha", "enabled-gamma"],
+      sortField: null,
+    })
+    const alpha = atIndex(contextValue.sortedData, 0)
+    const beta = atIndex(contextValue.sortedData, 1)
+    const gamma = atIndex(contextValue.sortedData, 2)
+    const delta = atIndex(contextValue.sortedData, 3)
+    contextValue.sortedData = [alpha, gamma, beta, delta]
+    mockUseAccountDataContext.mockReturnValue(contextValue)
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+
+    await act(async () => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "enabled-gamma" },
+      })
+      await Promise.resolve()
+    })
+
+    expect(handleReorder).toHaveBeenCalledWith([
+      "enabled-gamma",
+      "enabled-alpha",
+      "unsynced-delta",
+      "disabled-beta",
+    ])
+    expect(toastDefaultMock).not.toHaveBeenCalled()
+  })
+
+  it("uses the rendered group order when source accounts are interleaved", async () => {
+    const user = userEvent.setup()
+    const handleReorder = vi.fn().mockResolvedValue(undefined)
+    const contextValue = createAccountDataContextValue({
+      handleReorder,
+      isManualSortFeatureEnabled: true,
+      pinnedAccountIds: ["enabled-alpha", "enabled-gamma"],
+      sortField: null,
+    })
+    const alpha = atIndex(contextValue.sortedData, 0)
+    const beta = atIndex(contextValue.sortedData, 1)
+    const gamma = atIndex(contextValue.sortedData, 2)
+    const delta = atIndex(contextValue.sortedData, 3)
+    contextValue.sortedData = [delta, alpha, beta, gamma]
+    mockUseAccountDataContext.mockReturnValue(contextValue)
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+
+    await act(async () => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "enabled-gamma" },
+      })
+      await Promise.resolve()
+    })
+
+    expect(handleReorder).toHaveBeenCalledWith([
+      "enabled-gamma",
+      "enabled-alpha",
+      "unsynced-delta",
+      "disabled-beta",
+    ])
+  })
+
+  it("restores the previous order and explains a failed reorder save", async () => {
+    const user = userEvent.setup()
+    const clearSortConfig = vi.fn()
+    let rejectReorder: ((reason?: unknown) => void) | undefined
+    const handleReorder = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectReorder = reject
+        }),
+    )
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        handleReorder,
+        isManualSortFeatureEnabled: true,
+      }),
+    )
+
+    render(<AccountList />)
+    const previousOrder = screen
+      .getAllByTestId(TEST_IDS.accountRow)
+      .map((row) => row.textContent)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+
+    act(() => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "enabled-gamma" },
+      })
+    })
+
+    expect(
+      screen.getAllByTestId(TEST_IDS.accountRow).map((row) => row.textContent),
+    ).not.toEqual(previousOrder)
+    expect(screen.getByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", { name: "account:list.dragHandle" })[0],
+    ).toBeDisabled()
+
+    act(() => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-gamma" },
+        over: { id: "disabled-beta" },
+      })
+    })
+    expect(handleReorder).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      rejectReorder?.(new Error("storage unavailable"))
+    })
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getAllByTestId(TEST_IDS.accountRow)
+          .map((row) => row.textContent),
+      ).toEqual(previousOrder)
+      expect(clearSortConfig).not.toHaveBeenCalled()
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:list.reorderFailed",
+        { id: "account-reorder" },
+      )
+    })
+  })
+
+  it("reorders only the visible subset after filters are applied", async () => {
+    const user = userEvent.setup()
+    const clearSortConfig = vi.fn()
+    const handleReorder = vi.fn()
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        clearSortConfig,
+        isManualSortFeatureEnabled: true,
+        handleReorder,
+        sortField: null,
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "common:status.enabled" }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(3)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(dndState.onDragEnd).toBeTypeOf("function")
+
+    await act(async () => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "enabled-gamma" },
+      })
+      await Promise.resolve()
+    })
+
+    expect(handleReorder).toHaveBeenCalledWith([
+      "enabled-gamma",
+      "enabled-alpha",
+      "unsynced-delta",
+    ])
+    expect(clearSortConfig).not.toHaveBeenCalled()
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      "account:list.reorderSuccess",
+      { id: "account-reorder" },
+    )
+  })
+
+  it("tracks completed manual reorder with aggregate metadata only", async () => {
+    const user = userEvent.setup()
+    const handleReorder = vi.fn().mockResolvedValue(undefined)
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        isManualSortFeatureEnabled: true,
+        handleReorder,
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(dndState.onDragEnd).toBeTypeOf("function")
+
+    await act(async () => {
+      dndState.onDragEnd?.({
+        active: { id: "enabled-alpha" },
+        over: { id: "enabled-gamma" },
+      })
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.ReorderAccounts,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Success,
+        insights: {
+          sourceKind: PRODUCT_ANALYTICS_SOURCE_KINDS.Manual,
+          itemCount: 4,
+        },
+      })
+    })
+    const completionPayload = atIndex(
+      trackProductAnalyticsActionCompletedMock.mock.calls,
+      0,
+    )[0]
+    expect(completionPayload).not.toHaveProperty("accountIds")
+    expect(completionPayload).not.toHaveProperty("fromAccountId")
+    expect(completionPayload).not.toHaveProperty("toAccountId")
+  })
+
+  it("does not activate dnd while search or bulk mode disables reorder", async () => {
+    const user = userEvent.setup()
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        isManualSortFeatureEnabled: true,
+      }),
+    )
+
+    const { unmount } = render(<AccountList initialSearchQuery="Alpha" />)
+
+    const searchReorderButton = screen.getByRole("button", {
+      name: "account:list.reorder",
+    })
+    expect(searchReorderButton).toHaveAttribute("aria-disabled", "true")
+    expect(searchReorderButton).toHaveAccessibleDescription(
+      "account:list.reorderUnavailableWhileSearch",
+    )
+
+    expect(screen.queryByTestId(TEST_IDS.dndContext)).not.toBeInTheDocument()
+    expect(useSortableMock).not.toHaveBeenCalled()
+
+    unmount()
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    expect(screen.getByTestId("account-bulk-toolbar")).toBeVisible()
+
+    const bulkReorderButton = screen.getByRole("button", {
+      name: "account:list.reorder",
+    })
+    expect(bulkReorderButton).toHaveAttribute("aria-disabled", "true")
+    expect(bulkReorderButton).toHaveAccessibleDescription(
+      "account:list.reorderUnavailableWhileBulk",
+    )
+    expect(screen.queryByTestId(TEST_IDS.dndContext)).not.toBeInTheDocument()
+    expect(useSortableMock).not.toHaveBeenCalled()
+  })
+
+  it("falls back to non-sortable rows when search disables drag after dnd is ready", async () => {
+    const user = userEvent.setup()
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        isManualSortFeatureEnabled: true,
+      }),
+    )
+
+    const { rerender } = render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(screen.getByTestId(TEST_IDS.sortableContext)).toBeInTheDocument()
+
+    rerender(<AccountList initialSearchQuery="Alpha" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole("textbox")).toHaveValue("Alpha")
+      expect(screen.queryByTestId(TEST_IDS.dndContext)).not.toBeInTheDocument()
+      expect(
+        screen.queryByTestId(TEST_IDS.sortableContext),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "account:list.reorder" }),
+      ).toHaveAttribute("aria-disabled", "true")
+      expect(screen.getByTestId(TEST_IDS.virtuoso)).toBeInTheDocument()
+    })
+  })
+
+  it("applies sortable dragging styles when dnd-kit marks a row as dragging", async () => {
+    const user = userEvent.setup()
+
+    sortableReturnState.current = {
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
+      transform: { x: 8, y: 12, scaleX: 1, scaleY: 1 },
+      transition: "transform 150ms ease",
+      isDragging: true,
+    }
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        isManualSortFeatureEnabled: true,
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:list.reorder" }),
+    )
+
+    expect(await screen.findByTestId(TEST_IDS.dndContext)).toBeInTheDocument()
+    expect(screen.getByTestId(TEST_IDS.sortableContext)).toBeInTheDocument()
+    expect(useSortableMock).toHaveBeenCalled()
+
+    const sortableHandle = atIndex(
+      screen.getAllByRole("button", {
+        name: "account:list.dragHandle",
+      }),
+      0,
+    )
+    const sortableWrapper = sortableHandle.closest("div[style]")
+
+    expect(sortableWrapper).toHaveClass("relative", "z-10")
+    expect(sortableWrapper).toHaveStyle({
+      transform: CSS.Transform.toString(sortableReturnState.current.transform),
+      transition: sortableReturnState.current.transition,
+    })
+  })
+
+  it("filters accounts by enabled state and combines with tag filters", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(4)
+
+    await user.click(
+      screen.getByRole("button", { name: "common:status.enabled" }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(3)
+    expect(screen.getByText("Enabled Alpha")).toBeInTheDocument()
+    expect(screen.getByText("Enabled Gamma")).toBeInTheDocument()
+    expect(screen.getByText("Unsynced Delta")).toBeInTheDocument()
+    expect(screen.queryByText("Disabled Beta")).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 3")
+
+    await user.click(screen.getByRole("button", { name: "Team A" }))
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(1)
+    expect(screen.getByText("Enabled Alpha")).toBeInTheDocument()
+    expect(screen.queryByText("Disabled Beta")).not.toBeInTheDocument()
+    expect(screen.queryByText("Enabled Gamma")).not.toBeInTheDocument()
+    expect(screen.queryByText("Unsynced Delta")).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 1")
+  })
+
+  it("toggles the compact filter panel without changing the displayed accounts", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+    const toggle = screen.getByRole("button", { name: "account:filter.toggle" })
+    const panel = document.getElementById(toggle.getAttribute("aria-controls")!)
+    const initialRows = screen
+      .getAllByTestId(TEST_IDS.accountRow)
+      .map((row) => row.textContent)
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    expect(panel).toHaveClass("hidden")
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute("aria-expanded", "true")
+    expect(panel).not.toHaveClass("hidden")
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    expect(panel).toHaveClass("hidden")
+    expect(
+      screen.getAllByTestId(TEST_IDS.accountRow).map((row) => row.textContent),
+    ).toEqual(initialRows)
+  })
+
+  it.each([SiteHealthStatus.Error, SiteHealthStatus.Unknown])(
+    "filters synced accounts with %s health independently from healthy accounts",
+    async (status) => {
+      const accounts = [
+        buildDisplaySiteData({
+          id: "selected",
+          name: "Selected status",
+          last_sync_time: 1,
+          health: { status },
+        }),
+        buildDisplaySiteData({
+          id: "healthy",
+          name: "Healthy status",
+          last_sync_time: 1,
+          health: { status: SiteHealthStatus.Healthy },
+        }),
+      ]
+      mockUseAccountDataContext.mockReturnValue(
+        createAccountDataContextValue({
+          sortedData: accounts,
+          displayData: accounts,
+        }),
+      )
+      render(<AccountList />)
+      const option = screen.getByRole("button", {
+        name: `account:healthStatus.${status}`,
+      })
+      expect(option).toHaveAttribute("data-count", "1")
+      await userEvent.setup().click(option)
+      expect(screen.getByText("Selected status")).toBeInTheDocument()
+      expect(screen.queryByText("Healthy status")).not.toBeInTheDocument()
+    },
+  )
+
+  it("uses the generic bulk deletion confirmation for OpenRouter", async () => {
+    const user = userEvent.setup()
+    const openRouter = buildDisplaySiteData({
+      id: "openrouter",
+      name: "OpenRouter",
+      siteType: "openrouter",
+    })
+    const compatible = buildDisplaySiteData({
+      id: "compatible",
+      name: "Compatible",
+      siteType: "new-api",
+    })
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [openRouter, compatible],
+        displayData: [openRouter, compatible],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+    testI18n.addResource(
+      "en",
+      "account",
+      "bulk.deleteConfirmDescription_one",
+      enAccount.bulk.deleteConfirmDescription_one,
+    )
+
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId(openRouter.id),
+      ),
+    )
+    await user.click(await getBulkAction(user, "deleteSelected"))
+
+    expect(
+      screen.getByText(
+        enAccount.bulk.deleteConfirmDescription_one.replace("{{count}}", "1"),
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(
+      atIndex(screen.getAllByRole("button", { name: "account:bulk.exit" }), 0),
+    )
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId(compatible.id),
+      ),
+    )
+    await user.click(await getBulkAction(user, "deleteSelected"))
+    expect(
+      screen.getByText(
+        enAccount.bulk.deleteConfirmDescription_one.replace("{{count}}", "1"),
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("links disabled filter with search results", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList initialSearchQuery="beta" />)
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(1)
+    expect(screen.getByText("Disabled Beta")).toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 1")
+
+    await user.click(
+      screen.getByRole("button", { name: "common:status.enabled" }),
+    )
+
+    expect(screen.queryByText("Disabled Beta")).not.toBeInTheDocument()
+    expect(screen.queryAllByTestId(TEST_IDS.accountRow)).toHaveLength(0)
+    expect(screen.getByText("account:search.noResults")).toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 0")
+
+    await user.click(
+      screen.getByRole("button", { name: "common:status.disabled" }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(1)
+    expect(screen.getByText("Disabled Beta")).toBeInTheDocument()
+    expect(
+      screen.queryByText("account:search.noResults"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 1")
+  })
+
+  it("filters accounts by site type and refresh status together", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    await user.click(screen.getByRole("button", { name: "one-api" }))
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(2)
+    expect(screen.getByText("Enabled Alpha")).toBeInTheDocument()
+    expect(screen.getByText("Enabled Gamma")).toBeInTheDocument()
+    expect(screen.queryByText("Disabled Beta")).not.toBeInTheDocument()
+    expect(screen.queryByText("Unsynced Delta")).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "account:healthStatus.warning" }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(1)
+    expect(screen.getByText("Enabled Gamma")).toBeInTheDocument()
+    expect(screen.queryByText("Enabled Alpha")).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 1")
+  })
+
+  it("filters unsynced accounts by refresh status", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "account:filter.refresh.neverSynced",
+      }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(1)
+    expect(screen.getByText("Unsynced Delta")).toBeInTheDocument()
+    expect(screen.queryByText("Enabled Alpha")).not.toBeInTheDocument()
+    expect(screen.queryByText("Disabled Beta")).not.toBeInTheDocument()
+    expect(screen.queryByText("Enabled Gamma")).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 1")
+  })
+
+  it("filters accounts by check-in status", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "account:filter.checkIn.not-checked-in",
+      }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(1)
+    expect(screen.getByText("Enabled Gamma")).toBeInTheDocument()
+    expect(screen.queryByText("Enabled Alpha")).not.toBeInTheDocument()
+    expect(
+      screen.getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.accountListHeader),
+    ).toHaveTextContent("common:total: 1")
+  })
+
+  it("offers a separate filter for check-in methods without readable status", () => {
+    render(<AccountList />)
+
+    expect(
+      screen.getByRole("button", {
+        name: "account:filter.checkIn.manual",
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it("updates faceted select counts based on other active filters", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    expect(
+      screen.getByRole("button", { name: "account:healthStatus.warning" }),
+    ).toHaveAttribute("data-count", "1")
+
+    await user.click(screen.getByRole("button", { name: "Team A" }))
+
+    expect(
+      screen.getByRole("button", { name: "account:healthStatus.warning" }),
+    ).toHaveAttribute("data-count", "0")
+    expect(screen.getByRole("button", { name: "one-api" })).toHaveAttribute(
+      "data-count",
+      "1",
+    )
+  })
+
+  it("shows filtered balance, consumption, and income totals for visible accounts", async () => {
+    const user = userEvent.setup()
+    const includedAccount = buildDisplaySiteData({
+      id: "included",
+      name: "Included Account",
+      disabled: false,
+      balance: { USD: 10, CNY: 70 },
+      todayConsumption: { USD: 1, CNY: 7 },
+      todayIncome: { USD: 2, CNY: 14 },
+    })
+    const incomeOptOutAccount = buildDisplaySiteData({
+      id: "income-opt-out",
+      name: "Income Opt Out",
+      disabled: false,
+      balance: { USD: 20, CNY: 140 },
+      todayConsumption: { USD: 3, CNY: 21 },
+      todayIncome: { USD: 4, CNY: 28 },
+      excludeFromTodayIncome: true,
+    })
+    const disabledAccount = buildDisplaySiteData({
+      id: "disabled",
+      name: "Disabled Account",
+      disabled: true,
+      balance: { USD: 100, CNY: 700 },
+      todayConsumption: { USD: 100, CNY: 700 },
+      todayIncome: { USD: 100, CNY: 700 },
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [includedAccount, incomeOptOutAccount, disabledAccount],
+        displayData: [includedAccount, incomeOptOutAccount, disabledAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "common:status.enabled" }),
+    )
+
+    expect(screen.getAllByTestId(TEST_IDS.accountRow)).toHaveLength(2)
+    expect(screen.getByText("Included Account")).toBeInTheDocument()
+    expect(screen.getByText("Income Opt Out")).toBeInTheDocument()
+    expect(screen.queryByText("Disabled Account")).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "account:filteredTotals.balance: USD 30.00 / CNY 210.00",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "account:filteredTotals.consumption: USD 4.00 / CNY 28.00",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("account:filteredTotals.income: USD 2.00 / CNY 14.00"),
+    ).toBeInTheDocument()
+  })
+
+  it("uses ordinary coverage copy for filtered partial totals without legacy accounts", async () => {
+    const user = userEvent.setup()
+    const partialAccount = buildDisplaySiteData({
+      id: "partial",
+      name: "Partial Account",
+      todayConsumption: { USD: 4, CNY: 28 },
+      todayStatsAvailability: buildCompleteTodayStatsAvailability({
+        consumption: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.PageLimit,
+        },
+      }),
+    })
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [partialAccount],
+        displayData: [partialAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "common:status.enabled" }),
+    )
+
+    const consumptionSummary = screen.getByText(
+      "account:filteredTotals.consumption",
+      { exact: false },
+    )
+    expect(consumptionSummary).toHaveTextContent("USD 4.00 / CNY 28.00")
+    expect(
+      within(consumptionSummary).getByText(
+        "account:todayMetricAvailability.coverage",
+      ),
+    ).toBeInTheDocument()
+    expect(consumptionSummary).not.toHaveTextContent(
+      "account:todayMetricAvailability.includesPendingRefresh",
+    )
+    expect(consumptionSummary).not.toHaveTextContent(
+      "account:todayMetricAvailability.coverageWithRefresh",
+    )
+  })
+
+  it("identifies legacy accounts in filtered partial and unavailable totals", async () => {
+    const user = userEvent.setup()
+    const partialAccount = buildDisplaySiteData({
+      id: "partial",
+      name: "Partial Account",
+      todayConsumption: { USD: 4, CNY: 28 },
+      todayIncome: { USD: 999, CNY: 6993 },
+      todayStatsAvailability: buildCompleteTodayStatsAvailability({
+        consumption: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Partial,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.PageLimit,
+        },
+        income: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.LegacyUnclassified,
+        },
+      }),
+    })
+    const unavailableAccount = buildDisplaySiteData({
+      id: "unavailable",
+      name: "Unavailable Account",
+      todayConsumption: { USD: 999, CNY: 6993 },
+      todayIncome: { USD: 888, CNY: 6216 },
+      todayStatsAvailability: buildCompleteTodayStatsAvailability({
+        consumption: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.LegacyUnclassified,
+        },
+        income: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.Unsupported,
+        },
+      }),
+    })
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [partialAccount, unavailableAccount],
+        displayData: [partialAccount, unavailableAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "common:status.enabled" }),
+    )
+
+    const consumptionSummary = screen
+      .getByText("account:filteredTotals.consumption", { exact: false })
+      .closest("span")
+    const incomeSummary = screen
+      .getByText("account:filteredTotals.income", { exact: false })
+      .closest("span")
+    expect(consumptionSummary).toHaveTextContent("USD 4.00 / CNY 28.00")
+    const partialMetric = within(
+      consumptionSummary as HTMLElement,
+    ).getByLabelText(
+      /USD 4\.00.*account:todayMetricAvailability\.includesPendingRefresh/,
+    )
+    expect(partialMetric).toHaveTextContent(
+      "account:todayMetricAvailability.includesPendingRefresh",
+    )
+    expect(partialMetric).not.toHaveAccessibleName(
+      /account:todayMetricAvailability\.coverageWithRefresh/,
+    )
+    expect(partialMetric).toHaveAccessibleDescription(
+      "account:todayMetricAvailability.coverageWithRefresh",
+    )
+    await user.hover(partialMetric)
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "account:todayMetricAvailability.coverageWithRefresh",
+    )
+    const pendingMetric = within(incomeSummary as HTMLElement).getByLabelText(
+      "account:todayMetricAvailability.pendingRefresh",
+    )
+    expect(pendingMetric).toHaveTextContent(
+      "account:todayMetricAvailability.pendingRefresh",
+    )
+    expect(pendingMetric).toHaveAccessibleDescription(
+      "account:todayMetricAvailability.pendingRefreshHelp",
+    )
+    expect(pendingMetric).not.toHaveTextContent("—")
+    expect(consumptionSummary).not.toHaveTextContent("999")
+    expect(incomeSummary).not.toHaveTextContent(/999|888/)
+  })
+
+  it("exposes unavailable filtered totals as readable text beside the visual dash", async () => {
+    const account = buildDisplaySiteData({
+      todayStatsAvailability: buildCompleteTodayStatsAvailability({
+        consumption: {
+          status: ACCOUNT_TODAY_METRIC_STATUSES.Unavailable,
+          reason: ACCOUNT_TODAY_METRIC_REASONS.Unsupported,
+        },
+      }),
+    })
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [account],
+        displayData: [account],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+    render(<AccountList />)
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "common:status.enabled" }))
+    const label = screen.getByText(
+      "account:todayMetricAvailability.unavailable",
+    )
+    expect(label).toHaveClass("sr-only")
+    expect(label.closest('[aria-hidden="true"]')).toBeNull()
+    expect(label.parentElement).toHaveTextContent("—")
+  })
+
+  it("keeps site-type options visible when search narrows counts to zero", () => {
+    render(<AccountList initialSearchQuery="beta" />)
+
+    expect(screen.getByRole("button", { name: "one-api" })).toHaveAttribute(
+      "data-count",
+      "0",
+    )
+    expect(screen.getByRole("button", { name: "new-api" })).toHaveAttribute(
+      "data-count",
+      "1",
+    )
+  })
+
+  it("tracks entering and exiting bulk mode without per-selection telemetry", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+
+    expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.EnterAccountBulkMode,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+
+    trackProductAnalyticsActionStartedMock.mockClear()
+    trackProductAnalyticsActionCompletedMock.mockClear()
+
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(
+      atIndex(screen.getAllByRole("button", { name: "account:bulk.exit" }), 0),
+    )
+
+    expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.ExitAccountBulkMode,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledTimes(1)
+    expect(trackProductAnalyticsActionCompletedMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps selections across search changes for bulk disable", async () => {
+    const user = userEvent.setup()
+    handleSetAccountsDisabledMock.mockResolvedValueOnce({
+      updatedCount: 2,
+      updatedIds: ["enabled-alpha", "enabled-gamma"],
+    })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    await user.clear(screen.getByPlaceholderText("account:search.placeholder"))
+    await user.type(
+      screen.getByPlaceholderText("account:search.placeholder"),
+      "Gamma",
+    )
+
+    expect(await screen.findByText("Enabled Gamma")).toBeInTheDocument()
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    )
+
+    expect(handleSetAccountsDisabledMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "enabled-alpha" }),
+        expect.objectContaining({ id: "enabled-gamma" }),
+      ]),
+      true,
+    )
+  })
+
+  it("clears only the currently visible selections during bulk mode", async () => {
+    const user = userEvent.setup()
+    handleSetAccountsDisabledMock.mockResolvedValueOnce({
+      updatedCount: 1,
+      updatedIds: ["enabled-alpha"],
+    })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const searchInput = screen.getByPlaceholderText(
+      "account:search.placeholder",
+    )
+    await user.clear(searchInput)
+    await user.type(searchInput, "Gamma")
+
+    expect(await screen.findByText("Enabled Gamma")).toBeInTheDocument()
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(await getBulkAction(user, "clearVisible"))
+    await user.click(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    )
+
+    expect(handleSetAccountsDisabledMock).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: "enabled-alpha" })],
+      true,
+    )
+  })
+
+  it("reviews and removes hidden selections without changing the search", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("enabled-alpha"),
+      ),
+    )
+    const search = screen.getByPlaceholderText("account:search.placeholder")
+    await user.type(search, "Gamma")
+    await user.click(
+      await screen.findByTestId(
+        getAccountManagementSelectionCheckboxTestId("enabled-gamma"),
+      ),
+    )
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.reviewSelection" }),
+    )
+    const review = screen.getByRole("dialog", {
+      name: "account:bulk.reviewSelection",
+    })
+    expect(within(review).getByText("Enabled Alpha")).toBeVisible()
+    expect(within(review).getByText("account:bulk.hiddenAccount")).toBeVisible()
+    await user.click(atIndex(within(review).getAllByRole("checkbox"), 0))
+    expect(within(review).queryByText("Enabled Alpha")).not.toBeInTheDocument()
+    expect(search).toHaveValue("Gamma")
+    await user.keyboard("{Escape}")
+    expect(
+      screen.getByRole("button", { name: "account:bulk.reviewSelection" }),
+    ).toHaveFocus()
+    await user.click(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    )
+    expect(handleSetAccountsDisabledMock).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: "enabled-gamma" })],
+      true,
+    )
+  })
+
+  it("clears all selection from the review and keeps the empty panel operable", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(await getBulkAction(user, "selectVisible"))
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.reviewSelection" }),
+    )
+    const review = screen.getByRole("dialog", {
+      name: "account:bulk.reviewSelection",
+    })
+    await user.click(
+      within(review).getByRole("button", { name: "account:bulk.clearAll" }),
+    )
+    expect(
+      within(review).getByText("account:bulk.selectionEmpty"),
+    ).toBeVisible()
+    await user.keyboard("{Escape}")
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "account:bulk.exit" }),
+      ).toHaveFocus(),
+    )
+    expect(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    ).toBeDisabled()
+    expect(
+      screen
+        .getAllByRole("checkbox")
+        .every((checkbox) => !(checkbox as HTMLInputElement).checked),
+    ).toBe(true)
+  })
+
+  it("keeps remaining selection when bulk disable only partially succeeds", async () => {
+    const user = userEvent.setup()
+    handleSetAccountsDisabledMock
+      .mockResolvedValueOnce({
+        updatedCount: 1,
+        updatedIds: ["enabled-alpha"],
+      })
+      .mockResolvedValueOnce({
+        updatedCount: 1,
+        updatedIds: ["enabled-gamma"],
+      })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const searchInput = screen.getByPlaceholderText(
+      "account:search.placeholder",
+    )
+    await user.clear(searchInput)
+    await user.type(searchInput, "Gamma")
+
+    expect(await screen.findByText("Enabled Gamma")).toBeInTheDocument()
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    )
+    await user.click(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    )
+
+    expect(handleSetAccountsDisabledMock).toHaveBeenNthCalledWith(
+      1,
+      expect.arrayContaining([
+        expect.objectContaining({ id: "enabled-alpha" }),
+        expect.objectContaining({ id: "enabled-gamma" }),
+      ]),
+      true,
+    )
+    expect(handleSetAccountsDisabledMock).toHaveBeenNthCalledWith(
+      2,
+      [expect.objectContaining({ id: "enabled-gamma" })],
+      true,
+    )
+  })
+
+  it("shows a bulk delete confirmation and deletes all selected accounts", async () => {
+    const user = userEvent.setup()
+    handleDeleteAccountsMock.mockResolvedValueOnce({
+      deletedCount: 2,
+      deletedIds: ["enabled-alpha", "enabled-gamma"],
+    })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const searchInput = screen.getByPlaceholderText(
+      "account:search.placeholder",
+    )
+    await user.clear(searchInput)
+    await user.type(searchInput, "Gamma")
+
+    expect(await screen.findByText("Enabled Gamma")).toBeInTheDocument()
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(await getBulkAction(user, "deleteSelected"))
+
+    expect(
+      screen.getByText("account:bulk.deleteConfirmTitle"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText((content) =>
+        content.includes("account:bulk.deleteHiddenSelectedHint"),
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.deleteConfirmAction" }),
+    )
+
+    expect(handleDeleteAccountsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "enabled-alpha" }),
+      expect.objectContaining({ id: "enabled-gamma" }),
+    ])
+  })
+
+  it("cancels bulk deletion without dispatching a mutation", async () => {
+    const user = userEvent.setup()
+    render(<AccountList />)
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(await getBulkAction(user, "deleteSelected"))
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.cancel" }),
+    )
+    expect(handleDeleteAccountsMock).not.toHaveBeenCalled()
+    expect(
+      screen.queryByText("account:bulk.deleteConfirmTitle"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("keeps remaining selection when bulk delete only partially succeeds", async () => {
+    const user = userEvent.setup()
+    handleDeleteAccountsMock
+      .mockResolvedValueOnce({
+        deletedCount: 1,
+        deletedIds: ["enabled-alpha"],
+      })
+      .mockResolvedValueOnce({
+        deletedCount: 1,
+        deletedIds: ["enabled-gamma"],
+      })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const searchInput = screen.getByPlaceholderText(
+      "account:search.placeholder",
+    )
+    await user.clear(searchInput)
+    await user.type(searchInput, "Gamma")
+
+    expect(await screen.findByText("Enabled Gamma")).toBeInTheDocument()
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+    await user.click(await getBulkAction(user, "deleteSelected"))
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.deleteConfirmAction" }),
+    )
+    await user.click(await getBulkAction(user, "deleteSelected"))
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.deleteConfirmAction" }),
+    )
+
+    expect(handleDeleteAccountsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.arrayContaining([
+        expect.objectContaining({ id: "enabled-alpha" }),
+        expect.objectContaining({ id: "enabled-gamma" }),
+      ]),
+    )
+    expect(handleDeleteAccountsMock).toHaveBeenNthCalledWith(2, [
+      expect.objectContaining({ id: "enabled-gamma" }),
+    ])
+  })
+
+  it("tracks confirmed bulk delete with aggregate counts only", async () => {
+    const user = userEvent.setup()
+    handleDeleteAccountsMock.mockResolvedValueOnce({
+      deletedCount: 1,
+      deletedIds: ["enabled-alpha"],
+    })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const searchInput = screen.getByPlaceholderText(
+      "account:search.placeholder",
+    )
+    await user.clear(searchInput)
+    await user.type(searchInput, "Gamma")
+    await user.click(await screen.findByRole("checkbox"))
+    await user.click(await getBulkAction(user, "deleteSelected"))
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.deleteConfirmAction" }),
+    )
+
+    const expectedContext = {
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.DeleteAccount,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    }
+    expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith(
+      expectedContext,
+    )
+    expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+      ...expectedContext,
+      result: PRODUCT_ANALYTICS_RESULTS.Failure,
+      errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      insights: {
+        itemCount: 2,
+        selectedCount: 2,
+        successCount: 1,
+        failureCount: 1,
+      },
+    })
+    const completionPayload = atIndex(
+      trackProductAnalyticsActionCompletedMock.mock.calls,
+      0,
+    )[0]
+    expect(completionPayload).not.toHaveProperty("durationMs")
+    expect(completionPayload).not.toHaveProperty("error")
+    expect(completionPayload).not.toHaveProperty("message")
+    expect(completionPayload).not.toHaveProperty("accountIds")
+  })
+
+  it("tracks bulk disable persistence with aggregate counts only", async () => {
+    const user = userEvent.setup()
+    handleSetAccountsDisabledMock.mockResolvedValueOnce({
+      updatedCount: 1,
+      updatedIds: ["enabled-alpha"],
+    })
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const searchInput = screen.getByPlaceholderText(
+      "account:search.placeholder",
+    )
+    await user.clear(searchInput)
+    await user.type(searchInput, "Gamma")
+    await user.click(await screen.findByRole("checkbox"))
+    await user.click(
+      screen.getByRole("button", { name: /account:bulk.disableSelected/ }),
+    )
+
+    const expectedContext = {
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.DisableSelectedAccounts,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    }
+    expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith(
+      expectedContext,
+    )
+    expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+      ...expectedContext,
+      result: PRODUCT_ANALYTICS_RESULTS.Failure,
+      errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      insights: {
+        itemCount: 2,
+        selectedCount: 2,
+        successCount: 1,
+        failureCount: 1,
+      },
+    })
+    const completionPayload = atIndex(
+      trackProductAnalyticsActionCompletedMock.mock.calls,
+      0,
+    )[0]
+    expect(completionPayload).not.toHaveProperty("durationMs")
+    expect(completionPayload).not.toHaveProperty("error")
+    expect(completionPayload).not.toHaveProperty("message")
+    expect(completionPayload).not.toHaveProperty("accountIds")
+  })
+
+  it("reports unsupported invite-link copy when no selected account supports it", async () => {
+    const user = userEvent.setup()
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(atIndex(screen.getAllByRole("checkbox"), 0))
+
+    const copyAction = await getBulkAction(user, "copyInviteLinks")
+    expect(copyAction).toBeEnabled()
+    await user.click(copyAction)
+
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).not.toHaveBeenCalled()
+      expect(clipboardWriteTextMock).not.toHaveBeenCalled()
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksUnsupported",
+      )
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Failure,
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unsupported,
+        insights: {
+          itemCount: 0,
+          selectedCount: 1,
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 1,
+        },
+      })
+    })
+  })
+
+  it("copies invite links for supported selected accounts", async () => {
+    const user = userEvent.setup()
+    const workflowSpy = vi.spyOn(
+      inviteLinkCopyWorkflow,
+      "runInviteLinkCopyWorkflow",
+    )
+    const inviteA = buildDisplaySiteData({
+      id: "invite-a",
+      name: "Invite A",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-a.example.com",
+    })
+    const inviteB = buildDisplaySiteData({
+      id: "invite-b",
+      name: "Invite B",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-b.example.com",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [inviteA, inviteB],
+        displayData: [inviteA, inviteB],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-a"),
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-b"),
+      ),
+    )
+    await user.click(await getBulkAction(user, "copyInviteLinks"))
+
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(2)
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "invite-a" }),
+        expect.objectContaining({ abortSignal: expect.any(AbortSignal) }),
+      )
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "invite-b" }),
+        expect.objectContaining({ abortSignal: expect.any(AbortSignal) }),
+      )
+      expect(workflowSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestTimeoutMs: 8_000,
+          batchTimeoutMs: 20_000,
+        }),
+      )
+      expect(atIndex(workflowSpy.mock.calls, 0)[0]).not.toHaveProperty(
+        "maxConcurrency",
+      )
+      expect(toastSuccessMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksSuccess",
+      )
+      expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      })
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Success,
+        insights: {
+          itemCount: 2,
+          selectedCount: 2,
+          successCount: 2,
+          failureCount: 0,
+          skippedCount: 0,
+        },
+      })
+    })
+  })
+
+  it("copies the stored site address of every selected account", async () => {
+    const user = userEvent.setup()
+    // userEvent.setup() installs its own clipboard stub, so the mock has to
+    // win the race by being defined after it.
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({ writeText: clipboardWriteTextMock }),
+    })
+    const enabledAccount = buildDisplaySiteData({
+      id: "site-url-enabled",
+      name: "Site URL Enabled",
+      disabled: false,
+      baseUrl: "https://site-url-enabled.example.invalid",
+    })
+    const disabledAccount = buildDisplaySiteData({
+      id: "site-url-disabled",
+      name: "Site URL Disabled",
+      disabled: true,
+      baseUrl: "https://site-url-disabled.example.invalid",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [enabledAccount, disabledAccount],
+        displayData: [enabledAccount, disabledAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("site-url-enabled"),
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("site-url-disabled"),
+      ),
+    )
+
+    await user.click(await getBulkAction(user, "copySiteUrls"))
+
+    await waitFor(() => {
+      expect(clipboardWriteTextMock).toHaveBeenCalledWith(
+        "https://site-url-enabled.example.invalid\nhttps://site-url-disabled.example.invalid",
+      )
+      expect(toastSuccessMock).toHaveBeenCalledWith(
+        "account:bulk.copySiteUrlsSuccess",
+      )
+      expect(fetchDisplayAccountInviteLinkMock).not.toHaveBeenCalled()
+      expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountSiteUrls,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      })
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountSiteUrls,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Success,
+        insights: {
+          itemCount: 2,
+          selectedCount: 2,
+          successCount: 2,
+          failureCount: 0,
+          skippedCount: 0,
+        },
+      })
+    })
+  })
+
+  it("copies site addresses in the order the list sorts them", async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({ writeText: clipboardWriteTextMock }),
+    })
+    const zebra = buildDisplaySiteData({
+      id: "order-zebra",
+      name: "Zebra Order",
+      baseUrl: "https://zebra-order.example.invalid",
+    })
+    const alpha = buildDisplaySiteData({
+      id: "order-alpha",
+      name: "Alpha Order",
+      baseUrl: "https://alpha-order.example.invalid",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        // The user sorts the list, so the rendered rows are not the storage order.
+        sortedData: [alpha, zebra],
+        displayData: [zebra, alpha],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("order-zebra"),
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("order-alpha"),
+      ),
+    )
+    await user.click(await getBulkAction(user, "copySiteUrls"))
+
+    await waitFor(() => {
+      expect(clipboardWriteTextMock).toHaveBeenCalledWith(
+        "https://alpha-order.example.invalid\nhttps://zebra-order.example.invalid",
+      )
+    })
+  })
+
+  it("copies invite links in the order the list sorts them", async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({ writeText: clipboardWriteTextMock }),
+    })
+    const zebra = buildDisplaySiteData({
+      id: "invite-order-zebra",
+      name: "Zebra Order",
+      siteType: "new-api",
+      baseUrl: "https://zebra-invite-order.example.invalid",
+    })
+    const alpha = buildDisplaySiteData({
+      id: "invite-order-alpha",
+      name: "Alpha Order",
+      siteType: "new-api",
+      baseUrl: "https://alpha-invite-order.example.invalid",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [alpha, zebra],
+        displayData: [zebra, alpha],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-order-zebra"),
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-order-alpha"),
+      ),
+    )
+    await user.click(await getBulkAction(user, "copyInviteLinks"))
+
+    await waitFor(() => {
+      expect(clipboardWriteTextMock).toHaveBeenCalledWith(
+        [
+          "Alpha Order: https://alpha-invite-order.example.invalid/register?aff=invite-order-alpha",
+          "Zebra Order: https://zebra-invite-order.example.invalid/register?aff=invite-order-zebra",
+        ].join("\n"),
+      )
+    })
+  })
+
+  it("reports a blocked clipboard for bulk site-address copy", async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({ writeText: clipboardWriteTextMock }),
+    })
+    clipboardWriteTextMock.mockRejectedValueOnce(new Error("clipboard blocked"))
+    const blockedAccount = buildDisplaySiteData({
+      id: "site-url-blocked",
+      name: "Site URL Blocked",
+      disabled: false,
+      baseUrl: "https://site-url-blocked.example.invalid",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [blockedAccount],
+        displayData: [blockedAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("site-url-blocked"),
+      ),
+    )
+
+    await user.click(await getBulkAction(user, "copySiteUrls"))
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copySiteUrlsClipboardFailed",
+      )
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountSiteUrls,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Failure,
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Permission,
+        insights: {
+          itemCount: 1,
+          selectedCount: 1,
+          successCount: 0,
+          failureCount: 1,
+          skippedCount: 0,
+        },
+      })
+    })
+  })
+
+  it("shows an error and preserves clipboard when no selected accounts have copyable site URLs", async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({ writeText: clipboardWriteTextMock }),
+    })
+    const blankAccount = buildDisplaySiteData({
+      id: "site-url-blank",
+      name: "Site URL Blank",
+      disabled: false,
+      baseUrl: "   ",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [blankAccount],
+        displayData: [blankAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("site-url-blank"),
+      ),
+    )
+
+    await user.click(await getBulkAction(user, "copySiteUrls"))
+
+    await waitFor(() => {
+      expect(clipboardWriteTextMock).not.toHaveBeenCalled()
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copySiteUrlsNone",
+      )
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountSiteUrls,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Failure,
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unsupported,
+        insights: {
+          itemCount: 0,
+          selectedCount: 1,
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 1,
+        },
+      })
+    })
+  })
+
+  it("prevents same-turn re-entry and ignores second click while site-URL copy is pending", async () => {
+    const user = userEvent.setup()
+    let resolveClipboard: (() => void) | undefined
+    const pendingWrite = new Promise<void>((resolve) => {
+      resolveClipboard = resolve
+    })
+    const clickTarget = { current: null as HTMLElement | null }
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({
+        writeText: clipboardWriteTextMock.mockImplementation(() => {
+          clickTarget.current?.click()
+          return pendingWrite
+        }),
+      }),
+    })
+    const pendingAccount = buildDisplaySiteData({
+      id: "site-url-reentry",
+      name: "Site URL Re-entry",
+      disabled: false,
+      baseUrl: "https://site-url-reentry.example.invalid",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [pendingAccount],
+        displayData: [pendingAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("site-url-reentry"),
+      ),
+    )
+
+    const bulkCopyButton = await getBulkAction(user, "copySiteUrls")
+    clickTarget.current = bulkCopyButton
+    await user.click(bulkCopyButton)
+
+    await act(async () => {
+      resolveClipboard?.()
+    })
+
+    await waitFor(() => {
+      expect(clipboardWriteTextMock).toHaveBeenCalledTimes(1)
+    })
+    expect(
+      trackProductAnalyticsActionStartedMock.mock.calls.filter(
+        ([context]) =>
+          context.actionId ===
+          PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountSiteUrls,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it("prevents same-turn re-entry when bulk invite-link copy starts", async () => {
+    const user = userEvent.setup()
+    const pendingAccount = buildDisplaySiteData({
+      id: "invite-reentry",
+      name: "Invite Re-entry",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-reentry.example.invalid",
+    })
+    let resolveInviteLink: ((value: string) => void) | undefined
+    const pendingInviteLink = new Promise<string>((resolve) => {
+      resolveInviteLink = resolve
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [pendingAccount],
+        displayData: [pendingAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-reentry"),
+      ),
+    )
+    const bulkCopyButton = await getBulkAction(user, "copyInviteLinks")
+    fetchDisplayAccountInviteLinkMock.mockImplementationOnce(() => {
+      bulkCopyButton.click()
+      return pendingInviteLink
+    })
+
+    await user.click(bulkCopyButton)
+    await act(async () => {
+      resolveInviteLink?.(
+        "https://invite-reentry.example.invalid/register?aff=invite-reentry",
+      )
+    })
+
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(1)
+    })
+    expect(
+      trackProductAnalyticsActionStartedMock.mock.calls.filter(
+        ([context]) =>
+          context.actionId ===
+          PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it("shows a copying state while invite-link requests are pending", async () => {
+    const user = userEvent.setup()
+    const pendingAccount = buildDisplaySiteData({
+      id: "invite-pending",
+      name: "Invite Pending",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-pending.example.com",
+    })
+    let resolveInviteLink: ((value: string) => void) | undefined
+    fetchDisplayAccountInviteLinkMock.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveInviteLink = resolve
+        }),
+    )
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [pendingAccount],
+        displayData: [pendingAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-pending"),
+      ),
+    )
+    await user.click(await getBulkAction(user, "copyInviteLinks"))
+
+    for (const button of screen.getAllByRole("button", {
+      name: "common:status.copying",
+    })) {
+      expect(button).toBeDisabled()
+    }
+
+    await act(async () => {
+      resolveInviteLink?.(
+        "https://invite-pending.example.com/register?aff=invite-pending",
+      )
+    })
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("account-bulk-toolbar")).getByRole("button", {
+          name: "account:bulk.copyInviteLinks",
+        }),
+      ).toBeEnabled()
+    })
+  })
+
+  it("tracks a cancelled invite-link copy when the account list unmounts", async () => {
+    const pendingAccount = buildDisplaySiteData({
+      id: "invite-cancelled",
+      name: "Invite Cancelled",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-cancelled.example.invalid",
+    })
+    let resolveInviteLink: ((value: string) => void) | undefined
+    fetchDisplayAccountInviteLinkMock.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveInviteLink = resolve
+        }),
+    )
+
+    const { copyInviteLinks, unmount } = await renderBulkInviteLinkSelection([
+      pendingAccount,
+    ])
+
+    await copyInviteLinks()
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(1)
+    })
+
+    unmount()
+    await act(async () => {
+      resolveInviteLink?.(
+        "https://invite-cancelled.example.invalid/register?aff=invite-cancelled",
+      )
+    })
+
+    await waitFor(() => {
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Cancelled,
+        insights: {
+          itemCount: 1,
+          selectedCount: 1,
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 0,
+        },
+      })
+    })
+    expect(toastSuccessMock).not.toHaveBeenCalled()
+    expect(toastErrorMock).not.toHaveBeenCalled()
+  })
+
+  it("reports partial invite-link copy when the selection mixes supported and unsupported accounts", async () => {
+    const user = userEvent.setup()
+    const supported = buildDisplaySiteData({
+      id: "invite-supported",
+      name: "Invite Supported",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-supported.example.com",
+    })
+    const unsupported = buildDisplaySiteData({
+      id: "invite-unsupported",
+      name: "Invite Unsupported",
+      disabled: false,
+      siteType: "one-api",
+      baseUrl: "https://invite-unsupported.example.com",
+    })
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [supported, unsupported],
+        displayData: [supported, unsupported],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-supported"),
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-unsupported"),
+      ),
+    )
+    await user.click(await getBulkAction(user, "copyInviteLinks"))
+
+    expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(1)
+    expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "invite-supported" }),
+      expect.objectContaining({ abortSignal: expect.any(AbortSignal) }),
+    )
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      "account:bulk.copyInviteLinksPartialSuccess",
+    )
+    expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      result: PRODUCT_ANALYTICS_RESULTS.Failure,
+      errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unsupported,
+      insights: {
+        itemCount: 1,
+        selectedCount: 2,
+        successCount: 1,
+        failureCount: 0,
+        skippedCount: 1,
+        failureReason: PRODUCT_ANALYTICS_FAILURE_REASONS.PartialSuccess,
+      },
+    })
+  })
+
+  it("reports partial invite-link copy when one supported account fetch fails", async () => {
+    const successfulAccount = buildDisplaySiteData({
+      id: "invite-success",
+      name: "Invite Success",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-success.example.invalid",
+    })
+    const failedAccount = buildDisplaySiteData({
+      id: "invite-failure",
+      name: "Invite Failure",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-failure.example.invalid",
+    })
+    fetchDisplayAccountInviteLinkMock.mockImplementation(
+      async (account: { id: string; baseUrl: string }) => {
+        if (account.id === "invite-failure") {
+          throw new Error("invite link unavailable")
+        }
+        return `${account.baseUrl}/register?aff=${account.id}`
+      },
+    )
+
+    const { copyInviteLinks } = await renderBulkInviteLinkSelection([
+      successfulAccount,
+      failedAccount,
+    ])
+
+    await copyInviteLinks()
+
+    await waitFor(() => {
+      expect(toastSuccessMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksPartialSuccess",
+      )
+    })
+    expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      result: PRODUCT_ANALYTICS_RESULTS.Failure,
+      errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      insights: {
+        itemCount: 2,
+        selectedCount: 2,
+        successCount: 1,
+        failureCount: 1,
+        skippedCount: 0,
+        failureReason: PRODUCT_ANALYTICS_FAILURE_REASONS.PartialSuccess,
+      },
+    })
+  })
+
+  it("reports failed invite-link copy when every supported account fetch fails", async () => {
+    const user = userEvent.setup()
+    const inviteA = buildDisplaySiteData({
+      id: "invite-fail-a",
+      name: "Invite Fail A",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-fail-a.example.com",
+    })
+    const inviteB = buildDisplaySiteData({
+      id: "invite-fail-b",
+      name: "Invite Fail B",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-fail-b.example.com",
+    })
+    fetchDisplayAccountInviteLinkMock.mockRejectedValue(
+      new InviteLinkError(INVITE_LINK_FAILURE_REASONS.FeatureDisabled),
+    )
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [inviteA, inviteB],
+        displayData: [inviteA, inviteB],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-fail-a"),
+      ),
+    )
+    await user.click(
+      screen.getByTestId(
+        getAccountManagementSelectionCheckboxTestId("invite-fail-b"),
+      ),
+    )
+    await user.click(await getBulkAction(user, "copyInviteLinks"))
+
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(2)
+      expect(clipboardWriteTextMock).not.toHaveBeenCalled()
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksFailedWithReasons",
+      )
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Failure,
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unsupported,
+        insights: {
+          itemCount: 2,
+          selectedCount: 2,
+          successCount: 0,
+          failureCount: 2,
+          skippedCount: 0,
+        },
+      })
+    })
+  })
+
+  it("reports an unexpected invite-link workflow failure", async () => {
+    const account = buildDisplaySiteData({
+      id: "invite-unexpected-failure",
+      name: "Invite Unexpected Failure",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-unexpected-failure.example.invalid",
+    })
+
+    const workflowError = new Error("unexpected invite-link workflow failure")
+    vi.spyOn(
+      inviteLinkCopyWorkflow,
+      "runInviteLinkCopyWorkflow",
+    ).mockRejectedValueOnce(workflowError)
+    const { copyInviteLinks } = await renderBulkInviteLinkSelection([account])
+
+    await copyInviteLinks()
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksFailed",
+      )
+    })
+    expect(clipboardWriteTextMock).not.toHaveBeenCalled()
+    expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      result: PRODUCT_ANALYTICS_RESULTS.Failure,
+      errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      insights: {
+        itemCount: 1,
+        selectedCount: 1,
+        successCount: 0,
+        failureCount: 1,
+        skippedCount: 0,
+      },
+    })
+  })
+
+  it("reports failed invite-link copy when clipboard writing fails", async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      get: () => ({
+        writeText: clipboardWriteTextMock,
+      }),
+    })
+    const clipboardFailureAccount = buildDisplaySiteData({
+      id: "clipboard-fail",
+      name: "Clipboard Fail",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://clipboard-fail.example.com",
+    })
+    clipboardWriteTextMock.mockRejectedValueOnce(
+      new Error("clipboard unavailable"),
+    )
+
+    mockUseAccountDataContext.mockReturnValue(
+      createAccountDataContextValue({
+        sortedData: [clipboardFailureAccount],
+        displayData: [clipboardFailureAccount],
+        tags: [],
+        tagCountsById: {},
+      }),
+    )
+
+    render(<AccountList />)
+
+    await user.click(
+      screen.getByRole("button", { name: "account:bulk.manage" }),
+    )
+    await user.click(await getBulkAction(user, "selectVisible"))
+    const copyInviteLinksButton = await getBulkAction(user, "copyInviteLinks")
+    await waitFor(() => {
+      expect(copyInviteLinksButton).toBeEnabled()
+    })
+    await user.click(copyInviteLinksButton)
+
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(1)
+      expect(clipboardWriteTextMock).toHaveBeenCalledWith(
+        "Clipboard Fail: https://clipboard-fail.example.com/register?aff=clipboard-fail",
+      )
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksClipboardFailed",
+      )
+      expect(
+        screen.getByTestId(
+          ACCOUNT_MANAGEMENT_TEST_IDS.inviteLinkManualCopyTextarea,
+        ),
+      ).toHaveValue(
+        "Clipboard Fail: https://clipboard-fail.example.com/register?aff=clipboard-fail",
+      )
+      expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+        surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+        entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+        result: PRODUCT_ANALYTICS_RESULTS.Failure,
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Permission,
+        insights: {
+          itemCount: 1,
+          selectedCount: 1,
+          successCount: 1,
+          failureCount: 0,
+          skippedCount: 0,
+        },
+      })
+    })
+
+    await user.keyboard("{Escape}")
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(
+          ACCOUNT_MANAGEMENT_TEST_IDS.inviteLinkManualCopyTextarea,
+        ),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it("keeps categorized failures visible when partial results require manual copy", async () => {
+    const successfulAccount = buildDisplaySiteData({
+      id: "invite-manual-success",
+      name: "Invite Manual Success",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-manual-success.example.invalid",
+    })
+    const failedAccount = buildDisplaySiteData({
+      id: "invite-manual-failure",
+      name: "Invite Manual Failure",
+      disabled: false,
+      siteType: "new-api",
+      baseUrl: "https://invite-manual-failure.example.invalid",
+    })
+    fetchDisplayAccountInviteLinkMock.mockImplementation(
+      async (account: { id: string; baseUrl: string }) => {
+        if (account.id === failedAccount.id) {
+          throw new InviteLinkError(
+            INVITE_LINK_FAILURE_REASONS.AuthenticationRequired,
+          )
+        }
+        return `${account.baseUrl}/register?aff=${account.id}`
+      },
+    )
+    clipboardWriteTextMock.mockRejectedValueOnce(
+      new DOMException("Clipboard access denied", "NotAllowedError"),
+    )
+
+    const { copyInviteLinks } = await renderBulkInviteLinkSelection([
+      successfulAccount,
+      failedAccount,
+    ])
+
+    await copyInviteLinks()
+
+    await waitFor(() => {
+      expect(fetchDisplayAccountInviteLinkMock).toHaveBeenCalledTimes(2)
+      expect(clipboardWriteTextMock).toHaveBeenCalledWith(
+        "Invite Manual Success: https://invite-manual-success.example.invalid/register?aff=invite-manual-success",
+      )
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "account:bulk.copyInviteLinksClipboardFailedWithReasons",
+      )
+    })
+    expect(
+      screen.getByTestId(
+        ACCOUNT_MANAGEMENT_TEST_IDS.inviteLinkManualCopyTextarea,
+      ),
+    ).toHaveValue(
+      "Invite Manual Success: https://invite-manual-success.example.invalid/register?aff=invite-manual-success",
+    )
+    expect(trackProductAnalyticsActionCompletedMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.CopySelectedAccountInviteLinks,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAccountManagementPage,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+      result: PRODUCT_ANALYTICS_RESULTS.Failure,
+      errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Permission,
+      insights: {
+        itemCount: 2,
+        selectedCount: 2,
+        successCount: 1,
+        failureCount: 1,
+        skippedCount: 0,
+      },
+    })
+  })
+})

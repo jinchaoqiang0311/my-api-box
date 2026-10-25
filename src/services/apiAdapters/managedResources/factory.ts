@@ -1,0 +1,748 @@
+import type { ManagedSiteType } from "~/constants/siteType"
+import type { ManagedResourceKind } from "~/services/accountSiteDefinitions/contracts"
+import {
+  isManagedResourceRefFor,
+  MANAGED_RESOURCE_FAILURE_CODES,
+  ManagedResourceError,
+  type EditableResourceProjection,
+  type ManagedChannelImportCreateSeed,
+  type ManagedResourceCreateSeed,
+  type ManagedResourceCreateSeedKind,
+  type ManagedResourceKeyCleanup,
+  type ManagedResourceRef,
+  type ManagedResourceRegistration,
+  type ManagedResourceWorkspace,
+  type ResourceDisplayFacts,
+  type ResourceFailure,
+  type ResourceListQuery,
+  type ResourceOperationOptions,
+  type ResourceValidationResult,
+} from "~/services/apiAdapters/contracts/managedResourceNative"
+import {
+  createManagedResourceEditor,
+  type NativeResourceEditorDefinition,
+} from "~/services/apiAdapters/managedResources/editor"
+import {
+  mapOperationFailure,
+  toManagedError,
+} from "~/services/apiAdapters/managedResources/failures"
+import { scalarKeyCleanup } from "~/services/apiAdapters/managedResources/shared/keyCleanup"
+import {
+  assertNativeResourceFacts,
+  createNativeResourceRefBoundary,
+  isNativeResourceBoundaryError,
+} from "~/services/apiAdapters/nativeResources/factory"
+import {
+  assertManagedSiteMutationResult,
+  MANAGED_SITE_MUTATION_OUTCOMES,
+  type ManagedSiteMutationConfirmedEffect,
+  type ManagedSiteMutationResult,
+} from "~/services/managedSites/mutations/contracts"
+import { hasUsableManagedSiteChannelKey } from "~/services/managedSites/utils/channelKeys"
+
+export type NativeResourcePage<TItem> = {
+  items: readonly TItem[]
+  total?: number
+  nextCursor?: string
+}
+
+export type NativeResourceCreateSeedBinding = {
+  [TKind in ManagedResourceCreateSeedKind]: {
+    kind: TKind
+    supportsMultipleCredentials?(
+      seed: Extract<ManagedResourceCreateSeed, { kind: TKind }>,
+    ): boolean
+    project(
+      seed: Extract<ManagedResourceCreateSeed, { kind: TKind }>,
+    ): EditableResourceProjection
+    validate(values: EditableResourceProjection): ResourceValidationResult
+    /** Maps native editor field issues back to the product's import inputs. */
+    sourceFieldIds: Readonly<
+      Partial<
+        Record<
+          string,
+          Exclude<
+            keyof Extract<ManagedResourceCreateSeed, { kind: TKind }>,
+            "kind"
+          >
+        >
+      >
+    >
+  }
+}[ManagedResourceCreateSeedKind]
+
+export type NativeResourceKindDefinition<
+  TConfig,
+  TLocator,
+  TListItem,
+  TDetail,
+  TCreateCommand,
+  TUpdateCommand,
+> = {
+  siteType: ManagedSiteType
+  kind: ManagedResourceKind
+  capabilities?: Partial<ManagedResourceWorkspace["capabilities"]>
+  /** Config-backed providers may derive identity from editable connection values. */
+  updateChangesIdentity?: boolean
+  createSeedBindings?: readonly NativeResourceCreateSeedBinding[]
+  appendImportCredentials?(
+    config: TConfig,
+    locator: TLocator,
+    seed: ManagedChannelImportCreateSeed,
+    options?: ResourceOperationOptions,
+  ): Promise<ManagedSiteMutationResult<TDetail>>
+  openConfig(options?: ResourceOperationOptions): Promise<TConfig>
+  scopeKey(config: TConfig): string
+  encodeLocator(locator: TLocator): string
+  decodeLocator(resourceId: string): TLocator
+  locatorFromListItem(item: TListItem): TLocator
+  locatorFromDetail(detail: TDetail): TLocator
+  list(
+    config: TConfig,
+    query?: ResourceListQuery,
+    options?: ResourceOperationOptions,
+  ): Promise<NativeResourcePage<TListItem>>
+  get(
+    config: TConfig,
+    locator: TLocator,
+    options?: ResourceOperationOptions,
+  ): Promise<TDetail>
+  toListFacts(item: TListItem, ref: ManagedResourceRef): ResourceDisplayFacts
+  toDetailFacts(detail: TDetail, ref: ManagedResourceRef): ResourceDisplayFacts
+  /** Projects a mutation result into the provider's collection row shape. */
+  toMutationFacts?(
+    detail: TDetail,
+    ref: ManagedResourceRef,
+  ): ResourceDisplayFacts
+  createEditor(
+    config: TConfig,
+    options?: ResourceOperationOptions,
+  ): Promise<NativeResourceEditorDefinition<TCreateCommand>>
+  editEditor(
+    config: TConfig,
+    detail: TDetail,
+    options?: ResourceOperationOptions,
+  ):
+    | NativeResourceEditorDefinition<TUpdateCommand>
+    | Promise<NativeResourceEditorDefinition<TUpdateCommand>>
+  sanitizeEditDetail?(detail: TDetail): TDetail
+  create(
+    config: TConfig,
+    command: TCreateCommand,
+    options?: ResourceOperationOptions,
+  ): Promise<ManagedSiteMutationResult<TDetail>>
+  update(
+    config: TConfig,
+    detail: TDetail,
+    command: TUpdateCommand,
+    options?: ResourceOperationOptions,
+  ): Promise<ManagedSiteMutationResult<TDetail>>
+  delete(
+    config: TConfig,
+    locator: TLocator,
+    options?: ResourceOperationOptions,
+  ): Promise<ManagedSiteMutationResult<void>>
+  mapFailure(error: unknown): ResourceFailure
+  keyCleanup?(
+    config: TConfig,
+    detail: TDetail,
+    options?: ResourceOperationOptions,
+  ): Promise<ManagedResourceKeyCleanup>
+  scalarKeyCleanup?: "single" | "delimited"
+  /** Reuse a secret already returned by this cleanup detail read. */
+  scalarKeyCleanupSecret?: (detail: TDetail) => string | undefined
+}
+
+const invalidPublicInput = (fieldIssues?: ResourceFailure["fieldIssues"]) =>
+  new ManagedResourceError({
+    code: MANAGED_RESOURCE_FAILURE_CODES.ValidationFailed,
+    ...(fieldIssues === undefined ? {} : { fieldIssues }),
+  })
+
+const unexpectedDefinitionOutput = () =>
+  new ManagedResourceError({
+    code: MANAGED_RESOURCE_FAILURE_CODES.Unexpected,
+  })
+
+const uncertainMutationResult = <T>(
+  raw?: unknown,
+): ManagedSiteMutationResult<T> => ({
+  outcome: MANAGED_SITE_MUTATION_OUTCOMES.Uncertain,
+  diagnostic: {
+    message: MANAGED_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+    ...(raw === undefined ? {} : { raw }),
+  },
+})
+
+/** Creates a public managed-resource registration from a correlated native Adapter definition. */
+export function defineNativeResourceKind<
+  TConfig,
+  TLocator,
+  TListItem,
+  TDetail,
+  TCreateCommand,
+  TUpdateCommand,
+>(
+  definition: NativeResourceKindDefinition<
+    TConfig,
+    TLocator,
+    TListItem,
+    TDetail,
+    TCreateCommand,
+    TUpdateCommand
+  >,
+): ManagedResourceRegistration {
+  const mapFailure = (error: unknown) => definition.mapFailure(error)
+  const createSeedKinds =
+    definition.createSeedBindings?.map((binding) => binding.kind) ?? []
+
+  return {
+    siteType: definition.siteType,
+    kind: definition.kind,
+    createSeedKinds,
+    canAppendImportCredentials: Boolean(definition.appendImportCredentials),
+    supportsMultipleImportCredentials: (seed) =>
+      definition.createSeedBindings
+        ?.find((binding) => binding.kind === seed.kind)
+        ?.supportsMultipleCredentials?.(seed) === true,
+    ...(createSeedKinds.length
+      ? {
+          validateCreateSeed: (
+            seed: ManagedResourceCreateSeed,
+          ): ResourceValidationResult => {
+            const binding = definition.createSeedBindings?.find(
+              (candidate) => candidate.kind === seed.kind,
+            )
+            if (!binding) throw invalidPublicInput()
+            if (
+              (seed.credentials?.length ?? 0) > 1 &&
+              binding.supportsMultipleCredentials?.(seed) !== true
+            )
+              throw new ManagedResourceError({ code: "unavailable" })
+            const credentials = seed.credentials ?? [seed.credential]
+            if (
+              seed.credentials &&
+              (!credentials.length ||
+                credentials.some(
+                  (key) =>
+                    !hasUsableManagedSiteChannelKey(key) || /[\r\n]/.test(key),
+                ))
+            ) {
+              return {
+                valid: false,
+                issues: [{ fieldId: "credential", code: "invalid_value" }],
+              }
+            }
+            // The synchronous binding validates each native scalar input; the
+            // opened editor validates the structured list and its command.
+            const validations = credentials.map((credential) =>
+              binding.validate(
+                binding.project({
+                  ...seed,
+                  credential,
+                  credentials: undefined,
+                }),
+              ),
+            )
+            const validation = validations.find((result) => !result.valid) ?? {
+              valid: true as const,
+            }
+            return validation.valid
+              ? validation
+              : {
+                  valid: false,
+                  issues: validation.issues.map((issue) => ({
+                    ...issue,
+                    fieldId:
+                      binding.sourceFieldIds[issue.fieldId] ?? issue.fieldId,
+                  })),
+                }
+          },
+        }
+      : {}),
+    open: (options) =>
+      mapOperationFailure(async () => {
+        const config = await definition.openConfig(options)
+        const scopeKey = definition.scopeKey(config)
+        if (
+          typeof scopeKey !== "string" ||
+          scopeKey.length === 0 ||
+          scopeKey.length > 2048
+        ) {
+          throw unexpectedDefinitionOutput()
+        }
+
+        const refBoundary = createNativeResourceRefBoundary<
+          ManagedResourceRef,
+          TLocator
+        >({
+          scopeKey,
+          encodeLocator: definition.encodeLocator,
+          decodeLocator: definition.decodeLocator,
+          buildRef: (resourceId) => ({
+            siteType: definition.siteType,
+            kind: definition.kind,
+            scopeKey,
+            resourceId,
+          }),
+          matchesRef: (value): value is ManagedResourceRef =>
+            isManagedResourceRefFor(value, {
+              siteType: definition.siteType,
+              kind: definition.kind,
+              scopeKey,
+            }),
+        })
+        const createRef = (locator: TLocator): ManagedResourceRef => {
+          try {
+            return refBoundary.createRef(locator)
+          } catch (error) {
+            if (isNativeResourceBoundaryError(error)) {
+              throw unexpectedDefinitionOutput()
+            }
+            throw error
+          }
+        }
+        const decodeRef = (candidate: unknown) => {
+          try {
+            return refBoundary.decodeRef(candidate)
+          } catch (error) {
+            if (isNativeResourceBoundaryError(error)) {
+              throw invalidPublicInput()
+            }
+            throw error
+          }
+        }
+
+        const refFromDetail = (detail: TDetail) =>
+          createRef(definition.locatorFromDetail(detail))
+
+        const assertDetailIdentity = (
+          detail: TDetail,
+          expectedRef: ManagedResourceRef,
+        ) => {
+          if (!refBoundary.refsMatch(refFromDetail(detail), expectedRef)) {
+            throw unexpectedDefinitionOutput()
+          }
+        }
+
+        const readDetail = async (
+          candidate: unknown,
+          readOptions?: ResourceOperationOptions,
+        ) => {
+          const { ref, locator } = decodeRef(candidate)
+          const detail = await definition.get(config, locator, readOptions)
+          assertDetailIdentity(detail, ref)
+          return { ref, detail }
+        }
+
+        const readResourceAbsence = async (
+          ref: ManagedResourceRef,
+          readOptions?: ResourceOperationOptions,
+        ): Promise<
+          | { state: "absent" }
+          | { state: "present" }
+          | { state: "unknown"; raw: unknown }
+        > => {
+          try {
+            await readDetail(ref, readOptions)
+            return { state: "present" }
+          } catch (error) {
+            const managedError = toManagedError(error, mapFailure)
+            if (
+              managedError.failure.code ===
+              MANAGED_RESOURCE_FAILURE_CODES.NotFound
+            ) {
+              return { state: "absent" }
+            }
+            return { state: "unknown", raw: error }
+          }
+        }
+
+        const isRejectedNotFound = (
+          result: Extract<
+            ManagedSiteMutationResult<void>,
+            { outcome: typeof MANAGED_SITE_MUTATION_OUTCOMES.Rejected }
+          >,
+        ) => {
+          if (
+            result.diagnostic.code === MANAGED_RESOURCE_FAILURE_CODES.NotFound
+          ) {
+            return true
+          }
+          return (
+            mapFailure(result.diagnostic.raw ?? result.diagnostic).code ===
+            MANAGED_RESOURCE_FAILURE_CODES.NotFound
+          )
+        }
+
+        const projectMutationFacts = (
+          detail: TDetail,
+          ref: ManagedResourceRef,
+        ) => {
+          try {
+            const facts = definition.toMutationFacts
+              ? definition.toMutationFacts(detail, ref)
+              : definition.toDetailFacts(detail, ref)
+            return assertNativeResourceFacts(facts, ref, refBoundary.refsMatch)
+          } catch (error) {
+            if (isNativeResourceBoundaryError(error)) {
+              throw unexpectedDefinitionOutput()
+            }
+            throw error
+          }
+        }
+
+        const projectCreatedDetail = (detail: TDetail) =>
+          projectMutationFacts(detail, refFromDetail(detail))
+
+        const projectDetailAtRef = (
+          detail: TDetail,
+          expectedRef: ManagedResourceRef,
+        ) => {
+          assertDetailIdentity(detail, expectedRef)
+          return projectMutationFacts(detail, expectedRef)
+        }
+
+        const capabilities: ManagedResourceWorkspace["capabilities"] = {
+          canSearch: definition.capabilities?.canSearch ?? false,
+          canCreate: definition.capabilities?.canCreate ?? true,
+          canUpdate: definition.capabilities?.canUpdate ?? true,
+          canDelete: definition.capabilities?.canDelete ?? true,
+        }
+        const rejectUnsupported = () => Promise.reject(invalidPublicInput())
+        const workspace: ManagedResourceWorkspace = {
+          ...(definition.appendImportCredentials
+            ? {
+                appendImportCredentials: (
+                  ref: ManagedResourceRef,
+                  seed: ManagedChannelImportCreateSeed,
+                  appendOptions?: ResourceOperationOptions,
+                ) =>
+                  mapOperationFailure(async () => {
+                    if (!capabilities.canUpdate) throw invalidPublicInput()
+                    const { ref: canonicalRef, locator } = decodeRef(ref)
+                    const result = await definition.appendImportCredentials!(
+                      config,
+                      locator,
+                      seed,
+                      appendOptions,
+                    )
+                    assertManagedSiteMutationResult(result, {
+                      idempotent: true,
+                    })
+                    switch (result.outcome) {
+                      case MANAGED_SITE_MUTATION_OUTCOMES.Succeeded:
+                        return {
+                          ...result,
+                          data: projectDetailAtRef(result.data, canonicalRef),
+                        }
+                      case MANAGED_SITE_MUTATION_OUTCOMES.Partial:
+                        return result.data === undefined
+                          ? (result as ManagedSiteMutationResult<ResourceDisplayFacts>)
+                          : {
+                              ...result,
+                              data: projectDetailAtRef(
+                                result.data,
+                                canonicalRef,
+                              ),
+                            }
+                      default:
+                        return result
+                    }
+                  }, mapFailure),
+              }
+            : {}),
+          ...(definition.keyCleanup || definition.scalarKeyCleanup
+            ? {
+                openKeyCleanup: (
+                  ref: ManagedResourceRef,
+                  options?: ResourceOperationOptions,
+                ) =>
+                  mapOperationFailure(async () => {
+                    const { detail } = await readDetail(ref, options)
+                    if (definition.keyCleanup)
+                      return definition.keyCleanup(config, detail, options)
+                    const fields =
+                      definition.createSeedBindings?.find(
+                        (binding) => binding.kind === "managed-channel-import",
+                      )?.sourceFieldIds ?? {}
+                    const key = Object.keys(fields).find(
+                      (id) => fields[id] === "credential",
+                    )
+                    const baseUrl = Object.keys(fields).find(
+                      (id) => fields[id] === "baseUrl",
+                    )
+                    if (!key || !baseUrl) throw invalidPublicInput()
+                    return scalarKeyCleanup(
+                      await definition.editEditor(config, detail, options),
+                      async (command, updateOptions) => {
+                        if (definition.scalarKeyCleanup === "delimited") {
+                          // A whole-list replacement must not overwrite credentials added after inspection.
+                          const { detail: latest } = await readDetail(
+                            ref,
+                            updateOptions,
+                          )
+                          const latestSecret =
+                            definition.scalarKeyCleanupSecret?.(latest)
+                          if (
+                            typeof latestSecret !== "string" ||
+                            latestSecret !==
+                              definition.scalarKeyCleanupSecret?.(detail)
+                          )
+                            throw new ManagedResourceError({
+                              code: "resource_changed",
+                            })
+                        }
+                        return definition.update(
+                          config,
+                          detail,
+                          command,
+                          updateOptions,
+                        )
+                      },
+                      options,
+                      definition.scalarKeyCleanup === "delimited",
+                      { key, baseUrl },
+                      definition.scalarKeyCleanupSecret?.(detail),
+                    )
+                  }, mapFailure),
+              }
+            : {}),
+          capabilities,
+          list: (query, listOptions) =>
+            query?.search && !capabilities.canSearch
+              ? rejectUnsupported()
+              : mapOperationFailure(async () => {
+                  const page = await definition.list(config, query, listOptions)
+                  const items = page.items.map((item) => {
+                    const ref = createRef(definition.locatorFromListItem(item))
+                    try {
+                      return assertNativeResourceFacts(
+                        definition.toListFacts(item, ref),
+                        ref,
+                        refBoundary.refsMatch,
+                      )
+                    } catch (error) {
+                      if (isNativeResourceBoundaryError(error)) {
+                        throw unexpectedDefinitionOutput()
+                      }
+                      throw error
+                    }
+                  })
+                  return {
+                    items,
+                    ...(page.total === undefined ? {} : { total: page.total }),
+                    ...(page.nextCursor === undefined
+                      ? {}
+                      : { nextCursor: page.nextCursor }),
+                  }
+                }, mapFailure),
+          get: (ref, getOptions) =>
+            mapOperationFailure(async () => {
+              const { ref: canonicalRef, detail } = await readDetail(
+                ref,
+                getOptions,
+              )
+              try {
+                return assertNativeResourceFacts(
+                  definition.toDetailFacts(detail, canonicalRef),
+                  canonicalRef,
+                  refBoundary.refsMatch,
+                )
+              } catch (error) {
+                if (isNativeResourceBoundaryError(error)) {
+                  throw unexpectedDefinitionOutput()
+                }
+                throw error
+              }
+            }, mapFailure),
+          openCreateEditor: (editorOptions) =>
+            !capabilities.canCreate
+              ? rejectUnsupported()
+              : mapOperationFailure(async () => {
+                  const createSeed = editorOptions?.seed
+                  const createSeedBinding = createSeed
+                    ? definition.createSeedBindings?.find(
+                        (binding) => binding.kind === createSeed.kind,
+                      )
+                    : undefined
+                  if (createSeed && !createSeedBinding) {
+                    throw invalidPublicInput()
+                  }
+                  if (
+                    createSeed &&
+                    (createSeed.credentials?.length ?? 0) > 1 &&
+                    createSeedBinding?.supportsMultipleCredentials?.(
+                      createSeed,
+                    ) !== true
+                  ) {
+                    throw new ManagedResourceError({ code: "unavailable" })
+                  }
+                  const seedProjection =
+                    createSeed && createSeedBinding
+                      ? createSeedBinding.project(createSeed)
+                      : undefined
+                  const editorDefinition = await definition.createEditor(
+                    config,
+                    editorOptions?.signal
+                      ? { signal: editorOptions.signal }
+                      : undefined,
+                  )
+                  return createManagedResourceEditor(
+                    seedProjection
+                      ? {
+                          ...editorDefinition,
+                          initialValues: {
+                            ...editorDefinition.initialValues,
+                            ...Object.fromEntries(
+                              Object.entries(seedProjection).map(
+                                ([fieldId, value]) => [
+                                  fieldId,
+                                  editorDefinition.fields.some(
+                                    (field) =>
+                                      field.fieldId === fieldId &&
+                                      field.type === "secret-list",
+                                  ) &&
+                                  value &&
+                                  typeof value === "object" &&
+                                  "kind" in value &&
+                                  value.kind === "replace"
+                                    ? {
+                                        kind: "secret-list",
+                                        entries: [
+                                          {
+                                            id: "new",
+                                            fields: {},
+                                            secret: value,
+                                          },
+                                        ],
+                                      }
+                                    : value,
+                                ],
+                              ),
+                            ),
+                          },
+                        }
+                      : editorDefinition,
+                    async (command, submitOptions) => {
+                      return definition.create(config, command, submitOptions)
+                    },
+                    projectCreatedDetail,
+                    { idempotent: false },
+                    mapFailure,
+                  )
+                }, mapFailure),
+          openEditEditor: (ref, editorOptions) =>
+            !capabilities.canUpdate
+              ? rejectUnsupported()
+              : mapOperationFailure(async () => {
+                  const { ref: canonicalRef, detail } = await readDetail(
+                    ref,
+                    editorOptions,
+                  )
+                  const editorDetail = definition.sanitizeEditDetail
+                    ? definition.sanitizeEditDetail(detail)
+                    : detail
+                  assertDetailIdentity(editorDetail, canonicalRef)
+                  const editorDefinition = await definition.editEditor(
+                    config,
+                    editorDetail,
+                    editorOptions?.signal
+                      ? { signal: editorOptions.signal }
+                      : undefined,
+                  )
+                  return createManagedResourceEditor(
+                    editorDefinition,
+                    async (command, submitOptions) => {
+                      let latestDetail: TDetail
+                      try {
+                        latestDetail = (
+                          await readDetail(canonicalRef, submitOptions)
+                        ).detail
+                      } catch (error) {
+                        // This authoritative read occurs before update dispatch,
+                        // so it remains a controlled read/setup error.
+                        throw toManagedError(error, mapFailure)
+                      }
+                      return definition.update(
+                        config,
+                        latestDetail,
+                        command,
+                        submitOptions,
+                      )
+                    },
+                    (updatedDetail) =>
+                      definition.updateChangesIdentity
+                        ? projectCreatedDetail(updatedDetail)
+                        : projectDetailAtRef(updatedDetail, canonicalRef),
+                    { idempotent: true },
+                    mapFailure,
+                  )
+                }, mapFailure),
+          delete: (ref, deleteOptions) =>
+            !capabilities.canDelete
+              ? rejectUnsupported()
+              : (async () => {
+                  let decodedRef: ReturnType<typeof decodeRef>
+                  try {
+                    decodedRef = decodeRef(ref)
+                  } catch (error) {
+                    throw toManagedError(error, mapFailure)
+                  }
+                  const { ref: canonicalRef, locator } = decodedRef
+                  const candidate: unknown = await definition.delete(
+                    config,
+                    locator,
+                    deleteOptions,
+                  )
+                  assertManagedSiteMutationResult<
+                    void,
+                    ManagedSiteMutationConfirmedEffect
+                  >(candidate, {
+                    idempotent: true,
+                  })
+                  const result = candidate
+                  if (
+                    result.outcome ===
+                      MANAGED_SITE_MUTATION_OUTCOMES.Succeeded &&
+                    result.confirmedEffects.length === 0
+                  ) {
+                    const absence = await readResourceAbsence(
+                      canonicalRef,
+                      deleteOptions,
+                    )
+                    if (absence.state === "absent") return result
+                    if (absence.state === "present") {
+                      throw unexpectedDefinitionOutput()
+                    }
+                    return uncertainMutationResult<void>(absence.raw)
+                  }
+
+                  if (
+                    result.outcome ===
+                      MANAGED_SITE_MUTATION_OUTCOMES.Rejected &&
+                    isRejectedNotFound(result)
+                  ) {
+                    const absence = await readResourceAbsence(
+                      canonicalRef,
+                      deleteOptions,
+                    )
+                    if (absence.state === "absent") {
+                      return {
+                        outcome: MANAGED_SITE_MUTATION_OUTCOMES.Succeeded,
+                        data: undefined,
+                        confirmedEffects: [],
+                      }
+                    }
+                    if (absence.state === "unknown") {
+                      return uncertainMutationResult<void>(absence.raw)
+                    }
+                  }
+                  return result
+                })(),
+        }
+
+        return workspace
+      }, mapFailure),
+  }
+}

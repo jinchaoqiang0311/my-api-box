@@ -1,0 +1,34 @@
+import { Search } from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { Input } from "~/components/ui"
+
+interface TokenSearchBarProps {
+  searchTerm: string
+  setSearchTerm: (value: string) => void
+}
+
+/**
+ * Search input for filtering the token list.
+ * Kept separate from the account selector so it can be positioned closer to results.
+ */
+export function TokenSearchBar({
+  searchTerm,
+  setSearchTerm,
+}: TokenSearchBarProps) {
+  const { t } = useTranslation("keyManagement")
+
+  return (
+    <div className="mb-density-4">
+      <Input
+        type="text"
+        placeholder={t("searchPlaceholder")}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        leftIcon={<Search className="h-4 w-4" />}
+        onClear={() => setSearchTerm("")}
+        clearButtonLabel={t("common:actions.clear")}
+      />
+    </div>
+  )
+}

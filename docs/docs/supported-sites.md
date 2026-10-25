@@ -1,0 +1,207 @@
+# 支持的站点列表
+
+> My API Box 主要支持两类对象：一类是你日常登录和使用的中转站 / 管理面板，另一类是你自己搭建、希望在插件里继续管理的后台系统。
+
+## 日常可添加和管理的站点
+
+下面这些是用户最常见、也最适合通过 My API Box 统一管理的站点类型，涵盖开源分发架构、商业中转服务与独立平台。
+
+### 账号站点兼容架构
+
+支持基于主流开源大模型 API 管理分发系统及其衍生或二开版本搭建的站点：
+
+| 站点 / 系统   | 站点介绍                                                                                                                                                                                                                                                                                                                                                                                                  | 官方链接                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New API       | 统一的 AI 模型聚合与分发中心。                                                                                                                                                                                                                                                                                                                                                                            | [官网](https://www.newapi.ai/) / [GitHub](https://github.com/QuantumNous/new-api)                                                                                |
+| Sub2API       | Sub2API-CRS2 一站式开源中转服务，让 Claude、OpenAI、Gemini、Antigravity 订阅统一接入，支持拼车共享，更高效分摊成本，原生工具无缝使用。 | [GitHub](https://github.com/Wei-Shaw/sub2api)                                                                                                                    |
+| One API       | LLM API 管理与分发系统，支持 OpenAI、Azure、Anthropic Claude、Google Gemini、DeepSeek 等主流模型，统一 API 适配，可用于 Key 管理与二次分发。                                                                                                                                                                                                                                                              | [GitHub](https://github.com/songquanpeng/one-api)                                                                                                                |
+| one-hub       | OpenAI 接口管理与分发系统，改自 songquanpeng/one-api，支持更多模型，加入统计页面，并完善非 OpenAI 模型的函数调用。                                                                                                                                                                                                                                                                                        | [官网](https://one-hub.xiao5.info/) / [GitHub](https://github.com/MartialBE/one-hub)                                                                             |
+| Veloera       | 本项目已停止维护。                                                                                                                                                                                                                                                                                                                                                                                        | [GitHub](https://github.com/Veloera/Veloera)                                                                                                                     |
+| VoAPI / VoAPI v2 | 新版 VoAPI 公益站是基于原 VoAPI 二次开发的新一代 AI 模型管理与分发系统，兼顾旧版本部署兼容性。 | [GitHub](https://github.com/VoAPI/VoAPI) |
+| DoneHub       | 本项目是基于 one-hub 二次开发而来的。                                                                                                                                                                                                                                                                                                                                                                     | [GitHub](https://github.com/deanxv/done-hub)                                                                                                                     |
+| Super-API     | Super-Api 全新 AI 模型接口管理与分发系统，基于 NewAPI 开发。 | [GitHub](https://github.com/SuperAI-Api/Super-API) |
+| API易         | 基于 New API 架构二次开发的商业 AI 模型中转服务平台。 | — |
+| ModelFlare    | 基于 New API 衍生的高性能 AI 模型中转平台。 | — |
+| v-api         | 基于 one-api 二开的功能强大的中转平台。                                                                                                                                                                                                                                                                                                                                                                   | 暂无                                                                                                                                                             |
+
+### 独立平台与商业中转服务
+
+支持具有独立账号体系、专有控制台或定制化 API 的 AI 模型平台与中转服务：
+
+| 站点 / 系统   | 站点介绍                                                                                                                                                                                                                                                                                                                                                                                                  | 官方链接                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenRouter    | 独立 AI 模型聚合平台，通过统一 API 接入多家模型供应商。 | [官网](https://openrouter.ai/) / [文档](https://openrouter.ai/docs) / [使用教程](./service-guides/openrouter.md)                                                 |
+| Kimi 开放平台 | Kimi（Moonshot）官方开放平台；国际站与中国站使用各自独立的账号体系。 | [国际站](https://platform.kimi.ai/) / [中国站](https://platform.kimi.com/) |
+| AnyRouter     | Claude Code 中转站 · 零门槛 · 免费 $50                                                                                                                                                                                                                                                                                                                                                                    | [文档](https://docs.anyrouter.top/) / [官网](https://anyrouter.top/register?aff=tDKX)                                                                            |
+| AgentRouter   | AI API 路由与中转服务平台。                                                                                                                                                                                                                                                                                                                                                                               | [官网](https://agentrouter.org/register?aff=TUX6)                                                                                                                |
+| AIHubMix      | 独立 AI API 聚合平台，提供模型 API 和独立的账户控制台。 | [官网](https://aihubmix.com/?aff=W3DN) / [API 文档](https://docs.aihubmix.com/cn/api/Cli) / [使用教程](./sponsor-guides/aihubmix.md) |
+| 老张 API      | 商业 AI 模型 API 中转服务，提供默认、国内/备用、欧美直连和 CF-CDN 四个入口，使用同一套账号。 | — |
+| Dahl          | 按 Token 额度使用的 AI 推理服务，提供模型 API 与账户控制台。 | — |
+| FoxCode       | 面向开发者的 AI 编程模型中转与订阅服务平台。 | — |
+| 肖恩 AI | 基于 CharityAPI 的独立 AI 公益服务平台，提供模型接口与账号控制台。 | — |
+| Cubence       | 商业 AI 模型 API 服务平台，提供模型调用、分组与额度管理。 | — |
+| RightCode     | 商业 AI Agent 中转服务，right.codes 与 rightapi.ai 为同一服务的入口。 | — |
+| Grsai         | 商业 AI 模型聚合中转服务，grsai.com 与 grsai.ai 为同一服务的入口。 | — |
+| FreeModel     | 提供模型 API、储值额度与订阅套餐的独立 AI 服务平台。 | — |
+| SharedChat    | 专注于 Codex 与 Vibe Code 拼车共享与配额管理的 AI 服务平台。 | — |
+| WONG公益站    | 暂无稳定公开站点介绍。                                                                                                                                                                                                                                                                                                                                                                                    | 暂无稳定公开官方链接                                                                                                                                             |
+| Krill AI | 独立商业 AI 模型中转平台，提供模型接口与账号控制台。 | — |
+| EMRank | 嵌入与重排序模型的独立网关服务，提供模型 API、账号控制台与签到。 | [官网](https://emrank.tech/) / [文档](https://docs.emrank.tech) |
+| RelayFor      | 独立 AI 公益服务平台，提供模型接口与账号控制台。 | [官网](https://relayfor.xyz/) |
+| Daya API | 统一 AI API 接入平台，聚合多家模型供应商，提供模型接口、独立密钥与额度管理。 | — |
+
+## ❤️ 推荐赞助站点
+
+如果你正在寻找稳定、高效且兼容性良好的 AI 中转服务，可以尝试我们的合作伙伴：
+
+<div class="sponsor-list">
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://s.qiniu.com/qE3eai">
+      <img src="../../resources/partners/qiniu.png" alt="七牛云AI">
+    </a>
+    <p>
+      <strong>七牛云AI</strong> 七牛云（02567.HK）旗下企业级大模型 MaaS 平台，一站式调用全球 150+ 主流模型，兼容全球主流模型厂商协议，覆盖文本、图像、音频、视频、文件处理等全模态处理能力。企业用户可通过<a href="https://s.qiniu.com/qE3eai">此链接</a>免费领取 <strong>1200 万 Token</strong>，邀请好友最高可得百亿 Token。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://api.fenno.ai/s/DCGC">
+      <img src="../../resources/partners/fennoai.jpg" alt="FennoAI">
+    </a>
+    <p>
+      <strong>FennoAI</strong> 是一家稳定、高效的 API 中转服务商，主要提供 Codex 中转服务，兼容 OpenAI 及 Anthropic 协议，可接入 Codex、Claude Code、OpenCode 等主流编程工具，稳定支撑千亿 Token/日的企业级调用需求，并支持国内及海外主体公对公结算、开票。通过<a href="https://api.fenno.ai/s/DCGC">专属链接</a>购买订阅，仅需 <strong>1.99 美元</strong>即可获得价值 50 美元的 Coding Plan 额度；邀请好友购买最高可获得 20% 返佣，邀请越多，奖励越高（<a href="./service-guides/fenno.md">使用教程</a>）。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://www.packyapi.ai/register?aff=all-api-hub">
+      <img src="../../resources/partners/packycode.png" alt="PackyCode">
+    </a>
+    <p>
+      <strong>PackyCode</strong> 提供 Claude Code、Codex、Gemini 等多种中转服务。使用<a href="https://www.packyapi.ai/register?aff=all-api-hub">此链接</a>注册并在充值时填写 "all-api-hub" 优惠码，首次充值可享 <strong>9 折优惠</strong>（<a href="./sponsor-guides/packycode.md">使用教程</a>）。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo sponsor-logo-small" href="https://ai.centos.hk">
+      <img src="../../resources/partners/xingchen.png" alt="星辰AI">
+    </a>
+    <p>
+      <strong>星辰AI</strong> 稳定、高效的 API 中转服务商，提供 Claude Code、Codex、Gemini 等多种中转服务。充值比例 1:1，可开发票；Claude 低至 4 折。欢迎通过<a href="https://ai.centos.hk">此链接</a>了解和使用（<a href="./sponsor-guides/xingchen.md">使用教程</a>）。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">
+      <img src="../../resources/partners/aicodemirror.png" alt="AICodeMirror">
+    </a>
+    <p>
+      <strong>AICodeMirror</strong> 提供 Claude Code / Codex / Gemini CLI 官方高稳定中转服务，支持企业级高并发、极速开票、7×24 专属技术支持。Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更有折上折。通过<a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">此链接</a>注册，可享受首充 <strong>8 折优惠</strong>，企业客户最高可享 7.5 折。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://sui-xiang.com/">
+      <img src="../../resources/partners/suixiang.jpg" alt="随想AI中转站">
+    </a>
+    <p>
+      <strong>随想AI中转站</strong> 可靠高效的 API 中继服务提供商，提供 Claude、Codex、Gemini 等中继服务，支持 1:1 按量充值、每日签到测试额度、多线路冗余、跨区域容灾和自动故障切换。欢迎通过<a href="https://sui-xiang.com/">此链接</a>了解和使用（<a href="./service-guides/suixiang.md">使用教程</a>）。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://go.apimart.ai/gh-all-api-hub">
+      <img src="../../resources/partners/apimart.png" alt="APIMart">
+    </a>
+    <p>
+      <strong>APIMart</strong> 专注 AI 图片/视频生成的低价 API 平台，GPT-Image-2 低至 <strong>$0.006/张</strong>，1 美元可出图 160+ 张。图片、视频一套异步 API 通吃，提交任务拿 ID、回调取结果，跑批万张不超时、换模型不改代码，按量付费、无月费。欢迎通过<a href="https://go.apimart.ai/gh-all-api-hub">此链接</a>注册使用。
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item">
+    <a class="sponsor-logo" href="https://88api.ai/register?aff=XcTj">
+      <img src="../../resources/partners/88api.jpg" alt="88API Token聚合平台">
+    </a>
+    <p>
+      <strong>88API Token聚合平台</strong> 由香港企业运营的一站式多模型 API 平台，面向开发者、创作者与 AI 应用用户，通过统一接口接入文本、图片、语音和视频模型，覆盖 AI 编程、智能翻译、内容创作、配音、图像生成、视频生成等常见工作流。可直接在 CC Switch 中添加并切换 Provider，支持国际主流付款方式、发票与企业级稳定服务。 <a href="https://88api.ai/register?aff=XcTj">通过专属链接注册可获取赠送额度！</a>
+    </p>
+  </section>
+
+  <hr>
+
+  <section class="sponsor-item sponsor-item-featured">
+    <a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html">
+      <img src="../../resources/partners/volcengine.png" alt="火山引擎方舟 Coding-Plan">
+    </a>
+    <p>
+      <strong>火山引擎方舟 Coding-Plan</strong> 字节跳动旗下开发者生产力计划，Lite 套餐 <strong>9.9 元/月</strong>起，支持豆包、DeepSeek、GLM 等主流模型，适配 Cursor、Claude Code、Windsurf 等 IDE 工具。通过<a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html">活动链接</a>加入，可享受好友邀请返利及首单优惠。
+    </p>
+  </section>
+
+  <hr>
+
+
+</div>
+
+## 已兼容但公开资料较少的变体
+
+以下兼容类型目前也在插件支持范围内，但公开官方资料相对有限，通常见于私有部署、闭源分支或特定站点品牌化版本：
+
+- `Neo-API`
+- `RIX_API`
+
+这类系统如果没有稳定公开主页，这里就不额外给出链接；是否可用通常取决于目标站点是不是常见兼容版本。
+
+## 你可以接入并继续管理的自建后台
+
+如果你自己也在搭建后台系统，My API Box 还支持把当前站点导入到你选中的后台里，便于继续做后续管理。
+
+| 后台系统                                          | 站点介绍                                                                                                                           | 官方链接                                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [OmniRoute](./omniroute-integration.md)           | 自建 AI 网关，内置大量 provider，支持作用域访问令牌与连接级上游地址覆盖。                                                          | [GitHub](https://github.com/diegosouzapw/OmniRoute)                                          |
+| [CLIProxyAPI](./cliproxyapi-integration.md)       | 将 Gemini CLI、Antigravity、ChatGPT Codex、Claude Code、Qwen Code、iFlow 封装为兼容 OpenAI / Gemini / Claude / Codex 的 API 服务。 | [文档](https://help.router-for.me/) / [GitHub](https://github.com/router-for-me/CLIProxyAPI) |
+| New API                                           | 统一的 AI 模型聚合与分发中心。                                                                                                     | [官网](https://www.newapi.ai/) / [GitHub](https://github.com/QuantumNous/new-api)            |
+| Sub2API                                           | Sub2API-CRS2 一站式开源中转服务，让 Claude、OpenAI、Gemini、Antigravity 订阅统一接入，支持拼车共享与原生工具使用。                 | [GitHub](https://github.com/Wei-Shaw/sub2api)                                                |
+| Magpie | 面向 AI 编程工具的模型网关，可从菜单栏为 Codex、Claude Code 等工具切换模型服务。 | [GitHub](https://github.com/yetone/magpie)                                                   |
+| [gpt-load](./gpt-load-integration.md)             | 自建 AI 网关（Go 编写），分组即渠道驱动＋密钥池，架构轻量、内置驱动丰富。                                                          | [GitHub](https://github.com/tbphp/gpt-load)                                                  |
+| AxonHub                                           | 开源 AI Gateway，可通过任意 SDK 调用 100+ LLM，内置故障切换、负载均衡、成本控制与全链路追踪。                                      | [官网](https://axonhub.onrender.com/) / [GitHub](https://github.com/looplj/axonhub)          |
+| Claude Code Hub                                   | 面向团队的多供应商 AI API 代理与运营平台，统一接入 Claude、OpenAI Compatible、Codex 与 Gemini，并支持弹性调度、监控与价格管理。    | [GitHub](https://github.com/ding113/claude-code-hub)                                         |
+| Octopus                                           | 面向个人的 LLM API 聚合服务。                                                                                                      | [GitHub](https://github.com/bestruirui/octopus)                                              |
+| Veloera                                           | 本项目已停止维护。                                                                                                                 | [GitHub](https://github.com/Veloera/Veloera)                                                 |
+| DoneHub                                           | 本项目是基于 one-hub 二次开发而来的。                                                                                              | [GitHub](https://github.com/deanxv/done-hub)                                                 |
+
+### 同站点多密钥批量导入
+
+批量导入时可选择“每个密钥新建一个渠道”或“同站点密钥合并到一个新渠道”，并按目标管理站点连接记住选择。合并预览显示来源密钥、最终资源数量和模型并集；模型权限不同只会提示，由用户决定是否合并，调度由目标网关负责。实际推理地址（包含路径）或原生渠道类型不同的密钥仍分开创建。
+
+| 管理站点 | 合并导入范围 |
+| --- | --- |
+| Magpie | 支持合并新建，也支持向同地址、同协议的已有渠道追加缺失密钥 |
+| New API、Octopus、gpt-load | 支持原生多密钥资源创建 |
+| AxonHub | 使用普通 API key 的渠道类型 |
+| CLIProxyAPI | `openai-compatibility` 资源 |
+| Sub2API、OmniRoute、Claude Code Hub、Veloera、DoneHub | 当前仍独立创建 |
+
+Magpie 还支持“优先添加到已有渠道”：同地址且协议相同的渠道只有一个时自动选中，有多个时由用户选择，也可改为新建。已有渠道保留名称、配置和模型设置，只通过原生密钥接口添加缺失密钥；没有匹配渠道时合并新建。提交前重新读取目标，地址或协议已变化时停止追加。部分成功或结果不确定时，请先检查目标站点再重新导入。
+
+## 相关文档
+
+- [支持的导出工具列表](./supported-export-tools.md)
+- [赞助商使用教程](./sponsor-guides.md)
+- [快速导出站点配置](./quick-export.md)
+- [自建站点管理](./self-hosted-site-management.md)
+- [自建站点模型同步](./managed-site-model-sync.md)

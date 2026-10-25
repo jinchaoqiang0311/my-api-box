@@ -1,0 +1,868 @@
+import { describe, expect, it } from "vitest"
+
+import { OPENROUTER_MANAGEMENT_KEY_LABEL_MAX_LENGTH } from "~/services/apiAdapters/openrouter/keys/managementKeyPageContract"
+import {
+  getTempContextTaskMetadata,
+  isAutoRefreshProtectionBypassExecution,
+  isManualModelSyncProtectionBypassExecution,
+  isProtectionBypassExecution,
+  isRefreshAllAccountsProtectionBypassExecution,
+  isTempContextTask,
+  PROTECTION_BYPASS_AUTOMATIC_FEATURES,
+  PROTECTION_BYPASS_AUTOMATIC_TRIGGERS,
+  PROTECTION_BYPASS_CAPABILITY_KINDS,
+  PROTECTION_BYPASS_DECISION_RESULTS,
+  PROTECTION_BYPASS_DENIED_REASONS,
+  PROTECTION_BYPASS_EXECUTION_KINDS,
+  PROTECTION_BYPASS_EXECUTION_VERSION,
+  PROTECTION_BYPASS_FEATURES,
+  PROTECTION_BYPASS_SURFACES,
+  PROTECTION_BYPASS_USER_COMMANDS,
+  TEMP_CONTEXT_TASK_KINDS,
+  type ProtectionBypassExecution,
+} from "~/services/protectionBypass/contracts"
+import { AuthTypeEnum } from "~/types"
+
+const canonicalTasks = [
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.CheckinFeedbackScan,
+    params: {
+      originUrl: "https://example.invalid",
+      requestId: "scan-1",
+      input: { baseUrl: "https://example.invalid", siteType: "new-api" },
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.ApiFallbackFetch,
+    params: {
+      originUrl: "https://example.invalid",
+      fetchUrl: "https://example.invalid/api/user/self",
+      tempContextTaskKind: TEMP_CONTEXT_TASK_KINDS.ApiFallbackFetch,
+      authType: AuthTypeEnum.Cookie,
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.ExplicitPageFetch,
+    params: {
+      originUrl: "https://example.invalid",
+      fetchUrl: "https://example.invalid/api/user/sign_in",
+      tempContextTaskKind: TEMP_CONTEXT_TASK_KINDS.ExplicitPageFetch,
+      fetchOptions: { method: "POST", body: "{}" },
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.ProfileIsolatedFetch,
+    params: {
+      originUrl: "https://example.invalid",
+      fetchUrl: "https://example.invalid/api/user/self",
+      tempContextTaskKind: TEMP_CONTEXT_TASK_KINDS.ProfileIsolatedFetch,
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.TurnstileFetch,
+    params: {
+      originUrl: "https://example.invalid",
+      pageUrl: "https://example.invalid/checkin",
+      fetchUrl: "https://example.invalid/api/checkin",
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.NativePageAction,
+    params: {
+      originUrl: "https://example.invalid",
+      pageUrl: "https://example.invalid/console/personal",
+      siteType: "new-api",
+      expectedUserId: "example-user",
+      authType: AuthTypeEnum.AccessToken,
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.OpenRouterManagementKeyAction,
+    params: {
+      requestId: "request-openrouter",
+      operation: { kind: "create", label: "Example label" },
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.RenderedTitle,
+    params: { originUrl: "https://example.invalid" },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.SessionRead,
+    params: {
+      url: "https://example.invalid",
+      requestId: "request-session",
+      siteType: "new-api",
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.NewApiSessionRead,
+    params: {
+      origin: "https://example.invalid",
+      action: "channel_key",
+      channelId: 7,
+      userId: "example-user",
+      requestId: "request-new-api-session",
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch,
+    params: {
+      originUrl: "https://example.invalid",
+      resourceUsername: "example-user",
+      fetchUrl: "https://example.invalid/api/v1/channel/list",
+      fetchOptions: { method: "GET" },
+      responseType: "json",
+      requestId: "request-octopus-api",
+    },
+  },
+  {
+    kind: TEMP_CONTEXT_TASK_KINDS.OpenContext,
+    params: {
+      url: "https://example.invalid",
+      requestId: "request-open-context",
+    },
+  },
+] as const
+
+describe("protection bypass runtime contracts", () => {
+  it.each([
+    [undefined, true],
+    ["query", true],
+    ["json-body", true],
+    ["header", false],
+    [null, false],
+    [42, false],
+  ])(
+    "validates the optional Turnstile token placement (%j)",
+    (placement, valid) => {
+      expect(
+        isTempContextTask({
+          kind: TEMP_CONTEXT_TASK_KINDS.TurnstileFetch,
+          params: {
+            originUrl: "https://example.invalid",
+            pageUrl: "https://example.invalid/checkin",
+            fetchUrl: "https://example.invalid/api/checkin",
+            turnstileTokenPlacement: placement,
+          },
+        }),
+      ).toBe(valid)
+    },
+  )
+  const staleExecution: ProtectionBypassExecution = {
+    // @ts-expect-error V2 execution metadata must not accept legacy versions.
+    version: 1,
+    kind: "user_command",
+    command: "refresh_account",
+    surface: "options",
+  }
+
+  const removedAutomaticFeature: ProtectionBypassExecution = {
+    version: 2,
+    kind: "automatic",
+    // @ts-expect-error Automatic execution must use the current automatic catalog.
+    feature: "session_resync",
+    trigger: "scheduled",
+    surface: "background",
+  }
+
+  it("keeps legacy execution fixtures outside the public type", () => {
+    expect(staleExecution).toBeDefined()
+    expect(removedAutomaticFeature).toBeDefined()
+  })
+
+  it("keeps the execution wire contract stable", () => {
+    expect(PROTECTION_BYPASS_EXECUTION_VERSION).toBe(2)
+    expect(PROTECTION_BYPASS_EXECUTION_KINDS).toEqual({
+      UserCommand: "user_command",
+      Automatic: "automatic",
+    })
+  })
+
+  it("keeps the closed product workflow catalog serialized in product order", () => {
+    expect(Object.entries(PROTECTION_BYPASS_FEATURES)).toEqual([
+      ["AccountRefresh", "account_refresh"],
+      ["BalanceHistory", "balance_history"],
+      ["Checkin", "checkin"],
+      ["RedemptionAssist", "redemption_assist"],
+      ["LdohSiteLookup", "ldoh_site_lookup"],
+      ["KeyManagement", "key_management"],
+      ["ManagedSiteChannels", "managed_site_channels"],
+      ["ManagedSiteModelSync", "managed_site_model_sync"],
+      ["AccountOnboarding", "account_onboarding"],
+    ])
+    expect(Object.values(PROTECTION_BYPASS_AUTOMATIC_FEATURES)).toEqual([
+      "account_refresh",
+      "balance_history",
+      "checkin",
+      "redemption_assist",
+      "ldoh_site_lookup",
+      "key_management",
+      "managed_site_channels",
+      "managed_site_model_sync",
+    ])
+  })
+
+  it("accepts a serialized plain user-command execution", () => {
+    const serializedClone = JSON.parse(
+      JSON.stringify({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.UserCommand,
+        command: PROTECTION_BYPASS_USER_COMMANDS.RefreshAccount,
+        surface: PROTECTION_BYPASS_SURFACES.Options,
+      }),
+    )
+
+    expect(isProtectionBypassExecution(serializedClone)).toBe(true)
+  })
+
+  it("rejects the legacy opaque grant shape", () => {
+    expect(
+      isProtectionBypassExecution({
+        version: 2,
+        kind: "user_command",
+        grantId: "legacy",
+      }),
+    ).toBe(false)
+  })
+
+  it("rejects structurally valid v1 user-command and automatic executions", () => {
+    expect(
+      isProtectionBypassExecution({
+        version: 1,
+        kind: "user_command",
+        command: "refresh_account",
+        surface: "options",
+      }),
+    ).toBe(false)
+    expect(
+      isProtectionBypassExecution({
+        version: 1,
+        kind: "automatic",
+        feature: "account_refresh",
+        trigger: "scheduled",
+        surface: "background",
+      }),
+    ).toBe(false)
+  })
+
+  it("rejects removed automatic features", () => {
+    expect(
+      isProtectionBypassExecution({
+        version: 2,
+        kind: "automatic",
+        feature: "session_resync",
+        trigger: "scheduled",
+        surface: "background",
+      }),
+    ).toBe(false)
+    expect(
+      isProtectionBypassExecution({
+        version: 2,
+        kind: "automatic",
+        feature: "account_onboarding",
+        trigger: "scheduled",
+        surface: "background",
+      }),
+    ).toBe(false)
+  })
+
+  it("rejects extra fields on automatic execution metadata", () => {
+    expect(
+      isProtectionBypassExecution({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.Automatic,
+        feature: PROTECTION_BYPASS_FEATURES.AccountRefresh,
+        trigger: PROTECTION_BYPASS_AUTOMATIC_TRIGGERS.Scheduled,
+        surface: PROTECTION_BYPASS_SURFACES.Background,
+        grantId: "legacy",
+      }),
+    ).toBe(false)
+  })
+
+  it("keeps refresh-now explicit while accepting automatic account refresh for auto-refresh", () => {
+    expect(
+      isRefreshAllAccountsProtectionBypassExecution({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.UserCommand,
+        command: PROTECTION_BYPASS_USER_COMMANDS.RefreshAllAccounts,
+        surface: PROTECTION_BYPASS_SURFACES.Options,
+      }),
+    ).toBe(true)
+    expect(
+      isRefreshAllAccountsProtectionBypassExecution({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.Automatic,
+        feature: PROTECTION_BYPASS_FEATURES.AccountRefresh,
+        trigger: PROTECTION_BYPASS_AUTOMATIC_TRIGGERS.Scheduled,
+        surface: PROTECTION_BYPASS_SURFACES.Background,
+      }),
+    ).toBe(false)
+    expect(
+      isAutoRefreshProtectionBypassExecution({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.Automatic,
+        feature: PROTECTION_BYPASS_FEATURES.AccountRefresh,
+        trigger: PROTECTION_BYPASS_AUTOMATIC_TRIGGERS.Scheduled,
+        surface: PROTECTION_BYPASS_SURFACES.Background,
+      }),
+    ).toBe(true)
+    expect(
+      isRefreshAllAccountsProtectionBypassExecution({
+        version: 1,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.UserCommand,
+        command: PROTECTION_BYPASS_USER_COMMANDS.ManualCheckin,
+        surface: PROTECTION_BYPASS_SURFACES.Options,
+      }),
+    ).toBe(false)
+  })
+
+  it("classifies only sync-managed-site-models as manual model-sync intent", () => {
+    expect(
+      isManualModelSyncProtectionBypassExecution({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.UserCommand,
+        command: PROTECTION_BYPASS_USER_COMMANDS.SyncManagedSiteModels,
+        surface: PROTECTION_BYPASS_SURFACES.Options,
+      }),
+    ).toBe(true)
+    expect(
+      isManualModelSyncProtectionBypassExecution({
+        version: PROTECTION_BYPASS_EXECUTION_VERSION,
+        kind: PROTECTION_BYPASS_EXECUTION_KINDS.UserCommand,
+        command: PROTECTION_BYPASS_USER_COMMANDS.AddAccount,
+        surface: PROTECTION_BYPASS_SURFACES.Options,
+      }),
+    ).toBe(false)
+  })
+
+  it("keeps the temporary-context task wire contract stable", () => {
+    expect(new Set(Object.values(TEMP_CONTEXT_TASK_KINDS))).toEqual(
+      new Set([
+        "api_fallback_fetch",
+        "explicit_page_fetch",
+        "profile_isolated_fetch",
+        "turnstile_fetch",
+        "native_page_action",
+        "openrouter_management_key_action",
+        "rendered_title",
+        "checkin_feedback_scan",
+        "session_read",
+        "new_api_session_read",
+        "octopus_api_fetch",
+        "open_context",
+      ]),
+    )
+  })
+
+  it("defines policy metadata for every temporary-context task kind", () => {
+    for (const kind of Object.values(TEMP_CONTEXT_TASK_KINDS)) {
+      expect(getTempContextTaskMetadata({ kind })).toEqual({
+        operation: expect.any(String),
+        cause: expect.any(String),
+      })
+    }
+  })
+
+  it.each(canonicalTasks)("accepts canonical $kind params", (task) => {
+    expect(isTempContextTask(task)).toBe(true)
+  })
+
+  it.each([
+    ["array params", { kind: "rendered_title", params: [] }],
+    [
+      "fetch without fetchUrl",
+      {
+        kind: "api_fallback_fetch",
+        params: { originUrl: "https://example.invalid" },
+      },
+    ],
+    [
+      "profile fetch without originUrl",
+      {
+        kind: "profile_isolated_fetch",
+        params: { fetchUrl: "https://example.invalid/api/user/self" },
+      },
+    ],
+    [
+      "turnstile fetch without pageUrl",
+      {
+        kind: "turnstile_fetch",
+        params: {
+          originUrl: "https://example.invalid",
+          fetchUrl: "https://example.invalid/api/checkin",
+        },
+      },
+    ],
+    [
+      "native page action without identity",
+      {
+        kind: "native_page_action",
+        params: {
+          originUrl: "https://example.invalid",
+          pageUrl: "https://example.invalid/console/personal",
+          siteType: "new-api",
+        },
+      },
+    ],
+    [
+      "rendered title without originUrl",
+      { kind: "rendered_title", params: {} },
+    ],
+    [
+      "session read without requestId",
+      {
+        kind: "session_read",
+        params: { url: "https://example.invalid", siteType: "new-api" },
+      },
+    ],
+    [
+      "New API session read with extra authority",
+      {
+        kind: "new_api_session_read",
+        params: {
+          origin: "https://example.invalid",
+          action: "channel_key",
+          channelId: 7,
+          userId: "example-user",
+          tempWindowRequestSource: "background",
+        },
+      },
+    ],
+    [
+      "open context without requestId",
+      { kind: "open_context", params: { url: "https://example.invalid" } },
+    ],
+    [
+      "OpenRouter action without operation",
+      {
+        kind: "openrouter_management_key_action",
+        params: { requestId: "request-openrouter" },
+      },
+    ],
+  ])("rejects %s", (_case, task) => {
+    expect(isTempContextTask(task)).toBe(false)
+  })
+
+  it.each([
+    {},
+    { requestId: "request-openrouter" },
+    {
+      requestId: "request-openrouter",
+      operation: [],
+    },
+    {
+      requestId: "request-openrouter",
+      operation: { kind: "delete", label: "Example label" },
+    },
+    {
+      requestId: "request-openrouter",
+      operation: { kind: "create" },
+    },
+    {
+      requestId: "request-openrouter",
+      operation: { kind: "create", label: "   " },
+    },
+    {
+      requestId: "request-openrouter",
+      operation: {
+        kind: "create",
+        label: "x".repeat(OPENROUTER_MANAGEMENT_KEY_LABEL_MAX_LENGTH + 1),
+      },
+    },
+    {
+      requestId: "request-openrouter",
+      operation: { kind: "create", label: 42 },
+    },
+    {
+      requestId: 42,
+      operation: { kind: "create", label: "Example label" },
+    },
+    {
+      requestId: "request-openrouter",
+      operation: { kind: "create", label: "Example label" },
+      suppressMinimize: "yes",
+    },
+  ])("rejects malformed OpenRouter params %#", (params) => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OpenRouterManagementKeyAction,
+        params,
+      }),
+    ).toBe(false)
+  })
+
+  it("accepts an OpenRouter label at the maximum length", () => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OpenRouterManagementKeyAction,
+        params: {
+          requestId: "request-openrouter",
+          operation: {
+            kind: "create",
+            label: "x".repeat(OPENROUTER_MANAGEMENT_KEY_LABEL_MAX_LENGTH),
+          },
+        },
+      }),
+    ).toBe(true)
+  })
+
+  it.each([
+    {},
+    { url: "https://example.invalid" },
+    { url: 42, requestId: "request-open-context" },
+    { url: "https://example.invalid", requestId: 42 },
+    {
+      url: "https://example.invalid",
+      requestId: "request-open-context",
+      suppressMinimize: "yes",
+    },
+  ])("rejects malformed open-context params %#", (params) => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OpenContext,
+        params,
+      }),
+    ).toBe(false)
+  })
+
+  it.each([
+    {
+      kind: "api_fallback_fetch",
+      params: {
+        originUrl: "https://example.invalid",
+        fetchUrl: "https://example.invalid/api/user/self",
+        responseType: "yaml",
+      },
+    },
+    {
+      kind: "turnstile_fetch",
+      params: {
+        originUrl: "https://example.invalid",
+        pageUrl: "https://example.invalid/checkin",
+        fetchUrl: "https://example.invalid/api/checkin",
+        turnstileTimeoutMs: "soon",
+      },
+    },
+    {
+      kind: "native_page_action",
+      params: {
+        originUrl: "https://example.invalid",
+        pageUrl: "https://example.invalid/console/personal",
+        siteType: "new-api",
+        expectedUserId: "example-user",
+        suppressMinimize: "yes",
+      },
+    },
+    {
+      kind: "rendered_title",
+      params: { originUrl: "https://example.invalid", requestId: 42 },
+    },
+    {
+      kind: "session_read",
+      params: {
+        url: "https://example.invalid",
+        requestId: "request-session",
+        siteType: "new-api",
+        useIncognito: "yes",
+      },
+    },
+    {
+      kind: "session_read",
+      params: {
+        url: "https://example.invalid",
+        requestId: "request-session",
+        siteType: "unknown",
+        cookieStoreId: 12,
+      },
+    },
+  ])("rejects invalid optional task primitives %#", (task) => {
+    expect(isTempContextTask(task)).toBe(false)
+  })
+
+  it.each([true, false, undefined])(
+    "accepts the optional New API session probe flag %s",
+    (allowSessionProbe) => {
+      expect(
+        isTempContextTask({
+          kind: "session_read",
+          params: {
+            url: "https://example.invalid",
+            requestId: "request-session",
+            siteType: "unknown",
+            allowSessionProbe,
+            cookieStoreId: "firefox-container-1",
+          },
+        }),
+      ).toBe(true)
+    },
+  )
+
+  it.each(["true", 1, null])(
+    "rejects a non-boolean New API session probe flag %s",
+    (allowSessionProbe) => {
+      expect(
+        isTempContextTask({
+          kind: "session_read",
+          params: {
+            url: "https://example.invalid",
+            requestId: "request-session",
+            siteType: "unknown",
+            allowSessionProbe,
+          },
+        }),
+      ).toBe(false)
+    },
+  )
+
+  const urlFields = [
+    [TEMP_CONTEXT_TASK_KINDS.ApiFallbackFetch, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.ApiFallbackFetch, "fetchUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.ExplicitPageFetch, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.ExplicitPageFetch, "fetchUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.ProfileIsolatedFetch, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.ProfileIsolatedFetch, "fetchUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.TurnstileFetch, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.TurnstileFetch, "fetchUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.TurnstileFetch, "pageUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.NativePageAction, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.NativePageAction, "pageUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.RenderedTitle, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.SessionRead, "url"],
+    [TEMP_CONTEXT_TASK_KINDS.NewApiSessionRead, "origin"],
+    [TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch, "originUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch, "fetchUrl"],
+    [TEMP_CONTEXT_TASK_KINDS.OpenContext, "url"],
+  ] as const
+
+  it.each(urlFields)("rejects non-HTTP %s.%s URLs", (kind, field) => {
+    const canonicalTask = canonicalTasks.find((task) => task.kind === kind)!
+
+    for (const url of [
+      "%",
+      "javascript:alert(1)",
+      "data:text/plain,example",
+      "file:///example",
+      "chrome-extension://example.invalid/page.html",
+    ]) {
+      expect(
+        isTempContextTask({
+          ...canonicalTask,
+          params: { ...canonicalTask.params, [field]: url },
+        }),
+      ).toBe(false)
+    }
+  })
+
+  it.each(["42", 42, {}, null])(
+    "validates feedback user identity %j",
+    (userId) => {
+      expect(
+        isTempContextTask({
+          kind: TEMP_CONTEXT_TASK_KINDS.CheckinFeedbackScan,
+          params: {
+            originUrl: "https://example.invalid",
+            requestId: "identity",
+            input: {
+              baseUrl: "https://example.invalid",
+              siteType: "new-api",
+              auth: {
+                authType: "access_token",
+                accessToken: "selected",
+                userId,
+              },
+            },
+          },
+        }),
+      ).toBe(typeof userId === "string" || typeof userId === "number")
+    },
+  )
+
+  it("rejects feedback messages with no input object", () => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.CheckinFeedbackScan,
+        params: {
+          originUrl: "https://example.invalid",
+          requestId: "missing-input",
+        },
+      }),
+    ).toBe(false)
+  })
+
+  it.each(canonicalTasks)("accepts HTTP for $kind", (task) => {
+    const params = Object.fromEntries(
+      Object.entries(task.params).map(([key, value]) => [
+        key,
+        typeof value === "string" && value.startsWith("https://")
+          ? value.replace("https://", "http://")
+          : value,
+      ]),
+    )
+    if (task.kind === TEMP_CONTEXT_TASK_KINDS.CheckinFeedbackScan) {
+      params.input = { ...task.params.input, baseUrl: params.originUrl }
+    }
+    expect(isTempContextTask({ ...task, params })).toBe(true)
+  })
+
+  it.each([
+    { baseUrl: "https://other.invalid", siteType: "new-api" },
+    {
+      baseUrl: "https://example.invalid",
+      siteType: "new-api",
+      fetchUrl: "/arbitrary",
+    },
+    {
+      baseUrl: "https://example.invalid",
+      siteType: "new-api",
+      auth: { authType: "cookie", cookie: "private" },
+    },
+    {
+      baseUrl: "https://example.invalid",
+      siteType: "new-api",
+      auth: {
+        authType: "access_token",
+        accessToken: "selected",
+        refreshToken: "private",
+      },
+    },
+  ])(
+    "rejects scan inputs with mismatched origins or extra request authority %#",
+    (input) => {
+      expect(
+        isTempContextTask({
+          kind: TEMP_CONTEXT_TASK_KINDS.CheckinFeedbackScan,
+          params: {
+            originUrl: "https://example.invalid",
+            requestId: "scan-input",
+            input,
+          },
+        }),
+      ).toBe(false)
+    },
+  )
+
+  it.each([
+    [
+      "another origin",
+      "https://other.example.invalid/api/v1/channel/list",
+      "GET",
+    ],
+    ["unowned endpoint", "https://example.invalid/api/v1/user/list", "GET"],
+    ["wrong method", "https://example.invalid/api/v1/channel/create", "GET"],
+    [
+      "invalid channel detail ID",
+      "https://example.invalid/api/v1/channel/detail/0",
+      "GET",
+    ],
+    [
+      "wrong channel detail method",
+      "https://example.invalid/api/v1/channel/detail/7",
+      "POST",
+    ],
+    [
+      "query authority",
+      "https://example.invalid/api/v1/channel/list?target=other",
+      "GET",
+    ],
+  ])("rejects Octopus %s", (_case, fetchUrl, method) => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch,
+        params: {
+          originUrl: "https://example.invalid",
+          resourceUsername: "example-user",
+          fetchUrl,
+          fetchOptions: { method },
+        },
+      }),
+    ).toBe(false)
+  })
+
+  it.each([
+    ["extra authority", { authority: "caller-controlled" }],
+    ["non-object fetch options", { fetchOptions: "GET" }],
+    ["invalid request ID", { requestId: 42 }],
+    ["invalid response type", { responseType: "document" }],
+    ["invalid resource binding", { resourceBinding: "untrusted" }],
+  ])("rejects Octopus params with %s", (_case, override) => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch,
+        params: {
+          originUrl: "https://example.invalid",
+          resourceUsername: "example-user",
+          fetchUrl: "https://example.invalid/api/v1/channel/list",
+          fetchOptions: { method: "GET" },
+          ...override,
+        },
+      }),
+    ).toBe(false)
+  })
+
+  it.each([
+    ["channel list", "/api/v1/channel/list", "GET"],
+    ["channel stats", "/api/v1/channel/stats", "GET"],
+    ["channel detail", "/api/v1/channel/detail/7", "GET"],
+    ["cookie login", "/api/v1/user/login", "POST"],
+  ])("allows Octopus configuration-test %s", (_case, pathname, method) => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch,
+        params: {
+          originUrl: "https://example.invalid",
+          resourceUsername: "example-user",
+          fetchUrl: `https://example.invalid${pathname}`,
+          fetchOptions: { method },
+          resourceBinding: "configuration_test",
+        },
+      }),
+    ).toBe(true)
+  })
+
+  it.each([
+    ["update", "/api/v1/channel/update", "POST"],
+    ["delete", "/api/v1/channel/delete/7", "DELETE"],
+  ])("rejects Octopus configuration-test %s", (_case, pathname, method) => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch,
+        params: {
+          originUrl: "https://example.invalid",
+          resourceUsername: "example-user",
+          fetchUrl: `https://example.invalid${pathname}`,
+          fetchOptions: { method },
+          resourceBinding: "configuration_test",
+        },
+      }),
+    ).toBe(false)
+  })
+
+  it("keeps persisted Octopus mutations in the protected endpoint allow-list", () => {
+    expect(
+      isTempContextTask({
+        kind: TEMP_CONTEXT_TASK_KINDS.OctopusApiFetch,
+        params: {
+          originUrl: "https://example.invalid",
+          resourceUsername: "example-user",
+          fetchUrl: "https://example.invalid/api/v1/channel/update",
+          fetchOptions: { method: "POST" },
+        },
+      }),
+    ).toBe(true)
+  })
+
+  it("keeps decision, capability, and denial wire values stable", () => {
+    expect(PROTECTION_BYPASS_DECISION_RESULTS).toEqual({
+      Allowed: "allowed",
+      Denied: "denied",
+      Unavailable: "unavailable",
+    })
+    expect(PROTECTION_BYPASS_CAPABILITY_KINDS.PermissionRequired).toBe(
+      "permission_required",
+    )
+    expect(PROTECTION_BYPASS_DENIED_REASONS.TaskNotPermitted).toBe(
+      "task_not_permitted",
+    )
+  })
+})

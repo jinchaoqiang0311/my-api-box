@@ -1,0 +1,374 @@
+import { Check, Clipboard } from "lucide-react"
+import { useCallback, useId, useLayoutEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { Alert, Button, ConfirmDialog, Input, Modal } from "~/components/ui"
+import { ActionGroup } from "~/components/ui/ActionGroup"
+import { TOKEN_PROVISIONING_TEST_IDS } from "~/features/TokenProvisioning/testIds"
+import toast from "~/lib/notify"
+import type { CreatedRuntimeSecret } from "~/services/accounts/keys/createdRuntimeSecret"
+import { INVENTORY_SECRET_AVAILABILITIES as secretAvailability } from "~/services/apiAdapters/contracts/inventorySecret"
+
+export interface OneTimeSecretPresentation {
+  displayName: string
+  secret: string
+  secretAvailability?: CreatedRuntimeSecret["secretAvailability"]
+}
+
+interface OneTimeSecretDialogProps {
+  isOpen: boolean
+  result: OneTimeSecretPresentation | null
+  onClose: () => void
+  autoCopy?: boolean
+  saveAction?: { onSave: () => Promise<void>; label?: string }
+  nextAction?: { onContinue: () => void; label: string; disabled?: boolean }
+  description?: string
+  onCopyResult?: (result: "success" | "failure") => void
+  onSaveResult?: (result: "success" | "failure") => void
+  /** Optional explicit workflow key for preserving the opener across a terminal predecessor. */
+  focusWorkflowId?: string | number
+}
+
+type OperationResult = "success" | "failure"
+
+const notifyOperationResult = (
+  observer: ((result: OperationResult) => void) | undefined,
+  result: OperationResult,
+) => {
+  try {
+    observer?.(result)
+  } catch {
+    // Observers must not alter the completed copy or save operation.
+  }
+}
+
+/** Presents creation plaintext and guards closure only when it cannot be revealed again. */
+export function OneTimeSecretDialog({
+  isOpen,
+  result,
+  onClose,
+  autoCopy = true,
+  saveAction,
+  nextAction,
+  description,
+  onCopyResult,
+  onSaveResult,
+  focusWorkflowId,
+}: OneTimeSecretDialogProps) {
+  const { t } = useTranslation(["keyManagement", "common"])
+  const recoverable =
+    result?.secretAvailability === secretAvailability.Recoverable
+  const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
+  const [handled, setHandled] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
+  const [hasSaved, setHasSaved] = useState(false)
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false)
+  const isSavingRef = useRef(false)
+  const isCopyingRef = useRef(false)
+  const hasSavedGenerationRef = useRef<number | null>(null)
+  const resultGenerationRef = useRef(0)
+  const operationGenerationRef = useRef(0)
+  const saveInvocationRef = useRef(0)
+  const copyInvocationRef = useRef(0)
+  const openCycleRef = useRef(0)
+  const wasOpenRef = useRef(false)
+  const autoCopyAttemptRef = useRef<{
+    resultGeneration: number
+    openCycle: number
+  } | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const secretInputId = useId()
+
+  const resetLocalState = useCallback(() => {
+    setCopied(false)
+    setCopyFailed(false)
+    setHandled(false)
+    setIsSaving(false)
+    setIsCopying(false)
+    setIsCloseConfirmOpen(false)
+    isSavingRef.current = false
+    isCopyingRef.current = false
+  }, [])
+
+  const invalidateOperations = useCallback(() => {
+    operationGenerationRef.current += 1
+  }, [])
+
+  useLayoutEffect(() => {
+    resultGenerationRef.current += 1
+    invalidateOperations()
+    resetLocalState()
+    hasSavedGenerationRef.current = null
+    setHasSaved(false)
+  }, [invalidateOperations, resetLocalState, result])
+
+  const copySecret = useCallback(async () => {
+    if (!result || isCopyingRef.current) return false
+
+    const operationGeneration = operationGenerationRef.current
+    const invocation = copyInvocationRef.current + 1
+    copyInvocationRef.current = invocation
+    isCopyingRef.current = true
+    setIsCopying(true)
+    setCopyFailed(false)
+    const isCurrent = () =>
+      operationGenerationRef.current === operationGeneration &&
+      copyInvocationRef.current === invocation
+
+    let outcome: OperationResult | null = null
+
+    try {
+      await navigator.clipboard.writeText(result.secret)
+      if (!isCurrent()) return false
+
+      setCopied(true)
+      setHandled(true)
+      toast.success(t("keyManagement:oneTimeKey.copied"))
+      outcome = "success"
+    } catch {
+      if (!isCurrent()) return false
+
+      setCopyFailed(true)
+      toast.error(t("keyManagement:oneTimeKey.copyFailed"))
+      outcome = "failure"
+    } finally {
+      if (isCurrent()) {
+        isCopyingRef.current = false
+        setIsCopying(false)
+      }
+    }
+
+    if (outcome) notifyOperationResult(onCopyResult, outcome)
+    return outcome === "success"
+  }, [onCopyResult, result, t])
+
+  useLayoutEffect(() => {
+    if (isOpen && !wasOpenRef.current) openCycleRef.current += 1
+    wasOpenRef.current = isOpen
+    if (!isOpen || !result || !autoCopy) return
+
+    const attempt = {
+      resultGeneration: resultGenerationRef.current,
+      openCycle: openCycleRef.current,
+    }
+    if (
+      autoCopyAttemptRef.current?.resultGeneration ===
+        attempt.resultGeneration &&
+      autoCopyAttemptRef.current.openCycle === attempt.openCycle
+    ) {
+      return
+    }
+
+    autoCopyAttemptRef.current = attempt
+    void copySecret()
+  }, [autoCopy, copySecret, isOpen, result])
+
+  const close = useCallback(() => {
+    invalidateOperations()
+    resetLocalState()
+    onClose()
+  }, [invalidateOperations, onClose, resetLocalState])
+
+  const requestClose = () => {
+    if (handled || recoverable) {
+      close()
+      return
+    }
+    setIsCloseConfirmOpen(true)
+  }
+
+  const cancelCloseConfirmation = () => {
+    setIsCloseConfirmOpen(false)
+    requestAnimationFrame(() => closeButtonRef.current?.focus())
+  }
+
+  const handleSave = async () => {
+    const resultGeneration = resultGenerationRef.current
+    if (
+      !saveAction ||
+      isSavingRef.current ||
+      hasSavedGenerationRef.current === resultGeneration
+    ) {
+      return
+    }
+
+    const operationGeneration = operationGenerationRef.current
+    const invocation = saveInvocationRef.current + 1
+    saveInvocationRef.current = invocation
+    isSavingRef.current = true
+    setIsSaving(true)
+    const isCurrent = () =>
+      operationGenerationRef.current === operationGeneration &&
+      saveInvocationRef.current === invocation
+
+    let outcome: OperationResult | null = null
+
+    try {
+      await saveAction.onSave()
+      if (!isCurrent()) return
+
+      setHandled(true)
+      hasSavedGenerationRef.current = resultGeneration
+      setHasSaved(true)
+      outcome = "success"
+    } catch {
+      if (!isCurrent()) return
+
+      outcome = "failure"
+    } finally {
+      if (isCurrent()) {
+        isSavingRef.current = false
+        setIsSaving(false)
+      }
+    }
+
+    if (outcome) notifyOperationResult(onSaveResult, outcome)
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen && !!result}
+        onClose={requestClose}
+        title={t(
+          recoverable
+            ? "keyManagement:createdKey.title"
+            : "keyManagement:oneTimeKey.title",
+        )}
+        closeOnBackdropClick={false}
+        focusWorkflowId={focusWorkflowId}
+        size="lg"
+        header={
+          <div className="min-w-0 pr-10">
+            <h2 className="text-foreground truncate text-base font-semibold sm:text-lg">
+              {t(
+                recoverable
+                  ? "keyManagement:createdKey.title"
+                  : "keyManagement:oneTimeKey.title",
+              )}
+            </h2>
+            <p className="text-muted-foreground mt-density-1 text-sm">
+              {description ??
+                (recoverable
+                  ? t("keyManagement:createdKey.subtitle", {
+                      name: result?.displayName,
+                    })
+                  : result?.displayName
+                    ? t("keyManagement:oneTimeKey.subtitle", {
+                        name: result.displayName,
+                      })
+                    : t("keyManagement:oneTimeKey.subtitleUnnamed"))}
+            </p>
+          </div>
+        }
+        footer={
+          <ActionGroup layout="stack-on-narrow">
+            <Button
+              ref={closeButtonRef}
+              type="button"
+              variant="secondary"
+              onClick={requestClose}
+              data-testid={TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyCloseButton}
+            >
+              {t("keyManagement:oneTimeKey.close")}
+            </Button>
+            {saveAction ? (
+              <Button
+                type="button"
+                variant={recoverable ? "secondary" : "default"}
+                onClick={() => void handleSave()}
+                loading={isSaving}
+                disabled={isCopying || hasSaved}
+                data-testid={TOKEN_PROVISIONING_TEST_IDS.oneTimeKeySaveButton}
+              >
+                {isSaving
+                  ? t("common:status.saving")
+                  : saveAction.label ??
+                    t("keyManagement:actions.saveToApiProfiles")}
+              </Button>
+            ) : null}
+            {nextAction ? (
+              <Button
+                type="button"
+                disabled={nextAction.disabled || isSaving || isCopying}
+                onClick={nextAction.onContinue}
+              >
+                {nextAction.label}
+              </Button>
+            ) : null}
+          </ActionGroup>
+        }
+      >
+        <div className="space-y-density-4">
+          {!recoverable ? (
+            <Alert
+              variant="warning"
+              title={t("keyManagement:oneTimeKey.warningTitle")}
+              description={t("keyManagement:oneTimeKey.warningDescription")}
+            />
+          ) : null}
+          <div>
+            <label
+              htmlFor={secretInputId}
+              className="text-secondary-foreground text-sm font-medium"
+            >
+              {t("keyManagement:oneTimeKey.keyLabel")}
+            </label>
+            <Input
+              id={secretInputId}
+              data-testid={TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyInput}
+              className="mt-density-2 font-mono text-xs"
+              value={result?.secret ?? ""}
+              readOnly
+              autoFocus
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <div className="mt-density-2 flex flex-wrap items-center justify-between gap-2">
+              <span
+                role="status"
+                className="text-secondary-foreground flex items-center gap-2 text-sm"
+              >
+                {copied && !copyFailed ? (
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                ) : null}
+                {isCopying
+                  ? t("common:status.copying")
+                  : copyFailed
+                    ? t("keyManagement:oneTimeKey.copyFailed")
+                    : copied
+                      ? t("keyManagement:oneTimeKey.copiedAction")
+                      : null}
+              </span>
+              <Button
+                type="button"
+                onClick={() => void copySecret()}
+                variant="ghost"
+                size="sm"
+                loading={isCopying}
+                data-testid={TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyCopyButton}
+                leftIcon={<Clipboard className="h-4 w-4" />}
+              >
+                {t("keyManagement:oneTimeKey.copy")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+      <ConfirmDialog
+        intent="warning"
+        isOpen={isCloseConfirmOpen}
+        onClose={cancelCloseConfirmation}
+        onConfirm={close}
+        title={t("keyManagement:oneTimeKey.closeConfirm.title")}
+        description={t("keyManagement:oneTimeKey.closeConfirm.description")}
+        confirmLabel={t("keyManagement:oneTimeKey.closeConfirm.confirm")}
+        cancelLabel={t("keyManagement:oneTimeKey.closeConfirm.cancel")}
+        confirmButtonTestId={
+          TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyConfirmCloseButton
+        }
+      />
+    </>
+  )
+}

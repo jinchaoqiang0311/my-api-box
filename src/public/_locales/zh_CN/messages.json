@@ -1,0 +1,20 @@
+{
+  "manifest_name": {
+    "message": "My API Box - 你的全能 AI 资产管家"
+  },
+  "manifest_description": {
+    "message": "一站式管理 New API 兼容中转站账号：余额/用量看板、自动签到、密钥一键导出到常用应用、网页内 API 可用性测试、渠道与模型同步/重定向"
+  },
+  "manifest_commands_sidebar_action": {
+    "message": "在侧边栏中打开 My API Box"
+  },
+  "manifest_commands_browser_action": {
+    "message": "在弹窗中打开 My API Box"
+  },
+  "context_menu_redeem_selection": {
+    "message": "使用兑换助手兑换选中文本"
+  },
+  "context_menu_ai_api_check": {
+    "message": "快速测试 AI API 的功能可用性"
+  }
+}

@@ -1,0 +1,426 @@
+import { fireEvent, render as rtlRender, screen } from "@testing-library/react"
+import type { ReactNode } from "react"
+import { I18nextProvider } from "react-i18next"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import ExportSection from "~/features/ImportExport/backup/ExportSection"
+import ImportSection from "~/features/ImportExport/backup/ImportSection"
+import { IMPORT_EXPORT_TEST_IDS } from "~/features/ImportExport/testIds"
+import { WebDAVDecryptPasswordModal } from "~/features/ImportExport/webdav/WebDAVDecryptPasswordModal"
+import enImportExport from "~/locales/en/importExport.json"
+import es419ImportExport from "~/locales/es-419/importExport.json"
+import jaImportExport from "~/locales/ja/importExport.json"
+import viImportExport from "~/locales/vi/importExport.json"
+import zhCnImportExport from "~/locales/zh-CN/importExport.json"
+import zhTwImportExport from "~/locales/zh-TW/importExport.json"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { testI18n } from "~~/tests/test-utils/i18n"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+const {
+  mockStartProductAnalyticsAction,
+  mockCompleteProductAnalyticsAction,
+  mockTrackProductAnalyticsActionStarted,
+  mockHandleExportAll,
+  mockHandleExportAccounts,
+  mockHandleExportPreferences,
+} = vi.hoisted(() => ({
+  mockStartProductAnalyticsAction: vi.fn(),
+  mockCompleteProductAnalyticsAction: vi.fn(),
+  mockTrackProductAnalyticsActionStarted: vi.fn(),
+  mockHandleExportAll: vi.fn(),
+  mockHandleExportAccounts: vi.fn(),
+  mockHandleExportPreferences: vi.fn(),
+}))
+
+vi.mock("~/features/ImportExport/utils", () => ({
+  handleExportAll: mockHandleExportAll,
+  handleExportAccounts: mockHandleExportAccounts,
+  handleExportPreferences: mockHandleExportPreferences,
+}))
+
+vi.mock("~/services/productAnalytics/actions", () => ({
+  startProductAnalyticsAction: mockStartProductAnalyticsAction,
+  trackProductAnalyticsActionStarted: mockTrackProductAnalyticsActionStarted,
+}))
+
+function render(ui: ReactNode) {
+  return rtlRender(<I18nextProvider i18n={testI18n}>{ui}</I18nextProvider>)
+}
+
+describe("ImportExport section components", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockStartProductAnalyticsAction.mockReturnValue({
+      complete: mockCompleteProductAnalyticsAction,
+    })
+    mockTrackProductAnalyticsActionStarted.mockResolvedValue(undefined)
+    mockHandleExportAll.mockResolvedValue(undefined)
+    mockHandleExportAccounts.mockResolvedValue(undefined)
+    mockHandleExportPreferences.mockResolvedValue(undefined)
+  })
+
+  it("keeps plaintext export guidance in one shared notice across locales", () => {
+    const resources = [
+      {
+        locale: "en",
+        resource: enImportExport,
+        guidance: /store (?:the |exported )?files? securely/i,
+        providerSpecificForbidden: /OpenRouter|Management Key/i,
+        plaintext: /plaintext/i,
+      },
+      {
+        locale: "es-419",
+        resource: es419ImportExport,
+        guidance: /guarda (?:el archivo|los archivos) de forma segura/i,
+        providerSpecificForbidden:
+          /OpenRouter|Management Key|clave de administración/i,
+        plaintext: /texto sin formato/i,
+      },
+      {
+        locale: "ja",
+        resource: jaImportExport,
+        guidance: /ファイルは安全に保管/,
+        providerSpecificForbidden: /OpenRouter|Management Key|管理キー/i,
+        plaintext: /平文/,
+      },
+      {
+        locale: "vi",
+        resource: viImportExport,
+        guidance: /lưu tệp an toàn/i,
+        providerSpecificForbidden: /OpenRouter|Management Key|khóa quản lý/i,
+        plaintext: /văn bản thuần túy/i,
+      },
+      {
+        locale: "zh-CN",
+        resource: zhCnImportExport,
+        guidance: /妥善保管/,
+        providerSpecificForbidden: /OpenRouter|Management Key|管理密钥/i,
+        plaintext: /明文/,
+      },
+      {
+        locale: "zh-TW",
+        resource: zhTwImportExport,
+        guidance: /妥善保管/,
+        providerSpecificForbidden: /OpenRouter|Management Key|管理金鑰/i,
+        plaintext: /明文/,
+      },
+    ]
+    resources.forEach(
+      ({
+        locale,
+        resource,
+        guidance,
+        providerSpecificForbidden,
+        plaintext,
+      }) => {
+        const description = resource.export.sensitiveDataNotice
+        expect(description.length, locale).toBeGreaterThan(20)
+        expect(resource.export.accountDataDescription, locale).not.toMatch(
+          plaintext,
+        )
+        expect(resource.export.fullBackupDescription, locale).not.toMatch(
+          plaintext,
+        )
+        expect(description, locale).toMatch(guidance)
+        expect(description, locale).not.toMatch(providerSpecificForbidden)
+        expect(description, locale).toMatch(plaintext)
+      },
+    )
+  })
+
+  it("routes export actions to utility helpers", async () => {
+    const setIsExporting = vi.fn()
+
+    render(
+      <ExportSection isExporting={false} setIsExporting={setIsExporting} />,
+    )
+
+    const buttons = screen.getAllByRole("button", {
+      name: "common:actions.export",
+    })
+
+    fireEvent.click(atIndex(buttons, 0))
+    fireEvent.click(atIndex(buttons, 1))
+    fireEvent.click(atIndex(buttons, 2))
+
+    expect(mockStartProductAnalyticsAction).toHaveBeenNthCalledWith(1, {
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ImportExport,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.ExportFullBackup,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsImportExportExportSection,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(mockStartProductAnalyticsAction).toHaveBeenNthCalledWith(2, {
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ImportExport,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.ExportAccountData,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsImportExportExportSection,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(mockStartProductAnalyticsAction).toHaveBeenNthCalledWith(3, {
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ImportExport,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.ExportUserSettings,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsImportExportExportSection,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+    })
+    expect(mockHandleExportAll).toHaveBeenCalledWith(setIsExporting)
+    expect(mockHandleExportAccounts).toHaveBeenCalledWith(setIsExporting)
+    expect(mockHandleExportPreferences).toHaveBeenCalledWith(setIsExporting)
+    await vi.waitFor(() => {
+      expect(mockCompleteProductAnalyticsAction).toHaveBeenCalledTimes(3)
+    })
+    expect(mockCompleteProductAnalyticsAction).toHaveBeenCalledWith("success")
+  })
+
+  it("completes failed export analytics with unknown error category", async () => {
+    const setIsExporting = vi.fn()
+    mockHandleExportAll.mockRejectedValue(new Error("disk full"))
+
+    render(
+      <ExportSection isExporting={false} setIsExporting={setIsExporting} />,
+    )
+
+    fireEvent.click(
+      atIndex(
+        screen.getAllByRole("button", {
+          name: "common:actions.export",
+        }),
+        0,
+      ),
+    )
+
+    await vi.waitFor(() => {
+      expect(mockCompleteProductAnalyticsAction).toHaveBeenCalledWith(
+        "failure",
+        { errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown },
+      )
+    })
+  })
+
+  it("renders import validation details and forwards input events", () => {
+    const setImportData = vi.fn()
+    const setImportPlan = vi.fn()
+    const handleFileImport = vi.fn()
+    const handleImport = vi.fn()
+
+    const { rerender } = render(
+      <ImportSection
+        importData='{"version":2}'
+        setImportData={setImportData}
+        importPlan={{
+          accounts: "merge",
+          apiCredentialProfiles: "merge",
+          channelConfigs: "skip",
+          preferences: "skip",
+        }}
+        setImportPlan={setImportPlan}
+        handleFileImport={handleFileImport}
+        handleImport={handleImport}
+        isImporting={false}
+        validation={{
+          valid: true,
+          hasAccounts: true,
+          hasPreferences: true,
+          hasChannelConfigs: true,
+          hasApiCredentialProfiles: true,
+          timestamp: "2026-03-28",
+        }}
+      />,
+    )
+
+    fireEvent.change(screen.getByDisplayValue('{"version":2}'), {
+      target: { value: '{"version":3}' },
+    })
+    fireEvent.change(
+      document.querySelector('input[type="file"]') as HTMLInputElement,
+      {
+        target: {
+          files: [
+            new File(["{}"], "backup.json", { type: "application/json" }),
+          ],
+        },
+      },
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:actions.import" }),
+    )
+    fireEvent.click(
+      screen.getByTestId(IMPORT_EXPORT_TEST_IDS.importPreferencesReplaceOption),
+    )
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole("button", { name: "importExport:import.dataPreview" }),
+    )
+    expect(screen.getByDisplayValue('{"version":2}')).toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:actions.clear" }),
+    )
+
+    expect(
+      screen.getByText("importExport:import.dataValid"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("importExport:import.sections.accounts.title"),
+    ).toBeInTheDocument()
+    expect(setImportData).toHaveBeenCalledWith('{"version":3}')
+    expect(setImportData).toHaveBeenCalledWith("")
+    expect(setImportPlan).toHaveBeenCalledWith(expect.any(Function))
+    const updatePlan = setImportPlan.mock.calls[0]?.[0]
+    expect(
+      updatePlan({
+        accounts: "merge",
+        apiCredentialProfiles: "merge",
+        channelConfigs: "skip",
+        preferences: "skip",
+      }),
+    ).toEqual({
+      accounts: "merge",
+      apiCredentialProfiles: "merge",
+      channelConfigs: "skip",
+      preferences: "replace",
+    })
+    expect(
+      screen.getByRole("button", {
+        name: "importExport:import.sectionStrategy.accounts.merge",
+      }),
+    ).toHaveAttribute("aria-pressed", "true")
+
+    rerender(
+      <I18nextProvider i18n={testI18n}>
+        <ImportSection
+          importData='{"version":2}'
+          setImportData={setImportData}
+          importPlan={{
+            accounts: "merge",
+            apiCredentialProfiles: "merge",
+            channelConfigs: "skip",
+            preferences: "replace",
+          }}
+          setImportPlan={setImportPlan}
+          handleFileImport={handleFileImport}
+          handleImport={handleImport}
+          isImporting={false}
+          validation={{
+            valid: true,
+            hasAccounts: true,
+            hasPreferences: true,
+            hasChannelConfigs: true,
+            hasApiCredentialProfiles: true,
+            timestamp: "2026-03-28",
+          }}
+        />
+      </I18nextProvider>,
+    )
+    expect(
+      screen.getByText("importExport:import.replaceWarning"),
+    ).toBeInTheDocument()
+    expect(handleFileImport).toHaveBeenCalledTimes(1)
+    expect(handleImport).toHaveBeenCalledTimes(1)
+    expect(mockTrackProductAnalyticsActionStarted).not.toHaveBeenCalled()
+    fireEvent.click(
+      screen.getByRole("button", { name: "importExport:import.dataPreview" }),
+    )
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument()
+
+    rerender(
+      <I18nextProvider i18n={testI18n}>
+        <ImportSection
+          importData=""
+          setImportData={setImportData}
+          importPlan={{
+            accounts: "skip",
+            apiCredentialProfiles: "skip",
+            channelConfigs: "skip",
+            preferences: "skip",
+          }}
+          setImportPlan={setImportPlan}
+          handleFileImport={handleFileImport}
+          handleImport={handleImport}
+          isImporting
+          validation={{ valid: false }}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(screen.getByRole("textbox")).toBeVisible()
+    expect(
+      screen.getByText("importExport:import.dataInvalid"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /common:status\.importing/ }),
+    ).toBeDisabled()
+  })
+
+  it("toggles decrypt password visibility and respects the decrypting state", () => {
+    const onPasswordChange = vi.fn()
+    const onSavePasswordChange = vi.fn()
+    const onClose = vi.fn()
+    const onDecryptAndImport = vi.fn()
+
+    const { rerender } = render(
+      <WebDAVDecryptPasswordModal
+        isOpen
+        decrypting={false}
+        password="secret"
+        onPasswordChange={onPasswordChange}
+        savePassword
+        onSavePasswordChange={onSavePasswordChange}
+        onClose={onClose}
+        onDecryptAndImport={onDecryptAndImport}
+      />,
+    )
+
+    fireEvent.click(screen.getByLabelText("importExport:webdav.showPassword"))
+    expect(screen.getByDisplayValue("secret")).toHaveAttribute("type", "text")
+
+    fireEvent.change(screen.getByDisplayValue("secret"), {
+      target: { value: "new-secret" },
+    })
+    fireEvent.click(screen.getByRole("checkbox"))
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /importExport:webdav\.encryption\.decryptAction/,
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:actions.cancel" }),
+    )
+
+    expect(onPasswordChange).toHaveBeenCalledWith("new-secret")
+    expect(onSavePasswordChange).toHaveBeenCalledWith(false)
+    expect(onDecryptAndImport).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <I18nextProvider i18n={testI18n}>
+        <WebDAVDecryptPasswordModal
+          isOpen
+          decrypting
+          password="secret"
+          onPasswordChange={onPasswordChange}
+          savePassword={false}
+          onSavePasswordChange={onSavePasswordChange}
+          onClose={onClose}
+          onDecryptAndImport={onDecryptAndImport}
+        />
+      </I18nextProvider>,
+    )
+
+    expect(
+      screen.getByRole("button", { name: "common:actions.cancel" }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole("button", {
+        name: "common:status.processing",
+      }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: "common:status.processing" }),
+    ).toHaveAttribute("aria-busy", "true")
+  })
+})

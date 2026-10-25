@@ -1,0 +1,70 @@
+import React from "react"
+import { describe, expect, it } from "vitest"
+
+import { ModelListInput } from "~/components/ui"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+import { fireEvent, render, screen } from "~~/tests/test-utils/render"
+
+describe("ModelListInput", () => {
+  const Wrapper = (props: { nameSuggestions?: string[] }) => {
+    const [value, setValue] = React.useState<
+      React.ComponentProps<typeof ModelListInput>["value"]
+    >(() => [{ id: "1", name: "", alias: "" }])
+
+    return (
+      <ModelListInput
+        value={value}
+        onChange={setValue}
+        nameSuggestions={props.nameSuggestions}
+      />
+    )
+  }
+
+  it("renders model name and alias inputs", async () => {
+    render(<Wrapper />)
+
+    expect(
+      await screen.findByText("ui:modelListInput.title"),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByPlaceholderText("ui:modelListInput.placeholders.name"),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByPlaceholderText(
+        "ui:modelListInput.placeholders.alias",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("adds and removes model rows", async () => {
+    render(<Wrapper />)
+
+    const addButton = await screen.findByRole("button", {
+      name: "ui:modelListInput.actions.add",
+    })
+    fireEvent.click(addButton)
+
+    const modelNameInputs = await screen.findAllByPlaceholderText(
+      "ui:modelListInput.placeholders.name",
+    )
+    expect(modelNameInputs.length).toBe(2)
+
+    const removeButtons = await screen.findAllByRole("button", {
+      name: "ui:modelListInput.actions.remove",
+    })
+    fireEvent.click(atIndex(removeButtons, 0))
+
+    const remainingNameInputs = await screen.findAllByPlaceholderText(
+      "ui:modelListInput.placeholders.name",
+    )
+    expect(remainingNameInputs.length).toBe(1)
+  })
+
+  it("uses SearchableSelect when name suggestions are provided", async () => {
+    render(<Wrapper nameSuggestions={["gpt-4", "claude-3-opus", "gpt-4"]} />)
+
+    const nameCombo = await screen.findByRole("combobox")
+    fireEvent.click(nameCombo)
+    expect(await screen.findByText("gpt-4")).toBeInTheDocument()
+  })
+})

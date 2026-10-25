@@ -1,0 +1,712 @@
+{
+  "alerts": {
+    "authenticationFailed": {
+      "description": "已儲存的 {{site}} 憑證遭拒。請開啟設定更新憑證，然後重新整理渠道清單。",
+      "title": "請重新登入 {{site}}"
+    },
+    "editorLoadError": {
+      "description": "無法載入渠道表單。請重新整理渠道列表後重試。",
+      "title": "無法開啟渠道編輯器"
+    },
+    "editorSaveError": {
+      "description": "你的變更尚未儲存，請重試。",
+      "title": "無法儲存渠道"
+    },
+    "loadError": {
+      "title": "無法載入渠道"
+    },
+    "partialMutation": {
+      "description": "部分欄位可能已儲存，但渠道狀態尚未確認。請重新整理渠道列表並核對渠道後再重試。",
+      "title": "渠道更新需要核對"
+    },
+    "permissionDenied": {
+      "description": "目前的 {{site}} 帳號無權管理渠道。請改用管理員帳號或調整權限，然後重新整理。",
+      "title": "{{site}} 拒絕存取"
+    },
+    "resourceChanged": {
+      "description": "此渠道已被其他操作修改，本次變更未儲存。請關閉編輯視窗，重新整理渠道列表後再編輯。"
+    },
+    "savedRefreshError": {
+      "description": "渠道已儲存，但無法載入最新列表。請先重新整理渠道列表，再進行其他變更。",
+      "title": "渠道已儲存，需要重新整理"
+    },
+    "unavailable": {
+      "description": "無法連線至 {{site}}。請檢查伺服器和網路，然後重新整理渠道清單。",
+      "title": "{{site}} 暫時無法使用"
+    }
+  },
+  "cliProxyApi": {
+    "credentialWeightHelp": "留空時權重為 1；非正數表示不參與加權路由，最大為 1,000,000。",
+    "excludedModels": "排除模型（每行一個）",
+    "headers": "請求標頭",
+    "headersHelp": "每行一個標頭，格式為 名稱: 值。",
+    "prefix": "模型前綴",
+    "proxyUrl": "代理位址"
+  },
+  "dialog": {
+    "cancel": "取消",
+    "confirm": "刪除",
+    "deleteDescription": "此操作無法撤銷，所選配置將被永久刪除。",
+    "deleteRefreshAction": "重新整理渠道清單",
+    "deleteRefreshRequired": "請重新整理渠道清單以確認最新狀態，再繼續刪除。",
+    "deleteResultStatus": {
+      "failed": "失敗",
+      "success": "已刪除",
+      "uncertain": "狀態不確定"
+    },
+    "deleteResultsTitle": "刪除結果",
+    "deleteTitle": "刪除渠道？",
+    "deleteTitlePlural": "刪除這些渠道？"
+  },
+  "editor": {
+    "advanced": {
+      "autoBan": {
+        "help": "符合 New API 設定的故障條件時，允許自動停用此渠道。",
+        "label": "自動停用渠道"
+      },
+      "autoSync": {
+        "help": "須先啟用偵測。發現變更後，New API 會自動更新此渠道的模型清單。",
+        "label": "自動同步上游模型"
+      },
+      "check": {
+        "help": "由 New API 伺服器定期偵測，與擴充功能本身的模型同步分開執行。",
+        "label": "偵測上游模型更新"
+      },
+      "detectedModels": "可加入的模型",
+      "groups": {
+        "detection": "上游模型偵測",
+        "management": "日常管理",
+        "network": "網路設定"
+      },
+      "ignored": {
+        "help": "填寫完整模型名稱，將其排除在上游模型偵測和同步之外。",
+        "label": "忽略的上游模型"
+      },
+      "invalidExisting": "既有設定無法安全解析，請先在站點管理後台修復，再編輯此欄位。",
+      "lastCheck": "最近偵測時間",
+      "mapping": {
+        "add": "新增對應",
+        "help": "將請求中的模型名稱對應至傳送給上游的模型名稱；每列的請求模型必須唯一。",
+        "invalid": "請補齊每列的兩個模型名稱，並移除重複的請求模型。",
+        "label": "模型名稱對應",
+        "remove": "刪除對應 {{index}}",
+        "source": "請求模型 {{index}}",
+        "sourcePlaceholder": "請求模型",
+        "target": "上游模型 {{index}}",
+        "targetPlaceholder": "上游模型"
+      },
+      "neverChecked": "尚未偵測",
+      "noModels": "無",
+      "proxy": {
+        "help": "供 New API 伺服器存取此渠道時使用，支援 HTTP、HTTPS、SOCKS5 和 SOCKS5H；留空清除此渠道的代理設定。",
+        "invalid": "請輸入有效的 HTTP、HTTPS、SOCKS5 或 SOCKS5H 代理 URL。",
+        "label": "代理位址"
+      },
+      "remark": {
+        "help": "記錄渠道用途或使用說明，最多 255 個字元。",
+        "label": "備註"
+      },
+      "removedModels": "偵測到已移除的模型",
+      "tag": "渠道標籤",
+      "testModel": {
+        "help": "選擇模型或直接輸入名稱；留空使用 New API 預設測試模型。",
+        "label": "測試模型"
+      },
+      "unsupportedDetection": "目前編輯器不支援此渠道類型的上游偵測；進階自訂渠道須在站點管理後台設定模型清單路由。"
+    },
+    "doneHub": {
+      "allowExtraBody": {
+        "help": "將用戶端請求中的額外欄位（例如 extra_body 參數）轉送給上游。",
+        "label": "允許額外欄位透傳"
+      },
+      "compatibleResponse": {
+        "help": "開啟後，DoneHub 將 Responses 請求轉換為 Chat Completions。關閉時優先使用上游原生 Responses，不支援時仍可能回退相容模式。",
+        "label": "相容 Responses API"
+      },
+      "customParameter": {
+        "help": "填入 JSON 物件，預設只補充缺少的欄位。overwrite: true 覆蓋同名欄位；per_model: true 依模型設定；pre_add: true 在請求入口套用。留空清除。",
+        "invalid": "請輸入有效的 JSON 物件。",
+        "label": "額外請求參數",
+        "placeholder": "{\n  \"overwrite\": true,\n  \"temperature\": 0.7\n}"
+      },
+      "disabledStream": {
+        "help": "串流請求使用這些模型時會略過此渠道，不會自動改為非串流。可選擇現有模型或輸入名稱；清空後恢復正常路由。",
+        "label": "停用串流的模型"
+      },
+      "modelHeaders": {
+        "help": "向上游加入固定請求標頭，值必須為文字。驗證標頭由渠道自行處理；留空或刪除所有列可清除設定。",
+        "invalid": "請輸入 JSON 物件，鍵名須唯一且非空，值必須為文字。",
+        "label": "自訂請求標頭",
+        "placeholder": "{\"X-Project\": \"example\"}"
+      },
+      "modelMapping": {
+        "addModels": "將對應名稱加入模型清單",
+        "help": "鍵為使用者請求的模型名稱，值為上游模型名稱。請將鍵加入渠道模型清單；值以 + 開頭時，按使用者請求的模型計費。",
+        "invalid": "請輸入 JSON 物件，鍵名須唯一且非空，值必須為文字。",
+        "label": "模型對應",
+        "placeholder": "{\"alias\": \"upstream-model\"}"
+      },
+      "proxy": {
+        "help": "由 DoneHub 伺服器存取上游時使用，支援 HTTP 和 SOCKS5。%s 會依渠道金鑰產生工作階段識別碼；留空移除渠道專用代理。",
+        "invalid": "請輸入有效的 HTTP 或 SOCKS5 代理位址。",
+        "label": "代理位址",
+        "placeholder": "socks5://127.0.0.1:1080"
+      },
+      "responsesPath": {
+        "help": "僅用於自訂渠道的原生 Responses 請求。留空使用 /v1/responses，填入 disable 停用此請求；開啟相容模式時不使用此路徑。",
+        "label": "Responses 請求路徑",
+        "placeholder": "/v1/responses"
+      },
+      "testModel": {
+        "help": "選擇渠道中的聊天模型，也可輸入模型名稱。留空時 DoneHub 無法為此渠道測速，最多 50 個字元。",
+        "invalid": "模型名稱不能超過 50 個字元。",
+        "label": "測速模型",
+        "placeholder": "gpt-4o-mini"
+      }
+    },
+    "fields": {
+      "autoSyncModelPattern": {
+        "help": "僅同步符合此規則的模型；使用 (?i) 前綴可忽略大小寫，留空則同步所有模型。",
+        "invalid": "請輸入有效的模型篩選規則。",
+        "label": "模型篩選規則",
+        "placeholder": "例如 (?i)^model-example"
+      },
+      "autoSyncSupportedModels": {
+        "help": "AxonHub 會依其系統設定的頻率，從供應商 API 更新已啟用渠道的模型清單。",
+        "label": "自動同步支援的模型"
+      },
+      "channelStatusReason": {
+        "label": "停用原因"
+      },
+      "concurrency": {
+        "help": "此帳號允許同時處理的最大請求數。",
+        "label": "並發數"
+      },
+      "defaultTestModel": {
+        "help": "用於測試此渠道的連線，請從支援的模型中選擇。",
+        "label": "預設測試模型",
+        "placeholder": "選擇已設定的模型"
+      },
+      "extraModelPrefix": {
+        "help": "設定額外的模型前綴，允許使用帶前綴的模型名稱存取此渠道。例如：設定前綴為 'deepseek'，則 'deepseek/deepseek-chat' 和 'deepseek-chat' 都可以存取此渠道。",
+        "label": "額外模型前綴",
+        "placeholder": "例如：deepseek"
+      },
+      "gptLoadBaseUrl": {
+        "help": "該渠道轉送請求的上游位址；已知提供商留空時，由閘道使用提供商自身的端點。"
+      },
+      "gptLoadKey": {
+        "help": "該分組可用的金鑰。閘道按分組保存金鑰池：在此新增列即匯入金鑰，刪除列即移除金鑰。"
+      },
+      "gptLoadPriceMultiplier": {
+        "help": "對渠道回報的成本進行倍率核算（例如 1.5），用於餘額與限速統計。",
+        "label": "計費倍率"
+      },
+      "gptLoadProvider": {
+        "help": "該渠道所用的 gpt-load 驅動 id（例如 openai、anthropic、gemini）。可使用「載入」按鈕讀取該閘道實際支援的驅動列表。"
+      },
+      "gptLoadWeight": {
+        "help": "手動負載平衡權重；數值越大分到的流量比例越高；留空則使用閘道預設值。",
+        "label": "權重"
+      },
+      "magpieAnthropic": {
+        "help": "填寫 Anthropic API 根位址（ANTHROPIC_BASE_URL），請勿加上 /v1/messages。",
+        "label": "Anthropic 位址"
+      },
+      "magpieBalancePath": {
+        "help": "回應中的金額，例如 data.balance 或 data.total / 500000。留空使用 Magpie 預設值。預設供應商僅供檢視。",
+        "label": "餘額取值運算式"
+      },
+      "magpieBalanceURL": {
+        "help": "Magpie 使用的選填餘額介面，URL 支援 {key}。保留既有餘額專用權杖。預設供應商僅供檢視。",
+        "label": "餘額查詢網址"
+      },
+      "magpieCatalog": {
+        "help": "填寫 models.dev 供應商 ID，以逗號分隔，用於模型名稱與推理層級；優先採用第一個符合項目。預設供應商僅供檢視。",
+        "label": "模型目錄"
+      },
+      "magpieChat": {
+        "help": "Chat Completions 位址需包含 /v1，請勿加上 /chat/completions。",
+        "label": "Chat Completions 位址",
+        "required": "請填寫目前所選 API 類型的位址。"
+      },
+      "magpieGemini": {
+        "help": "Gemini 位址需包含 /v1beta，請勿加上模型名稱或 generateContent 路徑。",
+        "label": "Gemini 位址"
+      },
+      "magpieHeaders": {
+        "help": "逐列新增標頭名稱和值，也可切換為 JSON 編輯。這些標頭會傳送給上游供應商。",
+        "label": "自訂請求標頭"
+      },
+      "magpieMaxConcurrency": {
+        "help": "每個金鑰或帳號同時處理的請求數，範圍 0–1000。留空使用 Magpie 預設值，0 表示不限。",
+        "label": "每個金鑰的並行上限"
+      },
+      "magpieMaxRPM": {
+        "help": "每個金鑰或帳號每分鐘的請求數，範圍 0–10000。留空或 0 表示不限。",
+        "label": "每個金鑰的每分鐘請求上限"
+      },
+      "magpieModels": {
+        "help": "可選擇已探索到的模型，或輸入模型 ID 後按 Enter 新增。填寫連線資訊後可取得模型；清空選擇將使用 MAGPIE 的自動模型目錄。"
+      },
+      "magpieModelsURL": {
+        "help": "選填完整模型清單 URL，使用目前金鑰與請求標頭查詢。留空使用協定網址。預設供應商僅供檢視。",
+        "label": "模型清單網址"
+      },
+      "magpiePriceRate": {
+        "help": "相對於標價的倍率，例如 0.8。範圍 0–1000，最多 3 位小數。留空或 0 使用標價。",
+        "label": "價格倍率"
+      },
+      "magpieProxy": {
+        "help": "留空使用全域代理，填寫 direct 可直接連線。",
+        "label": "代理"
+      },
+      "magpieResponses": {
+        "help": "Responses 位址通常包含 /v1，請勿加上 /responses。",
+        "label": "Responses 位址"
+      },
+      "manualModels": {
+        "label": "手動模型"
+      },
+      "notes": {
+        "help": "選填備註，用於記錄此上游帳號的用途或其他說明。",
+        "label": "備註",
+        "placeholder": "新增此帳號的備註..."
+      },
+      "omnirouteBaseUrl": {
+        "help": "留空時沿用所選 provider 的預設位址；填入後閘道會改用這個位址存取該通道。已儲存的位址覆寫無法清空，需要變更時請填寫新的位址。"
+      },
+      "omnirouteDefaultModel": {
+        "help": "請求未指定模型時使用。通道本身不儲存模型清單，模型來自閘道的 provider 目錄與別名。",
+        "label": "預設模型"
+      },
+      "omnirouteLastError": {
+        "label": "最近錯誤"
+      },
+      "omniroutePrefix": {
+        "help": "填寫後會在閘道新建一個 provider node，並以「前綴/模型」定址；留空則直接使用內建 provider。填寫前綴時必須同時填寫位址。",
+        "label": "自訂模型前綴"
+      },
+      "omniroutePriority": {
+        "help": "閘道依這個數字升序選擇渠道，數字越小越先被使用。新建的連線由閘道自動排到最後。",
+        "label": "優先級"
+      },
+      "omnirouteProvider": {
+        "help": "閘道內建 provider 的標識。自訂中轉可保留 openai 並以位址覆寫；點擊載入按鈕可讀取該閘道實際在用的 provider。"
+      },
+      "omnirouteTestStatus": {
+        "label": "連線測試"
+      },
+      "orderingWeight": {
+        "help": "AxonHub 選擇渠道時會優先使用較大的值；相同值具有相同的排序優先順序。",
+        "label": "排序權重"
+      },
+      "priority": {
+        "help": "數值越小的帳號越優先參與排程。",
+        "label": "優先順序"
+      },
+      "remark": {
+        "help": "新增關於此渠道的備註或說明以供參考。",
+        "label": "備註",
+        "placeholder": "為此渠道輸入備註或說明..."
+      },
+      "sub2apiModels": {
+        "help": "選填。留空表示允許上游支援的所有模型；僅在需要限制模型時填寫。",
+        "label": "模型白名單"
+      },
+      "sub2apiPlatform": {
+        "help": "選擇上游協定。帳號建立後不能變更平台。",
+        "label": "平台"
+      },
+      "supportedModels": {
+        "help": "輸入或貼上模型名稱。在此新增的模型會在自動同步時保留。"
+      },
+      "tags": {
+        "help": "新增標籤來分類和篩選渠道。按 Enter 鍵新增標籤，也可貼上以逗號或換行分隔的多個標籤。",
+        "label": "標籤",
+        "placeholder": "新增標籤..."
+      }
+    },
+    "json": {
+      "addRow": "新增一列",
+      "editJson": "編輯 JSON",
+      "editRows": "逐列編輯",
+      "format": "格式化 JSON",
+      "key": "鍵",
+      "keyAt": "{{field}}：第 {{index}} 列鍵",
+      "removeAt": "{{field}}：刪除第 {{index}} 列",
+      "value": "值",
+      "valueAt": "{{field}}：第 {{index}} 列值"
+    },
+    "multiKeyMode": {
+      "label": "Key 選擇策略",
+      "polling": "輪詢",
+      "random": "隨機"
+    },
+    "options": {
+      "channelType": {
+        "anthropic": "Anthropic",
+        "anthropicAws": "AWS Anthropic",
+        "anthropicGcp": "Google Cloud Anthropic",
+        "claudeCode": "Claude Code",
+        "deepseek": "DeepSeek",
+        "deepseekAnthropic": "DeepSeek Anthropic",
+        "gemini": "Gemini",
+        "geminiOpenai": "Gemini OpenAI",
+        "geminiVertex": "Gemini Vertex",
+        "githubCopilot": "GitHub Copilot",
+        "nanogpt": "NanoGPT",
+        "ollama": "Ollama",
+        "openai": "OpenAI",
+        "openaiResponses": "OpenAI Responses",
+        "openrouter": "OpenRouter",
+        "siliconflow": "SiliconFlow",
+        "unsupported": "不支援的渠道類型",
+        "volcengine": "Volcengine",
+        "xai": "xAI"
+      },
+      "omnirouteTestStatus": {
+        "failed": "失敗",
+        "ok": "正常",
+        "pending": "未測試",
+        "unsupported": "不支援測試"
+      },
+      "status": {
+        "archived": "已封存",
+        "disabled": "已停用",
+        "enabled": "已啟用",
+        "unknown": "未知"
+      },
+      "unknown": "未知選項"
+    },
+    "secret": {
+      "actions": {
+        "cancelLoad": "取消載入",
+        "clear": "移除已儲存的 API 金鑰",
+        "restore": "保留已儲存的 API 金鑰",
+        "retry": "重試",
+        "view": "檢視已儲存金鑰"
+      },
+      "createHint": "輸入新渠道使用的上游 API 金鑰。",
+      "keepExistingHint": "將此欄位留空可保留已儲存的 API 金鑰，不作變更。",
+      "loadableHint": "已儲存的 API 金鑰未在此處顯示；留空將保持不變。",
+      "loadError": "無法載入已儲存的 API 金鑰。",
+      "loading": "正在載入已儲存的 API 金鑰…",
+      "partialReplacementHint": "替換部分 Key 預設會移至清單末尾。如需保留原順序，請先查看已儲存的 Key（需驗證）。",
+      "placeholder": "輸入上游 API 金鑰",
+      "replacementBlocked": {
+        "multipleCredentials": "此渠道有多個 API 金鑰。請在 AxonHub 中管理這些金鑰。"
+      },
+      "replacementDisabled": "此 API 金鑰無法在此處取代。",
+      "replacePlaceholder": "輸入新的 API 金鑰以取代已儲存金鑰",
+      "state": {
+        "available": "已有可用的 API 金鑰。",
+        "masked": "已儲存遮罩的 API 金鑰。",
+        "permissionHidden": "已儲存的 API 金鑰因權限限制而不可見。",
+        "unavailable": "目前無法顯示已儲存的 API 金鑰。"
+      }
+    },
+    "sections": {
+      "advanced": "進階",
+      "basic": "基本資訊",
+      "basicConnection": "基本與連線",
+      "compatibility": "介面相容",
+      "connection": "連線與憑據",
+      "metadata": "中繼資料",
+      "models": "模型",
+      "requests": "網路與請求",
+      "routing": "路由",
+      "sync": "模型同步"
+    },
+    "validation": {
+      "inconsistentValue": "此值與其他欄位衝突。",
+      "invalidValue": "請輸入有效值。",
+      "outOfRange": "請輸入允許範圍內的值。",
+      "required": "此欄位為必填。",
+      "unsupportedOption": "不支援此選項。"
+    }
+  },
+  "filter": {
+    "statusLabel": "按狀態篩選"
+  },
+  "filters": {
+    "actionOptions": {
+      "exclude": "排除匹配的模型",
+      "include": "包含匹配的模型"
+    },
+    "actions": {
+      "cancel": "取消",
+      "moveDown": "下移規則",
+      "moveUp": "上移規則",
+      "save": "儲存規則"
+    },
+    "addPatternRule": "新增模式規則",
+    "addProbeRule": "新增探測規則",
+    "empty": {
+      "description": "新增包含或排除規則（可選正則）以控制同步到該渠道的模型。",
+      "title": "尚未新增規則"
+    },
+    "hints": {
+      "probesAllPass": "只有所有已選探測都通過時，模型才會符合此規則。探測會使用該渠道的基礎 URL 和解析出的渠道 key。",
+      "regex": "正則模式使用 JavaScript 語法，可實現更靈活的匹配。",
+      "substring": "普通模式將執行區分大小寫的子串匹配。",
+      "unsupportedChannelType": "此渠道類型無法映射到支援的驗證 API，因此暫不能使用探測規則。"
+    },
+    "jsonEditor": {
+      "hint": "JSON 必須是模式規則或探測規則物件陣列。模式規則使用 kind: 'pattern'、name 和 pattern；探測規則使用 kind: 'probe'、name 和 probeIds。apiKey、key、baseUrl 等憑證欄位會被忽略。",
+      "label": "高階 JSON 編輯器",
+      "placeholder": "在此貼上或編輯過濾規則物件陣列，以便在多個渠道之間快速複用同一套配置。"
+    },
+    "labels": {
+      "action": "執行動作",
+      "delete": "刪除規則",
+      "description": "描述",
+      "enabled": "啟用",
+      "name": "規則名稱",
+      "pattern": "匹配模式",
+      "probes": "驗證探測",
+      "regex": "使用正則",
+      "ruleType": "規則類型"
+    },
+    "loading": "正在載入渠道過濾規則…",
+    "messages": {
+      "jsonArrayRequired": "JSON 必須是過濾規則陣列。",
+      "jsonInvalid": "無效的過濾規則 JSON：{{error}}",
+      "jsonItemNotObject": "索引 {{index}} 處的過濾規則必須是物件。",
+      "loadFailed": "過濾規則載入失敗：{{error}}",
+      "saved": "過濾規則已儲存",
+      "saveFailed": "儲存過濾規則失敗：{{error}}",
+      "validationName": "請為每個規則填寫名稱。",
+      "validationPattern": "匹配模式不能為空。",
+      "validationProbeIds": "請為每個探測規則至少選擇一個驗證探測。",
+      "validationRegex": "無效的正規表示式：{{error}}"
+    },
+    "modelSyncExclusionHelp": "儲存後，自動同步和手動點擊「執行全部」都會略過此渠道。「執行所選」和「同步此渠道」仍可臨時同步它。點擊「取消」會放棄本次修改。",
+    "placeholders": {
+      "description": "可選備註",
+      "name": "如：僅允許 GPT-4",
+      "pattern": "精確字串或正規表示式",
+      "probes": "選擇探測",
+      "probeSearch": "搜尋探測"
+    },
+    "probes": {
+      "empty": "找不到探測",
+      "options": {
+        "structured-output": "結構化輸出",
+        "text-generation": "文字生成",
+        "tool-calling": "工具呼叫",
+        "web-search": "網路搜尋"
+      }
+    },
+    "ruleTypeOptions": {
+      "pattern": "模式",
+      "probe": "探測"
+    },
+    "subtitle": "為 {{channel}} 配置包含/排除規則",
+    "title": "渠道過濾規則",
+    "viewMode": {
+      "json": "JSON 編輯",
+      "label": "編輯模式",
+      "visual": "視覺化編輯"
+    }
+  },
+  "gatewayGuidance": {
+    "empty": {
+      "description": "目前自建 AI 閘道還沒有渠道。請先匯入帳號 Key 或 API Key，之後這個閘道即可作為統一 AI API 提供給外部客戶端使用。",
+      "importFromAccountKey": "從帳號 Key 匯入渠道",
+      "importFromApiKeyLibrary": "從 API 憑據庫匯入渠道",
+      "title": "還沒有自建 AI 閘道渠道"
+    },
+    "headerDescription": "管理自建 AI 閘道的渠道，將多個 API 來源接入統一入口。",
+    "openChannelConsole": "開啟閘道渠道管理",
+    "unconfiguredValueDescription": "設定後，可以把分散的帳號 Key 和 API Key 匯入為閘道渠道，並直接在 My API Box 中統一查看和管理。"
+  },
+  "magpieKeys": {
+    "anyProtocol": "不限協定",
+    "enabled": "啟用",
+    "help": "新增金鑰或貼上以換行、逗號、空格分隔的多個金鑰。已儲存金鑰中僅主金鑰可查看明文；更換額外金鑰時先新增項目再刪除舊項目。點選儲存後生效。",
+    "invalid": "請檢查新金鑰、協定與權重（0–1000），並至少保留一個啟用的金鑰。",
+    "name": "金鑰名稱",
+    "order": "依序（容錯移轉）",
+    "pace": "依每小時剩餘額度",
+    "primary": "目前主金鑰",
+    "primaryKey": "主要 API 金鑰",
+    "protocol": "協定",
+    "rotate": "輪詢",
+    "routing": "金鑰分配策略",
+    "smart": "智慧（自動容錯移轉）",
+    "title": "金鑰池",
+    "usage": "優先使用量最少",
+    "weighted": "依權重",
+    "weightHelp": "0 或 1 使用預設權重；2–1000 調整加權分配時的請求份額。"
+  },
+  "magpieProtocols": {
+    "checkOther": "其他已設定類型的位址有誤，請切換至對應類型檢查。",
+    "configured": "已設定",
+    "help": "選擇類型後編輯對應位址。需要多種協定時，依次切換並填寫；各類型的位址會分別保留。",
+    "type": "API 類型",
+    "unmanaged": "在 Magpie 中管理"
+  },
+  "migration": {
+    "actions": {
+      "cancel": "取消",
+      "close": "關閉",
+      "refreshChannels": "重新整理渠道清單",
+      "refreshPreview": "重新整理預覽",
+      "running": "遷移中…",
+      "start": "開始遷移"
+    },
+    "betaBadge": "Beta",
+    "blockedReasons": {
+      "sourceKeyExportRestricted": "來源站點匯出金鑰需要網頁二次驗證，目前的 Admin API Key 無法完成。請從來源站點後台取得金鑰後手動遷移該渠道。",
+      "sourceKeyMissing": "缺少來源渠道金鑰，目前無法遷移此渠道。",
+      "sourceKeyResolutionFailed": "無法取得來源渠道金鑰。若剛完成驗證，請重新整理預覽後再試。",
+      "sourceKeysChanged": "來源 Key 數量或啟用狀態已變更，請重新整理預覽後再遷移。",
+      "sourceMultiKeyUnsupported": "此來源暫不支援完整匯出多 Key，請在來源站檢查並手動遷移，避免遺漏。",
+      "sourceTypeUnsupported": "此來源渠道類型暫不支援遷移。請選擇受支援的渠道，或手動遷移。",
+      "targetDraftPreparationFailed": "無法準備目標渠道草稿。請檢查渠道資訊並重新整理預覽後再試。"
+    },
+    "confirm": {
+      "confirm": "確認遷移",
+      "description": "將為 {{total}} 個遷移項目中的 {{ready}} 個可遷移項目建立目標通道。多 Key 通道可能已拆分為多個項目。",
+      "title": "開始渠道遷移？",
+      "warningTitle": "此流程只會建立新渠道，不會同步、去重或回滾。"
+    },
+    "description": "將目前託管站點中的 {{selectedCount}} 個渠道複製到另一個已配置的託管站點。",
+    "generalWarnings": {
+      "compactSummary": "僅建立，不查重。懸停看詳情。",
+      "createOnly": "本次遷移僅在目標站點建立新渠道，不會修改來源渠道。",
+      "noDedupeOrSync": "本次遷移不會查重、覆蓋或同步目標站點中已存在的渠道。",
+      "noRollback": "本次遷移不提供自動回滾，請依結果列表手動處理後續工作。",
+      "targetRoutingDefaults": "優先順序、權重和並行設定不會遷移，目標採用原生預設值；可在遷移後透過目標編輯器調整。",
+      "title": "遷移限制"
+    },
+    "itemWarnings": {
+      "dropsAdvancedSettings": "高級渠道設定無法直接遷移到目標站點，將被忽略。",
+      "dropsModelMapping": "模型映射設定不會一併遷移。",
+      "dropsMultiKeyState": "Key 的啟用狀態會保留；輪詢策略、停用原因和執行歷史不會複製。",
+      "dropsStatusCodeMapping": "狀態碼映射設定不會一併遷移。",
+      "splitsKeys": "目標無法在同一通道中保留這些 Key 的狀態，將依 Key 分別建立通道；負載分配可能改變。",
+      "sub2apiDefaultGroup": "不會遷移來源分組。目標站點會綁定該平台的預設分組（如有），請在遷移後檢查分組。",
+      "targetForcesDefaultGroup": "目標站點會改用預設分組。",
+      "targetNormalizesBaseUrl": "目標站點會對基礎 URL 做規範化處理。",
+      "targetRemapsChannelType": "目標站點會將渠道型別映射為最接近的相容型別。",
+      "targetSimplifiesStatus": "目標站點會將來源渠道狀態簡化為啟用或停用。"
+    },
+    "keyCount": "Key 數量",
+    "preview": {
+      "badges": {
+        "limitsLabel": "項限制",
+        "warningsLabel": "則警告"
+      },
+      "compare": {
+        "fieldLabel": "欄位"
+      },
+      "loadFailed": "載入遷移預覽失敗：{{error}}",
+      "loading": "正在建立遷移預覽…",
+      "status": {
+        "blocked": "已阻止",
+        "ready": "可遷移"
+      },
+      "summary": "預覽：{{ready}} 項可遷移，{{blocked}} 項受阻，共 {{total}} 項。"
+    },
+    "results": {
+      "refreshRequired": "部分建立結果的狀態不確定。請重新整理渠道清單後再關閉。",
+      "status": {
+        "failed": "失敗",
+        "skipped": "已跳過",
+        "success": "已建立",
+        "uncertain": "狀態不確定"
+      },
+      "summary": "遷移結果：{{created}}，{{failed}}，{{skipped}}，{{uncertain}}，{{total}}。",
+      "summaryMetrics": {
+        "created_one": "成功 {{count}} 個",
+        "created_other": "成功 {{count}} 個",
+        "failed_one": "失敗 {{count}} 個",
+        "failed_other": "失敗 {{count}} 個",
+        "skipped_one": "跳過 {{count}} 個",
+        "skipped_other": "跳過 {{count}} 個",
+        "total_one": "共 {{count}} 個",
+        "total_other": "共 {{count}} 個",
+        "uncertain_one": "狀態不確定 {{count}} 個",
+        "uncertain_other": "狀態不確定 {{count}} 個"
+      },
+      "title": "遷移結果"
+    },
+    "sub2apiDefaultGroup": "平台預設分組（如有）",
+    "target": {
+      "destinationLabel": "目標站點",
+      "label": "遷移目標",
+      "placeholder": "選擇託管站點目標",
+      "sourceLabel": "來源站點",
+      "unselected": "未選擇"
+    },
+    "title": "遷移渠道"
+  },
+  "statusLabels": {
+    "autoDisabled": "自動禁用",
+    "enabled": "啟用",
+    "manualPause": "手動暫停",
+    "unknown": "未知"
+  },
+  "table": {
+    "columns": {
+      "actions": "操作",
+      "group": "可用分組",
+      "id": "ID",
+      "models": "模型數量",
+      "name": "渠道",
+      "priority": "優先順序",
+      "status": "狀態",
+      "type": "型別",
+      "weight": "權重"
+    },
+    "emptyFiltered": "找不到匹配渠道，請調整搜尋詞或篩選條件。",
+    "emptyNoChannels": "暫無渠道。你可以新增渠道或重新整理列表。",
+    "loading": "正在載入渠道…",
+    "noEntries": "暫無資料",
+    "paginationNext": "下一頁",
+    "paginationPrev": "上一頁",
+    "paginationSummary": "第 {{start}} - {{end}} 條 / 共 {{total}} 條",
+    "rowActions": {
+      "delete": "刪除",
+      "edit": "編輯",
+      "filters": "編輯渠道過濾規則",
+      "migrate": "遷移到其他站點",
+      "openSync": "開啟模型同步介面",
+      "sync": "立即同步模型列表",
+      "syncing": "正在同步…",
+      "view": "查看渠道"
+    },
+    "rowsPerPage": "每頁行數",
+    "selectAll": "選擇所有行",
+    "selectRow": "選擇行"
+  },
+  "title": "渠道管理",
+  "toasts": {
+    "channelSaved": "渠道已儲存",
+    "channelsDeleted_other": "已刪除 {{count}} 個渠道",
+    "channelUpdated": "渠道已更新",
+    "syncCompleted": "模型同步完成（{{success}}/{{total}}）",
+    "syncCompletedRefreshFailed": "模型已同步（{{success}}/{{total}}），但渠道清單重新整理失敗。請重新整理後再試。",
+    "syncFailed": "模型同步失敗：{{error}}",
+    "syncFailedFallback": "無法同步渠道",
+    "syncIncomplete": "模型同步未全部完成（成功 {{success}}/{{total}}）。請開啟模型同步介面查看結果，並重試失敗項目。"
+  },
+  "toolbar": {
+    "addChannel": "新增渠道",
+    "cancelRefresh": "停止重新整理",
+    "clearSearch": "清除搜尋",
+    "columns": "顯示列",
+    "deleteSelected": "刪除所選",
+    "enterMigrationMode": "渠道遷移",
+    "exitMigrationMode": "退出遷移模式",
+    "migrateFiltered": "遷移目前篩選出的所有渠道",
+    "migrateSelected": "遷移所選",
+    "refresh": "重新整理",
+    "searchPlaceholder": "按名稱、URL 或分組搜尋",
+    "status": "狀態",
+    "syncSelected": "同步所選渠道模型",
+    "toggleColumns": "切換列"
+  }
+}

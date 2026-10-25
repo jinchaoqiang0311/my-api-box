@@ -1,0 +1,239 @@
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { AppLayout } from "~/components/AppLayout"
+import PopupInterruptionHintBanner from "~/components/PopupInterruptionHintBanner"
+import { SelectViewportResizeProvider } from "~/components/ui/select"
+import { ProductAnalyticsScope } from "~/contexts/ProductAnalyticsScopeContext"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { AccountManagementProvider } from "~/features/AccountManagement/workspace/AccountManagementProvider"
+import { DevPanel, DevPanelProvider } from "~/features/DevPanel"
+import { useProductAnalyticsPageView } from "~/hooks/analytics/useProductAnalyticsPageView"
+import { cn } from "~/lib/utils"
+import { markPopupClosedDuringCriticalFlow } from "~/services/popupInterruptionHint"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_PAGE_IDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+  type ProductAnalyticsActionId,
+  type ProductAnalyticsFeatureId,
+  type ProductAnalyticsPageId,
+} from "~/services/productAnalytics/contracts"
+import {
+  isDesktopDevice,
+  isExtensionPopup,
+  isExtensionSidePanel,
+} from "~/utils/browser"
+
+import ActionButtons from "./components/ActionButtons"
+import HeaderSection from "./components/HeaderSection"
+import PopupViewSwitchTabs, {
+  type PopupViewType,
+} from "./components/PopupViewSwitchTabs"
+import { getPopupViewTestId, POPUP_TEST_IDS } from "./testIds"
+import { usePopupViewRegistry } from "./viewRegistry"
+import { POPUP_VIEW_TYPES } from "./viewTypes"
+
+/**
+ * Maps popup tab state to the fixed analytics page id enum.
+ */
+function mapPopupViewToAnalyticsPageId(
+  view: PopupViewType,
+): ProductAnalyticsPageId {
+  switch (view) {
+    case POPUP_VIEW_TYPES.Bookmarks:
+      return PRODUCT_ANALYTICS_PAGE_IDS.PopupBookmarks
+    case POPUP_VIEW_TYPES.ApiCredentialProfiles:
+      return PRODUCT_ANALYTICS_PAGE_IDS.PopupApiCredentialProfiles
+    case POPUP_VIEW_TYPES.Accounts:
+    default:
+      return PRODUCT_ANALYTICS_PAGE_IDS.PopupAccounts
+  }
+}
+
+/**
+ * Maps popup tab selection to fixed analytics metadata without exposing labels.
+ */
+function mapPopupViewToAnalyticsAction(view: PopupViewType): {
+  featureId: ProductAnalyticsFeatureId
+  actionId: ProductAnalyticsActionId
+} {
+  switch (view) {
+    case POPUP_VIEW_TYPES.Bookmarks:
+      return {
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.BookmarkManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.SelectBookmarksView,
+      }
+    case POPUP_VIEW_TYPES.ApiCredentialProfiles:
+      return {
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ApiCredentialProfiles,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.SelectApiCredentialProfilesView,
+      }
+    case POPUP_VIEW_TYPES.Accounts:
+    default:
+      return {
+        featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+        actionId: PRODUCT_ANALYTICS_ACTION_IDS.SelectAccountsView,
+      }
+  }
+}
+
+/**
+ * Popup body content for the extension popup and side panel.
+ * Handles device-aware layout sizing, header/actions, and account list rendering.
+ */
+function PopupContent({ inPopup }: { inPopup: boolean }) {
+  const { t } = useTranslation(["bookmark", "apiCredentialProfiles"])
+  const { isLoading } = useUserPreferencesContext()
+  const inSidePanel = isExtensionSidePanel()
+  const isDesktopPopup = inPopup && isDesktopDevice()
+  const [activeView, setActiveView] = useState<PopupViewType>(
+    POPUP_VIEW_TYPES.Accounts,
+  )
+  const [scrollParent, setScrollParent] = useState<HTMLDivElement | null>(null)
+  const viewConfig = usePopupViewRegistry({
+    onSelectView: setActiveView,
+    isPopup: inPopup,
+    scrollParent: isDesktopPopup ? scrollParent : null,
+  })
+
+  const activeViewConfig = viewConfig[activeView]
+  const entrypoint = inSidePanel
+    ? PRODUCT_ANALYTICS_ENTRYPOINTS.Sidepanel
+    : PRODUCT_ANALYTICS_ENTRYPOINTS.Popup
+  const viewTabsSurface = inSidePanel
+    ? PRODUCT_ANALYTICS_SURFACE_IDS.SidepanelViewTabs
+    : PRODUCT_ANALYTICS_SURFACE_IDS.PopupViewTabs
+  const statsSurfaceId = inSidePanel
+    ? PRODUCT_ANALYTICS_SURFACE_IDS.SidepanelStats
+    : PRODUCT_ANALYTICS_SURFACE_IDS.PopupStats
+  const statsSection =
+    !isLoading && activeViewConfig.statsSection ? (
+      <ProductAnalyticsScope entrypoint={entrypoint} surfaceId={statsSurfaceId}>
+        {activeViewConfig.statsSection}
+      </ProductAnalyticsScope>
+    ) : null
+
+  useProductAnalyticsPageView({
+    entrypoint,
+    pageId: mapPopupViewToAnalyticsPageId(activeView),
+  })
+
+  useEffect(() => {
+    if (!inPopup) {
+      return
+    }
+
+    const handlePageHide = () => {
+      void markPopupClosedDuringCriticalFlow()
+    }
+
+    window.addEventListener("pagehide", handlePageHide)
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide)
+    }
+  }, [inPopup])
+
+  return (
+    <DevPanelProvider surface={inSidePanel ? "sidepanel" : "popup"}>
+      <div
+        ref={setScrollParent}
+        data-testid={POPUP_TEST_IDS.scrollContainer}
+        className={cn(
+          "bg-background flex w-full flex-col overflow-y-auto",
+          // Desktop action popups scroll inside their bounded document. Other
+          // surfaces fill the viewport and retain document scrolling.
+          isDesktopPopup ? "h-full" : "min-h-dvh",
+        )}
+      >
+        <HeaderSection
+          showRefresh={activeViewConfig.showRefresh}
+          activeView={activeView}
+        />
+        <PopupInterruptionHintBanner surfaceClassName="rounded-none border-x-0 shadow-none" />
+
+        <section
+          className={cn(
+            "border-border from-theme-50/50 dark:from-theme-900/20 to-theme-50/30 dark:to-theme-900/10 shrink-0 border-b bg-linear-to-br px-3 sm:px-4",
+            statsSection
+              ? "space-y-density-2 py-density-3 sm:py-density-4"
+              : "py-density-2 sm:py-density-2.5",
+          )}
+        >
+          <div className="gap-y-density-2 flex items-center justify-between gap-x-2">
+            <ProductAnalyticsScope
+              entrypoint={entrypoint}
+              surfaceId={viewTabsSurface}
+            >
+              <PopupViewSwitchTabs
+                value={activeView}
+                fullWidth={!activeViewConfig.headerAction}
+                onChange={(nextView) => {
+                  setActiveView(nextView)
+                  viewConfig[nextView].preload?.()
+                }}
+                accountsLabel={t("bookmark:switch.accounts")}
+                bookmarksLabel={t("bookmark:switch.bookmarks")}
+                apiCredentialProfilesLabel={t(
+                  "apiCredentialProfiles:popup.tabLabel",
+                )}
+                getAnalyticsAction={mapPopupViewToAnalyticsAction}
+              />
+            </ProductAnalyticsScope>
+            {activeViewConfig.headerAction ? (
+              <ProductAnalyticsScope
+                entrypoint={entrypoint}
+                featureId={PRODUCT_ANALYTICS_FEATURE_IDS.ShareSnapshots}
+                surfaceId={
+                  inSidePanel
+                    ? PRODUCT_ANALYTICS_SURFACE_IDS.SidepanelHeader
+                    : PRODUCT_ANALYTICS_SURFACE_IDS.PopupHeader
+                }
+              >
+                {activeViewConfig.headerAction}
+              </ProductAnalyticsScope>
+            ) : null}
+          </div>
+          {statsSection}
+        </section>
+
+        <div className="flex-1" data-testid={getPopupViewTestId(activeView)}>
+          {activeViewConfig.showActionBar !== false && (
+            <ActionButtons
+              primaryActionLabel={activeViewConfig.primaryActionLabel}
+              onPrimaryAction={activeViewConfig.onPrimaryAction}
+              primaryActionTestId={activeViewConfig.primaryActionTestId}
+              primaryAnalyticsAction={activeViewConfig.primaryAnalyticsAction}
+              showAccountActions={activeViewConfig.showAccountActions}
+            />
+          )}
+
+          {activeViewConfig.content}
+        </div>
+      </div>
+      <DevPanel />
+    </DevPanelProvider>
+  )
+}
+
+/**
+ * Root popup application with providers/layout wrappers.
+ * @returns Popup component tree rendered inside AppLayout.
+ */
+function App() {
+  const [inPopup] = useState(isExtensionPopup)
+
+  return (
+    <AppLayout>
+      <SelectViewportResizeProvider preserveOpen={inPopup}>
+        <AccountManagementProvider>
+          <PopupContent inPopup={inPopup} />
+        </AccountManagementProvider>
+      </SelectViewportResizeProvider>
+    </AppLayout>
+  )
+}
+
+export default App

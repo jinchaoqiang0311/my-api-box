@@ -1,0 +1,189 @@
+import { jsonSchema, tool } from "ai"
+
+import { nowMs, okLatency } from "../probeTiming"
+import { createModel } from "../providers"
+import {
+  API_VERIFICATION_MODES,
+  API_VERIFICATION_PROBE_IDS,
+  API_VERIFICATION_PROBE_STATUSES,
+} from "../types"
+import type {
+  ApiVerificationApiType,
+  ApiVerificationMode,
+  ApiVerificationProbeResult,
+  ApiVerificationRequestProfile,
+} from "../types"
+import {
+  buildSafeProbeFailureDiagnostics,
+  isAbortError,
+  toSanitizedErrorSummary,
+} from "../utils"
+import { runProbeGeneration } from "./probeGeneration"
+
+type RunToolCallingProbeParams = {
+  baseUrl: string
+  apiKey: string
+  requestHeaders?: Record<string, string>
+  requestProfile?: ApiVerificationRequestProfile
+  requestProfileEnhanced?: boolean
+  apiType: ApiVerificationApiType
+  modelId: string
+  mode?: ApiVerificationMode
+  abortSignal?: AbortSignal
+}
+
+const VERIFY_TOOL_NAME = "verify_tool"
+const VERIFY_TOOL_DESCRIPTION = "Return a timestamp string."
+const TOOL_CALLING_PROMPT =
+  `Call the ${VERIFY_TOOL_NAME} tool once. ` +
+  "Reply with a short sentence that includes the returned time."
+const VERIFY_TOOL_INPUT_SCHEMA = {
+  type: "object",
+  properties: {},
+} as const
+
+/**
+ * Check whether the verification tool was called in the AI SDK result.
+ */
+function toolCalled(result: {
+  toolCalls?: Array<{ toolName?: string }>
+  toolResults?: Array<{ toolName?: string }>
+}): boolean {
+  return (
+    (result.toolCalls ?? []).some(
+      (call) => call.toolName === VERIFY_TOOL_NAME,
+    ) ||
+    (result.toolResults ?? []).some(
+      (call) => call.toolName === VERIFY_TOOL_NAME,
+    )
+  )
+}
+
+/**
+ * Tool/function calling probe.
+ */
+export async function runToolCallingProbe(
+  params: RunToolCallingProbeParams,
+): Promise<ApiVerificationProbeResult> {
+  const startedAt = nowMs()
+  const mode = params.mode ?? API_VERIFICATION_MODES.Streaming
+  const secretsToRedact = [
+    params.apiKey,
+    ...Object.values(params.requestHeaders ?? {}),
+  ]
+  const prompt = TOOL_CALLING_PROMPT
+
+  try {
+    const model = createModel({
+      baseUrl: params.baseUrl,
+      apiKey: params.apiKey,
+      ...(params.requestHeaders
+        ? { requestHeaders: params.requestHeaders }
+        : {}),
+      apiType: params.apiType,
+      requestProfile: params.requestProfile,
+      requestProfileEnhanced: params.requestProfileEnhanced,
+      modelId: params.modelId,
+    })
+
+    const verifyTool = tool({
+      description: VERIFY_TOOL_DESCRIPTION,
+      inputSchema: jsonSchema<Record<string, never>>(VERIFY_TOOL_INPUT_SCHEMA),
+      execute: async () => ({ now: new Date().toISOString() }),
+    })
+
+    const result = await runProbeGeneration(
+      {
+        model,
+        prompt,
+        tools: { [VERIFY_TOOL_NAME]: verifyTool },
+        toolChoice: "required",
+        abortSignal: params.abortSignal,
+      },
+      mode,
+    )
+
+    if (!toolCalled(result)) {
+      return {
+        id: API_VERIFICATION_PROBE_IDS.ToolCalling,
+        mode,
+        status: API_VERIFICATION_PROBE_STATUSES.Fail,
+        latencyMs: okLatency(startedAt),
+        summary: "No tool call detected (model may not support tools)",
+        summaryKey: "verifyDialog.summaries.noToolCallDetected",
+        input: {
+          apiType: params.apiType,
+          baseUrl: params.baseUrl,
+          modelId: params.modelId,
+          prompt,
+          tool: {
+            name: VERIFY_TOOL_NAME,
+            description: VERIFY_TOOL_DESCRIPTION,
+            inputSchema: VERIFY_TOOL_INPUT_SCHEMA,
+          },
+          toolChoice: "required",
+        },
+        output: {
+          text: (result as any).text ?? null,
+          toolCalls: (result.toolCalls ?? []).slice(0, 20),
+          toolResults: (result.toolResults ?? []).slice(0, 20),
+        },
+      }
+    }
+
+    return {
+      id: API_VERIFICATION_PROBE_IDS.ToolCalling,
+      mode,
+      status: API_VERIFICATION_PROBE_STATUSES.Pass,
+      latencyMs: okLatency(startedAt),
+      summary: "Tool call succeeded",
+      summaryKey: "verifyDialog.summaries.toolCallSucceeded",
+      input: {
+        apiType: params.apiType,
+        baseUrl: params.baseUrl,
+        modelId: params.modelId,
+        prompt,
+        tool: {
+          name: VERIFY_TOOL_NAME,
+          description: VERIFY_TOOL_DESCRIPTION,
+          inputSchema: VERIFY_TOOL_INPUT_SCHEMA,
+        },
+        toolChoice: "required",
+      },
+      output: {
+        text: (result as any).text ?? null,
+        toolCalls: (result.toolCalls ?? []).slice(0, 20),
+        toolResults: (result.toolResults ?? []).slice(0, 20),
+      },
+    }
+  } catch (error) {
+    if (isAbortError(error, params.abortSignal)) {
+      throw error
+    }
+
+    const summary = toSanitizedErrorSummary(error, secretsToRedact)
+    const diagnostics = buildSafeProbeFailureDiagnostics(error, summary)
+    return {
+      id: API_VERIFICATION_PROBE_IDS.ToolCalling,
+      mode,
+      status: API_VERIFICATION_PROBE_STATUSES.Fail,
+      latencyMs: okLatency(startedAt),
+      summary: summary || "Request failed",
+      summaryKey: diagnostics.summaryKey,
+      summaryParams: diagnostics.summaryParams,
+      input: {
+        apiType: params.apiType,
+        baseUrl: params.baseUrl,
+        modelId: params.modelId,
+        prompt,
+        tool: {
+          name: VERIFY_TOOL_NAME,
+          description: VERIFY_TOOL_DESCRIPTION,
+          inputSchema: VERIFY_TOOL_INPUT_SCHEMA,
+        },
+        toolChoice: "required",
+      },
+      output: diagnostics.output,
+    }
+  }
+}

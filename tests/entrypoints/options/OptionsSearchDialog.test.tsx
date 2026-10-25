@@ -1,0 +1,322 @@
+import { fireEvent } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { OptionsSearchDialog } from "~/features/OptionsSearch/OptionsSearchDialog"
+import type { OptionsSearchContext } from "~/features/OptionsSearch/types"
+import * as search from "~/features/OptionsSearch/useOptionsSearch"
+import { render, screen, waitFor } from "~~/tests/test-utils/render"
+
+vi.mock("~/services/permissions/permissionManager", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/services/permissions/permissionManager")
+    >()
+  return {
+    ...actual,
+    OPTIONAL_PERMISSIONS: [actual.OPTIONAL_PERMISSION_IDS.ClipboardRead],
+  }
+})
+
+const baseContext: OptionsSearchContext = {
+  autoCheckinEnabled: true,
+  hasOptionalPermissions: true,
+  managedSiteType: "new-api",
+  modelRedirectEnabled: true,
+  showTodayCashflow: true,
+  sidePanelSupported: true,
+  webdavAutoSyncEnabled: true,
+}
+
+function setSearchQuery(query: string) {
+  fireEvent.change(screen.getByRole("combobox"), {
+    target: { value: query },
+  })
+}
+
+describe("OptionsSearchDialog", () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it("selects the intended result by keyboard when localized labels are identical", async () => {
+    const user = userEvent.setup()
+    const onPageNavigate = vi.fn()
+    const items = ["first", "second"].map((id, order) => ({
+      id,
+      order,
+      kind: "page" as const,
+      pageId: id,
+      titleKey: "same",
+      title: "Same label",
+      breadcrumbsKeys: [],
+      breadcrumbs: [],
+      keywords: [],
+    }))
+    vi.spyOn(search, "useOptionsSearch").mockReturnValue({
+      items,
+      results: items,
+    })
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={onPageNavigate}
+        context={baseContext}
+      />,
+    )
+    await user.type(await screen.findByRole("combobox"), "same")
+    const options = screen.getAllByRole("option")
+    await waitFor(() =>
+      expect(options[0]).toHaveAttribute("aria-selected", "true"),
+    )
+    await user.keyboard("{ArrowDown}")
+    expect(options[0]).toHaveAttribute("aria-selected", "false")
+    expect(options[1]).toHaveAttribute("aria-selected", "true")
+    await user.keyboard("{Enter}")
+    expect(onPageNavigate).toHaveBeenCalledWith("second")
+  })
+
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it("shows an idle state before the user types a query", async () => {
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+
+    expect(screen.getByText("ui:optionsSearch.idleTitle")).toBeInTheDocument()
+    expect(
+      screen.getByText("ui:optionsSearch.idleDescription"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("group", { name: "ui:optionsSearch.groups.page" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("groups page, tab, section, and control results and matches technical aliases", async () => {
+    const onPageNavigate = vi.fn()
+
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={onPageNavigate}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    setSearchQuery("webdav")
+
+    expect(
+      screen.getByRole("group", { name: "ui:optionsSearch.groups.control" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("group", { name: "ui:optionsSearch.groups.section" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByText("importExport:webdav.title").length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText("importExport:webdav.syncSettings.title").length,
+    ).toBeGreaterThan(0)
+  })
+
+  it("navigates through page results and closes after selection", async () => {
+    const user = userEvent.setup()
+    const onPageNavigate = vi.fn()
+    const onOpenChange = vi.fn()
+
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={onOpenChange}
+        onPageNavigate={onPageNavigate}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    setSearchQuery("book")
+    await user.click(screen.getByText("ui:navigation.bookmark"))
+
+    expect(onPageNavigate).toHaveBeenCalledWith("bookmark")
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("clears the query when the clear button is used", async () => {
+    const user = userEvent.setup()
+
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    const input = screen.getByRole("combobox")
+    setSearchQuery("webdav")
+    await user.click(
+      screen.getByRole("button", { name: "common:actions.clear" }),
+    )
+
+    expect(input).toHaveValue("")
+  })
+
+  it("lets Home and End move the caret while editing the search query", async () => {
+    const user = userEvent.setup()
+
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    const input = screen.getByRole("combobox")
+
+    await user.type(input, "middle")
+    await user.keyboard("{Home}start ")
+    await user.keyboard("{End} end")
+
+    expect(input).toHaveValue("start middle end")
+  })
+
+  it("closes through dialog dismissal and resets the query", async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={onOpenChange}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    const input = screen.getByRole("combobox")
+    setSearchQuery("webdav")
+    await user.keyboard("{Escape}")
+
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(input).toHaveValue("")
+  })
+
+  it("renders nothing when closed until reopened", async () => {
+    const { rerender } = render(
+      <OptionsSearchDialog
+        open={false}
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+
+    rerender(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+  })
+
+  it("unmounts cleanly while closed", () => {
+    const { unmount } = render(
+      <OptionsSearchDialog
+        open={false}
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    unmount()
+  })
+
+  it("lets the user open a recent item after reopening the dialog", async () => {
+    const user = userEvent.setup()
+    const onPageNavigate = vi.fn()
+
+    const { rerender } = render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={onPageNavigate}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    setSearchQuery("clipboard")
+    await user.click(
+      screen.getByText("settings:permissions.items.clipboardRead.title"),
+    )
+
+    rerender(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={onPageNavigate}
+        context={baseContext}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("group", { name: "ui:optionsSearch.groups.recent" }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(
+      screen.getByText("settings:permissions.items.clipboardRead.title"),
+    )
+
+    expect(onPageNavigate).toHaveBeenLastCalledWith("basic", {
+      anchor: "clipboardRead",
+      highlight: "clipboardRead",
+      tab: "permissions",
+    })
+  })
+
+  it("shows an empty state when nothing matches", async () => {
+    const user = userEvent.setup()
+
+    render(
+      <OptionsSearchDialog
+        open
+        onOpenChange={vi.fn()}
+        onPageNavigate={vi.fn()}
+        context={baseContext}
+      />,
+    )
+
+    await screen.findByRole("dialog")
+    await user.type(screen.getByRole("combobox"), "zz")
+
+    expect(screen.getByText("ui:optionsSearch.emptyTitle")).toBeInTheDocument()
+    expect(
+      screen.getByText("ui:optionsSearch.emptyDescription"),
+    ).toBeInTheDocument()
+  })
+})

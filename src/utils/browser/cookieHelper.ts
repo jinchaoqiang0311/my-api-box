@@ -1,0 +1,433 @@
+import { COOKIE_IMPORT_FAILURE_REASONS } from "~/constants/cookieImport"
+import { hasCookieInterceptorPermissions } from "~/services/permissions/permissionManager"
+import { mergeCookieHeaders } from "~/utils/browser/cookieString"
+import { containsPermissions } from "~/utils/browser/permissions"
+import { isProtectionBypassFirefoxEnv } from "~/utils/browser/protectionBypass"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+
+/**
+ * Unified logger scoped to the cookie helper utilities.
+ */
+const logger = createLogger("CookieHelper")
+
+const normalizeHeaders = (
+  headers: HeadersInit = {},
+): Record<string, string> => {
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries())
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers)
+  }
+  return { ...(headers as Record<string, string>) }
+}
+
+// 请求标识头
+export const EXTENSION_HEADER_NAME = "All-API-Hub"
+export const EXTENSION_HEADER_VALUE = "true"
+export const COOKIE_AUTH_HEADER_NAME = "All-API-Hub-Cookie-Auth"
+export const COOKIE_SESSION_OVERRIDE_HEADER_NAME = "All-API-Hub-Session-Cookie"
+
+export const AUTH_MODE = {
+  COOKIE_AUTH_MODE: "cookie",
+  TOKEN_AUTH_MODE: "token",
+} as const
+
+type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE]
+
+export const COOKIE_HEADER_READ_FAILURE_REASONS = COOKIE_IMPORT_FAILURE_REASONS
+
+type CookieHeaderReadFailureReason =
+  (typeof COOKIE_IMPORT_FAILURE_REASONS)[keyof typeof COOKIE_IMPORT_FAILURE_REASONS]
+
+interface CookieHeaderReadResult {
+  header: string
+  errorMessage?: string
+  failureReason?: CookieHeaderReadFailureReason
+}
+
+const COOKIE_PERMISSION_DENIED_PATTERNS = [
+  /permission denied/i,
+  /does not have permission/i,
+  /missing host permission/i,
+  /host permission/i,
+  /not allowed/i,
+  /not permitted/i,
+  /cookies?.*permission/i,
+  /extension.*permission/i,
+]
+
+/**
+ * Classifies cookie-read failures so callers can distinguish permission issues
+ * from empty-cookie states and other browser/runtime errors.
+ */
+function classifyCookieHeaderReadFailure(
+  error: unknown,
+): CookieHeaderReadFailureReason {
+  const message = getErrorMessage(error).trim()
+
+  if (
+    message &&
+    COOKIE_PERMISSION_DENIED_PATTERNS.some((pattern) => pattern.test(message))
+  ) {
+    return COOKIE_HEADER_READ_FAILURE_REASONS.PermissionDenied
+  }
+
+  return COOKIE_HEADER_READ_FAILURE_REASONS.ReadFailed
+}
+
+/**
+ * Converts a URL into an origin pattern suitable for cookie permissions, e.g.
+ * "https://example.com/some/path" -> "https://example.com/*"
+ * Returns null if the URL is invalid and cannot be parsed.
+ */
+function getCookiePermissionOriginPattern(url: string): string | null {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.origin}/*`
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Checks whether the extension can read cookies for the target URL.
+ *
+ * This combines the optional `cookies` permission with the target origin so
+ * callers can short-circuit before attempting `browser.cookies.getAll`.
+ */
+export async function hasCookieReadPermissionForUrl(
+  url: string,
+): Promise<boolean> {
+  const originPattern = getCookiePermissionOriginPattern(url)
+
+  if (!originPattern) {
+    return false
+  }
+
+  return await containsPermissions({
+    permissions: ["cookies" as unknown as browser._manifest.OptionalPermission],
+    origins: [originPattern],
+  })
+}
+
+/**
+ * Includes partitioned cookies where supported. Older browsers reject the
+ * partitionKey filter, so retry only that schema error with the same URL/store.
+ */
+async function readCookiesForUrl(url: string, options: { storeId?: string }) {
+  const details = {
+    url,
+    ...(options.storeId ? { storeId: options.storeId } : {}),
+  }
+  try {
+    return await browser.cookies.getAll({ ...details, partitionKey: {} })
+  } catch (error) {
+    if (
+      !/Unexpected property:\s*['"]partitionKey['"]/i.test(
+        getErrorMessage(error),
+      )
+    ) {
+      throw error
+    }
+    return await browser.cookies.getAll(details)
+  }
+}
+
+/**
+ * Checks whether any non-expired cookie exists for the target URL.
+ *
+ * This is a cheap "has a usable session" proxy: a cookie-authenticated direct
+ * API request cannot succeed when the browser holds no cookie for the site, so
+ * callers can skip that doomed request without materializing a Cookie header.
+ * Missing permission or a read failure is treated as "no cookies" because the
+ * request could not have carried cookies in that case either.
+ */
+export async function hasCookiesForUrl(
+  url: string,
+  options: { storeId?: string } = {},
+): Promise<boolean> {
+  if (!(await hasCookieReadPermissionForUrl(url))) {
+    return false
+  }
+
+  try {
+    const cookies = await readCookiesForUrl(url, options)
+    const now = Date.now() / 1000
+    return cookies.some(
+      (cookie) => !(cookie.expirationDate && cookie.expirationDate < now),
+    )
+  } catch (error) {
+    logger.warn("检查站点 Cookie 失败", {
+      url,
+      error: getErrorMessage(error),
+    })
+    return false
+  }
+}
+
+// 拦截器注册状态
+let isInterceptorRegistered = false
+
+/**
+ * Checks whether cookie interception should run (Firefox + permissions).
+ * Logs helpful warnings when optional permissions were not granted.
+ */
+export async function checkCookieInterceptorRequirement(): Promise<boolean> {
+  // 仅 Firefox 使用这个功能
+  if (isProtectionBypassFirefoxEnv()) {
+    // 检查权限
+    const granted = await hasCookieInterceptorPermissions()
+    if (!granted) {
+      logger.warn(
+        "Required optional permissions (cookies/webRequest) are missing; skip cookie interception",
+      )
+    }
+    return granted
+  }
+
+  // 非 Firefox 不需要拦截器
+  return false
+}
+
+/**
+ * 获取指定 URL 的 Cookie 请求头
+ */
+export async function getCookieHeaderForUrl(
+  url: string,
+  options: { includeSession?: boolean; storeId?: string } = {},
+): Promise<string> {
+  const result = await getCookieHeaderForUrlResult(url, options)
+  return result.header
+}
+
+/**
+ * Reads the browser cookie header for a URL and preserves failure diagnostics
+ * for callers that need to distinguish permission issues from empty results.
+ */
+export async function getCookieHeaderForUrlResult(
+  url: string,
+  options: { includeSession?: boolean; storeId?: string } = {},
+): Promise<CookieHeaderReadResult> {
+  const includeSession = options.includeSession ?? true
+
+  try {
+    // 读取 cookies
+    const cookies = await readCookiesForUrl(url, options)
+
+    // 过滤并格式化
+    const validCookies = cookies.filter((cookie) => {
+      // 检查过期时间
+      if (cookie.expirationDate && cookie.expirationDate < Date.now() / 1000) {
+        return false
+      }
+      return true
+    })
+
+    const filteredCookies = includeSession
+      ? validCookies
+      : validCookies.filter((cookie) => cookie.name !== "session")
+
+    // 格式化为 Cookie 请求头：name1=value1; name2=value2
+    const cookieHeader = filteredCookies
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ")
+
+    logger.debug("获取到 Cookie", { url, cookieCount: validCookies.length })
+
+    return { header: cookieHeader }
+  } catch (error) {
+    const errorMessage = getErrorMessage(error)
+    const failureReason = classifyCookieHeaderReadFailure(error)
+    logger.warn("获取 Cookie 失败", {
+      url,
+      error: errorMessage,
+      failureReason,
+    })
+    return {
+      header: "",
+      errorMessage,
+      failureReason,
+    }
+  }
+}
+
+/**
+ * WebRequest 拦截处理函数
+ */
+async function handleWebRequest(
+  details: browser.webRequest._OnBeforeSendHeadersDetails,
+) {
+  const headers = details.requestHeaders || []
+
+  // 只处理带有扩展标识的请求
+  let hasExtensionHeader = false
+  let includeSessionCookie = true
+  let sessionCookieOverride: string | null = null
+  const normalizedExtensionName = EXTENSION_HEADER_NAME.toLowerCase()
+  const normalizedCookieAuthName = COOKIE_AUTH_HEADER_NAME.toLowerCase()
+  const normalizedSessionOverrideName =
+    COOKIE_SESSION_OVERRIDE_HEADER_NAME.toLowerCase()
+
+  headers.forEach((h: any) => {
+    const lower = h.name.toLowerCase()
+    if (
+      lower === normalizedExtensionName &&
+      h.value === EXTENSION_HEADER_VALUE
+    ) {
+      hasExtensionHeader = true
+    }
+    if (lower === normalizedCookieAuthName) {
+      includeSessionCookie = h.value === AUTH_MODE.COOKIE_AUTH_MODE
+    }
+    if (lower === normalizedSessionOverrideName) {
+      sessionCookieOverride = typeof h.value === "string" ? h.value : null
+    }
+  })
+
+  if (!hasExtensionHeader) {
+    return {}
+  }
+
+  logger.debug("拦截请求", { url: details.url })
+
+  // 获取 Cookie
+  let cookieHeader = await getCookieHeaderForUrl(details.url, {
+    includeSession: includeSessionCookie,
+  })
+
+  const sessionCookieOverrideValue =
+    typeof sessionCookieOverride === "string" ? sessionCookieOverride : ""
+
+  // Multi-account cookie auth: merge WAF cookies + per-account session cookie
+  if (includeSessionCookie && sessionCookieOverrideValue.trim().length > 0) {
+    const wafCookieHeader = await getCookieHeaderForUrl(details.url, {
+      includeSession: false,
+    })
+    cookieHeader = mergeCookieHeaders(
+      wafCookieHeader,
+      sessionCookieOverrideValue,
+    )
+  }
+
+  if (!cookieHeader) {
+    logger.warn("未找到 Cookie", { url: details.url })
+    return {}
+  }
+
+  // 注入或替换 Cookie 头
+  const newHeaders = headers
+    .map((h: any) => {
+      // 移除扩展标识头
+      const lower = h.name.toLowerCase()
+      if (
+        lower === normalizedExtensionName ||
+        lower === normalizedCookieAuthName ||
+        lower === normalizedSessionOverrideName
+      ) {
+        return null
+      }
+      // 替换 Cookie 头
+      if (lower === "cookie") {
+        logger.debug("已替换 Cookie 头")
+        return { name: h.name, value: cookieHeader }
+      }
+      return h
+    })
+    .filter(Boolean) as any[]
+
+  // 如果没有 Cookie 头，添加
+  if (!headers.some((h: any) => h.name.toLowerCase() === "cookie")) {
+    newHeaders.push({ name: "Cookie", value: cookieHeader })
+    logger.debug("已添加 Cookie 头")
+  }
+
+  return { requestHeaders: newHeaders }
+}
+
+/**
+ * 注册 WebRequest 拦截器
+ * @param urlPatterns URL 白名单模式列表
+ */
+export function registerWebRequestInterceptor(urlPatterns: string[]): void {
+  if (!isProtectionBypassFirefoxEnv()) {
+    logger.debug("非 Firefox 环境，跳过拦截器注册")
+    return
+  }
+
+  try {
+    // 先注销旧的拦截器
+    if (isInterceptorRegistered) {
+      browser.webRequest.onBeforeSendHeaders.removeListener(handleWebRequest)
+      isInterceptorRegistered = false
+      logger.debug("已注销旧拦截器")
+    }
+
+    // 如果没有 URL 模式，不注册
+    if (!urlPatterns || urlPatterns.length === 0) {
+      logger.debug("无 URL 白名单，跳过注册")
+      return
+    }
+
+    // 注册新的拦截器
+    browser.webRequest.onBeforeSendHeaders.addListener(
+      handleWebRequest,
+      { urls: urlPatterns },
+      ["blocking", "requestHeaders"],
+    )
+
+    isInterceptorRegistered = true
+    logger.info("拦截器注册成功", {
+      urlPatternCount: urlPatterns.length,
+      urlPatterns,
+    })
+  } catch (error) {
+    logger.error("拦截器注册失败", error)
+    isInterceptorRegistered = false
+  }
+}
+
+/**
+ * 初始化 WebRequest 拦截器（启动时调用）
+ * @param urlPatterns 初始 URL 白名单
+ */
+export function setupWebRequestInterceptor(urlPatterns: string[] = []): void {
+  if (!isProtectionBypassFirefoxEnv()) {
+    logger.debug("非 Firefox 环境，跳过初始化")
+    return
+  }
+
+  registerWebRequestInterceptor(urlPatterns)
+}
+
+/**
+ * 为请求添加扩展标识头
+ */
+export function addExtensionHeader(
+  headers: HeadersInit = {},
+): Record<string, string> {
+  if (!isProtectionBypassFirefoxEnv()) {
+    return headers as Record<string, string>
+  }
+
+  const headersObj = normalizeHeaders(headers)
+  headersObj[EXTENSION_HEADER_NAME] = EXTENSION_HEADER_VALUE
+  return headersObj
+}
+
+/**
+ * Adds the authentication mode header when the cookie interceptor is available.
+ * Normalizes the headers object before mutating it.
+ */
+export async function addAuthMethodHeader(
+  headers: HeadersInit = {},
+  mode: AuthMode,
+): Promise<Record<string, string>> {
+  const headersObj = normalizeHeaders(headers)
+  const canCookieInterceptor = await checkCookieInterceptorRequirement()
+  if (canCookieInterceptor) {
+    headersObj[COOKIE_AUTH_HEADER_NAME] = mode
+  }
+  return headersObj
+}

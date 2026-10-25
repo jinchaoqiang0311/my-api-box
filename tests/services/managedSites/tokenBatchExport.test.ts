@@ -1,0 +1,3024 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { SITE_TYPES } from "~/constants/siteType"
+import {
+  buildAccountKeyResourceRuntimeKey,
+  buildServiceCredentialRuntimeKey,
+} from "~/services/accounts/keys/accountRuntimeKeys"
+import { MANAGED_RESOURCE_EXACT_MATCH_BASES } from "~/services/apiAdapters/contracts/managedResourceMatching"
+import {
+  MANAGED_RESOURCE_FAILURE_CODES,
+  ManagedResourceError,
+} from "~/services/apiAdapters/contracts/managedResourceNative"
+import type { ManagedSiteCapabilities } from "~/services/apiAdapters/contracts/managedSiteCapabilities"
+import type { NewApiToken } from "~/services/apiService/newApiFamily/tokenTypes"
+import { API_ERROR_CODES } from "~/services/apiTransport/errors"
+import { getManagedResourceRefKey } from "~/services/managedSites/managedResourceIdentity"
+import {
+  PROTECTION_BYPASS_SURFACES,
+  PROTECTION_BYPASS_USER_COMMANDS,
+} from "~/services/protectionBypass/contracts"
+import type { ManagedSiteChannelDraftSource } from "~/types/managedSiteChannelDraft"
+import {
+  MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES,
+  MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES,
+  MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS,
+  MANAGED_SITE_TOKEN_BATCH_EXPORT_INPUT_KINDS,
+  MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES,
+  MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES,
+} from "~/types/managedSiteTokenBatchExport"
+import { userCommandExecution } from "~~/tests/services/protectionBypass/fixtures"
+import { buildNewApiRuntimeKey } from "~~/tests/test-utils/accountKeyFixtures"
+import {
+  buildDisplaySiteData,
+  buildNewApiToken,
+} from "~~/tests/test-utils/factories"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+import {
+  buildManagedResourceMatchCandidate,
+  matchingResourceRef,
+} from "~~/tests/test-utils/managedResourceMatching"
+import { createManagedSiteCapabilitiesStub } from "~~/tests/test-utils/managedSiteCapabilitiesFactory"
+
+const {
+  mockResolveDisplayAccountRuntimeKeySecret,
+  mockGetManagedSiteCapabilities,
+  mockGetManagedSiteCapabilitiesForType,
+  mockGetCurrentManagedSiteRuntimeConfig,
+  mockResolveManagedSiteChannelMatch,
+  mockResolveManagedUpstreamResourceFeatureCapabilities,
+  mockOpenNativeManagedChannelImportSession,
+  buildChannelMatchRequestCache,
+} = vi.hoisted(() => ({
+  mockResolveDisplayAccountRuntimeKeySecret: vi.fn(),
+  mockGetManagedSiteCapabilities: vi.fn(),
+  mockGetManagedSiteCapabilitiesForType: vi.fn(),
+  mockGetCurrentManagedSiteRuntimeConfig: vi.fn(),
+  mockResolveManagedSiteChannelMatch: vi.fn(),
+  mockResolveManagedUpstreamResourceFeatureCapabilities: vi.fn(),
+  mockOpenNativeManagedChannelImportSession: vi.fn(),
+  buildChannelMatchRequestCache: () => ({
+    searchResultsByTargetKey: new Map(),
+    channelSecretKeysByResourceKey: new Map(),
+    resolvedChannelKeysByResourceKey: {},
+  }),
+}))
+
+vi.mock("~/services/accounts/utils/apiServiceRequest", () => ({
+  resolveDisplayAccountRuntimeKeySecret:
+    mockResolveDisplayAccountRuntimeKeySecret,
+}))
+
+vi.mock("~/services/apiAdapters/registry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/services/apiAdapters/registry")>()),
+  getManagedSiteCapabilities: mockGetManagedSiteCapabilitiesForType,
+}))
+
+vi.mock(
+  "~/services/managedSites/configuration/runtimeConfig",
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    getCurrentManagedSiteRuntimeConfig: mockGetCurrentManagedSiteRuntimeConfig,
+  }),
+)
+
+vi.mock("~/services/managedSites/matching/channelMatchResolver", () => ({
+  createManagedSiteChannelMatchRequestCache: buildChannelMatchRequestCache,
+  resolveManagedSiteChannelMatch: mockResolveManagedSiteChannelMatch,
+}))
+
+vi.mock(
+  "~/services/apiAdapters/managedResources/channelImport",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("~/services/apiAdapters/managedResources/channelImport")
+    >()),
+    openNativeManagedChannelImportSession:
+      mockOpenNativeManagedChannelImportSession,
+  }),
+)
+
+const buildAccountToken = (
+  overrides: Partial<NewApiToken> = {},
+): NewApiToken => ({
+  ...buildNewApiToken({
+    id: 11,
+    name: "Token 11",
+    key: "token-secret",
+  }),
+  ...overrides,
+})
+
+const buildAccountTokenInput = (
+  account = buildDisplaySiteData(),
+  token = buildAccountToken(),
+) => ({
+  account,
+  runtimeKey: buildNewApiRuntimeKey(account, token),
+})
+
+const sessionResyncExecution = {
+  version: 2 as const,
+  kind: "automatic" as const,
+  feature: "managed_site_channels" as const,
+  trigger: "background_recovery" as const,
+  surface: "background" as const,
+}
+
+const sessionResyncOptions = {
+  protectionBypassExecution: sessionResyncExecution,
+}
+
+const buildMatchInspection = (overrides: Record<string, any> = {}) => ({
+  searchBaseUrl: "https://upstream.example.com",
+  searchCompleted: true,
+  url: {
+    matched: false,
+    channel: null,
+    candidateCount: 0,
+  },
+  key: {
+    comparable: true,
+    matched: false,
+    reason: "no-match",
+    channel: null,
+  },
+  models: {
+    comparable: true,
+    matched: false,
+    reason: "no-match",
+    channel: null,
+  },
+  ...overrides,
+})
+
+type ImportTestService = ManagedSiteCapabilities & {
+  submit: ReturnType<typeof vi.fn>
+  reconcile: ReturnType<typeof vi.fn>
+}
+
+const buildService = (
+  overrides: NonNullable<
+    Parameters<typeof createManagedSiteCapabilitiesStub>[0]
+  > &
+    Partial<Pick<ImportTestService, "submit" | "reconcile">> = {},
+): ImportTestService => ({
+  submit:
+    overrides.submit ??
+    vi.fn().mockResolvedValue({
+      outcome: "succeeded",
+      data: null,
+      confirmedEffects: [
+        { kind: "resource-created", resourceKind: "channel", resourceId: 7 },
+      ],
+      message: "ok",
+    }),
+  reconcile:
+    overrides.reconcile ??
+    vi.fn().mockResolvedValue({ items: [], total: 0, type_counts: {} }),
+  ...createManagedSiteCapabilitiesStub({
+    ...overrides,
+    config: {
+      get: vi.fn().mockResolvedValue({
+        baseUrl: "https://target.example.com",
+        adminToken: "admin-token",
+        userId: "1",
+      }),
+      ...overrides.config,
+    },
+    channelDrafts: {
+      prepareFormData: vi.fn(async (source: ManagedSiteChannelDraftSource) => ({
+        name: source.name,
+        type: 1,
+        key: source.apiKey,
+        base_url: source.baseUrl,
+        models: ["gpt-4o"],
+        groups: ["default"],
+        priority: 0,
+        weight: 0,
+        enabled: true,
+      })),
+      ...overrides.channelDrafts,
+    },
+  }),
+})
+
+const buildRuntimeConfigForService = async (
+  managedSite: ManagedSiteCapabilities,
+) => {
+  const config = await managedSite.config.get()
+  if (!config) return null
+
+  if (managedSite.siteType === SITE_TYPES.AXON_HUB) {
+    return {
+      siteType: managedSite.siteType,
+      config: {
+        baseUrl: config.baseUrl,
+        email: "admin@example.invalid",
+        password: "placeholder-password",
+      },
+    }
+  }
+
+  if (managedSite.siteType === SITE_TYPES.OCTOPUS) {
+    return {
+      siteType: managedSite.siteType,
+      config: {
+        baseUrl: config.baseUrl,
+        username: "admin",
+        password: "placeholder-password",
+      },
+    }
+  }
+
+  return { siteType: managedSite.siteType, config }
+}
+
+const configureManagedSiteCapabilities = (
+  managedSite: ManagedSiteCapabilities,
+) => {
+  mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+  mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+  mockGetCurrentManagedSiteRuntimeConfig.mockImplementation(() =>
+    buildRuntimeConfigForService(managedSite),
+  )
+}
+
+const expectBatchDraftOptions = () =>
+  expect.objectContaining({
+    operationContext: expect.any(Object),
+  })
+
+const buildAxonHubImportService = () =>
+  buildService({
+    siteType: SITE_TYPES.AXON_HUB,
+    channelDrafts: {
+      prepareFormData: vi.fn(async (source: ManagedSiteChannelDraftSource) => ({
+        name: source.name,
+        type: "openai",
+        key: source.apiKey,
+        base_url: source.baseUrl,
+        models: ["model-example"],
+        groups: [],
+        priority: 0,
+        weight: 3,
+        enabled: true,
+      })),
+    },
+  })
+
+const executeSingleNativeBatchImport = async (
+  managedSite = buildAxonHubImportService(),
+) => {
+  configureManagedSiteCapabilities(managedSite)
+  const { prepareManagedSiteTokenBatchExportPreview } = await import(
+    "~/services/managedSites/batchImport/tokenBatchImportPreview"
+  )
+  const { executeManagedSiteTokenBatchExport } = await import(
+    "~/services/managedSites/batchImport/tokenBatchImportExecution"
+  )
+  const input = buildAccountTokenInput()
+  const preview = await prepareManagedSiteTokenBatchExportPreview({
+    items: [input],
+  })
+  const result = await executeManagedSiteTokenBatchExport({
+    preview,
+    selectedItemIds: [atIndex(preview.items, 0).id],
+  })
+
+  return { result, managedSite }
+}
+
+const manualCompleteIntent = {
+  source: "manual-selection",
+  verification: "complete",
+} as const
+
+const repairTrustedNewIntent = {
+  source: "repair-created",
+  verification: "trusted-new",
+} as const
+
+const repairCompleteIntent = {
+  source: "repair-created",
+  verification: "complete",
+} as const
+
+describe("managed-site token batch export", () => {
+  it.each([
+    "succeeded",
+    "changed",
+    "uncertain",
+    "append-unavailable",
+    "ambiguous",
+  ])(
+    "uses the existing Magpie target without falling back to provider creation (%s)",
+    async (outcome) => {
+      const target = buildManagedResourceMatchCandidate({
+        ref: matchingResourceRef("existing", {
+          siteType: SITE_TYPES.MAGPIE,
+          scopeKey: "https://managed.example",
+        }),
+        name: "Coding group",
+        type: "chat",
+        base_url: "https://example.com",
+        key: "key-existing",
+      })
+      const managedSite = buildService({
+        siteType: SITE_TYPES.MAGPIE,
+        matching: { exactMatchBasis: "url-key", search: vi.fn() },
+        channelDrafts: {
+          prepareFormData: vi.fn(
+            async (source: ManagedSiteChannelDraftSource) => ({
+              name: source.name,
+              type: "chat",
+              key: source.apiKey,
+              base_url: source.baseUrl,
+              models: ["m1"],
+              groups: [],
+              enabled: true,
+            }),
+          ),
+        },
+      })
+      configureManagedSiteCapabilities(managedSite)
+      mockGetCurrentManagedSiteRuntimeConfig.mockResolvedValue({
+        siteType: SITE_TYPES.MAGPIE,
+        config: { baseUrl: "https://managed.example", webKey: "web-key" },
+      })
+      mockResolveManagedSiteChannelMatch.mockResolvedValue({
+        searchCompleted: true,
+        searchBaseUrl: "https://example.com",
+        urlCandidates: [target],
+        url: { matched: true, channel: target, candidateCount: 1 },
+        key: {
+          comparable: true,
+          matched: false,
+          reason: "no-match",
+          channel: null,
+        },
+        models: {
+          comparable: false,
+          matched: false,
+          reason: "comparison-unavailable",
+          channel: null,
+        },
+      })
+      const append = vi.fn().mockResolvedValue({
+        outcome: "succeeded",
+        data: null,
+        confirmedEffects: [
+          {
+            kind: "resource-updated",
+            resourceKind: "channel",
+            resourceId: "existing",
+          },
+        ],
+      })
+      const submit = vi.fn()
+      if (outcome === "changed" || outcome === "uncertain")
+        append.mockRejectedValue(
+          new ManagedResourceError({
+            code:
+              outcome === "changed"
+                ? MANAGED_RESOURCE_FAILURE_CODES.ResourceChanged
+                : MANAGED_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+          }),
+        )
+      mockOpenNativeManagedChannelImportSession.mockResolvedValue({
+        ...(outcome === "append-unavailable" ? {} : { append }),
+        submit,
+        reconcile: vi.fn(),
+      })
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const { executeManagedSiteTokenBatchExport } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportExecution"
+      )
+      const account = buildDisplaySiteData()
+      const runtimeKey = buildNewApiRuntimeKey(
+        account,
+        buildNewApiToken({ key: "key-new" }),
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [{ account, runtimeKey }],
+      })
+      expect(preview.items[0]?.existingImportTargets).toEqual([
+        { ref: target.ref, name: "Coding group" },
+      ])
+      if (outcome === "ambiguous") {
+        preview.items[0]!.existingImportTargets!.push({
+          ref: { ...target.ref, resourceId: "second" },
+          name: "Second candidate",
+        })
+        await expect(
+          executeManagedSiteTokenBatchExport({
+            preview,
+            selectedItemIds: [runtimeKey.id],
+            mode: "reuse",
+          }),
+        ).rejects.toMatchObject({ failure: { code: "validation_failed" } })
+        expect(mockOpenNativeManagedChannelImportSession).not.toHaveBeenCalled()
+        expect(submit).not.toHaveBeenCalled()
+        return
+      }
+      const result = await executeManagedSiteTokenBatchExport({
+        preview,
+        selectedItemIds: [runtimeKey.id],
+        mode: "reuse",
+      })
+      expect(result).toMatchObject({
+        createdCount: outcome === "succeeded" ? 1 : 0,
+        failedCount: outcome === "changed" ? 1 : 0,
+        uncertainCount:
+          outcome === "uncertain" || outcome === "append-unavailable" ? 1 : 0,
+      })
+      if (outcome === "append-unavailable")
+        expect(append).not.toHaveBeenCalled()
+      else
+        expect(append).toHaveBeenCalledWith(
+          target.ref,
+          expect.objectContaining({ key: "key-new" }),
+        )
+      expect(submit).not.toHaveBeenCalled()
+    },
+  )
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockGetCurrentManagedSiteRuntimeConfig.mockImplementation(async () => {
+      const managedSite = await mockGetManagedSiteCapabilities()
+      mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+      return buildRuntimeConfigForService(managedSite)
+    })
+    mockResolveDisplayAccountRuntimeKeySecret.mockImplementation(
+      async (_account, runtimeKey) => runtimeKey,
+    )
+    mockResolveManagedSiteChannelMatch.mockResolvedValue(buildMatchInspection())
+    mockResolveManagedUpstreamResourceFeatureCapabilities.mockImplementation(
+      (siteType: string, feature: string) => ({
+        supported: false,
+        siteType,
+        feature,
+        reason: "feature-slice-disabled",
+      }),
+    )
+    mockOpenNativeManagedChannelImportSession.mockImplementation(async () => ({
+      submit: (await mockGetManagedSiteCapabilities()).submit,
+      reconcile: async () =>
+        (await mockGetManagedSiteCapabilities()).reconcile(),
+    }))
+  })
+
+  it("returns an empty preview when there are no selected tokens", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [],
+    })
+
+    expect(preview).toMatchObject({
+      totalCount: 0,
+      readyCount: 0,
+      warningCount: 0,
+      skippedCount: 0,
+      blockedCount: 0,
+      items: [],
+    })
+  })
+
+  it("imports same-site keys into one named native resource while returning results for every source key", async () => {
+    const managedSite = buildAxonHubImportService()
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(
+          undefined,
+          buildAccountToken({ id: 11, key: "key-first" }),
+        ),
+        buildAccountTokenInput(
+          undefined,
+          buildAccountToken({ id: 12, key: "key-second" }),
+        ),
+      ],
+    })
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+      mode: "grouped",
+      resourceNamesByItemId: { [preview.items[0]!.id]: "  Shared provider  " },
+    })
+    expect(managedSite.submit).toHaveBeenCalledTimes(1)
+    expect(managedSite.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Shared provider",
+        credentials: ["key-first", "key-second"],
+      }),
+    )
+    expect(result).toMatchObject({
+      createdCount: 2,
+      failedCount: 0,
+      items: [{ result: "created" }, { result: "created" }],
+    })
+  })
+
+  it("keeps every member of a partially written group uncertain and redacts all group secrets", async () => {
+    const managedSite = buildAxonHubImportService()
+    managedSite.submit.mockResolvedValue({
+      outcome: "partial",
+      completion: "uncertain",
+      confirmedEffects: [
+        {
+          kind: "resource-created",
+          resourceKind: "channel",
+          resourceId: "created",
+        },
+      ],
+      diagnostic: { message: "Failed after key-first and key-second" },
+    })
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(
+          undefined,
+          buildAccountToken({ id: 11, key: "key-first" }),
+        ),
+        buildAccountTokenInput(
+          undefined,
+          buildAccountToken({ id: 12, key: "key-second" }),
+        ),
+      ],
+    })
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+      mode: "grouped",
+    })
+    expect(result).toMatchObject({
+      createdCount: 0,
+      failedCount: 0,
+      uncertainCount: 2,
+      items: [{ result: "uncertain" }, { result: "uncertain" }],
+    })
+    expect(JSON.stringify(result)).not.toContain("key-first")
+    expect(JSON.stringify(result)).not.toContain("key-second")
+    expect(managedSite.submit).toHaveBeenCalledOnce()
+    expect(managedSite.reconcile).toHaveBeenCalledOnce()
+  })
+
+  it("skips a verified URL/key duplicate before preparing models or validating a create", async () => {
+    const managedSite = buildService({
+      siteType: SITE_TYPES.SUB2API,
+      matching: { exactMatchBasis: MANAGED_RESOURCE_EXACT_MATCH_BASES.URL_KEY },
+      channelDrafts: {
+        prepareFormData: vi.fn(async (source, options) => {
+          if (options?.modelPrefill !== false) throw new Error("models offline")
+          return {
+            name: source.name,
+            base_url: source.baseUrl,
+            key: source.apiKey,
+            type: 1,
+            models: [],
+            groups: [],
+            enabled: true,
+          }
+        }),
+      },
+    })
+    configureManagedSiteCapabilities(managedSite)
+    const channel = buildManagedResourceMatchCandidate({ name: "Existing" })
+    mockResolveManagedSiteChannelMatch.mockResolvedValue(
+      buildMatchInspection({
+        url: { matched: true, channel, candidateCount: 1 },
+        key: { comparable: true, matched: true, reason: "matched", channel },
+      }),
+    )
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+    expect(preview).toMatchObject({
+      skippedCount: 1,
+      blockedCount: 0,
+      items: [{ status: "skipped", matchedChannel: { name: "Existing" } }],
+    })
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledOnce()
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ modelPrefill: false }),
+    )
+  })
+
+  it("keeps the first executable batch credential and skips its duplicate across accounts", async () => {
+    const managedSite = buildService()
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(
+          buildDisplaySiteData({
+            id: "a",
+            baseUrl: "https://source.invalid/v1",
+          }),
+        ),
+        buildAccountTokenInput(
+          buildDisplaySiteData({ id: "b", baseUrl: "https://source.invalid/" }),
+        ),
+        buildAccountTokenInput(
+          buildDisplaySiteData({ id: "c", baseUrl: "https://source.invalid" }),
+          buildAccountToken({ key: "different-key" }),
+        ),
+        buildAccountTokenInput(
+          buildDisplaySiteData({
+            id: "d",
+            baseUrl: "https://different.invalid",
+          }),
+        ),
+      ],
+    })
+    expect(preview).toMatchObject({ readyCount: 3, skippedCount: 1 })
+    expect(preview.items[1]).toMatchObject({
+      status: "skipped",
+      duplicateOfItemId: preview.items[0]!.id,
+    })
+  })
+
+  it("checks only selected current drafts for duplicates before dispatching writes", async () => {
+    const managedSite = buildService({
+      channelDrafts: {
+        prepareFormData: vi.fn(async (source) => ({
+          name: source.name,
+          type: 1,
+          key: source.apiKey,
+          base_url: source.baseUrl,
+          models: [source.name],
+          groups: ["default"],
+          enabled: true,
+        })),
+      },
+    })
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [11, 12, 13].map((id) =>
+        buildAccountTokenInput(
+          undefined,
+          buildAccountToken({ id, name: `Token ${id}` }),
+        ),
+      ),
+    })
+    preview.items[1]!.draft!.models = ["same-model"]
+    preview.items[2]!.draft!.models = ["same-model"]
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.slice(1).map((item) => item.id),
+    })
+    expect(result).toMatchObject({
+      totalSelected: 2,
+      attemptedCount: 1,
+      createdCount: 1,
+      skippedCount: 1,
+    })
+    expect(managedSite.submit).toHaveBeenCalledTimes(1)
+    expect(result.items[0]?.id).toBe(preview.items[1]!.id)
+  })
+
+  it.each([
+    {
+      siteType: SITE_TYPES.NEW_API,
+      basis: MANAGED_RESOURCE_EXACT_MATCH_BASES.KEY_MODELS,
+      readyCount: 2,
+      skippedCount: 0,
+    },
+    {
+      siteType: SITE_TYPES.SUB2API,
+      basis: MANAGED_RESOURCE_EXACT_MATCH_BASES.URL_KEY,
+      readyCount: 1,
+      skippedCount: 1,
+    },
+  ])(
+    "respects $basis identity when the same credential has different model lists",
+    async ({ siteType, basis, readyCount, skippedCount }) => {
+      const managedSite = buildService({
+        siteType,
+        matching: { exactMatchBasis: basis },
+        channelDrafts: {
+          prepareFormData: vi.fn(async (source) => ({
+            name: source.name,
+            type: siteType === SITE_TYPES.SUB2API ? "openai" : 1,
+            key: source.apiKey,
+            base_url: source.baseUrl,
+            models: source.name.includes("Token 12")
+              ? ["model-b"]
+              : ["model-a"],
+            groups: ["default"],
+            enabled: true,
+          })),
+        },
+      })
+      configureManagedSiteCapabilities(managedSite)
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [
+          buildAccountTokenInput(),
+          buildAccountTokenInput(
+            undefined,
+            buildAccountToken({ id: 12, name: "Token 12" }),
+          ),
+        ],
+      })
+      expect(preview).toMatchObject({ readyCount, skippedCount })
+    },
+  )
+
+  it("uses New API key aliases and model sets without reserving blocked rows", async () => {
+    const managedSite = buildService({
+      channelDrafts: {
+        prepareFormData: vi.fn(async (source) => ({
+          name: source.name,
+          type: 1,
+          key: source.apiKey,
+          base_url: source.baseUrl,
+          models: source.name.includes("Token 11")
+            ? []
+            : source.name.includes("Token 12")
+              ? ["model-a", "model-b"]
+              : ["model-b", "model-a"],
+          groups: ["default"],
+          enabled: true,
+        })),
+      },
+    })
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [11, 12, 13].map((id) =>
+        buildAccountTokenInput(
+          undefined,
+          buildAccountToken({
+            id,
+            name: `Token ${id}`,
+            key: id === 13 ? "sk-token-secret" : "token-secret",
+          }),
+        ),
+      ),
+    })
+    expect(preview).toMatchObject({
+      readyCount: 1,
+      blockedCount: 1,
+      skippedCount: 1,
+    })
+    expect(preview.items[2]).toMatchObject({
+      duplicateOfItemId: preview.items[1]!.id,
+    })
+  })
+
+  it("previews ready tokens and creates selected channels", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+
+    const account = buildDisplaySiteData({
+      id: "account-1",
+      name: "Alpha",
+      baseUrl: "https://upstream.example.com/",
+    })
+    const token = buildAccountToken()
+    const protectionBypassExecution = userCommandExecution(
+      PROTECTION_BYPASS_USER_COMMANDS.ManageApiKeys,
+      PROTECTION_BYPASS_SURFACES.Options,
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput(account, token)],
+      protectionBypassExecution,
+    })
+
+    expect(preview.readyCount).toBe(1)
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY,
+      accountName: "Alpha",
+      runtimeKeyName: "Token 11",
+    })
+    expect(mockResolveDisplayAccountRuntimeKeySecret).toHaveBeenCalledWith(
+      account,
+      expect.anything(),
+      { protectionBypassExecution },
+    )
+
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: [atIndex(preview.items, 0).id],
+    })
+
+    expect(result).toMatchObject({
+      attemptedCount: 1,
+      createdCount: 1,
+      failedCount: 0,
+    })
+    expect(result.items[0]).toMatchObject({ result: "created" })
+    expect(managedSite.submit).toHaveBeenCalledTimes(1)
+    expect(managedSite.submit).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "token-secret" }),
+    )
+  })
+
+  it("executes AxonHub batch imports through the native import session", async () => {
+    const submit = vi.fn().mockResolvedValue({
+      outcome: "succeeded",
+      data: { displayName: "Imported channel" },
+      confirmedEffects: [
+        {
+          kind: "resource-created",
+          resourceKind: "channel",
+          resourceId: "native-channel-id",
+        },
+      ],
+    })
+    mockOpenNativeManagedChannelImportSession.mockResolvedValue({
+      submit,
+      reconcile: vi.fn(),
+    })
+
+    const { result, managedSite } = await executeSingleNativeBatchImport()
+
+    expect(mockOpenNativeManagedChannelImportSession).toHaveBeenCalledWith(
+      SITE_TYPES.AXON_HUB,
+    )
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Test Account | Token 11 (auto)",
+        type: "openai",
+        key: "token-secret",
+        models: ["model-example"],
+        weight: 3,
+      }),
+    )
+    expect(managedSite.submit).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ createdCount: 1, failedCount: 0 })
+  })
+
+  it("marks native batch items failed when the import session cannot open", async () => {
+    mockOpenNativeManagedChannelImportSession.mockRejectedValue(
+      new Error("native import unavailable"),
+    )
+
+    const { result, managedSite } = await executeSingleNativeBatchImport()
+    expect(managedSite.submit).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ createdCount: 0, failedCount: 1 })
+    expect(result.items[0]).toMatchObject({
+      result: MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS.FAILED,
+      success: false,
+      skipped: false,
+    })
+  })
+
+  it.each([
+    ...[
+      MANAGED_RESOURCE_FAILURE_CODES.ConfigurationRequired,
+      MANAGED_RESOURCE_FAILURE_CODES.InvalidConfiguration,
+      MANAGED_RESOURCE_FAILURE_CODES.AuthenticationFailed,
+      MANAGED_RESOURCE_FAILURE_CODES.PermissionDenied,
+      MANAGED_RESOURCE_FAILURE_CODES.ValidationFailed,
+      MANAGED_RESOURCE_FAILURE_CODES.NotFound,
+      MANAGED_RESOURCE_FAILURE_CODES.UpstreamRejected,
+    ].map((code) => ({
+      label: `${code} native errors as failed`,
+      error: new ManagedResourceError({ code }),
+      expected: MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS.FAILED,
+      expectedCounts: { failedCount: 1, uncertainCount: 0 },
+    })),
+    {
+      label: "unknown native errors as uncertain",
+      error: new Error("connection interrupted"),
+      expected: MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS.UNCERTAIN,
+      expectedCounts: { failedCount: 0, uncertainCount: 1 },
+    },
+    {
+      label: "explicit uncertain native errors as uncertain",
+      error: new ManagedResourceError({
+        code: MANAGED_RESOURCE_FAILURE_CODES.MutationStateUncertain,
+      }),
+      expected: MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS.UNCERTAIN,
+      expectedCounts: { failedCount: 0, uncertainCount: 1 },
+    },
+    ...[
+      MANAGED_RESOURCE_FAILURE_CODES.Unavailable,
+      MANAGED_RESOURCE_FAILURE_CODES.Aborted,
+      MANAGED_RESOURCE_FAILURE_CODES.Unexpected,
+    ].map((code) => ({
+      label: `${code} native errors as uncertain`,
+      error: new ManagedResourceError({ code }),
+      expected: MANAGED_SITE_TOKEN_BATCH_EXPORT_EXECUTION_RESULTS.UNCERTAIN,
+      expectedCounts: { failedCount: 0, uncertainCount: 1 },
+    })),
+  ])("classifies $label", async ({ error, expected, expectedCounts }) => {
+    const submit = vi.fn().mockRejectedValue(error)
+    mockOpenNativeManagedChannelImportSession.mockResolvedValue({
+      submit,
+      reconcile: vi.fn(),
+    })
+
+    const { result, managedSite } = await executeSingleNativeBatchImport()
+    expect(managedSite.submit).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ createdCount: 0, ...expectedCounts })
+    expect(result.items[0]).toMatchObject({
+      result: expected,
+      success: false,
+      skipped: false,
+    })
+  })
+
+  it("passes previously resolved channel keys into duplicate matching", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const input = buildAccountTokenInput()
+    await prepareManagedSiteTokenBatchExportPreview({
+      items: [input],
+      resolvedChannelKeysByItemId: {
+        [input.runtimeKey.id]: {
+          [getManagedResourceRefKey(
+            matchingResourceRef(77, { scopeKey: "https://target.example.com" }),
+          )]: "resolved-channel-key",
+        },
+      },
+    })
+
+    expect(mockResolveManagedSiteChannelMatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolvedChannelKeysByResourceKey: {
+          [getManagedResourceRefKey(
+            matchingResourceRef(77, { scopeKey: "https://target.example.com" }),
+          )]: "resolved-channel-key",
+        },
+      }),
+    )
+  })
+
+  it("previews service credentials without resolving an account token secret", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const account = buildDisplaySiteData({
+      id: "sharedchat-account",
+      name: "SharedChat",
+      baseUrl: "https://sharedchat.example.invalid/",
+    })
+    const serviceCredentialRuntimeKey = buildServiceCredentialRuntimeKey(
+      account,
+      {
+        kind: "singleton_service_key",
+        service: "codex",
+        label: "Codex API Key",
+        key: "sk-service-credential",
+        baseUrl: "https://sharedchat.example.invalid/v1",
+        isAuthenticated: true,
+      },
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        {
+          account,
+          runtimeKey: serviceCredentialRuntimeKey,
+        },
+      ],
+    })
+
+    expect(mockResolveDisplayAccountRuntimeKeySecret).not.toHaveBeenCalled()
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledWith(
+      {
+        name: "SharedChat | Codex API Key (auto)",
+        baseUrl: "https://sharedchat.example.invalid/v1",
+        apiKey: "sk-service-credential",
+        modelHints: [],
+      },
+      expectBatchDraftOptions(),
+    )
+    expect(preview.items[0]).toMatchObject({
+      id: "service_credential:sharedchat-account:codex",
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY,
+      accountName: "SharedChat",
+      runtimeKeyId: "service_credential:sharedchat-account:codex",
+      runtimeKeyName: "Codex API Key",
+      draft: expect.objectContaining({
+        base_url: "https://sharedchat.example.invalid/v1",
+        key: "sk-service-credential",
+      }),
+    })
+  })
+
+  it("keeps native key identities and one-time secrets distinct across scopes", async () => {
+    const managedSite = buildService()
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const account = buildDisplaySiteData({
+      siteType: SITE_TYPES.OPENROUTER,
+      baseUrl: "https://dashboard.example.invalid",
+    })
+    const baseUrl = "https://runtime.example.invalid/api/v1"
+    const runtimeKeys = ["workspace-a", "workspace-b"].map((scopeKey) => ({
+      ...buildAccountKeyResourceRuntimeKey(account, {
+        ref: {
+          accountId: account.id,
+          siteType: account.siteType,
+          scopeKey,
+          resourceId: "opaque-key/7",
+        },
+        label: scopeKey,
+        secret: `test-create-secret-${scopeKey}`,
+      }),
+      baseUrl,
+    }))
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: runtimeKeys.map((runtimeKey) => ({ account, runtimeKey })),
+    })
+
+    expect(preview.items).toHaveLength(2)
+    for (const [index, runtimeKey] of runtimeKeys.entries()) {
+      expect(preview.items[index]).toMatchObject({
+        id: runtimeKey.id,
+        runtimeKeyId: runtimeKey.id,
+        runtimeKeyName: runtimeKey.label,
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY,
+        draft: {
+          base_url: baseUrl,
+          key: runtimeKey.secret,
+        },
+      })
+    }
+    expect(atIndex(preview.items, 0).id).not.toBe(atIndex(preview.items, 1).id)
+    expect(mockResolveDisplayAccountRuntimeKeySecret).toHaveBeenCalledTimes(2)
+    expect(
+      mockResolveDisplayAccountRuntimeKeySecret.mock.calls.map(
+        ([, key]) => key.resourceRef.scopeKey,
+      ),
+    ).toEqual(["workspace-a", "workspace-b"])
+  })
+
+  it("normalizes account-token runtime key base URLs before preparing channel drafts", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const account = buildDisplaySiteData({
+      id: "account-1",
+      name: "Alpha",
+      baseUrl: "https://upstream.example.com/v1",
+    })
+    const token = buildAccountToken()
+
+    await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput(account, token)],
+    })
+
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledWith(
+      {
+        name: "Alpha | Token 11 (auto)",
+        baseUrl: "https://upstream.example.com",
+        apiKey: "token-secret",
+        modelHints: [],
+      },
+      expectBatchDraftOptions(),
+    )
+  })
+
+  it("falls back to normalized account base URL for blank account-token runtime key base URLs", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const account = buildDisplaySiteData({
+      id: "account-1",
+      name: "Alpha",
+      baseUrl: "https://upstream.example.com/v1",
+    })
+    const token = buildAccountToken()
+    const runtimeKey = buildNewApiRuntimeKey(account, token)
+
+    await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        {
+          account,
+          runtimeKey: {
+            ...runtimeKey,
+            baseUrl: "   ",
+          },
+        },
+      ],
+    })
+
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledWith(
+      {
+        name: "Alpha | Token 11 (auto)",
+        baseUrl: "https://upstream.example.com",
+        apiKey: "token-secret",
+        modelHints: [],
+      },
+      expectBatchDraftOptions(),
+    )
+  })
+
+  it("falls back to normalized account base URL for blank service-credential runtime key base URLs", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const account = buildDisplaySiteData({
+      id: "sharedchat-account",
+      name: "SharedChat",
+      baseUrl: "https://sharedchat.example.invalid/v1",
+    })
+    const serviceCredentialRuntimeKey = buildServiceCredentialRuntimeKey(
+      account,
+      {
+        kind: "singleton_service_key",
+        service: "codex",
+        label: "Codex API Key",
+        key: "sk-service-credential",
+        baseUrl: "   ",
+        isAuthenticated: true,
+      },
+    )
+
+    await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        {
+          account,
+          runtimeKey: serviceCredentialRuntimeKey,
+        },
+      ],
+    })
+
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledWith(
+      {
+        name: "SharedChat | Codex API Key (auto)",
+        baseUrl: "https://sharedchat.example.invalid",
+        apiKey: "sk-service-credential",
+        modelHints: [],
+      },
+      expectBatchDraftOptions(),
+    )
+  })
+
+  it("reports channel creation failures without marking the item created", async () => {
+    const managedSite = buildService({
+      submit: vi.fn().mockResolvedValue({
+        outcome: "rejected",
+        diagnostic: { message: "channel rejected token-secret" },
+      }),
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: [atIndex(preview.items, 0).id],
+    })
+
+    expect(managedSite.submit).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({
+      attemptedCount: 1,
+      createdCount: 0,
+      failedCount: 1,
+    })
+    expect(result.items[0]).toMatchObject({
+      id: atIndex(preview.items, 0).id,
+      result: "failed",
+      success: false,
+      skipped: false,
+      error: "Failed to create channel: channel rejected [REDACTED]",
+    })
+    expect(JSON.stringify(result)).not.toContain("token-secret")
+  })
+
+  it.each(["partial", "uncertain"] as const)(
+    "records a controlled uncertain category for a %s create without raw diagnostics",
+    async (outcome) => {
+      const managedSite = buildService({
+        submit: vi.fn().mockResolvedValue(
+          outcome === "partial"
+            ? {
+                outcome,
+                confirmedEffects: [
+                  {
+                    kind: "resource-created",
+                    resourceKind: "channel",
+                    resourceId: 77,
+                  },
+                ],
+                completion: "uncertain",
+                diagnostic: { message: "private ambiguous provider text" },
+              }
+            : {
+                outcome,
+                diagnostic: { message: "private ambiguous provider text" },
+              },
+        ),
+      })
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+      mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const { executeManagedSiteTokenBatchExport } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportExecution"
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+      })
+
+      const result = await executeManagedSiteTokenBatchExport({
+        preview,
+        selectedItemIds: [atIndex(preview.items, 0).id],
+      })
+
+      expect(managedSite.submit).toHaveBeenCalledOnce()
+      expect(managedSite.reconcile).toHaveBeenCalledOnce()
+      expect(result.items[0]).toMatchObject({
+        result: "uncertain",
+        success: false,
+        skipped: false,
+        error: "Failed to create channel: private ambiguous provider text",
+      })
+    },
+  )
+
+  it("records a thrown create as uncertain and preserves successful siblings", async () => {
+    const config = {
+      baseUrl: "https://target.example.com",
+      adminToken: "admin-secret",
+      userId: "1",
+    }
+    const payloadSecret = "admin-secret"
+    const thrown = new Error(`write failed for ${payloadSecret}`)
+    const submit = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        // Redaction must use the pre-dispatch secret snapshot, not live config.
+        config.adminToken = "mutated-after-snapshot"
+        throw thrown
+      })
+      .mockResolvedValueOnce({
+        outcome: "succeeded",
+        data: undefined,
+        confirmedEffects: [
+          {
+            kind: "resource-created",
+            resourceKind: "channel",
+          },
+        ],
+      })
+    const managedSite = buildService({
+      submit,
+      config: { get: vi.fn().mockResolvedValue(config) },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(),
+        buildAccountTokenInput(
+          buildDisplaySiteData({ id: "account-2", name: "Account 2" }),
+          buildAccountToken({
+            id: 12,
+            name: "Token 12",
+            key: "second-token-secret",
+          }),
+        ),
+      ],
+    })
+
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+    })
+
+    expect(managedSite.submit).toHaveBeenCalledTimes(2)
+    expect(managedSite.reconcile).toHaveBeenCalledOnce()
+    expect(result).toMatchObject({
+      attemptedCount: 2,
+      createdCount: 1,
+      failedCount: 0,
+      uncertainCount: 1,
+    })
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: atIndex(preview.items, 0).id,
+        result: "uncertain",
+        error: "Failed to create channel: write failed for [REDACTED]",
+      }),
+      expect.objectContaining({
+        id: atIndex(preview.items, 1).id,
+        result: "created",
+      }),
+    ])
+    expect(JSON.stringify(result)).not.toContain(payloadSecret)
+  })
+
+  it("uses only the local fallback when secret inspection is incomplete", async () => {
+    const hiddenSecret = "incomplete-draft-secret"
+    const providerMessage = `write failed for ${hiddenSecret}`
+    const submit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error(providerMessage))
+      .mockResolvedValueOnce({
+        outcome: "succeeded",
+        data: undefined,
+        confirmedEffects: [
+          {
+            kind: "resource-created",
+            resourceKind: "channel",
+          },
+        ],
+      })
+    const managedSite = buildService({
+      submit,
+      channelDrafts: {
+        prepareFormData: vi.fn(
+          async (source: ManagedSiteChannelDraftSource) =>
+            new Proxy(
+              {
+                name: source.name,
+                type: 1,
+                key: hiddenSecret,
+                base_url: source.baseUrl,
+                models: ["model-example"],
+                groups: ["default"],
+                priority: 0,
+                weight: 0,
+                enabled: true,
+              },
+              {
+                ownKeys() {
+                  throw new Error("draft inspection unavailable")
+                },
+              },
+            ),
+        ),
+      },
+    })
+    configureManagedSiteCapabilities(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(),
+        buildAccountTokenInput(
+          buildDisplaySiteData({
+            id: "account-2",
+            name: "Account 2",
+            baseUrl: "https://second-source.invalid",
+          }),
+          buildAccountToken({
+            id: 12,
+            name: "Token 12",
+          }),
+        ),
+      ],
+      intent: repairTrustedNewIntent,
+    })
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+    })
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        result: "uncertain",
+        error: "Failed to create channel",
+      }),
+      expect.objectContaining({ result: "created" }),
+    ])
+    expect(JSON.stringify(result)).not.toContain(providerMessage)
+    expect(JSON.stringify(result)).not.toContain(hiddenSecret)
+    submit.mockClear()
+    mockOpenNativeManagedChannelImportSession.mockRejectedValueOnce(
+      new Error(providerMessage),
+    )
+    const unavailableSession = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+    })
+    expect(unavailableSession.failedCount).toBe(2)
+    expect(
+      unavailableSession.items.every(
+        (item) => item.error === "Failed to create channel",
+      ),
+    ).toBe(true)
+    expect(JSON.stringify(unavailableSession)).not.toContain(hiddenSecret)
+    expect(JSON.stringify(unavailableSession)).not.toContain(providerMessage)
+    expect(submit).not.toHaveBeenCalled()
+  })
+
+  it("reconciles before rejecting a malformed create result without replay", async () => {
+    const managedSite = buildService({
+      submit: vi.fn().mockResolvedValue(undefined),
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    await expect(
+      executeManagedSiteTokenBatchExport({
+        preview,
+        selectedItemIds: [atIndex(preview.items, 0).id],
+      }),
+    ).rejects.toThrow("Invalid managed site mutation result")
+
+    expect(managedSite.submit).toHaveBeenCalledOnce()
+    expect(managedSite.reconcile).toHaveBeenCalledOnce()
+  })
+
+  it("settles all writes and preserves every result after one create throws", async () => {
+    const thrown = new Error("batch write invariant failed")
+    let releaseInFlight!: () => void
+    const inFlightCanSettle = new Promise<void>((resolve) => {
+      releaseInFlight = resolve
+    })
+    const submit = vi.fn(async () => {
+      if (submit.mock.calls.length === 1) throw thrown
+      await inFlightCanSettle
+      return {
+        outcome: "succeeded" as const,
+        data: undefined,
+        confirmedEffects: [
+          {
+            kind: "resource-created" as const,
+            resourceKind: "channel" as const,
+          },
+        ],
+      }
+    })
+    const managedSite = buildService({ submit })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const inputs = Array.from({ length: 6 }, (_, index) => {
+      const accountId = `account-${index + 1}`
+      return buildAccountTokenInput(
+        buildDisplaySiteData({ id: accountId, name: `Account ${index + 1}` }),
+        buildAccountToken({
+          id: index + 11,
+          key: `secret-${index}`,
+          name: `Token ${index + 11}`,
+        }),
+      )
+    })
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: inputs,
+    })
+
+    const execution = executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+    })
+
+    await vi.waitFor(() => expect(submit).toHaveBeenCalledTimes(5))
+    expect(managedSite.reconcile).not.toHaveBeenCalled()
+    releaseInFlight()
+
+    await expect(execution).resolves.toMatchObject({
+      attemptedCount: 6,
+      createdCount: 5,
+      uncertainCount: 1,
+      failedCount: 0,
+    })
+    expect(submit).toHaveBeenCalledTimes(6)
+    expect(managedSite.reconcile).toHaveBeenCalledOnce()
+  })
+
+  it("reconciles once after all ambiguous batch writes settle", async () => {
+    const managedSite = buildService({
+      submit: vi.fn().mockResolvedValue({
+        outcome: "uncertain",
+        diagnostic: { message: "private ambiguous provider text" },
+      }),
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockGetManagedSiteCapabilitiesForType.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(),
+        buildAccountTokenInput(
+          buildDisplaySiteData({ id: "account-2", name: "Account 2" }),
+          buildAccountToken({
+            id: 12,
+            name: "Token 12",
+            key: "second-token-secret",
+          }),
+        ),
+      ],
+    })
+
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+    })
+
+    expect(managedSite.submit).toHaveBeenCalledTimes(2)
+    expect(managedSite.reconcile).toHaveBeenCalledOnce()
+    expect(result.items.map((item) => item.error)).toEqual([
+      "Failed to create channel: private ambiguous provider text",
+      "Failed to create channel: private ambiguous provider text",
+    ])
+  })
+
+  it("skips tokens that exactly match an existing managed-site channel", async () => {
+    const existingChannel = {
+      ref: matchingResourceRef(99, { scopeKey: "https://target.example.com" }),
+      name: "Existing",
+    }
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockResolveManagedSiteChannelMatch.mockResolvedValue(
+      buildMatchInspection({
+        key: {
+          comparable: true,
+          matched: true,
+          reason: "matched",
+          channel: existingChannel,
+        },
+        models: {
+          comparable: true,
+          matched: true,
+          reason: "exact",
+          channel: existingChannel,
+        },
+      }),
+    )
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(preview.skippedCount).toBe(1)
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.SKIPPED,
+      matchedChannel: {
+        ref: matchingResourceRef(99, {
+          scopeKey: "https://target.example.com",
+        }),
+        name: "Existing",
+      },
+    })
+  })
+
+  it("deduplicates Sub2API imports by URL and revealed key without model fields", async () => {
+    vi.resetModules()
+    vi.doUnmock("~/services/managedSites/matching/channelMatchResolver")
+
+    try {
+      const searchChannel = vi.fn().mockResolvedValue({
+        items: [
+          {
+            ref: matchingResourceRef(64, {
+              siteType: SITE_TYPES.SUB2API,
+              scopeKey: "https://target.example.com",
+            }),
+            name: "Existing API-key account",
+            type: "openai",
+            base_url: "https://upstream.example.com/v1",
+            models: "",
+            key: "********",
+          },
+        ],
+        total: 1,
+        type_counts: {},
+      })
+      const managedSite = buildService({
+        siteType: SITE_TYPES.SUB2API,
+        matching: {
+          exactMatchBasis: MANAGED_RESOURCE_EXACT_MATCH_BASES.URL_KEY,
+          search: searchChannel,
+          fetchSecretKey: vi.fn().mockResolvedValue("token-secret"),
+        },
+        channelDrafts: {
+          prepareFormData: vi.fn(
+            async (source: ManagedSiteChannelDraftSource) => ({
+              name: source.name,
+              type: "openai",
+              key: source.apiKey,
+              base_url: source.baseUrl,
+              models: [],
+              groups: [],
+              priority: 1,
+              weight: 1,
+              enabled: true,
+              notes: "",
+            }),
+          ),
+        },
+      })
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [
+          buildAccountTokenInput(
+            buildDisplaySiteData({
+              baseUrl: "https://upstream.example.com/v1",
+            }),
+          ),
+        ],
+        protectionBypassExecution: userCommandExecution(
+          PROTECTION_BYPASS_USER_COMMANDS.ManageApiKeys,
+          PROTECTION_BYPASS_SURFACES.Options,
+        ),
+      })
+
+      expect(searchChannel).toHaveBeenCalledTimes(1)
+      expect(managedSite.matching.fetchSecretKey).toHaveBeenCalledWith(
+        expect.anything(),
+        matchingResourceRef(64, {
+          siteType: SITE_TYPES.SUB2API,
+          scopeKey: "https://target.example.com",
+        }),
+        expect.anything(),
+      )
+      expect(preview.items[0]).toMatchObject({
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.SKIPPED,
+        matchedChannel: {
+          ref: matchingResourceRef(64, {
+            siteType: SITE_TYPES.SUB2API,
+            scopeKey: "https://target.example.com",
+          }),
+          name: "Existing API-key account",
+        },
+      })
+    } finally {
+      vi.doMock(
+        "~/services/managedSites/matching/channelMatchResolver",
+        () => ({
+          createManagedSiteChannelMatchRequestCache:
+            buildChannelMatchRequestCache,
+          resolveManagedSiteChannelMatch: mockResolveManagedSiteChannelMatch,
+        }),
+      )
+      vi.resetModules()
+    }
+  })
+
+  it("blocks every preview item when the current managed site is not configured", async () => {
+    const managedSite = buildService({
+      config: { get: vi.fn().mockResolvedValue(null) },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(),
+        {
+          kind: MANAGED_SITE_TOKEN_BATCH_EXPORT_INPUT_KINDS.BLOCKED_REFERENCE,
+          id: "blocked-reference",
+          accountLabel: "Unavailable account",
+          keyLabel: "Unavailable key",
+          blockingReasonCode:
+            MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.INPUT_PREPARATION_FAILED,
+          blockingDetailCode:
+            MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES.CREATED_KEY_UNAVAILABLE,
+        },
+      ],
+    })
+
+    expect(preview.blockedCount).toBe(2)
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+      blockingReasonCode:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.CONFIG_MISSING,
+    })
+    expect(preview.items[1]).toMatchObject({
+      id: "blocked-reference",
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+      blockingReasonCode:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.INPUT_PREPARATION_FAILED,
+      blockingDetailCode:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES.CREATED_KEY_UNAVAILABLE,
+    })
+    expect(managedSite.channelDrafts.prepareFormData).not.toHaveBeenCalled()
+  })
+
+  it("keeps trusted-new model prefill failures executable with a warning", async () => {
+    const managedSite = buildService({
+      channelDrafts: {
+        prepareFormData: vi.fn(
+          async (source: ManagedSiteChannelDraftSource) => ({
+            name: source.name,
+            type: 1,
+            key: source.apiKey,
+            base_url: source.baseUrl,
+            models: ["model-example"],
+            groups: ["default"],
+            priority: 0,
+            weight: 0,
+            enabled: true,
+            modelPrefillFetchFailed: true,
+          }),
+        ),
+      },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+      intent: repairTrustedNewIntent,
+    })
+
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING,
+      warningCodes: [
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.MODEL_PREFILL_FAILED,
+      ],
+    })
+  })
+
+  it("uses registered resource duplicate matching for Veloera", async () => {
+    const managedSite = buildService({
+      siteType: SITE_TYPES.VELOERA,
+      matching: { search: vi.fn() },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(preview.warningCount).toBe(0)
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY,
+      warningCodes: [],
+    })
+    expect(mockResolveManagedSiteChannelMatch).toHaveBeenCalledWith(
+      expect.objectContaining({ models: [] }),
+    )
+    expect(mockResolveManagedSiteChannelMatch).toHaveBeenCalledWith(
+      expect.objectContaining({ models: ["gpt-4o"] }),
+    )
+  })
+
+  it.each([
+    {
+      siteType: SITE_TYPES.DONE_HUB,
+      type: 36,
+      baseUrl: "",
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY,
+    },
+    {
+      siteType: SITE_TYPES.NEW_API,
+      type: 41,
+      baseUrl: "https://api.example.invalid",
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+    },
+    {
+      siteType: SITE_TYPES.SUB2API,
+      type: 1,
+      baseUrl: "https://api.example.invalid",
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+    },
+  ])(
+    "previews $siteType type $type using its native create rules",
+    async ({ siteType, type, baseUrl, status }) => {
+      const managedSite = buildService({
+        siteType,
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "Imported channel",
+            type,
+            key: "credential-placeholder",
+            base_url: baseUrl,
+            models: ["gpt-4o"],
+            groups: [],
+            priority: 1,
+            weight: 1,
+            enabled: true,
+          })),
+        },
+      })
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+        intent: repairTrustedNewIntent,
+      })
+
+      expect(atIndex(preview.items, 0).status).toBe(status)
+      expect(managedSite.submit).not.toHaveBeenCalled()
+      expect(mockOpenNativeManagedChannelImportSession).not.toHaveBeenCalled()
+      expect(mockResolveManagedSiteChannelMatch).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    {
+      label: "empty name",
+      serviceOverrides: {
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "   ",
+            type: 1,
+            key: "sk-live-token",
+            base_url: "https://example.com",
+            models: ["gpt-4o"],
+            groups: ["default"],
+            priority: 0,
+            weight: 0,
+            enabled: true,
+          })),
+        },
+      },
+      expectedReason:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.NAME_REQUIRED,
+    },
+    {
+      label: "masked Claude Code Hub key",
+      serviceOverrides: {
+        siteType: SITE_TYPES.CLAUDE_CODE_HUB,
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "Masked key",
+            type: "openai-compatible",
+            key: "sk-****",
+            base_url: "https://example.com",
+            models: ["gpt-4o"],
+            groups: ["default"],
+            priority: 0,
+            weight: 0,
+            enabled: true,
+          })),
+        },
+      },
+      expectedReason:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.REAL_KEY_REQUIRED,
+    },
+    {
+      label: "missing key",
+      serviceOverrides: {
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "Missing key",
+            type: 1,
+            key: " ",
+            base_url: "https://example.com",
+            models: ["gpt-4o"],
+            groups: ["default"],
+            priority: 0,
+            weight: 0,
+            enabled: true,
+          })),
+        },
+      },
+      expectedReason:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.KEY_REQUIRED,
+    },
+    {
+      label: "missing base URL",
+      serviceOverrides: {
+        siteType: SITE_TYPES.CLAUDE_CODE_HUB,
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "Missing base URL",
+            type: "openai-compatible",
+            key: "sk-live-token",
+            base_url: " ",
+            models: ["gpt-4o"],
+            groups: ["default"],
+            priority: 0,
+            weight: 1,
+            enabled: true,
+          })),
+        },
+      },
+      expectedReason:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.BASE_URL_REQUIRED,
+    },
+    {
+      label: "failed model prefill for a provider with optional models",
+      serviceOverrides: {
+        siteType: SITE_TYPES.CLAUDE_CODE_HUB,
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "Failed model discovery",
+            type: "openai-compatible",
+            key: "sk-live-token",
+            base_url: "https://example.com",
+            models: [],
+            groups: [],
+            priority: 0,
+            weight: 1,
+            enabled: true,
+            modelPrefillFetchFailed: true,
+          })),
+        },
+      },
+      expectedReason:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.MODELS_REQUIRED,
+    },
+    {
+      label: "missing models",
+      serviceOverrides: {
+        channelDrafts: {
+          prepareFormData: vi.fn(async () => ({
+            name: "Missing models",
+            type: 1,
+            key: "sk-live-token",
+            base_url: "https://example.com",
+            models: [],
+            groups: ["default"],
+            priority: 0,
+            weight: 0,
+            enabled: true,
+          })),
+        },
+      },
+      expectedReason:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.MODELS_REQUIRED,
+    },
+  ])(
+    "blocks preview items for invalid draft inputs: $label",
+    async ({ serviceOverrides, expectedReason }) => {
+      const managedSite = buildService(
+        serviceOverrides as Parameters<typeof buildService>[0],
+      )
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+      })
+
+      expect(preview.items[0]).toMatchObject({
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+        blockingReasonCode: expectedReason,
+      })
+    },
+  )
+
+  it.each([
+    {
+      label: "backend search fails",
+      resolution: buildMatchInspection({
+        searchCompleted: false,
+      }),
+      expectedWarning:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.BACKEND_SEARCH_FAILED,
+    },
+    {
+      label: "model prefill fetch failed",
+      resolution: buildMatchInspection(),
+      serviceOverrides: {
+        channelDrafts: {
+          prepareFormData: vi.fn(
+            async (source: ManagedSiteChannelDraftSource) => ({
+              name: source.name,
+              type: 1,
+              key: source.apiKey,
+              base_url: source.baseUrl,
+              models: ["gpt-4o"],
+              groups: ["default"],
+              priority: 0,
+              weight: 0,
+              enabled: true,
+              modelPrefillFetchFailed: true,
+            }),
+          ),
+        },
+      },
+      expectedWarning:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.MODEL_PREFILL_FAILED,
+    },
+    {
+      label: "exact verification is unavailable",
+      resolution: buildMatchInspection({
+        url: {
+          matched: true,
+          channel: {
+            ref: matchingResourceRef(7, {
+              scopeKey: "https://target.example.com",
+            }),
+            name: "Similar",
+          },
+          candidateCount: 1,
+        },
+        key: {
+          comparable: false,
+          matched: false,
+          reason: "masked",
+          channel: null,
+        },
+      }),
+      expectedWarning:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.EXACT_VERIFICATION_UNAVAILABLE,
+    },
+    {
+      label: "partial match requires confirmation",
+      resolution: buildMatchInspection({
+        models: {
+          comparable: true,
+          matched: true,
+          reason: "partial",
+          channel: {
+            ref: matchingResourceRef(12, {
+              scopeKey: "https://target.example.com",
+            }),
+            name: "Candidate",
+          },
+        },
+      }),
+      expectedWarning:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.MATCH_REQUIRES_CONFIRMATION,
+    },
+  ])(
+    "keeps preview items executable with warnings when $label",
+    async ({ resolution, serviceOverrides, expectedWarning }) => {
+      const managedSite = buildService(
+        serviceOverrides as Parameters<typeof buildService>[0],
+      )
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+      mockResolveManagedSiteChannelMatch.mockResolvedValue(resolution)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+      })
+
+      expect(preview.items[0]).toMatchObject({
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING,
+      })
+      expect(atIndex(preview.items, 0).warningCodes).toContain(expectedWarning)
+    },
+  )
+
+  it("warns instead of marking ready when exact duplicate verification is unavailable", async () => {
+    vi.resetModules()
+    vi.doUnmock("~/services/managedSites/matching/channelMatchResolver")
+
+    try {
+      const {
+        MANAGED_SITE_CHANNEL_MATCH_UNRESOLVED_REASONS,
+        MatchResolutionUnresolvedError,
+      } = await import("~/services/managedSites/matching/channelMatch")
+
+      const hydrateComparableChannelKeys = vi.fn(async () => {
+        throw new MatchResolutionUnresolvedError(
+          MANAGED_SITE_CHANNEL_MATCH_UNRESOLVED_REASONS.KEY_RESOLUTION_FAILED,
+        )
+      })
+      const managedSite = buildService({
+        matching: {
+          search: vi.fn().mockResolvedValue({
+            items: [
+              buildManagedResourceMatchCandidate({
+                ref: matchingResourceRef(77, {
+                  scopeKey: "https://target.example.com",
+                }),
+                key: "",
+                base_url: "https://upstream.example.com/v1",
+                models: "gpt-4o",
+              }),
+            ],
+            total: 1,
+            type_counts: {},
+          }),
+          hydrateComparableKeys: hydrateComparableChannelKeys,
+        },
+      })
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [
+          buildAccountTokenInput(
+            buildDisplaySiteData({
+              baseUrl: "https://upstream.example.com/",
+            }),
+          ),
+        ],
+        protectionBypassExecution: sessionResyncExecution,
+      })
+
+      expect(hydrateComparableChannelKeys).toHaveBeenCalled()
+      expect(preview.items[0]).toMatchObject({
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING,
+        warningCodes: [
+          MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.EXACT_VERIFICATION_UNAVAILABLE,
+        ],
+      })
+    } finally {
+      vi.doMock(
+        "~/services/managedSites/matching/channelMatchResolver",
+        () => ({
+          createManagedSiteChannelMatchRequestCache: () => ({
+            searchResultsByTargetKey: new Map(),
+            channelSecretKeysByResourceKey: new Map(),
+            resolvedChannelKeysByResourceKey: {},
+          }),
+          resolveManagedSiteChannelMatch: mockResolveManagedSiteChannelMatch,
+        }),
+      )
+      vi.resetModules()
+    }
+  })
+
+  it("does not expose New API verification candidates for other managed-site types", async () => {
+    const managedSite = buildService({ siteType: SITE_TYPES.DONE_HUB })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockResolveManagedSiteChannelMatch.mockResolvedValue(
+      buildMatchInspection({
+        searchCompleted: true,
+        url: {
+          matched: true,
+          channel: buildManagedResourceMatchCandidate({
+            ref: matchingResourceRef(78, {
+              scopeKey: "https://target.example.com",
+            }),
+            name: "DoneHub Channel",
+          }),
+          candidateCount: 1,
+        },
+        key: {
+          comparable: false,
+          matched: false,
+          reason: "comparison-unavailable",
+          channel: null,
+        },
+        models: {
+          comparable: true,
+          matched: true,
+          reason: "exact",
+          channel: buildManagedResourceMatchCandidate({
+            ref: matchingResourceRef(78, {
+              scopeKey: "https://target.example.com",
+            }),
+            name: "DoneHub Channel",
+          }),
+        },
+      }),
+    )
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.WARNING,
+      warningCodes: [
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_WARNING_CODES.EXACT_VERIFICATION_UNAVAILABLE,
+      ],
+    })
+    expect(atIndex(preview.items, 0).verificationCandidate).toBeUndefined()
+  })
+
+  it("skips exact duplicates when preview can resolve a hidden managed-site channel key", async () => {
+    vi.resetModules()
+    vi.doUnmock("~/services/managedSites/matching/channelMatchResolver")
+
+    try {
+      const fetchChannelSecretKey = vi.fn().mockResolvedValue("token-secret")
+      const managedSite = buildService({
+        matching: {
+          search: vi.fn().mockResolvedValue({
+            items: [
+              buildManagedResourceMatchCandidate({
+                ref: matchingResourceRef(77, {
+                  scopeKey: "https://target.example.com",
+                }),
+                key: "",
+                base_url: "https://upstream.example.com/v1",
+                models: "gpt-4o",
+              }),
+            ],
+            total: 1,
+            type_counts: {},
+          }),
+          fetchSecretKey: fetchChannelSecretKey,
+        },
+      })
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [
+          buildAccountTokenInput(
+            buildDisplaySiteData({
+              baseUrl: "https://upstream.example.com/",
+            }),
+          ),
+        ],
+        protectionBypassExecution: sessionResyncExecution,
+      })
+
+      expect(fetchChannelSecretKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseUrl: "https://target.example.com",
+          adminToken: "admin-token",
+          userId: "1",
+        }),
+        matchingResourceRef(77, { scopeKey: "https://target.example.com" }),
+        expect.objectContaining(sessionResyncOptions),
+      )
+      expect(preview.items[0]).toMatchObject({
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.SKIPPED,
+        matchedChannel: {
+          ref: matchingResourceRef(77, {
+            scopeKey: "https://target.example.com",
+          }),
+        },
+      })
+    } finally {
+      vi.doMock(
+        "~/services/managedSites/matching/channelMatchResolver",
+        () => ({
+          createManagedSiteChannelMatchRequestCache: () => ({
+            searchResultsByTargetKey: new Map(),
+            channelSecretKeysByResourceKey: new Map(),
+            resolvedChannelKeysByResourceKey: {},
+          }),
+          resolveManagedSiteChannelMatch: mockResolveManagedSiteChannelMatch,
+        }),
+      )
+      vi.resetModules()
+    }
+  })
+
+  it("reuses managed-site draft and duplicate-check request caches across preview items with the same base URL", async () => {
+    vi.resetModules()
+    vi.doUnmock("~/services/managedSites/matching/channelMatchResolver")
+
+    try {
+      const searchChannel = vi.fn().mockResolvedValue({
+        items: [
+          buildManagedResourceMatchCandidate({
+            ref: matchingResourceRef(77, {
+              scopeKey: "https://target.example.com",
+            }),
+            key: "sk-***",
+            base_url: "https://upstream.example.com/v1",
+            models: "gpt-4o",
+          }),
+        ],
+        total: 1,
+        type_counts: {},
+      })
+      const fetchChannelSecretKey = vi.fn().mockResolvedValue("token-secret")
+      const managedSite = buildService({
+        matching: {
+          search: searchChannel,
+          fetchSecretKey: fetchChannelSecretKey,
+        },
+      })
+      mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+      const account = buildDisplaySiteData({
+        id: "account-1",
+        name: "Alpha",
+        baseUrl: "https://upstream.example.com/v1",
+      })
+      const firstToken = buildAccountToken({
+        id: 11,
+        name: "Token 11",
+        key: "token-secret",
+      })
+      const secondToken = buildAccountToken({
+        id: 12,
+        name: "Token 12",
+        key: "token-secret",
+      })
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [
+          buildAccountTokenInput(account, firstToken),
+          buildAccountTokenInput(account, secondToken),
+        ],
+        protectionBypassExecution: sessionResyncExecution,
+      })
+
+      expect(searchChannel).toHaveBeenCalledTimes(1)
+      expect(fetchChannelSecretKey).toHaveBeenCalledTimes(1)
+      const prepareChannelFormDataMock = vi.mocked(
+        managedSite.channelDrafts.prepareFormData,
+      )
+      const firstDraftOptions = prepareChannelFormDataMock.mock.calls[0]?.[1]
+      const secondDraftOptions = prepareChannelFormDataMock.mock.calls[1]?.[1]
+      expect(firstDraftOptions).toEqual(expectBatchDraftOptions())
+      expect(firstDraftOptions?.operationContext).toBe(
+        secondDraftOptions?.operationContext,
+      )
+      expect(preview.skippedCount).toBe(2)
+      expect(preview.items.map((item) => item.matchedChannel?.ref)).toEqual([
+        matchingResourceRef(77, { scopeKey: "https://target.example.com" }),
+        matchingResourceRef(77, { scopeKey: "https://target.example.com" }),
+      ])
+    } finally {
+      vi.doMock(
+        "~/services/managedSites/matching/channelMatchResolver",
+        () => ({
+          createManagedSiteChannelMatchRequestCache: () => ({
+            searchResultsByTargetKey: new Map(),
+            channelSecretKeysByResourceKey: new Map(),
+            resolvedChannelKeysByResourceKey: {},
+          }),
+          resolveManagedSiteChannelMatch: mockResolveManagedSiteChannelMatch,
+        }),
+      )
+      vi.resetModules()
+    }
+  })
+
+  it("blocks the preview when secret resolution fails", async () => {
+    const managedSite = buildService()
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockResolveDisplayAccountRuntimeKeySecret.mockRejectedValue(
+      new Error("secret lookup failed"),
+    )
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+      blockingReasonCode:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.SECRET_RESOLUTION_FAILED,
+    })
+    expect(atIndex(preview.items, 0).blockingMessage).toBeTruthy()
+  })
+
+  it("blocks preview items when draft preparation throws", async () => {
+    const managedSite = buildService({
+      channelDrafts: {
+        prepareFormData: vi.fn().mockRejectedValue(new Error("boom")),
+      },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+      blockingReasonCode:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.INPUT_PREPARATION_FAILED,
+    })
+    expect(atIndex(preview.items, 0).blockingMessage).toContain("boom")
+  })
+
+  it("redacts admin, password, and TOTP config secrets from preview failures", async () => {
+    const adminToken = "batch-admin-token-placeholder"
+    const password = "batch-password-placeholder"
+    const totpSecret = "batch-totp-secret-placeholder"
+    const managedSite = buildService({
+      config: {
+        get: vi.fn().mockResolvedValue({
+          baseUrl: "https://target.example.invalid",
+          adminToken,
+          password,
+          totpSecret,
+          userId: "1",
+        }),
+      },
+      channelDrafts: {
+        prepareFormData: vi
+          .fn()
+          .mockRejectedValue(
+            new Error(
+              `Preparation refused ${adminToken} ${password} ${totpSecret}`,
+            ),
+          ),
+      },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    const blockingMessage = atIndex(preview.items, 0).blockingMessage ?? ""
+    expect(blockingMessage).toContain("Preparation refused")
+    expect(blockingMessage).not.toContain(adminToken)
+    expect(blockingMessage).not.toContain(password)
+    expect(blockingMessage).not.toContain(totpSecret)
+  })
+
+  it("uses fallback preview feedback when config secret inspection is incomplete", async () => {
+    const hiddenSecret = "batch-incomplete-totp-placeholder"
+    const providerText = `Provider private diagnostic ${hiddenSecret}`
+    const config = new Proxy(
+      {
+        baseUrl: "https://target.example.invalid",
+        adminToken: "admin-token-placeholder",
+        password: "password-placeholder",
+        totpSecret: hiddenSecret,
+        userId: "1",
+      },
+      {
+        ownKeys() {
+          throw new Error("config inspection unavailable")
+        },
+      },
+    )
+    const managedSite = buildService({
+      config: { get: vi.fn().mockResolvedValue(config) },
+      channelDrafts: {
+        prepareFormData: vi.fn().mockRejectedValue(new Error(providerText)),
+      },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(atIndex(preview.items, 0).blockingMessage).toBe(
+      "Failed to prepare this key for batch import",
+    )
+    expect(JSON.stringify(preview)).not.toContain(providerText)
+  })
+
+  it("redacts provider-derived draft secrets from later preview failures", async () => {
+    const draftSecret = "batch-draft-secret-placeholder"
+    const providerText = `Matcher refused ${draftSecret}`
+    const managedSite = buildService({
+      channelDrafts: {
+        prepareFormData: vi.fn().mockResolvedValue({
+          name: "Draft secret",
+          type: 1,
+          key: "resolved-token-key-placeholder",
+          base_url: "https://upstream.example.invalid",
+          models: ["model-example"],
+          groups: ["default"],
+          priority: 0,
+          weight: 0,
+          enabled: true,
+          providerSecret: draftSecret,
+        }),
+      },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockResolveManagedSiteChannelMatch.mockRejectedValue(
+      new Error(providerText),
+    )
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    const blockingMessage = atIndex(preview.items, 0).blockingMessage ?? ""
+    expect(blockingMessage).toContain("Matcher refused")
+    expect(blockingMessage).not.toContain(draftSecret)
+  })
+
+  it("uses fallback preview feedback when draft secret inspection is incomplete", async () => {
+    const hiddenSecret = "batch-incomplete-draft-secret-placeholder"
+    const providerText = `Matcher private diagnostic ${hiddenSecret}`
+    const draft = new Proxy(
+      {
+        name: "Incomplete draft",
+        type: 1,
+        key: "resolved-token-key-placeholder",
+        base_url: "https://upstream.example.invalid",
+        models: ["model-example"],
+        groups: ["default"],
+        priority: 0,
+        weight: 0,
+        enabled: true,
+        providerSecret: hiddenSecret,
+      },
+      {
+        ownKeys() {
+          throw new Error("draft inspection unavailable")
+        },
+      },
+    )
+    const managedSite = buildService({
+      channelDrafts: { prepareFormData: vi.fn().mockResolvedValue(draft) },
+    })
+    mockGetManagedSiteCapabilities.mockReturnValue(managedSite)
+    mockResolveManagedSiteChannelMatch.mockRejectedValue(
+      new Error(providerText),
+    )
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [buildAccountTokenInput()],
+    })
+
+    expect(atIndex(preview.items, 0).blockingMessage).toBe(
+      "Failed to prepare this key for batch import",
+    )
+    const serializedPreview = JSON.stringify(preview)
+    expect(serializedPreview).not.toContain(providerText)
+    expect(serializedPreview).not.toContain(hiddenSecret)
+  })
+
+  it.each([
+    ["manual selection", manualCompleteIntent],
+    ["repair-created complete", repairCompleteIntent],
+  ])(
+    "runs complete duplicate and hidden-key verification for %s",
+    async (_, intent) => {
+      const managedSite = buildService()
+      configureManagedSiteCapabilities(managedSite)
+
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+        intent,
+      })
+
+      expect(preview.intent).toEqual(intent)
+      expect(preview.targetFingerprint).toMatch(/^[a-f0-9]{64}$/)
+      expect(preview.targetSummary).toEqual({
+        siteType: SITE_TYPES.NEW_API,
+        baseUrl: "https://target.example.com",
+      })
+      expect(mockResolveManagedSiteChannelMatch).toHaveBeenCalledWith(
+        expect.objectContaining({ resolveHiddenKeys: true }),
+      )
+    },
+  )
+
+  it("keeps trusted-new repair preparation mandatory while bypassing only duplicate verification", async () => {
+    const managedSite = buildService({
+      channelDrafts: {
+        prepareFormData: vi.fn(
+          async (source: ManagedSiteChannelDraftSource) => ({
+            name: source.name,
+            type: 1,
+            key: source.apiKey,
+            base_url: source.baseUrl,
+            models: source.apiKey === "key-with-no-models" ? [] : ["gpt-4o"],
+            groups: ["default"],
+            priority: 0,
+            weight: 0,
+            enabled: true,
+          }),
+        ),
+      },
+    })
+    configureManagedSiteCapabilities(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const account = buildDisplaySiteData()
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      intent: repairTrustedNewIntent,
+      items: [
+        buildAccountTokenInput(account, buildAccountToken({ id: 11 })),
+        buildAccountTokenInput(
+          account,
+          buildAccountToken({ id: 12, key: "key-with-no-models" }),
+        ),
+      ],
+    })
+
+    expect(mockResolveDisplayAccountRuntimeKeySecret).toHaveBeenCalledTimes(2)
+    expect(managedSite.channelDrafts.prepareFormData).toHaveBeenCalledTimes(2)
+    expect(mockResolveManagedSiteChannelMatch).not.toHaveBeenCalled()
+    expect(preview.items[0]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.READY,
+      draft: expect.objectContaining({ models: ["gpt-4o"] }),
+    })
+    expect(preview.items[1]).toMatchObject({
+      status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+      blockingReasonCode:
+        MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.MODELS_REQUIRED,
+    })
+  })
+
+  it("keeps an explicitly unresolved repair input as a blocked preview row", async () => {
+    const managedSite = buildService()
+    configureManagedSiteCapabilities(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      intent: repairTrustedNewIntent,
+      items: [
+        {
+          kind: "blocked-reference",
+          id: "repair-key-17",
+          accountLabel: "Recovered account",
+          keyLabel: "Recovered group",
+          blockingReasonCode:
+            MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.SECRET_RESOLUTION_FAILED,
+          blockingDetailCode:
+            MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES.CREATED_KEY_UNAVAILABLE,
+        },
+      ],
+    })
+
+    expect(managedSite.channelDrafts.prepareFormData).not.toHaveBeenCalled()
+    expect(preview.items).toEqual([
+      expect.objectContaining({
+        id: "repair-key-17",
+        accountName: "Recovered account",
+        runtimeKeyName: "Recovered group",
+        status: MANAGED_SITE_TOKEN_BATCH_EXPORT_PREVIEW_STATUSES.BLOCKED,
+        blockingReasonCode:
+          MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_REASON_CODES.SECRET_RESOLUTION_FAILED,
+        blockingDetailCode:
+          MANAGED_SITE_TOKEN_BATCH_EXPORT_BLOCKED_DETAIL_CODES.CREATED_KEY_UNAVAILABLE,
+      }),
+    ])
+  })
+
+  it.each([manualCompleteIntent, repairTrustedNewIntent])(
+    "prevents writes when the target fingerprint changes for $source/$verification",
+    async (intent) => {
+      const managedSite = buildService()
+      configureManagedSiteCapabilities(managedSite)
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const { executeManagedSiteTokenBatchExport } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportExecution"
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+        intent,
+      })
+
+      vi.mocked(managedSite.config.get).mockResolvedValue({
+        baseUrl: "https://changed-target.example.invalid",
+        adminToken: "changed-admin-token",
+        userId: "2",
+      })
+
+      await expect(
+        executeManagedSiteTokenBatchExport({
+          preview,
+          selectedItemIds: [atIndex(preview.items, 0).id],
+        }),
+      ).rejects.toMatchObject({
+        name: "ManagedSiteTokenBatchImportTargetChangedError",
+        code: "managed-site-token-import-target-changed",
+      })
+      expect(managedSite.submit).not.toHaveBeenCalled()
+    },
+  )
+
+  it("returns execution items and counts only for selected attempted rows", async () => {
+    const managedSite = buildService()
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(),
+        buildAccountTokenInput(
+          buildDisplaySiteData({ id: "account-2", name: "Account 2" }),
+          buildAccountToken({
+            id: 12,
+          }),
+        ),
+      ],
+    })
+
+    const result = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: [atIndex(preview.items, 0).id],
+    })
+
+    expect(result).toMatchObject({
+      totalSelected: 1,
+      attemptedCount: 1,
+      createdCount: 1,
+      failedCount: 0,
+      uncertainCount: 0,
+      skippedCount: 0,
+    })
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: atIndex(preview.items, 0).id,
+        result: "created",
+      }),
+    ])
+    mockOpenNativeManagedChannelImportSession.mockClear()
+    managedSite.submit.mockClear()
+    const unselected = await executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: [],
+    })
+    expect(unselected).toMatchObject({
+      totalSelected: 0,
+      attemptedCount: 0,
+      items: [],
+    })
+    expect(mockOpenNativeManagedChannelImportSession).not.toHaveBeenCalled()
+    expect(managedSite.submit).not.toHaveBeenCalled()
+  })
+
+  it("uses four workers and one native submission per selected key", async () => {
+    let activeCreates = 0
+    let maxActiveCreates = 0
+    const releaseCreates: Array<() => void> = []
+    const submit = vi.fn(async () => {
+      activeCreates += 1
+      maxActiveCreates = Math.max(maxActiveCreates, activeCreates)
+      await new Promise<void>((resolve) => releaseCreates.push(resolve))
+      activeCreates -= 1
+      return {
+        outcome: "succeeded" as const,
+        data: null,
+        confirmedEffects: [
+          {
+            kind: "resource-created" as const,
+            resourceKind: "channel" as const,
+          },
+        ],
+        message: "ok",
+      }
+    })
+    const managedSite = buildService({ submit })
+    configureManagedSiteCapabilities(managedSite)
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+    const account = buildDisplaySiteData()
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      intent: repairTrustedNewIntent,
+      items: Array.from({ length: 6 }, (_, index) =>
+        buildAccountTokenInput(
+          account,
+          buildAccountToken({
+            id: index + 1,
+            name: `Key ${index + 1}`,
+            key: `secret-${index}`,
+          }),
+        ),
+      ),
+    })
+
+    const execution = executeManagedSiteTokenBatchExport({
+      preview,
+      selectedItemIds: preview.items.map((item) => item.id),
+    })
+    await vi.waitFor(() => expect(submit).toHaveBeenCalledTimes(4))
+    expect(maxActiveCreates).toBe(4)
+    releaseCreates.splice(0).forEach((release) => release())
+    await vi.waitFor(() => expect(submit).toHaveBeenCalledTimes(6))
+    releaseCreates.splice(0).forEach((release) => release())
+
+    const result = await execution
+    expect(result).toMatchObject({
+      createdCount: 6,
+      failedCount: 0,
+      uncertainCount: 0,
+    })
+    expect(submit).toHaveBeenCalledTimes(6)
+    expect(
+      vi.mocked(managedSite.submit).mock.calls.map(([draft]) => draft.key),
+    ).toEqual(preview.items.map((item) => item.draft!.key))
+  })
+
+  it.each([
+    [401, API_ERROR_CODES.HTTP_401, "account session expired"],
+    [403, API_ERROR_CODES.HTTP_403, "admin permission denied"],
+  ])(
+    "keeps a safe local fallback plus HTTP %i provider details in private results",
+    async (statusCode, code, message) => {
+      const managedSite = buildService({
+        submit: vi.fn().mockResolvedValue({
+          outcome: "rejected",
+          diagnostic: {
+            statusCode,
+            code,
+            message,
+          },
+        }),
+      })
+      configureManagedSiteCapabilities(managedSite)
+      const { prepareManagedSiteTokenBatchExportPreview } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportPreview"
+      )
+      const { executeManagedSiteTokenBatchExport } = await import(
+        "~/services/managedSites/batchImport/tokenBatchImportExecution"
+      )
+      const preview = await prepareManagedSiteTokenBatchExportPreview({
+        items: [buildAccountTokenInput()],
+      })
+      const result = await executeManagedSiteTokenBatchExport({
+        preview,
+        selectedItemIds: [atIndex(preview.items, 0).id],
+      })
+
+      expect(result.items[0]).toMatchObject({ result: "failed" })
+      expect(atIndex(result.items, 0).error).toContain(
+        "Failed to create channel",
+      )
+      expect(atIndex(result.items, 0).error).toContain(`HTTP ${statusCode}`)
+      expect(atIndex(result.items, 0).error).toContain(message)
+    },
+  )
+
+  it("throws a target-changed failure when the managed-site config disappears before execution", async () => {
+    const managedSite = buildService()
+    configureManagedSiteCapabilities(managedSite)
+
+    const { prepareManagedSiteTokenBatchExportPreview } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportPreview"
+    )
+    const { executeManagedSiteTokenBatchExport } = await import(
+      "~/services/managedSites/batchImport/tokenBatchImportExecution"
+    )
+
+    const preview = await prepareManagedSiteTokenBatchExportPreview({
+      items: [
+        buildAccountTokenInput(),
+        buildAccountTokenInput(
+          buildDisplaySiteData({ id: "account-2", name: "Account 2" }),
+          buildAccountToken({
+            id: 12,
+            name: "Token 12",
+          }),
+        ),
+      ],
+    })
+
+    vi.mocked(managedSite.config.get).mockResolvedValue(null)
+    await expect(
+      executeManagedSiteTokenBatchExport({
+        preview,
+        selectedItemIds: [atIndex(preview.items, 0).id],
+      }),
+    ).rejects.toMatchObject({
+      name: "ManagedSiteTokenBatchImportTargetChangedError",
+    })
+    expect(managedSite.submit).not.toHaveBeenCalled()
+  })
+})

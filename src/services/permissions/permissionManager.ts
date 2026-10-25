@@ -1,0 +1,251 @@
+import {
+  containsPermissions,
+  onPermissionsAdded,
+  onPermissionsRemoved,
+  removePermissionsDetailed,
+  requestPermissionsDetailed,
+  type PermissionOperationResult,
+} from "~/utils/browser/permissions"
+import { getManifest } from "~/utils/browser/runtime"
+
+export const OPTIONAL_PERMISSION_IDS = {
+  Cookies: "cookies",
+  declarativeNetRequestWithHostAccess: "declarativeNetRequestWithHostAccess",
+  WebRequest: "webRequest",
+  WebRequestBlocking: "webRequestBlocking",
+  ClipboardRead: "clipboardRead",
+  Notifications: "notifications",
+  Bookmarks: "bookmarks",
+} as const
+
+export type ManifestOptionalPermissions =
+  (typeof OPTIONAL_PERMISSION_IDS)[keyof typeof OPTIONAL_PERMISSION_IDS]
+
+export interface PermissionEnsureResult extends PermissionOperationResult {
+  id: ManifestOptionalPermissions
+  requested: boolean
+  wasGrantedBefore: boolean
+  wasGrantedAfter: boolean
+}
+
+export interface EnsurePermissionsResult {
+  success: boolean
+  results: PermissionEnsureResult[]
+  requestedResults: PermissionEnsureResult[]
+}
+
+/**
+ * Read optional permissions declared in manifest.
+ */
+function readOptionalPermissions(): ManifestOptionalPermissions[] {
+  const manifest = getManifest()
+  return (manifest.optional_permissions ?? []) as ManifestOptionalPermissions[]
+}
+
+/**
+ * All optional permissions declared in manifest.json.
+ */
+export const OPTIONAL_PERMISSIONS: ManifestOptionalPermissions[] =
+  readOptionalPermissions()
+
+/** API namespaces can be hidden until an optional permission is granted. */
+export function isPermissionDeclared(id: ManifestOptionalPermissions): boolean {
+  const manifest = getManifest()
+  return [
+    ...(manifest.permissions ?? []),
+    ...(manifest.optional_permissions ?? []),
+  ].some((permission) => permission === id)
+}
+
+/**
+ * Optional permissions required for cookie interception flows.
+ */
+export const COOKIE_INTERCEPTOR_PERMISSIONS: ManifestOptionalPermissions[] = [
+  OPTIONAL_PERMISSION_IDS.Cookies,
+  OPTIONAL_PERMISSION_IDS.WebRequest,
+  OPTIONAL_PERMISSION_IDS.WebRequestBlocking,
+]
+
+/**
+ * Check whether cookie interceptor permissions are already granted.
+ */
+export async function hasCookieInterceptorPermissions(): Promise<boolean> {
+  return await hasPermissions(COOKIE_INTERCEPTOR_PERMISSIONS)
+}
+
+/**
+ * Check a single optional permission.
+ */
+export async function hasPermission(
+  id: ManifestOptionalPermissions,
+): Promise<boolean> {
+  if (!isPermissionDeclared(id)) return false
+  return await containsPermissions({
+    permissions: [id as unknown as browser._manifest.OptionalPermission],
+  })
+}
+
+/**
+ * Check multiple optional permissions; empty list always true.
+ */
+export async function hasPermissions(
+  ids: ManifestOptionalPermissions[],
+): Promise<boolean> {
+  if (ids.length === 0) return true
+  return await containsPermissions({
+    permissions: ids as unknown as browser._manifest.OptionalPermission[],
+  })
+}
+
+/**
+ * Request a single optional permission while preserving API failure metadata.
+ */
+export async function requestPermissionDetailed(
+  id: ManifestOptionalPermissions,
+): Promise<PermissionOperationResult> {
+  if (!isPermissionDeclared(id)) return { success: false }
+  return await requestPermissionsDetailed({
+    permissions: [id as unknown as browser._manifest.OptionalPermission],
+  })
+}
+
+/**
+ * Remove a single optional permission while preserving API failure metadata.
+ */
+export async function removePermissionDetailed(
+  id: ManifestOptionalPermissions,
+): Promise<PermissionOperationResult> {
+  return await removePermissionsDetailed({
+    permissions: [id as unknown as browser._manifest.OptionalPermission],
+  })
+}
+
+/**
+ * Ensure optional permissions and expose per-permission before/after results.
+ */
+export async function ensurePermissionsDetailed(
+  ids: ManifestOptionalPermissions[],
+): Promise<EnsurePermissionsResult> {
+  if (ids.length === 0) {
+    return { success: true, results: [], requestedResults: [] }
+  }
+
+  // Start the before-state reads first, but do not await them before requesting.
+  // Firefox requires permissions.request in the original user-action stack.
+  // Already granted permissions are safe to include and do not prompt again.
+  const grantedBeforePromise = Promise.all(ids.map((id) => hasPermission(id)))
+  const requestPromise = requestPermissionsDetailed({
+    permissions: ids as unknown as browser._manifest.OptionalPermission[],
+  })
+  const grantedBefore = await grantedBeforePromise
+  const requestResult = await requestPromise
+  const missing: ManifestOptionalPermissions[] = []
+  const grantedBeforeById = new Map<ManifestOptionalPermissions, boolean>()
+
+  for (const [index, id] of ids.entries()) {
+    const wasGrantedBefore = grantedBefore[index] === true
+    grantedBeforeById.set(id, wasGrantedBefore)
+    if (!wasGrantedBefore) {
+      missing.push(id)
+    }
+  }
+
+  if (missing.length === 0) {
+    const results = ids.map((id) => ({
+      id,
+      requested: false,
+      success: true,
+      wasGrantedBefore: true,
+      wasGrantedAfter: true,
+    }))
+
+    return {
+      success: true,
+      results,
+      requestedResults: [],
+    }
+  }
+
+  const wasGrantedAfterById = new Map<ManifestOptionalPermissions, boolean>()
+
+  for (const id of missing) {
+    try {
+      wasGrantedAfterById.set(id, await hasPermission(id))
+    } catch {
+      wasGrantedAfterById.set(id, false)
+    }
+  }
+
+  const requestedResults = missing.map<PermissionEnsureResult>((id) => {
+    const wasGrantedAfter = wasGrantedAfterById.get(id) ?? false
+
+    return {
+      id,
+      requested: true,
+      success: wasGrantedAfter,
+      ...(!wasGrantedAfter && requestResult.failureReason
+        ? { failureReason: requestResult.failureReason }
+        : {}),
+      wasGrantedBefore: grantedBeforeById.get(id) ?? false,
+      wasGrantedAfter,
+    }
+  })
+  const requestedResultById = new Map(
+    requestedResults.map((result) => [result.id, result]),
+  )
+  const results = ids.map<PermissionEnsureResult>((id) => {
+    const requestedResult = requestedResultById.get(id)
+    if (requestedResult) {
+      return requestedResult
+    }
+
+    return {
+      id,
+      requested: false,
+      success: true,
+      wasGrantedBefore: true,
+      wasGrantedAfter: true,
+    }
+  })
+
+  return {
+    success: results.every((result) => result.success),
+    results,
+    requestedResults,
+  }
+}
+
+/**
+ * Subscribe to optional permission changes (added/removed).
+ * Returns an unsubscribe function to detach both listeners.
+ */
+export function onOptionalPermissionsChanged(callback: () => void): () => void {
+  const unsubscribeAdded = onPermissionsAdded((permissions) => {
+    if (
+      permissions.permissions?.some((permission) =>
+        OPTIONAL_PERMISSIONS.includes(
+          permission as ManifestOptionalPermissions,
+        ),
+      )
+    ) {
+      callback()
+    }
+  })
+
+  const unsubscribeRemoved = onPermissionsRemoved((permissions) => {
+    if (
+      permissions.permissions?.some((permission) =>
+        OPTIONAL_PERMISSIONS.includes(
+          permission as ManifestOptionalPermissions,
+        ),
+      )
+    ) {
+      callback()
+    }
+  })
+
+  return () => {
+    unsubscribeAdded()
+    unsubscribeRemoved()
+  }
+}

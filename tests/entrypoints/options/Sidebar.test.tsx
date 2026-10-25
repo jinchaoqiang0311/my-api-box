@@ -1,0 +1,330 @@
+import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import Sidebar from "~/entrypoints/options/components/Sidebar"
+import OptionsSidebar from "~/features/OptionsMenu/OptionsSidebar"
+import {
+  PRODUCT_TOUR_TARGET_ATTRIBUTE,
+  PRODUCT_TOUR_TARGETS,
+} from "~/features/ProductTour/constants"
+import { fireEvent, render, screen, within } from "~~/tests/test-utils/render"
+
+const { useUserPreferencesContextMock, mockedPreloadOptionsPage } = vi.hoisted(
+  () => ({
+    useUserPreferencesContextMock: vi.fn(),
+    mockedPreloadOptionsPage: vi.fn(),
+  }),
+)
+
+vi.mock("~/entrypoints/options/constants", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/entrypoints/options/constants")>()
+
+  return {
+    ...actual,
+    preloadOptionsPage: mockedPreloadOptionsPage,
+  }
+})
+
+vi.mock("framer-motion", () => {
+  return {
+    motion: {
+      aside: ({
+        children,
+        animate: _animate,
+        initial: _initial,
+        transition: _transition,
+        ...props
+      }: React.ComponentPropsWithoutRef<"aside"> & {
+        animate?: unknown
+        children: ReactNode
+        initial?: unknown
+        transition?: unknown
+      }) => <aside {...props}>{children}</aside>,
+    },
+    useReducedMotion: () => true,
+  }
+})
+
+vi.mock("~/features/StarPromotion/useStarPromotionActive", () => ({
+  useStarPromotionActive: () => true,
+  useIsStarred: () => false,
+}))
+
+vi.mock("~/contexts/UserPreferencesContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/contexts/UserPreferencesContext")>()
+
+  return {
+    ...actual,
+    UserPreferencesProvider: ({ children }: { children: ReactNode }) =>
+      children,
+    useUserPreferencesContext: () => useUserPreferencesContextMock(),
+  }
+})
+
+describe("Options Sidebar", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedPreloadOptionsPage.mockReset().mockResolvedValue(undefined)
+    useUserPreferencesContextMock.mockReturnValue({
+      preferences: {
+        autoCheckin: {
+          globalEnabled: true,
+        },
+      },
+    })
+    document.body.style.overflow = ""
+  })
+
+  afterEach(() => {
+    document.body.style.overflow = ""
+  })
+
+  it("renders expanded desktop navigation controls and routes menu clicks", () => {
+    const onMenuItemClick = vi.fn()
+    const onCollapseToggle = vi.fn()
+
+    const { container } = render(
+      <Sidebar
+        activeMenuItem={MENU_ITEM_IDS.BASIC}
+        onMenuItemClick={onMenuItemClick}
+        isCollapsed={false}
+        onCollapseToggle={onCollapseToggle}
+      />,
+    )
+
+    const nav = screen.getByRole("navigation", {
+      name: "ui:navigation.settingsOptions",
+    })
+    const navigationTarget = container.querySelector(
+      `[${PRODUCT_TOUR_TARGET_ATTRIBUTE}="${PRODUCT_TOUR_TARGETS.Navigation}"]`,
+    )
+
+    expect(navigationTarget).toContainElement(nav)
+
+    expect(
+      within(nav).getByRole("button", { name: "ui:navigation.overview" }),
+    ).toBeInTheDocument()
+    expect(
+      within(nav).getByText("ui:navigation.categories.general"),
+    ).toBeInTheDocument()
+
+    const generalTarget = container.querySelector(
+      `[${PRODUCT_TOUR_TARGET_ATTRIBUTE}="${PRODUCT_TOUR_TARGETS.General}"]`,
+    )
+    expect(generalTarget).toHaveAccessibleName(
+      "ui:navigation.categories.general",
+    )
+    expect(
+      within(generalTarget as HTMLElement).getByRole("button", {
+        name: "ui:navigation.bookmark",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(generalTarget as HTMLElement).queryByRole("button", {
+        name: "ui:navigation.models",
+      }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      within(nav).getByRole("button", { name: "ui:navigation.models" }),
+    )
+
+    expect(onMenuItemClick).toHaveBeenCalledWith(MENU_ITEM_IDS.MODELS)
+
+    const collapseButtons = screen.getAllByRole("button", {
+      name: "ui:navigation.collapseSidebar",
+    })
+    fireEvent.click(collapseButtons[0]!)
+
+    expect(onCollapseToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it("uses collapsed desktop labels and keeps all pages visible when global automatic check-in is disabled", () => {
+    useUserPreferencesContextMock.mockReturnValue({
+      preferences: {
+        autoCheckin: {
+          globalEnabled: false,
+        },
+      },
+    })
+
+    render(
+      <Sidebar
+        activeMenuItem={MENU_ITEM_IDS.BASIC}
+        onMenuItemClick={vi.fn()}
+        isCollapsed={true}
+        onCollapseToggle={vi.fn()}
+      />,
+    )
+
+    const nav = screen.getByRole("navigation", {
+      name: "ui:navigation.sidebarCollapsedHint",
+    })
+
+    const basicButton = within(nav).getByRole("button", {
+      name: "ui:navigation.basic",
+    })
+    expect(basicButton).toHaveAttribute("title", "ui:navigation.basic")
+
+    expect(
+      within(nav).queryByRole("button", {
+        name: "ui:navigation.batchCheckin",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(nav).queryByText("ui:navigation.categories.general"),
+    ).toBeNull()
+    expect(
+      within(nav).getByRole("button", {
+        name: "ui:navigation.managedSiteChannels",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(nav).getByRole("button", {
+        name: "ui:navigation.managedSiteModelSync",
+      }),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getAllByRole("button", {
+        name: "ui:navigation.expandSidebar",
+      }),
+    ).toHaveLength(1)
+  })
+
+  it("preloads a page on pointer or keyboard intent and ignores preload failures", () => {
+    mockedPreloadOptionsPage.mockRejectedValue(
+      new Error("account page chunk unavailable"),
+    )
+
+    render(
+      <Sidebar
+        activeMenuItem={MENU_ITEM_IDS.BASIC}
+        onMenuItemClick={vi.fn()}
+        isCollapsed={false}
+        onCollapseToggle={vi.fn()}
+      />,
+    )
+    const accountButton = screen.getByRole("button", {
+      name: "ui:navigation.account",
+    })
+
+    fireEvent.pointerEnter(accountButton)
+    accountButton.focus()
+
+    expect(mockedPreloadOptionsPage).toHaveBeenCalledTimes(2)
+    expect(mockedPreloadOptionsPage).toHaveBeenNthCalledWith(
+      1,
+      MENU_ITEM_IDS.ACCOUNT,
+    )
+    expect(mockedPreloadOptionsPage).toHaveBeenNthCalledWith(
+      2,
+      MENU_ITEM_IDS.ACCOUNT,
+    )
+  })
+
+  it("keeps the pending desktop toggle focusable and blocks repeated activation until saving completes", async () => {
+    const user = userEvent.setup()
+    const onCollapseToggle = vi.fn()
+    const props = {
+      activeMenuItem: MENU_ITEM_IDS.BASIC,
+      onMenuItemClick: vi.fn(),
+      onCollapseToggle,
+    }
+    const { rerender } = render(<Sidebar {...props} isCollapsePending />)
+    const toggle = screen.getByRole("button", {
+      name: "ui:navigation.collapseSidebar",
+    })
+
+    toggle.focus()
+    expect(toggle).toHaveFocus()
+    expect(toggle).toHaveAttribute("aria-disabled", "true")
+    await user.keyboard("{Enter} ")
+    await user.click(toggle)
+    expect(onCollapseToggle).not.toHaveBeenCalled()
+
+    rerender(<Sidebar {...props} isCollapsePending={false} />)
+    expect(toggle).toHaveFocus()
+    await user.keyboard("{Enter}")
+    expect(onCollapseToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it("renders consecutive uncategorized entries and routes their actions", async () => {
+    const user = userEvent.setup()
+    const onMenuItemClick = vi.fn()
+    const icon = () => <span />
+    render(
+      <OptionsSidebar
+        menuItems={[
+          { id: MENU_ITEM_IDS.OVERVIEW, icon },
+          { id: MENU_ITEM_IDS.ACCOUNT, icon },
+        ]}
+        activeMenuItem={MENU_ITEM_IDS.OVERVIEW}
+        onMenuItemClick={onMenuItemClick}
+      />,
+    )
+    const nav = screen.getByRole("navigation", {
+      name: "ui:navigation.settingsOptions",
+    })
+    expect(within(nav).queryByRole("heading")).not.toBeInTheDocument()
+    expect(within(nav).getAllByRole("button")).toHaveLength(2)
+    await user.click(
+      within(nav).getByRole("button", { name: "ui:navigation.account" }),
+    )
+    expect(onMenuItemClick).toHaveBeenCalledWith(MENU_ITEM_IDS.ACCOUNT)
+  })
+
+  it("opens mobile mode with an overlay, locks body scroll, and closes through mobile actions while saving", () => {
+    const onMobileClose = vi.fn()
+    const onCollapseToggle = vi.fn()
+
+    const { container, rerender, unmount } = render(
+      <Sidebar
+        activeMenuItem={MENU_ITEM_IDS.BASIC}
+        onMenuItemClick={vi.fn()}
+        isMobileOpen={true}
+        isCollapsePending
+        onMobileClose={onMobileClose}
+        isCollapsed={false}
+        onCollapseToggle={onCollapseToggle}
+      />,
+    )
+
+    expect(document.body.style.overflow).toBe("hidden")
+
+    const overlay = container.querySelector("div.fixed.inset-0")
+    expect(overlay).not.toBeNull()
+    fireEvent.click(overlay!)
+
+    expect(onMobileClose).toHaveBeenCalledTimes(1)
+    expect(onCollapseToggle).not.toHaveBeenCalled()
+
+    const closeButtons = screen.getAllByRole("button", {
+      name: "common:actions.close",
+    })
+    fireEvent.click(closeButtons[closeButtons.length - 1]!)
+
+    expect(onMobileClose).toHaveBeenCalledTimes(2)
+    expect(onCollapseToggle).not.toHaveBeenCalled()
+
+    rerender(
+      <Sidebar
+        activeMenuItem={MENU_ITEM_IDS.BASIC}
+        onMenuItemClick={vi.fn()}
+        isMobileOpen={false}
+        onMobileClose={onMobileClose}
+        isCollapsed={false}
+        onCollapseToggle={onCollapseToggle}
+      />,
+    )
+
+    expect(document.body.style.overflow).toBe("")
+
+    unmount()
+    expect(document.body.style.overflow).toBe("")
+  })
+})

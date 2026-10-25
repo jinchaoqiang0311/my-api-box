@@ -1,0 +1,405 @@
+{
+  "actions": {
+    "open": "Öffnen"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "Deaktivierte Konten werden bei Aktualisierung, Check-in und anderen Automatisierungen übersprungen. Aktiviere die Konten, die du weiter nutzt.",
+      "title_one": "Das einzige Konto ist deaktiviert",
+      "title_other": "Alle {{count}} Konten sind deaktiviert"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} benötigt eine Prüfung der Browsereinstellungen"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} hat ein gesundheitliches Problem"
+    },
+    "actions": {
+      "addAccount": "Konto hinzufügen",
+      "addProfile": "API-Anmeldeinformation hinzufügen",
+      "editAccount": "Konto bearbeiten",
+      "fixAccount": "Konto reparieren",
+      "handleCheckIn": "Check-in bearbeiten",
+      "manageAccounts": "Konten verwalten",
+      "openSettings": "Einstellungen öffnen",
+      "refreshAccounts": "Konten aktualisieren",
+      "signInAgain": "Neu anmelden",
+      "viewAccount": "Konto anzeigen",
+      "viewAnnouncements": "Ankündigungen anzeigen",
+      "viewCheckIn": "Check-in anzeigen",
+      "viewCheckInResults": "Ergebnisse ansehen"
+    },
+    "addAccount": {
+      "description": "Fügen Sie ein Konto hinzu, bevor Salden, Nutzung und Automatisierung zusammengefasst werden können.",
+      "title": "Noch keine Konten"
+    },
+    "addProfile": {
+      "description": "Die Bibliothek speichert API-Keys, Coding-Plan-Keys und weitere Keys und überwacht Guthaben und Nutzung zentral – inklusive des restlichen 5-Stunden-/7-Tage-/Monats-Kontingents.",
+      "title": "Noch keine API-Anmeldeinformationen"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_one": "{{count}} Konto hat den automatischen Check-in aktiviert, aber er läuft nicht, solange der globale Schalter aus ist. Aktivieren Sie ihn in den Check-in-Einstellungen erneut.",
+      "description_other": "{{count}} Konten haben den automatischen Check-in aktiviert, aber er läuft nicht, solange der globale Schalter aus ist. Aktivieren Sie ihn in den Check-in-Einstellungen erneut.",
+      "title": "Automatischer Check-in ist global deaktiviert"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "Im letzten Lauf gab es Fehler oder unbestätigte Ergebnisse. Öffnen Sie den automatischen Check-in, um die Ursachen zu prüfen und es erneut zu versuchen.",
+      "title_one": "Automatischer Check-in für {{count}} Konto prüfen",
+      "title_other": "Automatischer Check-in für {{count}} Konten prüfen"
+    },
+    "categories": {
+      "accounts": "Konten",
+      "automation": "Automatisierung",
+      "credentials": "Anmeldedaten",
+      "data": "Daten"
+    },
+    "categoryFilterLabel": "Kategorie",
+    "checkInAccountDataMissing": {
+      "description": "Gespeicherte Zugangsdaten oder Kontodaten sind unvollständig. Erkenne das Konto in der Kontoverwaltung neu und starte den Check-in erneut.",
+      "title_one": "{{count}} Konto hat keine gespeicherten Anmeldedaten",
+      "title_other": "{{count}} Konten haben keine gespeicherten Anmeldedaten"
+    },
+    "checkInMethodUnresolved": {
+      "description": "Der automatische Check-in ist aktiviert, aber es ist noch keine nutzbare Methode verfügbar. Öffnen Sie die Kontoverwaltung, um eine Methode zu erkennen oder auszuwählen.",
+      "title": "Für {{name}} muss die Check-in-Methode geklärt werden"
+    },
+    "checkInPermissionDenied": {
+      "description": "Die Seite hat die Check-in-Anfrage abgelehnt. Melde dich erneut an oder prüfe die Kontoberechtigungen und versuche es noch einmal.",
+      "title_one": "{{count}} Konto wurde beim Check-in abgelehnt",
+      "title_other": "{{count}} Konten wurden beim Check-in abgelehnt"
+    },
+    "checkInReloginRequired": {
+      "description": "Der letzte Lauf hat diese Konten übersprungen, weil die Anmeldung abgelaufen ist. Melde dich auf der Seite an und starte den Check-in erneut.",
+      "title_one": "{{count}} Konto benötigt eine neue Anmeldung",
+      "title_other": "{{count}} Konten benötigen eine neue Anmeldung"
+    },
+    "filterAll": "Alle",
+    "severityFilterLabel": "Schweregrad",
+    "siteTypeMismatch": {
+      "description": "Diese Website entspricht {{suggestedType}}, das Konto ist jedoch auf {{storedType}} eingestellt. Bearbeiten Sie das Konto und stellen Sie den Website-Typ auf {{suggestedType}} um.",
+      "title": "{{name}} hat möglicherweise den falschen Website-Typ"
+    },
+    "siteTypeUnknown": {
+      "description": "Der automatische Check-in kann das Protokoll dieser Website nicht bestimmen. Bearbeiten Sie das Konto und wählen Sie den richtigen Seitentyp, oder führen Sie die automatische Erkennung erneut aus.",
+      "title": "{{name}} hat einen unbekannten Seitentyp"
+    },
+    "sortHint": "Nach Auswirkung sortiert",
+    "summary_one": "{{count}} offen",
+    "summary_other": "{{count}} offen",
+    "unreadSiteAnnouncements": {
+      "description": "Öffnen Sie die Website-Ankündigungen, um sie als gelesen zu markieren und Wartungs- oder Risikohinweise nicht zu verpassen.",
+      "title_one": "{{count}} ungelesene Website-Ankündigung",
+      "title_other": "{{count}} ungelesene Website-Ankündigungen"
+    },
+    "usageRefreshPending": {
+      "description": "Aktualisieren Sie die Konten, um die heutigen Anfrage-, Token- und Kostenstatistiken zu vervollständigen.",
+      "title_one": "Für {{count}} Konto müssen die heutigen Statistiken aktualisiert werden",
+      "title_other": "Für {{count}} Konten müssen die heutigen Statistiken aktualisiert werden"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "Check-in anzeigen",
+      "retryFailed": "Wiederholung fehlgeschlagen"
+    },
+    "empty": {
+      "disabled": {
+        "description": "Der automatische Check-in ist deaktiviert. Schalten Sie ihn wieder ein, wenn Sie möchten, dass die Erweiterung Check-in-Prämien für Sie einfordert."
+      },
+      "notRun": {
+        "description": "Es hat noch kein Check-in stattgefunden. Nachdem die Kontoerkennung aktiviert wurde, führt ihn der nächste Zeitplan aus, oder Sie können den automatischen Check-in öffnen, um ihn manuell auszuführen."
+      }
+    },
+    "lastRun": "Letzter Lauf",
+    "metrics": {
+      "failed": "Fehlgeschlagen",
+      "skipped": "Übersprungen",
+      "success": "Erfolg"
+    },
+    "nextRetry": "Nächster Wiederholungsversuch",
+    "nextRun": "Nächster Lauf",
+    "notRunYet": "Noch nicht ausgeführt",
+    "notScheduled": "Nicht geplant",
+    "status": {
+      "disabled": "Deaktiviert",
+      "failed": "Fehlgeschlagen",
+      "not_run": "Warten auf den ersten Lauf",
+      "partial": "Teilerfolg",
+      "ready": "Bereit",
+      "skipped": "Nicht ausgeführt",
+      "success": "Erfolgreich"
+    },
+    "summary": "Zusammenfassung des automatischen Check-in-Laufs"
+  },
+  "automation": {
+    "automaticEnabled": "Automatische Ausführung ist aktiviert",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "Aktivieren Sie den automatischen Check-in, wenn Sie Prämien automatisch einfordern möchten. Zukünftige Zeitpläne und Ergebnisse werden hier angezeigt."
+      },
+      "managedSiteModelSync": {
+        "disabled": "Aktivieren Sie die Modellsynchronisierung, wenn Sie möchten, dass selbstgehostete KI-Gateway-Modelle automatisch aktualisiert werden. Hier werden Synchronisierungsintervall und -umfang angezeigt."
+      },
+      "siteAnnouncements": {
+        "disabled": "Aktivieren Sie den automatischen Abruf von Ankündigungen, wenn hier Website-Updates erscheinen sollen. Aktuelle Prüfungen und Ankündigungszähler werden hier angezeigt."
+      },
+      "webdavAutoSync": {
+        "disabled": "Konfigurieren Sie die automatische Synchronisierung von WebDAV, wenn Sie geräteübergreifende Backups wünschen. Hier werden die Synchronisierungsstrategie und der Umfang angezeigt."
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "Automatischer Check-in"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "Zulässige Modelle",
+        "concurrency": "Parallelität",
+        "interval": "Synchronisierungsintervall (Stunden)",
+        "label": "Synchronisierung des selbstgehosteten KI-Gateway-Modells",
+        "open": "Synchronisierung öffnen"
+      },
+      "siteAnnouncements": {
+        "interval": "Abfrageintervall (Minuten)",
+        "label": "Abruf von Website-Ankündigungen",
+        "lastChecked": "Zuletzt überprüft",
+        "openPage": "Ankündigungen anzeigen",
+        "openSettings": "Abrufeinstellungen",
+        "records": "Ankündigungen insgesamt",
+        "unread": "Ungelesene Ankündigungen"
+      },
+      "webdavAutoSync": {
+        "domains": "Bereiche synchronisieren",
+        "interval": "Synchronisierungsintervall (Minuten)",
+        "label": "WebDAV Backup-Synchronisierung",
+        "open": "Backup-Synchronisierung öffnen",
+        "strategy": "Synchronisierungsstrategie"
+      }
+    },
+    "metrics": {
+      "failed": "Fehlgeschlagen",
+      "skipped": "Übersprungen",
+      "success": "Erfolgreich",
+      "unsupported": "Nicht unterstützt"
+    },
+    "neverChecked": "Noch nicht geprüft",
+    "openItem": "Öffnen Sie {{name}}",
+    "status": {
+      "disabled": "Deaktiviert",
+      "failed": "Ausführung fehlgeschlagen",
+      "limited": "Teilweise unterstützt",
+      "notRun": "Wartet auf erste Ausführung",
+      "partial": "Teilweise fehlgeschlagen",
+      "ready": "Bereit",
+      "running": "Wird ausgeführt",
+      "skipped": "Nicht ausgeführt",
+      "success": "Ausführung erfolgreich",
+      "unknown": "Status unbekannt",
+      "unsupported": "Nicht unterstützt"
+    },
+    "statusUnavailable": "Der Ausführungsstatus ist nicht verfügbar. Öffnen Sie die Details oder laden Sie die Seite erneut."
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "Konten, Salden und Gesundheitsstatus, von denen andere Funktionen abhängen.",
+      "label": "Kontogründung",
+      "state": {
+        "disabled": "Kontostatus kann noch nicht gelesen werden. Überprüfen Sie, ob die Kontoeinrichtung abgeschlossen ist.",
+        "needs_setup": "Fügen Sie mindestens ein Konto hinzu, damit die Übersicht Salden, Nutzung und Automatisierungsstatus für Sie zusammenfassen kann.",
+        "not_applicable": "Sie können in dieser Umgebung fortfahren, ohne ein Konto hinzuzufügen."
+      }
+    },
+    "automation": {
+      "description": "Ob der automatische Check-in und die Ankündigungsabfrage betriebsbereit sind.",
+      "label": "Automatisierung",
+      "state": {
+        "disabled": "Derzeit werden keine Aufgaben automatisch ausgeführt. Aktivieren Sie den Check-in oder die Ankündigungsabfrage, wenn Sie sie benötigen.",
+        "needs_setup": "Die Automatisierung benötigt noch ein geeignetes Konto oder eine Erkennungseinrichtung, bevor sie ausgeführt werden kann.",
+        "not_applicable": "In dieser Umgebung sind noch keine Automatisierungsaufgaben verfügbar."
+      }
+    },
+    "backupSync": {
+      "description": "Lokale Datensicherung und geräteübergreifende Synchronisierungskonfiguration.",
+      "label": "Backup-Synchronisierung",
+      "state": {
+        "disabled": "Ihre Daten bleiben auf diesem Gerät. Aktivieren Sie die WebDAV-Synchronisierung, wenn Sie eine geräteübergreifende Sicherung wünschen.",
+        "needs_setup": "Verbinden Sie zuerst WebDAV, damit lokale Daten remote gesichert werden können.",
+        "not_applicable": "Die Backup-Synchronisierung ist in dieser Umgebung noch nicht verfügbar."
+      }
+    },
+    "credentialAssets": {
+      "description": "Speicherung Ihrer Keys sowie Überwachung von Guthaben, Kontingent und Nutzung.",
+      "label": "Berechtigungsnachweise",
+      "state": {
+        "disabled": "Es gibt noch keine wiederverwendbaren Anmeldeinformationen. Überprüfen Sie die Einrichtung des Kontos oder der API-Anmeldeinformationen.",
+        "needs_setup": "Speichern Sie eine API-Anmeldeinformation (Base URL + API Key), um Guthaben, Kontingent und Nutzung an einer Stelle zu überwachen.",
+        "not_applicable": "Diese Umgebung benötigt keine separaten API-Anmeldeinformationen."
+      }
+    },
+    "dataHistory": {
+      "description": "Ob Daten zur Nutzung und zum Saldoverlauf überprüft werden müssen.",
+      "label": "Datenverlauf",
+      "state": {
+        "disabled": "Der Verlauf wird noch nicht gespeichert. Schalten Sie ihn ein, um zukünftige Nutzungs- und Balanceänderungen beizubehalten.",
+        "needs_setup": "Der Verlauf ist aktiviert, benötigt aber noch ein Konto oder den ersten Datenpunkt. Dieser Abschnitt wird aktualisiert, sobald Daten angezeigt werden.",
+        "not_applicable": "In dieser Umgebung ist noch kein Datenverlauf zum Anzeigen vorhanden."
+      }
+    },
+    "managedSite": {
+      "description": "Kanalverwaltung und Modellsynchronisierung für Ihr selbst gehostetes KI-Gateway.",
+      "label": "Selbstgehostetes KI-Gateway",
+      "state": {
+        "disabled": "Es ist noch kein selbstgehostetes KI-Gateway konfiguriert. Konfigurieren Sie eines, wenn Sie Kanal- oder Modellverwaltung benötigen.",
+        "needs_setup": "Konfigurieren Sie zunächst ein selbstgehostetes KI-Gateway, dann können Sie hier Kanäle verwalten oder Modelle synchronisieren.",
+        "not_applicable": "Dieser Website-Typ unterstützt noch keine selbstgehostete KI-Gateway-Verwaltung."
+      }
+    },
+    "subItems": {
+      "accounts": "Konten",
+      "apiKeys": "API-Schlüssel",
+      "apiProfiles": "API-Anmeldeinformationen",
+      "autoCheckin": "Automatischer Check-in",
+      "balanceHistory": "Saldenverlauf",
+      "managedSiteChannels": "Kanalverwaltung",
+      "managedSiteModelSync": "Modellsynchronisierung",
+      "siteAnnouncements": "Website-Ankündigungen",
+      "usageAnalytics": "Nutzungsanalyse",
+      "webdavAutoSync": "WebDAV automatische Synchronisierung",
+      "webdavManual": "WebDAV manuelle Sicherung"
+    }
+  },
+  "coverageStatus": {
+    "configured": "Konfiguriert",
+    "disabled": "Nicht aktiviert",
+    "needs_setup": "Muss eingerichtet werden",
+    "not_applicable": "Nicht anwendbar"
+  },
+  "description": "Konten, Schlüssel und Nutzung überblicken sowie automatische Aufgaben und offene Aktionen verfolgen.",
+  "sections": {
+    "automationOverview": "Automatisierung läuft",
+    "configurationOverview": "Konfigurationsübersicht",
+    "needsAttention": "Braucht Aufmerksamkeit",
+    "recentUsage": "Letzte Nutzung",
+    "unifiedApiGuidance": "Einheitliches API-Setup"
+  },
+  "severity": {
+    "error": "Fehler",
+    "info": "Infos",
+    "warning": "Warnung"
+  },
+  "states": {
+    "allClear": "Im Moment gibt es nichts, was Aufmerksamkeit erfordert.",
+    "allClearDescription": "Kontoprobleme, fehlende Check-in-Methoden und Statistiken, die aktualisiert werden müssen, erscheinen hier automatisch.",
+    "loadDetailUnavailable": "Einige Übersichtsinformationen sind vorübergehend nicht verfügbar. Versuchen Sie es erneut zu laden.",
+    "loadedWithError": "Einige Informationen konnten nicht geladen werden. Verfügbare Daten werden angezeigt.",
+    "loading": "Übersicht wird geladen..."
+  },
+  "status": {
+    "accounts": {
+      "label": "Konten"
+    },
+    "attention": {
+      "label": "Achtung"
+    },
+    "profiles": {
+      "label": "Anmeldeinformationen"
+    },
+    "todayUsage": {
+      "label": "Heute"
+    }
+  },
+  "title": "Übersicht",
+  "todayMetricAvailability": {
+    "coverage": "Vollständig {{complete}} · Teilweise {{partial}} · Berechtigt {{eligible}}",
+    "coverageWithRefresh": "Vollständig {{complete}} · Teilweise {{partial}} · Aktualisierung erforderlich {{refresh}} · Berechtigt {{eligible}}",
+    "includesPendingRefresh": "Einschließlich ausstehender Aktualisierung",
+    "partial": "Teilweise Tagesstatistik",
+    "pendingRefresh": "Aktualisierung steht aus",
+    "pendingRefreshHelp": "Die heutigen Statistiken wurden nicht bestätigt. Aktualisieren Sie das entsprechende Konto aus der Kontenliste.",
+    "unavailable": "Nicht verfügbar"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "Konto hinzufügen",
+      "addApiCredential": "API-Anmeldeinformationen hinzufügen",
+      "addGatewayChannel": "Ersten Gateway-Kanal hinzufügen",
+      "configureManagedSite": "Selbstgehostetes KI-Gateway konfigurieren",
+      "manageChannels": "Kanäle verwalten",
+      "openApiCredentialProfiles": "Anmeldeinformationsbibliothek öffnen",
+      "openModelSync": "Modellsynchronisierung öffnen"
+    },
+    "boundaryNote": "My API Box verwaltet und importiert die Konfiguration. Modellanfragen werden nicht weitergeleitet. Externe Clients rufen Ihr selbst gehostetes KI-Gateway an.",
+    "description": {
+      "has_gateway_channels": "Die Gateway-Einrichtungshilfe ist abgeschlossen. Öffnen Sie die Kanalverwaltung, um den aktuellen Status zu prüfen.",
+      "needs_importable_source": "Sie haben Konten, aber die aktuellen Kontotypen können keine importierbaren Schlüssel bereitstellen. Speichern Sie zuerst einen API-Schlüssel oder fügen Sie einen Kontotyp hinzu, der den Schlüsselzugriff unterstützt, und importieren Sie ihn dann in Ihr selbst gehostetes KI-Gateway.",
+      "needs_managed_site": "Sie haben Kontoschlüssel oder API-Schlüssel. Konfigurieren Sie Ihr selbstgehostetes KI-Gateway so, dass es diese als Gateway-Kanäle importiert, sodass mehrere Schlüssel über eine KI-API verwendet werden können.",
+      "needs_sources": "Füge ein Konto hinzu oder speichere einen API-Schlüssel und importiere ihn in dein selbst gehostetes AI-Gateway, um eine einheitliche AI-API bereitzustellen.",
+      "ready_accounts": "Die Grundkonfiguration Ihres selbstgehosteten KI-Gateways ist abgeschlossen. Fahren Sie fort, indem Sie einen Kontoschlüssel oder API-Schlüssel importieren. Der Importfluss validiert die Verbindung und erstellt einen Gateway-Kanal.",
+      "ready_profiles": "Die Grundkonfiguration Ihres selbstgehosteten KI-Gateways ist abgeschlossen. Öffnen Sie die Anmeldeinformationsbibliothek, um einen gespeicherten API-Schlüssel zu validieren und als Gateway-Kanal zu importieren."
+    },
+    "headline": "Kombinieren Sie Kontoschlüssel oder API-Schlüssel in einer einheitlichen KI-API",
+    "modelSyncOptional": "Durch die Modellsynchronisierung können Gateway-Modelllisten automatisch aktualisiert und die manuelle Wartung reduziert werden. Aktivieren Sie sie bei Bedarf, nachdem Kanäle vorhanden sind.",
+    "optionalLabel": "Optionale Wartung",
+    "overview": {
+      "collapse": "Einklappen",
+      "completedDescription": "Die Einrichtungsanleitung ist abgeschlossen. Du kannst die Schritte jederzeit ansehen oder Gateway-Kanäle verwalten.",
+      "description": "Importiere Kontoschlüssel oder API-Zugangsdaten in dein Gateway, um eine gemeinsame API-Adresse zu nutzen.",
+      "progress": "Einrichtungsfortschritt {{completed}}/{{total}}",
+      "reopen": "Einrichtungsanleitung",
+      "resume": "Einrichtung fortsetzen",
+      "start": "Schritte ansehen",
+      "title": "Einheitliche API"
+    },
+    "sources": {
+      "account": "Kontoquellen",
+      "accountUnavailable": "Konten nicht importierbar",
+      "both": "Konten + Anmeldeinformationen",
+      "none": "Noch keine Quellen",
+      "profile": "Anmeldeinformationsquellen"
+    },
+    "stepper": {
+      "label": "Fortschritt der Einrichtung der einheitlichen API",
+      "states": {
+        "completed": "Abgeschlossen",
+        "current": "Aktueller Schritt",
+        "upcoming": "Später"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "Importieren Sie mindestens einen Kontoschlüssel oder gespeicherte API-Anmeldeinformationen.",
+          "title": "Erstellen Sie einen Gateway-Kanal"
+        },
+        "gatewaySettings": {
+          "description": "Geben Sie die Administratorverbindungsdetails für Ihr selbstgehostetes KI-Gateway ein.",
+          "title": "Gateway-Einstellungen speichern"
+        },
+        "source": {
+          "description": "Fügen Sie ein Konto hinzu, das Schlüssel offenlegen oder API-Anmeldeinformationen speichern kann.",
+          "title": "Bereiten Sie eine Quelle vor"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "Konten, Anmeldeinformationen oder Gateway-Einstellungen konnten nicht geladen werden. Es wurde keine Schlussfolgerung aufgrund fehlender Quellen gezogen.",
+      "retry": "Wiederholen Sie die Einrichtungsprüfung",
+      "title": "Setup-Status nicht verfügbar"
+    }
+  },
+  "usage": {
+    "activityMix": "Aktueller Trend",
+    "empty": {
+      "description": "Nachdem Sie eine Anfrage gesendet oder den Nutzungsverlauf synchronisiert haben, fasst diese Karte die heutigen Anfragen, Token, Kosten und den neuesten 7-Tage-Trend zusammen.",
+      "title": "Noch keine Nutzung erfasst"
+    },
+    "noRecentActivity": "Keine aktuelle Nutzung aufgezeichnet.",
+    "requestShare": "Anteil der Anfragen",
+    "sevenDayRequests": "7-Tage-Anfragen",
+    "sevenDayTokens": "7-Tage-Tokens",
+    "todayCost": "Heutige Kosten",
+    "todayRequests": "Heutige Anfragen",
+    "todayShare": "Heutiger Anteil der letzten 7 Tage",
+    "todayTokens": "Heutige Token",
+    "tokenShare": "Token-Anteil"
+  }
+}

@@ -1,0 +1,1018 @@
+{
+  "accountManagement": {
+    "description": "在专用管理控制台中管理账号、余额、API 密钥并配置排序优先级。",
+    "openPage": "打开账号管理页面",
+    "title": "账号管理"
+  },
+  "actionClick": {
+    "actionIconClickDesc": "选择点击工具栏图标后打开弹窗、侧边栏或完整选项页。",
+    "actionIconClickTitle": "默认打开内容",
+    "description": "设置浏览器工具栏中扩展图标的打开方式。",
+    "optionsLabel": "选项页",
+    "optionsTitle": "打开完整选项页",
+    "popupLabel": "弹窗",
+    "popupTitle": "打开弹出窗口",
+    "sidepanelFallbackToast": "已保存侧边栏偏好设置。当前浏览器不支持侧边栏，点击时会回退到弹窗。",
+    "sidepanelLabel": "侧边栏",
+    "sidepanelTitle": "打开侧边栏",
+    "sidepanelUnsupportedHelper": "当前浏览器不支持侧边栏；选择侧边栏时会自动回退到弹窗。",
+    "title": "点击扩展图标"
+  },
+  "appearance": {
+    "color": "主题色",
+    "colors": {
+      "blue": "蓝色",
+      "green": "绿色",
+      "orange": "橙色",
+      "rose": "玫红",
+      "slate": "石板灰",
+      "violet": "紫色"
+    },
+    "contentWidth": "内容宽度",
+    "contentWidthDescription": "仅影响完整管理页面。",
+    "contentWidths": {
+      "centered": "居中",
+      "full": "全宽"
+    },
+    "densities": {
+      "comfortable": "宽松",
+      "compact": "紧凑",
+      "default": "默认"
+    },
+    "density": "界面密度",
+    "densityDescription": "调整列表间距和控件高度，不改变字号。",
+    "description": "修改后自动保存，应用于设置页、弹窗和侧栏。",
+    "font": "字体",
+    "fontDescription": "选择界面字体。跟随主题时，默认主题使用无衬线字体，Anthropic 使用衬线字体。",
+    "fonts": {
+      "default": "跟随主题",
+      "sans": "无衬线",
+      "serif": "衬线"
+    },
+    "preset": "主题风格",
+    "presetColorsHint": "当前主题自带完整配色。切换到默认主题可单独选择强调色。",
+    "presetDescriptions": {
+      "anthropic": "暖米色与陶土色，搭配暖炭灰深色模式。",
+      "default": "经典中性色，可自由选择强调色。"
+    },
+    "presets": {
+      "anthropic": "Anthropic",
+      "default": "默认主题"
+    },
+    "radii": {
+      "default": "默认",
+      "large": "大",
+      "none": "直角",
+      "small": "小"
+    },
+    "radius": "圆角大小",
+    "reset": "恢复默认外观",
+    "resetDensity": "重置密度",
+    "resetFont": "重置字体",
+    "resetTextSize": "重置文字大小",
+    "saveFailed": "保存失败，请重试。",
+    "textSize": "文字大小",
+    "textSizeDescription": "调整字号和行高，控件会随内容适应，不改变界面密度设置。",
+    "textSizes": {
+      "default": "默认",
+      "extraLarge": "超大",
+      "large": "大"
+    },
+    "title": "外观设置"
+  },
+  "appearanceLanguage": {
+    "language": "语言",
+    "languageDesc": "选择您偏好的显示语言",
+    "onboardingHelper": "切换后，引导和后续设置页面都会使用所选语言。",
+    "onboardingLabel": "选择界面语言",
+    "onboardingLanguageRequest": "找不到你的语言？请求添加",
+    "switcher": {
+      "currentLanguage": "当前界面语言：{{language}}",
+      "groupLabel": "界面语言选择",
+      "options": {
+        "de": {
+          "label": "DE",
+          "name": "德语"
+        },
+        "en": {
+          "label": "EN",
+          "name": "英文"
+        },
+        "es-419": {
+          "label": "西语",
+          "name": "拉美西班牙语"
+        },
+        "ja": {
+          "label": "日文",
+          "name": "日语"
+        },
+        "pt-BR": {
+          "label": "葡语",
+          "name": "葡萄牙语（巴西）"
+        },
+        "vi": {
+          "label": "越南",
+          "name": "越南语"
+        },
+        "zh-CN": {
+          "label": "简中",
+          "name": "简体中文"
+        },
+        "zh-TW": {
+          "label": "繁中",
+          "name": "繁体中文"
+        }
+      },
+      "switchToLanguage": "切换界面语言为{{language}}"
+    }
+  },
+  "autoFillCurrentSiteUrlOnAccountAdd": {
+    "description": "控制新增账号时，是否自动把当前站点网址预填到 URL 输入框中。",
+    "title": "账号",
+    "toggleDesc": "开启后，打开新增账号弹窗时会把当前浏览器标签页的站点地址预填到 URL 输入框。识别流程仍需使用现有下一步操作。",
+    "toggleLabel": "新增账号时自动填充当前站点网址"
+  },
+  "autoProvisionKeyOnAccountAdd": {
+    "description": "添加账号后自动准备 API 密钥，可选择默认密钥或所有可用分组。",
+    "manualHint": "已保存的账号可在“密钥管理 → {{actionLabel}}”中手动补齐所有可用分组的密钥。",
+    "modeDescription": "默认模式在没有有效密钥时准备一个；全部分组模式补齐各个缺失分组，没有分组要求的站点则准备一个默认密钥。两种模式都可弹窗补充参数或处理一次性密钥。",
+    "modeLabel": "自动创建范围",
+    "modes": {
+      "allGroups": "所有可用分组",
+      "default": "仅默认密钥"
+    },
+    "title": "API 密钥",
+    "toggleDesc": "开启后，账号保存完成会按下方创建范围检查并补齐缺失的密钥。",
+    "toggleLabel": "添加账号后自动创建密钥"
+  },
+  "axonHub": {
+    "cors": {
+      "description": "新的 AxonHub 实例通常需要调整服务端 CORS 配置，否则 My API Box 扩展无法从浏览器访问 AxonHub。可将 AXONHUB_SERVER_CORS_ALLOWED_ORIGINS 设为 \"*\"，或限制为你信任的浏览器 / 扩展来源。",
+      "title": "必需的 CORS 设置"
+    },
+    "description": "配置用于连接 AxonHub 管理后台的集成设置。",
+    "fields": {
+      "baseUrlDesc": "设置 AxonHub 站点的基础 URL",
+      "baseUrlLabel": "基础 URL",
+      "baseUrlPlaceholder": "https://axonhub.example.com",
+      "emailDesc": "用于 /admin/auth/signin 登录的 AxonHub 管理员邮箱",
+      "emailLabel": "管理员邮箱",
+      "emailPlaceholder": "admin@example.com",
+      "hidePassword": "隐藏密码",
+      "passwordDesc": "用于获取 AxonHub 管理端 GraphQL 会话令牌的管理员密码",
+      "passwordLabel": "管理员密码",
+      "passwordPlaceholder": "输入密码",
+      "showPassword": "显示密码"
+    },
+    "title": "AxonHub 集成设置",
+    "validation": {
+      "corsFailed": "AxonHub 配置验证失败：{{error}}。这通常表示新的 AxonHub 实例还没有允许扩展的浏览器来源。请调整 AxonHub 服务端 CORS 配置，将 AXONHUB_SERVER_CORS_ALLOWED_ORIGINS 设为 \"*\"，或允许扩展 / 浏览器来源后重试。",
+      "description": "检查当前配置能否正常连接并管理站点。",
+      "failed": "AxonHub 配置验证失败：{{error}}",
+      "missingFields": "请填写所有必填字段",
+      "title": "验证连接"
+    }
+  },
+  "changelogOnUpdate": {
+    "description": "控制插件更新完成后，首次打开设置页时是否在插件内显示更新内容。",
+    "title": "更新日志",
+    "toggleDesc": "开启后，插件更新完成后首次打开设置页时，会在插件内弹出更新内容（每个版本仅一次），并可手动打开完整更新日志页面。",
+    "toggleLabel": "更新后自动显示更新内容"
+  },
+  "claudeCodeHub": {
+    "description": "配置 Claude Code Hub 管理站点的连接信息。",
+    "fields": {
+      "adminTokenDesc": "Claude Code Hub action API 接受的管理员令牌或 API Key",
+      "adminTokenLabel": "管理员令牌",
+      "adminTokenPlaceholder": "输入管理员令牌",
+      "baseUrlDesc": "设置 Claude Code Hub 站点的基础 URL",
+      "baseUrlLabel": "基础 URL",
+      "baseUrlPlaceholder": "https://claude-code-hub.example.com",
+      "hideAdminToken": "隐藏管理员令牌",
+      "showAdminToken": "显示管理员令牌"
+    },
+    "title": "Claude Code Hub 集成设置",
+    "unsupported": {
+      "description": "当前版本暂不支持 Claude Code Hub 的模型同步和模型重定向。",
+      "title": "不支持的渠道操作"
+    },
+    "validation": {
+      "description": "检查当前配置能否正常连接并管理站点。",
+      "failed": "Claude Code Hub 配置验证失败：{{error}}",
+      "missingFields": "请填写所有必填字段",
+      "title": "验证连接"
+    }
+  },
+  "claudeCodeRouter": {
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "sk-123456",
+    "baseUrlLabel": "基础 URL",
+    "baseUrlPlaceholder": "http://localhost:3000",
+    "description": "配置 Claude Code Router 管理接口连接信息",
+    "keyDesc": "用于 /api/config 的可选 APIKEY（如未启用可留空）",
+    "title": "Claude Code Router",
+    "urlDesc": "Claude Code Router 服务基础 URL，例如 http://localhost:3000"
+  },
+  "cliProxyApi": {
+    "baseUrlLabel": "管理接口基础 URL",
+    "checkConnectionDesc": "检查当前配置能否正常连接并管理站点。",
+    "checkConnectionLabel": "验证连接",
+    "description": "配置到 CLIProxyAPI 管理接口的连接信息。",
+    "hideKey": "隐藏管理密钥",
+    "keyDesc": "用于管理接口访问认证的管理密钥",
+    "managementDocsLinkLabel": "查看 Management API 文档",
+    "managementKeyLabel": "管理密钥",
+    "showKey": "显示管理密钥",
+    "title": "CLIProxyAPI 设置",
+    "urlDesc": "设置管理接口基础 URL，例如 http://localhost:8317/v0/management"
+  },
+  "danger": {
+    "resetAllSettings": "重置所有设置",
+    "resetDesc": "将所有配置重置为默认值，此操作不可撤销",
+    "resetFailed": "重置设置失败",
+    "resetSettings": "重置设置",
+    "title": "危险操作"
+  },
+  "dataBackup": {
+    "importExport": {
+      "description": "访问专用的导入和导出数据页面。",
+      "info": "导入/导出页面提供数据导入、导出为不同格式和备份管理的完整功能。",
+      "openPage": "打开导入/导出页面",
+      "title": "导入与导出"
+    }
+  },
+  "description": "调整外观、账号管理、自动任务与数据备份等设置。",
+  "display": {
+    "cny": "人民币 (¥)",
+    "currencyDesc": "设置余额和收支显示的默认货币单位",
+    "currencyUnit": "货币单位",
+    "defaultTab": "默认标签页",
+    "defaultTabDesc": "设置插件启动时显示的默认标签页",
+    "description": "自定义插件的界面语言和显示偏好",
+    "title": "显示设置",
+    "todayCashflow": "今日收支",
+    "todayCashflowEnabled": "显示今日收支",
+    "todayCashflowEnabledDesc": "控制是否显示并获取今日消耗/收入等统计。关闭后将隐藏今日统计，并在刷新时跳过相关数据请求。",
+    "totalBalance": "总余额",
+    "usd": "美元 ($)"
+  },
+  "doneHub": {
+    "adminCredentialsLink": {
+      "description": "打开管理后台个人资料页面，快速获取系统访问令牌和用户 ID。",
+      "open": "打开页面",
+      "title": "快速获取"
+    },
+    "description": "配置用于连接 Done Hub 兼容服务的集成设置。",
+    "fields": {
+      "adminTokenLabel": "管理员的系统访问令牌",
+      "baseUrlLabel": "基础 URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "隐藏系统访问令牌",
+      "showToken": "显示系统访问令牌",
+      "userIdLabel": "管理员用户 ID"
+    },
+    "title": "Done Hub 集成设置",
+    "tokenDesc": "管理员用户的系统访问令牌，请在 Done Hub 管理后台 -> 个人设置 -> 令牌 处生成",
+    "urlDesc": "设置用于 Done Hub 集成的基础 URL",
+    "userIdDesc": "管理员用户 ID (纯数字)，root 管理员通常为 1"
+  },
+  "duplicateAccountWarningOnAdd": {
+    "description": "添加前识别已保存账号，减少重复添加。",
+    "title": "账号",
+    "toggleDesc": "同一站点的用户 ID 已保存时才提示确认。OpenRouter 按相同的 Management Key 判断重复。",
+    "toggleLabel": "添加重复账号前提醒"
+  },
+  "gptLoad": {
+    "description": "管理自托管的 gpt-load 实例：一款轻量 Go AI 网关，将在各渠道间对请求做负载均衡。",
+    "fields": {
+      "baseUrlDesc": "gpt-load 控制面板的基地址（例如 https://gateway.example.com）。",
+      "baseUrlLabel": "网关地址",
+      "baseUrlPlaceholder": "https://gateway.example.com",
+      "hideManagementKey": "隐藏管理密钥",
+      "managementKeyDesc": "网关的根 AUTH_KEY，作为 Bearer 令牌访问管理 API；它与工作区任一渠道密钥具有同等权限。",
+      "managementKeyLabel": "管理密钥",
+      "managementKeyPlaceholder": "网关配置中的 AUTH_KEY",
+      "showManagementKey": "显示管理密钥"
+    },
+    "title": "gpt-load",
+    "validation": {
+      "description": "使用上方密钥发送一次请求，验证网关可达且密钥有效。",
+      "failed": "无法连接网关：{{error}}",
+      "insufficientPrivilege": "管理密钥权限不足：{{error}}",
+      "invalidCredential": "管理密钥被拒绝：{{error}}",
+      "missingFields": "请先填写网关地址与管理密钥",
+      "title": "测试连接"
+    }
+  },
+  "logging": {
+    "consoleEnabled": "启用日志",
+    "consoleEnabledDesc": "关闭后停止控制台输出和新日志记录。",
+    "description": "设置日志输出与本机历史记录。",
+    "history": {
+      "allContexts": "全部来源",
+      "allLevels": "全部级别",
+      "allTime": "全部保留的日志",
+      "clearDescription": "删除本机保留的全部日志记录。",
+      "clearError": "清空日志失败",
+      "clearTitle": "清空本机日志",
+      "context": "来源",
+      "copied": "日志已复制",
+      "copy": "复制筛选结果",
+      "copyError": "复制日志失败",
+      "description": "显示最近 {{hours}} 小时内最多 {{limit}} 条本机日志；记录或查看日志时清理过期条目。只记录启用日志后的事件；将最低日志级别设为调试可记录详细过程。",
+      "details": "详情",
+      "empty": "没有匹配的日志。启用日志后重现问题，再返回查看。",
+      "entryDescription": "实时查看各页面的日志，也可回看最近记录。",
+      "lastHour": "最近 1 小时",
+      "lastMinutes": "最近 5 分钟",
+      "level": "日志级别",
+      "loadError": "读取日志失败，保留上次显示的记录。请重试。",
+      "more": "加载更早的日志",
+      "open": "查看日志",
+      "pause": "暂停更新",
+      "period": "时间范围",
+      "resume": "恢复实时更新",
+      "search": "搜索消息、模块或请求编号",
+      "showing": "显示 {{visible}} / {{total}} 条",
+      "title": "最近日志"
+    },
+    "levels": {
+      "debug": "调试",
+      "error": "错误",
+      "info": "信息",
+      "warn": "警告"
+    },
+    "minLevel": "最小日志级别",
+    "minLevelDesc": "低于所选级别的日志不会输出或保存。",
+    "title": "日志"
+  },
+  "magpie": {
+    "description": "管理自建 Magpie Web 服务中的供应商。",
+    "fields": {
+      "baseUrlDesc": "先启动 magpie web（默认端口 3430），填写 Web 地址，而非端口 3425 的推理地址。",
+      "baseUrlLabel": "Web 管理地址",
+      "baseUrlPlaceholder": "http://localhost:3430",
+      "hideWebKey": "隐藏管理密钥",
+      "showWebKey": "显示管理密钥",
+      "webKeyDesc": "使用 MAGPIE_WEB_KEY 或启动链接中的 k 参数。固定的 MAGPIE_WEB_KEY 可跨重启使用；否则重启后需更新此处。推理 API Key 不能用于管理。",
+      "webKeyLabel": "Web 管理密钥",
+      "webKeyPlaceholder": "输入 Web 管理密钥"
+    },
+    "title": "Magpie",
+    "validation": {
+      "description": "使用上方密钥验证连接，并确认能够读取供应商列表。",
+      "failed": "无法连接 Magpie，请检查 Web 地址及服务是否已启动。",
+      "invalidCredential": "Web 管理密钥被拒绝，请检查 MAGPIE_WEB_KEY 或使用最新启动链接中的密钥。",
+      "missingFields": "请先填写网关地址与管理密钥",
+      "title": "测试连接"
+    }
+  },
+  "managedSite": {
+    "axonHub": "AxonHub",
+    "claudeCodeHub": "Claude Code Hub",
+    "cliProxyApi": "CLIProxyAPI",
+    "deploymentDocs": "官方部署文档",
+    "deploymentDocsLink": "{{site}} 官方部署文档",
+    "description": "选择您要管理的 API 聚合平台站点。这将决定用于渠道管理和模型同步的配置。",
+    "doneHub": "Done Hub",
+    "gatewayGuidance": {
+      "actions": {
+        "importAccountKeys": "用账号 Key 添加渠道",
+        "importApiKeys": "用 API Key 添加渠道",
+        "viewChannels": "查看已导入渠道"
+      },
+      "configComplete": {
+        "description": "网关配置已保存。可将账号 Key 或 API 凭据导入为网关渠道；实际连接状态会在验证或导入时检查。",
+        "title": "下一步：导入渠道"
+      },
+      "unconfigured": {
+        "description": "完成自建 AI 网关配置后，即可将账号 Key 或 API Key 导入为网关渠道，让多个 Key 通过同一个 AI API 使用。",
+        "title": "配置自建 AI 网关"
+      }
+    },
+    "gptLoad": "gpt-load",
+    "magpie": "Magpie",
+    "newApi": "New API",
+    "octopus": "Octopus",
+    "omniroute": "OmniRoute",
+    "popularityHint": "按 GitHub Star 数快照排序。",
+    "siteTypeDesc": "选择用于渠道管理和模型同步的平台",
+    "siteTypeLabel": "网关类型",
+    "sub2api": "Sub2API",
+    "title": "自建 AI 网关配置",
+    "veloera": "Veloera"
+  },
+  "managedSiteConnection": {
+    "check": "检查连接",
+    "checkError": "配置已保存，但连接检查失败，请重试。",
+    "checking": "检查中…",
+    "conflict": "配置已在另一页面更新，当前输入已保留。请核对最新配置后重试，或重新加载已保存配置以替换当前输入。",
+    "failed": "配置已保存，但连接检查失败：{{reason}}",
+    "invalidField": "请检查{{field}}后再保存",
+    "reload": "重新加载已保存配置",
+    "saveError": "配置保存失败。当前输入已保留，请重试。",
+    "saveFailed": "配置保存失败：{{reason}}。当前输入已保留，请重试。",
+    "saving": "保存中…",
+    "success": "配置已保存，连接正常",
+    "unreachable": "无法连接到站点"
+  },
+  "messages": {
+    "alreadyDefault": "已是默认值",
+    "confirmReset": "确认重置",
+    "preferencesChangedExternally": "偏好设置已在其他位置发生变化，请刷新后重试。",
+    "resetAllConfirmDesc": "将恢复全部偏好设置，并清空已配置的连接地址和凭据。账户列表不会被删除；历史保留策略也会恢复默认。是否继续？",
+    "resetConfirmDesc": "确定要将{{name}}重置为默认设置吗？此操作无法撤销。",
+    "resetConnectionConfirmDesc": "将清空本组连接地址、凭据及相关配置。之后需要重新配置，是否恢复默认值？",
+    "resetFailed": "重置{{name}}失败",
+    "resetHistoryConfirmDesc": "恢复默认值将缩短历史保留期限，超出期限的记录可能被清理且无法恢复。是否继续？",
+    "resetSuccess": "{{name}}已重置为默认设置",
+    "retentionSaveHint": "其他选项自动保存；保留天数需点击应用，缩短期限可能清理历史记录。",
+    "runtimeRequestFailed": "运行时请求失败，请稍后重试。",
+    "saveSettingsFailed": "保存设置失败",
+    "updateFailed": "{{name}}更新失败",
+    "updateSuccess": "{{name}}更新成功"
+  },
+  "newApi": {
+    "adminCredentialsLink": {
+      "description": "打开管理后台个人设置页面，快速获取系统访问令牌和用户 ID。",
+      "open": "打开页面",
+      "title": "快速获取"
+    },
+    "description": "配置用于连接 New API 兼容服务的集成设置。",
+    "fields": {
+      "adminTokenLabel": "管理员的系统访问令牌",
+      "baseUrlLabel": "基础 URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hidePassword": "隐藏登录密码",
+      "hideToken": "隐藏系统访问令牌",
+      "hideTotpSecret": "隐藏 TOTP 密钥",
+      "passwordDesc": "可选。与登录用户名配合使用，用于登录 New API 管理后台，并在需要查看渠道 key 或执行完整 key 比对时建立登录会话。",
+      "passwordLabel": "登录密码",
+      "passwordPlaceholder": "输入密码",
+      "showPassword": "显示登录密码",
+      "showToken": "显示系统访问令牌",
+      "showTotpSecret": "显示 TOTP 密钥",
+      "totpSecretDesc": "可选。填写后，My API Box 可自动生成 TOTP 验证码，用于完成登录 2FA，以及查看渠道 key 所需的安全验证。",
+      "totpSecretLabel": "TOTP 密钥",
+      "totpSecretPlaceholder": "粘贴 Base32 TOTP 密钥",
+      "userIdLabel": "管理员用户 ID",
+      "usernameDesc": "可选。用于登录 New API 管理后台，并在需要时完成两步验证。主要用于渠道管理中查看真实渠道 key，以及密钥管理中判断某个 key 是否已在渠道中使用。",
+      "usernameLabel": "登录用户名",
+      "usernamePlaceholder": "admin"
+    },
+    "sessionTest": {
+      "description": "测试已填写的登录用户名、密码和 TOTP 密钥是否正确可用。验证成功后，即可继续执行需要登录和两步验证的相关操作。",
+      "testing": "正在测试配置...",
+      "title": "测试登录与两步验证配置"
+    },
+    "title": "New API 集成设置",
+    "tokenDesc": "管理员用户的系统访问令牌，请在 New API 管理后台 -> 个人设置 -> 安全设置 -> 系统访问令牌 处生成",
+    "urlDesc": "设置用于 New API 集成的基础 URL",
+    "userIdDesc": "管理员用户 ID (纯数字)，请在 New API 管理后台 -> 个人设置 处查看"
+  },
+  "octopus": {
+    "description": "配置用于连接 Octopus 自建站点的集成设置。系统将自动使用您的凭据登录并管理 JWT Token。",
+    "fields": {
+      "baseUrlDesc": "设置 Octopus 站点的基础 URL",
+      "baseUrlLabel": "基础 URL",
+      "baseUrlPlaceholder": "https://octopus.example.com",
+      "hidePassword": "隐藏密码",
+      "passwordDesc": "Octopus 管理员密码，用于自动登录",
+      "passwordLabel": "密码",
+      "passwordPlaceholder": "输入密码",
+      "showPassword": "显示密码",
+      "usernameDesc": "Octopus 管理员用户名，用于自动登录",
+      "usernameLabel": "用户名",
+      "usernamePlaceholder": "admin"
+    },
+    "title": "Octopus 集成设置",
+    "validation": {
+      "description": "检查当前配置能否正常连接并管理站点。",
+      "error": "验证过程中发生错误",
+      "failed": "配置验证失败，请检查用户名和密码",
+      "missingFields": "请填写所有必填字段",
+      "title": "验证连接"
+    }
+  },
+  "omniroute": {
+    "accessTokens": {
+      "description": "在网关面板里管理访问令牌，可随时撤销扩展使用的这一条。",
+      "missingBaseUrl": "先填写部署地址，才能打开网关的访问令牌页面。",
+      "open": "打开访问令牌页面",
+      "title": "管理网关访问令牌"
+    },
+    "description": "配置自建 OmniRoute 网关的连接信息。",
+    "fields": {
+      "baseUrlDesc": "填写你在浏览器里打开 OmniRoute 面板时使用的地址。",
+      "baseUrlLabel": "部署地址",
+      "baseUrlPlaceholder": "http://localhost:20128",
+      "credentialDesc": "在网关 Settings → Access Tokens 中生成 admin 作用域访问令牌，粘贴到此处。",
+      "credentialLabel": "访问令牌",
+      "credentialPlaceholder": "oma_…",
+      "hideCredential": "隐藏访问令牌",
+      "showCredential": "显示访问令牌"
+    },
+    "title": "OmniRoute 集成设置",
+    "validation": {
+      "description": "检查当前配置能否正常连接并管理站点。",
+      "failed": "OmniRoute 配置验证失败：{{error}}",
+      "insufficientScope": "令牌作用域不足：当前为 {{have}}，需要 {{need}}。请在网关 Settings → Access Tokens 重新生成一条 admin 作用域的令牌。",
+      "invalidCredential": "访问令牌不正确或已失效：{{error}}",
+      "missingFields": "请填写部署地址和访问令牌",
+      "title": "验证连接",
+      "unknownScope": "未知"
+    }
+  },
+  "permissions": {
+    "actions": {
+      "allow": "允许（推荐）",
+      "refresh": "刷新状态",
+      "remove": "撤销"
+    },
+    "description": "按需授予可选权限，用于账号数据更新、辅助工具、任务通知和站点导入等功能。",
+    "helper": "每项权限只在对应功能需要时使用，并且可以随时撤销；未授权的功能可能受限，但不影响其他功能。",
+    "incognito": {
+      "checking": "正在检测无痕访问权限…",
+      "chromeInstructions": "在本扩展详情页开启「允许在无痕模式下使用」。",
+      "denied": "尚未允许在无痕／隐私窗口运行",
+      "details": "去设置",
+      "edgeInstructions": "在本扩展详情页开启「允许在 InPrivate 中使用」。",
+      "enabled": "已允许在无痕／隐私窗口运行",
+      "firefoxInstructions": "打开 Firefox「扩展和主题」，选择本扩展，将「在隐私窗口中运行」设为「允许」。",
+      "firefoxMobileInstructions": "Firefox: 请从浏览器菜单进入扩展管理，找到本扩展并查看是否支持无痕／隐私访问。菜单和支持情况因浏览器版本而异。",
+      "genericInstructions": "请在浏览器的扩展管理中查看本扩展的无痕／隐私访问设置。",
+      "manualSteps": "查看设置步骤",
+      "mobileInstructions": "请从浏览器菜单进入扩展管理，找到本扩展并查看是否支持无痕／隐私访问。菜单和支持情况因浏览器版本而异。",
+      "openChromeSettings": "前往 Chrome 设置",
+      "openEdgeSettings": "前往 Edge 设置",
+      "recommended": "建议允许扩展在无痕窗口运行",
+      "reloadWarning": "更改此权限可能重新加载扩展、关闭扩展页面或中断任务。请先保存未完成的编辑。",
+      "safariInstructions": "在 Safari 的扩展设置中选择本扩展，允许在无痕浏览中使用；具体选项取决于 Safari 版本。",
+      "settingsFailed": "无法打开设置页。请从浏览器菜单打开扩展管理，找到本扩展并允许在无痕窗口运行。",
+      "summary": "隔离常规窗口的登录态，避免密码登录时串号或影响已登录账号。",
+      "title": "无痕／隐私窗口访问",
+      "unknown": "无法检测无痕／隐私访问权限"
+    },
+    "items": {
+      "bookmarks": {
+        "description": "仅在你选择从浏览器书签导入站点时，读取已保存的网址。",
+        "title": "浏览器书签"
+      },
+      "clipboardRead": {
+        "description": "在你复制相关内容后，帮助兑换助手或 AI API 测试识别兑换码和 API 信息。",
+        "title": "读取剪贴板"
+      },
+      "cookies": {
+        "description": "仅在验证登录状态或刷新账号数据时，读取对应站点必要的 Cookie。",
+        "title": "Cookie 访问"
+      },
+      "declarativeNetRequestWithHostAccess": {
+        "description": "在临时窗口中为当前账号应用所需的请求信息，避免多账号数据混淆。",
+        "title": "网络请求规则"
+      },
+      "notifications": {
+        "description": "允许后台定时任务完成后发送系统通知。",
+        "title": "系统通知"
+      },
+      "webRequest": {
+        "description": "仅在临时窗口验证或自动刷新时，识别需要补充账号信息的请求。",
+        "title": "网络请求访问"
+      },
+      "webRequestBlocking": {
+        "description": "在请求发出前补充当前账号所需的 Cookie，帮助临时窗口验证正常完成。",
+        "title": "修改网络请求"
+      }
+    },
+    "messages": {
+      "granted": "已开启 {{name}}，相关流程将按预期运行",
+      "grantFailed": "未能开启 {{name}}，如仍需使用请稍后重试",
+      "revoked": "已撤销 {{name}} 权限",
+      "revokeFailed": "撤销 {{name}} 权限失败"
+    },
+    "status": {
+      "checking": "检测中…",
+      "denied": "未授予",
+      "granted": "已授予",
+      "unavailable": "暂不可用"
+    },
+    "statusCaption": "权限状态与浏览器同步，如在此页面外修改请点击刷新。",
+    "title": "权限管理"
+  },
+  "permissionsOnboarding": {
+    "actions": {
+      "allowAll": "授予全部推荐权限",
+      "maybeLater": "暂不授权"
+    },
+    "analyticsDisclosure": "匿名统计只用于帮助我们发现问题、改善体验，你可以随时关闭；不会包含你的账号信息、凭据或输入内容。",
+    "intro": "源码公开，权限与匿名统计是否启用，都由你决定。",
+    "openSourceBadge": "开源、透明、社区共建",
+    "permissionListDescription": "部分功能需要额外权限。你可以查看具体用途后按需授权，并随时撤销。",
+    "permissionListTitle": "按需选择可选权限",
+    "project": {
+      "cta": "来 GitHub 看看源码和最新进展，也欢迎反馈问题或分享想法。",
+      "getStartedCta": "查看新手指引",
+      "label": "源代码",
+      "starCta": "觉得 My API Box 有帮助？点亮 Star 支持项目"
+    },
+    "reason": {
+      "newPermissions": "新增功能需要新的可选权限。请查看具体用途，并按需授权。"
+    },
+    "subtitle": "先选择界面语言，再按需开启可选权限；这些设置之后都可以更改。",
+    "title": "欢迎使用 My API Box",
+    "toasts": {
+      "error": "未能授予全部推荐权限",
+      "success": "已授予全部推荐权限"
+    }
+  },
+  "productAnalytics": {
+    "description": "帮助我们更快发现常见问题、改进常用流程并提升兼容性的匿名统计。我们不会收集 API Key、Cookie、账号 URL、余额、请求内容或用户输入。",
+    "enableDescription": "允许发送有限的功能使用情况、错误类别和粗略站点类型统计，用于优先改进最影响你体验的部分。",
+    "enableLabel": "启用匿名产品统计",
+    "title": "匿名产品统计"
+  },
+  "refresh": {
+    "autoRefresh": "自动刷新",
+    "autoRefreshDesc": "定期自动刷新账号数据（关闭扩展界面后仍在后台运行）",
+    "description": "配置自动数据刷新相关的设置，例如刷新间隔和启动时的行为。",
+    "minRefreshInterval": "最小刷新间隔",
+    "minRefreshIntervalDesc": "限制连续刷新最小间隔，避免频繁请求（至少 {{minSeconds}} 秒）",
+    "minRefreshIntervalInvalid": "请输入有效的最小刷新间隔（至少 {{minSeconds}} 秒）。",
+    "refreshInterval": "刷新间隔",
+    "refreshIntervalDesc": "设置自动刷新的时间间隔（默认{{defaultInterval}}秒，建议不要设置过小以避免频繁请求）",
+    "refreshIntervalHint": "刷新较频繁，账号较多时可能触发站点限流，建议使用 {{minutes}} 分钟或更长间隔。",
+    "refreshIntervalInvalid": "请输入有效的刷新间隔（至少 {{minSeconds}} 秒）。",
+    "refreshOnOpen": "打开插件时自动刷新",
+    "refreshOnOpenDesc": "当打开插件弹出窗口时自动刷新账号数据",
+    "shieldAutomaticFeatureAccountRefresh": "账号刷新",
+    "shieldAutomaticFeatureBalanceHistory": "余额历史",
+    "shieldAutomaticFeatureCheckin": "签到",
+    "shieldAutomaticFeatureKeyManagement": "密钥管理",
+    "shieldAutomaticFeatureLdohSiteLookup": "站点查找",
+    "shieldAutomaticFeatureManagedSiteChannels": "托管站点渠道",
+    "shieldAutomaticFeatureManagedSiteModelSync": "托管站点模型同步",
+    "shieldAutomaticFeatureRedemptionAssist": "兑换辅助",
+    "shieldAutomaticFeaturesDesc": "选择哪些自动功能可以打开临时验证页面。这些选择不会启用或停用产品功能，也不会影响你主动发起的操作。",
+    "shieldAutomaticFeaturesTitle": "自动功能",
+    "shieldDescriptionTempWindowOnly": "遇到网站验证时，扩展可以临时打开标签页或窗口；验证通过后继续操作。",
+    "shieldDescriptionWithCookieInterceptor": "在 Firefox 中，扩展可以临时打开页面完成网站验证，并在验证通过后使用当前登录状态继续操作。此功能需要 Cookies、Web Request 和 Web Request Blocking 权限。",
+    "shieldDevFocusDuring": "过程中：{{transition}}",
+    "shieldDevFocusEnd": "结束：{{state}}",
+    "shieldDevFocusStart": "开始：{{state}}",
+    "shieldDevFocusStateFocused": "浏览器在前台",
+    "shieldDevFocusStateUnfocused": "浏览器在后台",
+    "shieldDevFocusStateUnknown": "无法判断",
+    "shieldDevFocusTitle": "本次检测",
+    "shieldDevFocusTransitionBackgrounded": "浏览器曾进入后台",
+    "shieldDevFocusTransitionForegrounded": "浏览器曾回到前台",
+    "shieldDevFocusTransitionMixed": "浏览器曾在前台和后台之间切换",
+    "shieldDevFocusTransitionRemainedFocused": "浏览器始终在前台",
+    "shieldDevFocusTransitionRemainedUnfocused": "浏览器始终在后台",
+    "shieldDevFocusTransitionUnknown": "无法判断",
+    "shieldDevTriggerCancel": "取消",
+    "shieldDevTriggerCountdown": "将在 {{count}} 秒后触发",
+    "shieldDevTriggerDelayLabel": "延迟（秒）",
+    "shieldDevTriggerDescription": "延迟模拟一种现有自动行为，并通过网站验证辅助请求指定 URL。仅开发模式可见。",
+    "shieldDevTriggerFailureFallback": "请求失败，请查看扩展日志了解详情。",
+    "shieldDevTriggerInvalidDelay": "请输入 0 到 {{maxSeconds}} 之间的整数秒数。",
+    "shieldDevTriggerInvalidUrl": "请输入有效的 HTTP 或 HTTPS URL。",
+    "shieldDevTriggerPresetAccountRefreshScheduled": "后台定时刷新账号",
+    "shieldDevTriggerPresetBalanceHistoryScheduled": "后台定时记录余额",
+    "shieldDevTriggerPresetCheckinScheduled": "后台自动签到",
+    "shieldDevTriggerPresetKeyManagementRecovery": "密钥管理后台恢复",
+    "shieldDevTriggerPresetLabel": "模拟行为",
+    "shieldDevTriggerPresetLdohSiteLookupRecovery": "站点列表后台恢复",
+    "shieldDevTriggerPresetRedemptionAssistRecovery": "兑换后的后台恢复",
+    "shieldDevTriggerPresetTurnstileAutomatic": "Turnstile：自动通过",
+    "shieldDevTriggerPresetTurnstileFailure": "Turnstile：验证失败",
+    "shieldDevTriggerPresetTurnstileInteractive": "Turnstile：手动验证",
+    "shieldDevTriggerPresetTurnstileQueue": "Turnstile：三个站点排队",
+    "shieldDevTriggerRunning": "正在触发...",
+    "shieldDevTriggerStart": "延迟触发",
+    "shieldDevTriggerSuccess": "请求已完成（HTTP {{status}}）",
+    "shieldDevTriggerTitle": "开发测试",
+    "shieldDevTriggerTurnstileHint": "先运行 pnpm dev:turnstile。这些场景使用本地服务中的官方测试组件，不会向真实账号签到。开启界面内提醒后，点击各条提醒打开验证窗口。",
+    "shieldDevTriggerUrlLabel": "目标 URL",
+    "shieldEnabled": "允许自动任务打开临时页面",
+    "shieldEnabledDescTempWindowOnly": "开启后，自动刷新、自动签到等任务遇到网站验证时，可以打开临时页面继续。关闭后，你主动发起的操作仍可按下方设置使用此功能。",
+    "shieldEnabledDescWithCookieInterceptor": "开启后，自动刷新、自动签到等任务遇到网站验证时，可以打开临时页面继续。关闭后，你主动发起的操作仍可按下方设置使用此功能。",
+    "shieldMethodAuto": "自动选择",
+    "shieldMethodComposite": "单个共享窗口",
+    "shieldMethodDesc": "设置遇到网站验证时，临时页面以哪种方式打开。",
+    "shieldMethodHintAuto": "根据浏览器状态自动切换：使用中时集中到共享窗口，避免混入日常标签页；浏览器在后台时使用非活动标签页，避免将窗口带到前台。",
+    "shieldMethodHintComposite": "适合希望把验证页面和日常浏览分开的场景。验证页面会集中在一个单独窗口中；首次打开该窗口时，浏览器可能回到前台。",
+    "shieldMethodHintTab": "适合不想打断当前工作的场景。验证页面会作为非活动标签页加入当前浏览器窗口，不会另开窗口将浏览器带到前台。",
+    "shieldMethodHintWindow": "适合希望每次验证都使用独立窗口的场景。每次都会打开一个单独窗口；连续处理时可能出现多个窗口，并反复将浏览器带到前台。",
+    "shieldMethodRecommended": "推荐",
+    "shieldMethodTab": "当前窗口标签页",
+    "shieldMethodTitle": "打开方式",
+    "shieldMethodWindow": "每次新窗口",
+    "shieldPermissionAction": "前往权限设置",
+    "shieldPermissionWarningDesc": "Firefox 需要这三项权限来读取网站验证产生的 Cookie，并在后续请求中保持登录状态。",
+    "shieldPermissionWarningTitle": "需要 Cookies、Web Request 和 Web Request Blocking 权限",
+    "shieldPopupFirefoxNote": "在 Firefox 中，从扩展弹窗启动此功能会导致弹窗关闭，因此该入口不可用。请改用侧边栏或设置页。",
+    "shieldTitle": "网站验证辅助",
+    "shieldTurnstileAssistDesc": "Turnstile 必须由你亲手完成时，选择如何提醒。验证窗口会保持打开，直到完成或超时。",
+    "shieldTurnstileAssistNotify": "浏览器通知",
+    "shieldTurnstileAssistNotifyHint": "发送本地浏览器通知，点击后打开验证窗口；需要通知权限。",
+    "shieldTurnstileAssistPage": "界面内提醒",
+    "shieldTurnstileAssistPageHint": "在当前网页或插件界面显示提醒，点击后打开验证窗口。",
+    "shieldTurnstileAssistQuietNotice": "已关闭所有提醒。验证仍会在后台窗口进行，但不会主动提示。",
+    "shieldTurnstileAssistTitle": "需要手动验证时",
+    "shieldWindowHeight": "高度（像素）",
+    "shieldWindowSizeDesc": "设置宽度和高度（像素）后保存，下次新建验证窗口时生效；已有窗口和标签页保持原尺寸。",
+    "shieldWindowSizeReset": "恢复默认值",
+    "shieldWindowSizeTitle": "验证窗口尺寸",
+    "shieldWindowWidth": "宽度（像素）",
+    "title": "刷新设置",
+    "turnstileNotificationEnable": "授权系统通知",
+    "turnstileNotificationManage": "管理通知权限",
+    "turnstileNotificationPermissionTitle": "允许 My API Box 发送浏览器通知",
+    "turnstileNotificationStatus": {
+      "available": "系统通知：权限可用。系统勿扰或浏览器设置仍可能隐藏通知。",
+      "blocked": "浏览器已阻止通知。请检查浏览器通知设置，返回后重试。",
+      "loading": "正在检查系统通知权限…",
+      "permission_required": "系统通知：尚未授权。页面内提醒无需此权限。",
+      "unavailable": "当前浏览器不支持通知，可单独开启界面内提醒。",
+      "unknown": "暂时无法确认通知是否可用，请检查权限后重试。"
+    }
+  },
+  "releaseUpdate": {
+    "changelog": "查看更新日志",
+    "checkNow": "检查更新",
+    "downloadUpdate": "下载更新",
+    "helpers": {
+      "amoUpdate": "Firefox Add-ons 商店已发布新版，可前往商店更新，或等待 Firefox 自动更新。",
+      "checkFailed": "请重新检查更新。",
+      "manualUpdate": "当前安装为手动更新渠道，请前往发布页获取新版本。",
+      "manualUpdateGeneric": "请按当前安装渠道完成更新，必要时可前往发布页手动获取新版本。",
+      "storeUpdate": "商店版由浏览器自动更新，请等待商店推送。",
+      "storeUpdateReady": "浏览器已发现可用的商店更新，重新加载扩展后即可使用新版本。",
+      "unavailable": "请重新检查更新。"
+    },
+    "latestAmoVersion": "Firefox Add-ons 商店：v{{version}}",
+    "latestNightlyVersion": "最新 Nightly：{{version}}",
+    "reloadToUpdate": "重新加载完成更新",
+    "states": {
+      "checkFailed": "检查更新失败",
+      "notChecked": "尚未检查最新正式版，可手动检查",
+      "storeUpdatePending": "等待商店推送更新",
+      "storeUpdateReady": "更新已就绪",
+      "unavailable": "暂时无法获取更新状态",
+      "updateAvailable": "发现新版本",
+      "upToDate": "已是最新版本"
+    },
+    "versionBadge": {
+      "changelogAriaLabel": "版本 {{version}} 更新日志",
+      "updateAvailableAriaLabel": "版本 {{version}} 有可用更新"
+    }
+  },
+  "siteAnnouncementNotifications": {
+    "description": "控制是否在后台定时抓取已启用账号所属站点的网站公告。",
+    "page": {
+      "description": "当前每 {{intervalMinutes}} 分钟后台检查一次，也可以手动立即检查。",
+      "open": "查看公告",
+      "title": "公告页面"
+    },
+    "polling": {
+      "enable": "启用网站公告抓取",
+      "enableDesc": "关闭后会停止后台定时抓取，已保存的本地公告记录仍会保留，公告页面仍可手动检查。",
+      "interval": "抓取间隔",
+      "intervalDesc": "设置后台抓取网站公告的分钟间隔，支持 15 到 1440 分钟。",
+      "intervalInvalid": "请输入 {{min}} 到 {{max}} 之间的整数分钟数。",
+      "maxAge": "通知时效",
+      "maxAgeDesc": "发布时间超过此时效的公告会直接标记为已读，只保存到公告列表，不发送通知。",
+      "maxAgeInvalid": "请输入 {{min}} 到 {{max}} 之间的整数天数。",
+      "upstreamRead": "通知后标记站点已读",
+      "upstreamReadDesc": "开启后，通知投递成功会把本次抓到的公告在站点上标为已读。关闭时只在你于公告页标记已读后同步上游；被通知并不等于已读。仅对支持同步已读的站点生效。"
+    },
+    "title": "网站公告"
+  },
+  "sorting": {
+    "contextBoostDescription": "先显示当前站点，再显示相关页面已打开的账号，均可排在其他置顶账号之前。同一提升层级内置顶优先，再按所选字段排序；已禁用账号始终在末尾。搜索和手动排序模式不应用此规则。",
+    "contextBoostTitle": "浏览站点优先",
+    "currentSiteDesc": "优先显示与当前站点登录用户匹配的账号。",
+    "currentSitePriority": "优先显示当前站点账号",
+    "customCheckInUrl": "外部签到链接",
+    "customRedeemUrl": "自定义兑换链接",
+    "description": "浏览站点提升优先于置顶；未命中提升规则的账号仍按置顶、普通、禁用排序。",
+    "matchedOpenTabs": "优先显示其他已打开标签页的账号",
+    "matchedOpenTabsDesc": "账号站点或已配置的签到、兑换页面打开时，优先显示对应账号，并标注「相关页面已打开」。",
+    "title": "排序优先级设置",
+    "unknownSortRule": "未知排序规则"
+  },
+  "sub2apiManagedSite": {
+    "adminCredentialsLink": {
+      "description": "以管理员身份登录后台，在「系统设置 → 安全与认证」中创建并复制 Key。完整 Key 只显示一次；重新生成会使旧 Key 失效。",
+      "missingBaseUrl": "先填写有效的站点地址，即可打开后台获取管理员 API Key。",
+      "open": "打开系统设置",
+      "title": "获取管理员 API Key"
+    },
+    "defaultScope": {
+      "description": "若站点启用了敏感操作二次验证，插件暂时无法查看或导出渠道密钥。请在 Sub2API 后台完成这些操作；迁移需要读取源密钥时也会受限。",
+      "title": "密钥查看与导出的限制"
+    },
+    "description": "连接后，可将已有 API Key 导入 Sub2API，并在 My API Box 中查看、编辑和迁移渠道。",
+    "fields": {
+      "adminApiKeyDesc": "请填写后台生成的管理员 API Key，用于管理渠道。调用模型用的普通 API Key 不能用于此处。",
+      "adminApiKeyLabel": "管理员 API Key",
+      "adminApiKeyPlaceholder": "粘贴从后台获取的管理员 API Key",
+      "baseUrlDesc": "填写 Sub2API 后台的访问地址，包含 http:// 或 https://。",
+      "baseUrlLabel": "站点地址",
+      "baseUrlPlaceholder": "https://sub2api.example.com",
+      "hideAdminApiKey": "隐藏管理员 API Key",
+      "showAdminApiKey": "显示管理员 API Key"
+    },
+    "title": "Sub2API 连接设置",
+    "validation": {
+      "description": "检查当前配置能否正常连接并管理站点。",
+      "failed": "Sub2API 连接验证失败：{{error}}",
+      "missingFields": "请先填写站点地址和管理员 API Key",
+      "title": "验证连接"
+    }
+  },
+  "tabs": {
+    "accountManagement": "账号管理",
+    "accountUsage": "账号用量",
+    "balanceHistory": "余额历史",
+    "checkinRedeem": "签到与兑换",
+    "claudeCodeRouter": "Claude Code Router",
+    "dataBackup": "数据与备份",
+    "general": "通用",
+    "managedSite": "自建 AI 网关",
+    "notifications": "通知",
+    "permissions": "权限管理",
+    "refresh": "数据刷新",
+    "select": "选择一个分组",
+    "siteAnnouncements": "网站公告",
+    "webAiApiCheck": "AI API 测试"
+  },
+  "taskNotifications": {
+    "channels": {
+      "browser": {
+        "description": "通过浏览器系统通知发送，需要授予 notifications 权限。",
+        "title": "浏览器系统通知"
+      },
+      "dingtalk": {
+        "description": "通过钉钉群自定义机器人发送任务通知。推荐直接粘贴钉钉提供的完整 Webhook URL，也兼容只填写 access_token。",
+        "docsLink": "查看配置文档",
+        "secret": "加签 Secret（可选）",
+        "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "钉钉机器人",
+        "webhookKey": "Webhook URL 或 access_token",
+        "webhookKeyDescription": "在钉钉群的自定义机器人配置页复制 Webhook 地址并粘贴到这里；如果只填写 `access_token=` 后面的值，也会自动补全地址。启用加签安全设置时，请同时填写 Secret。",
+        "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "feishu": {
+        "description": "通过飞书自定义机器人发送任务通知。推荐直接粘贴飞书提供的完整 Webhook URL，也兼容只填写最后一段 key。",
+        "docsLink": "查看配置文档",
+        "title": "飞书机器人",
+        "webhookKey": "Webhook URL 或 Key",
+        "webhookKeyDescription": "在飞书群的自定义机器人配置页复制 Webhook 地址并粘贴到这里；如果只填写 `/hook/` 后面的 key，也会自动补全地址。",
+        "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      "ntfy": {
+        "accessToken": "访问令牌（可选）",
+        "accessTokenPlaceholder": "tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "description": "通过 ntfy 主题发送任务通知，支持 ntfy.sh 或自建 ntfy 服务。",
+        "docsLink": "查看配置文档",
+        "title": "ntfy",
+        "topicUrl": "Topic URL 或主题名",
+        "topicUrlDescription": "可以填写完整主题 URL，例如 `https://ntfy.sh/mytopic`，也可以只填写 ntfy.sh 的主题名。自建服务或私有主题需要按需填写访问令牌。",
+        "topicUrlPlaceholder": "https://ntfy.sh/mytopic"
+      },
+      "telegram": {
+        "botToken": "Bot Token",
+        "botTokenPlaceholder": "123456:ABC-DEF...",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "123456789 或 -1001234567890",
+        "description": "通过 Telegram Bot 发送任务通知。",
+        "title": "Telegram Bot"
+      },
+      "webhook": {
+        "description": "向自定义 HTTP(S) Webhook 发送 JSON 通知。URL 支持模板变量，可用于 Bark 等把通知内容放在路径中的服务。",
+        "title": "通用 Webhook",
+        "url": "Webhook URL",
+        "urlDescription": "URL 中可使用 {title}、{message}、{task}、{status}、{total}、{success}、{failed}、{skipped}，发送前会按 URL 片段自动编码。例如 Bark 可填写 https://api.day.app/your-key/{title}/{message}。",
+        "urlPlaceholder": "https://api.day.app/your-key/{title}/{message}"
+      },
+      "wecom": {
+        "description": "通过企业微信群消息推送发送任务通知。推荐直接粘贴企业微信提供的完整 Webhook URL，也兼容只填写 key。",
+        "docsLink": "查看配置文档",
+        "title": "企业微信机器人",
+        "webhookKey": "Webhook URL 或 Key",
+        "webhookKeyDescription": "在企业微信群设置的消息推送配置中复制 Webhook 地址并粘贴到这里；如果只填写 `key=` 后面的 key，也会自动补全地址。",
+        "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    "enable": "启用任务通知",
+    "enableDesc": "开启后，已勾选任务在定时运行完成时会发送成功、部分成功或失败通知。",
+    "groups": {
+      "channels": {
+        "description": "选择通知通过哪些渠道送达。浏览器通知需要授权，Telegram、飞书、钉钉、企业微信、ntfy 和 Webhook 可分别配置并发送测试。",
+        "title": "通知渠道"
+      },
+      "setup": {
+        "description": "先开启或关闭定时任务通知，再选择通知渠道和需要提醒的事件。",
+        "title": "设置"
+      },
+      "tasks": {
+        "description": "选择哪些后台定时任务完成或网站公告更新时需要发送通知。",
+        "title": "通知事件"
+      }
+    },
+    "notification": {
+      "body": {
+        "failure": "{{task}}运行失败。",
+        "partialSuccess": "{{task}}部分完成。",
+        "success": "{{task}}已成功完成。"
+      },
+      "counts": "总计 {{total}}，成功 {{success}}，失败 {{failed}}，跳过 {{skipped}}。",
+      "countsWithAutoCheckinCategories": "总计 {{total}}，本次签到成功 {{success}}，已签到 {{alreadyChecked}}，失败 {{failed}}，待确认 {{uncertain}}，未执行 {{skipped}}。",
+      "title": {
+        "failure": "{{task}}失败",
+        "partialSuccess": "{{task}}部分成功",
+        "success": "{{task}}完成"
+      }
+    },
+    "permission": {
+      "description": "系统通知需要浏览器授予 notifications 可选权限。你也可以在权限管理页撤销。",
+      "request": "授权通知权限",
+      "requestFailed": "未能授予通知权限",
+      "requestSuccess": "通知权限已授予",
+      "title": "通知权限"
+    },
+    "siteAnnouncements": {
+      "enable": "网站公告通知",
+      "enableDesc": "开启后，网站公告抓取到新公告时会发送任务通知；关闭后仍会保存本地公告记录。"
+    },
+    "taskDescriptions": {
+      "autoCheckin": "每日自动签到和自动重试完成后通知。",
+      "balanceHistoryCapture": "余额历史日终自动捕获完成后通知。",
+      "managedSiteModelSync": "自建站点模型定时同步完成后通知。",
+      "usageHistorySync": "用量历史定时同步完成后通知。",
+      "webdavAutoSync": "WebDAV 定时自动同步完成后通知。"
+    },
+    "tasks": {
+      "autoCheckin": "自动签到",
+      "balanceHistoryCapture": "余额历史日终捕获",
+      "managedSiteModelSync": "模型同步",
+      "usageHistorySync": "用量历史同步",
+      "webdavAutoSync": "WebDAV 自动同步"
+    },
+    "tasksLabel": "任务通知",
+    "test": {
+      "action": "发送测试通知",
+      "browserFailed": "浏览器通知测试失败，请确认已启用浏览器通知渠道并授予通知权限。",
+      "channelDisabled": "测试通知发送失败，请先启用并配置该通知渠道。",
+      "dingtalkMissingConfig": "钉钉机器人 Webhook URL 或 access_token 未配置。",
+      "failed": "测试通知发送失败，请检查该通知渠道配置。",
+      "feishuMissingConfig": "飞书机器人 Webhook URL 或 Key 未配置。",
+      "httpError": "{{label}} 返回了 HTTP {{status}}。",
+      "httpErrorWithDetail": "{{label}} 返回了 HTTP {{status}}：{{detail}}",
+      "message": "这是一条 My API Box 任务通知测试。",
+      "ntfyInvalidUrl": "ntfy Topic URL 必须使用 http:// 或 https://，或填写有效的 ntfy.sh 主题名。",
+      "ntfyMissingConfig": "ntfy Topic URL 或主题名未配置。",
+      "sent": "测试通知已发送",
+      "telegramMissingConfig": "Telegram Bot Token 或 Chat ID 未配置。",
+      "title": "My API Box 测试通知",
+      "webhookInvalidUrl": "Webhook URL 必须使用 http:// 或 https://。",
+      "webhookMissingConfig": "Webhook URL 未配置。",
+      "wecomMissingConfig": "企业微信机器人 Webhook URL 或 Key 未配置。"
+    }
+  },
+  "theme": {
+    "appearance": "外观",
+    "current": "当前: {{theme}} ({{resolvedTheme}})",
+    "currentTheme": "当前: 跟随系统 ({{theme}})",
+    "dark": "深色",
+    "followSystem": "跟随系统",
+    "followSystemTheme": "跟随系统主题设置",
+    "light": "浅色",
+    "mode": "明暗模式",
+    "selectTheme": "选择浅色、深色或跟随系统",
+    "switchTo": "切换到{{theme}}主题: {{description}}",
+    "useDarkTheme": "使用深色主题",
+    "useLightTheme": "使用浅色主题"
+  },
+  "title": "设置",
+  "veloera": {
+    "adminCredentialsLink": {
+      "description": "打开管理后台个人设置页面，快速获取系统访问令牌和用户 ID。",
+      "open": "打开页面",
+      "title": "快速获取"
+    },
+    "description": "配置用于连接 Veloera 兼容服务的集成设置。",
+    "fields": {
+      "adminTokenLabel": "管理员的系统访问令牌",
+      "baseUrlLabel": "基础 URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "隐藏系统访问令牌",
+      "showToken": "显示系统访问令牌",
+      "userIdLabel": "管理员用户 ID"
+    },
+    "title": "Veloera 集成设置",
+    "tokenDesc": "管理员用户的系统访问令牌，请在 Veloera 管理后台 -> 个人设置 -> 个人信息 处生成",
+    "urlDesc": "设置用于 Veloera 集成的基础 URL",
+    "userIdDesc": "管理员用户 ID (纯数字)，请在 Veloera 管理后台 -> 个人设置 处查看"
+  }
+}

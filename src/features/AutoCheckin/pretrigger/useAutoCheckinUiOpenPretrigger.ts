@@ -1,0 +1,191 @@
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { presentUiOpenPretriggerCompletion } from "~/features/AutoCheckin/pretrigger/pretriggerFeedback"
+import { sendAutoCheckinMessage } from "~/services/checkin/autoCheckin/messaging"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import {
+  trackProductAnalyticsActionCompleted,
+  trackProductAnalyticsActionStarted,
+} from "~/services/productAnalytics/actions"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+} from "~/services/productAnalytics/contracts"
+import { trackAutoCheckinConfigSnapshot } from "~/services/productAnalytics/facts/autoCheckin"
+import { createAutomaticProtectionBypassExecution } from "~/services/protectionBypass/client"
+import {
+  PROTECTION_BYPASS_AUTOMATIC_TRIGGERS,
+  PROTECTION_BYPASS_FEATURES,
+} from "~/services/protectionBypass/contracts"
+import { AutoCheckinMessageTypes } from "~/services/runtimeMessaging/messageTypes"
+import type {
+  AutoCheckinRunResult,
+  AutoCheckinRunSummary,
+} from "~/types/autoCheckin"
+import { AUTO_CHECKIN_RUN_RESULT } from "~/types/autoCheckin"
+import { getCurrentTempWindowRequestSource } from "~/utils/browser/tempWindowRequestSource"
+import { safeRandomUUID } from "~/utils/core/identifier"
+import { createLogger } from "~/utils/core/logger"
+
+/**
+ * Unified logger scoped to UI-open auto check-in pretrigger hooks.
+ */
+const logger = createLogger("AutoCheckinUiOpenPretrigger")
+
+const UI_OPEN_PRETRIGGER_ANALYTICS_CONTEXT = {
+  featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AutoCheckin,
+  actionId: PRODUCT_ANALYTICS_ACTION_IDS.RunAutoCheckinNow,
+  surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsAutoCheckinActionBar,
+  entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+} as const
+
+/**
+ * Maps a pretrigger response to the fixed product analytics result enum.
+ */
+function toAnalyticsResult(
+  response: {
+    success?: boolean
+    started?: boolean
+    lastRunResult?: AutoCheckinRunResult | null
+  } | null,
+) {
+  if (!response?.success || !response.started) {
+    return PRODUCT_ANALYTICS_RESULTS.Skipped
+  }
+
+  if (response.lastRunResult === AUTO_CHECKIN_RUN_RESULT.FAILED) {
+    return PRODUCT_ANALYTICS_RESULTS.Failure
+  }
+
+  if (response.lastRunResult === AUTO_CHECKIN_RUN_RESULT.SKIPPED) {
+    return PRODUCT_ANALYTICS_RESULTS.Skipped
+  }
+
+  return PRODUCT_ANALYTICS_RESULTS.Success
+}
+
+interface UiOpenPretriggerDialogState {
+  isOpen: boolean
+  summary: AutoCheckinRunSummary | null
+  lastRunResult: AutoCheckinRunResult | null
+  pendingRetry: boolean
+}
+
+/**
+ * Triggers today's scheduled daily auto check-in early when an extension UI surface opens.
+ *
+ * Behavior:
+ * - If the pretrigger preference is enabled, sends a background message to conditionally
+ *   start today's daily run early.
+ * - Stays silent for runs without execution, uses toasts for resolved or uncertain
+ *   outcomes, and opens completion details only when accounts failed.
+ */
+export function useAutoCheckinUiOpenPretrigger(): {
+  dialog: UiOpenPretriggerDialogState
+  setDialogOpen: (open: boolean) => void
+} {
+  const { t } = useTranslation("autoCheckin")
+  const { preferences, isLoading } = useUserPreferencesContext()
+
+  const autoCheckinPreferences =
+    preferences?.autoCheckin ?? DEFAULT_PREFERENCES.autoCheckin!
+
+  const shouldAttemptPretrigger = useMemo(() => {
+    return (
+      !isLoading &&
+      autoCheckinPreferences.globalEnabled &&
+      autoCheckinPreferences.pretriggerDailyOnUiOpen
+    )
+  }, [autoCheckinPreferences, isLoading])
+
+  const [dialog, setDialog] = useState<UiOpenPretriggerDialogState>({
+    isOpen: false,
+    summary: null,
+    lastRunResult: null,
+    pendingRetry: false,
+  })
+
+  const hasTriggeredRef = useRef(false)
+
+  useEffect(() => {
+    if (!shouldAttemptPretrigger) {
+      return
+    }
+
+    if (hasTriggeredRef.current) {
+      return
+    }
+    hasTriggeredRef.current = true
+
+    const requestId = safeRandomUUID()
+    void trackProductAnalyticsActionStarted(
+      UI_OPEN_PRETRIGGER_ANALYTICS_CONTEXT,
+    )
+    trackAutoCheckinConfigSnapshot(PRODUCT_ANALYTICS_ENTRYPOINTS.Options)
+
+    void (async () => {
+      try {
+        const tempWindowRequestSource = getCurrentTempWindowRequestSource()
+        const protectionBypassExecution =
+          createAutomaticProtectionBypassExecution(
+            PROTECTION_BYPASS_FEATURES.Checkin,
+            PROTECTION_BYPASS_AUTOMATIC_TRIGGERS.UiLifecycle,
+            tempWindowRequestSource,
+          )
+        const response = await sendAutoCheckinMessage(
+          AutoCheckinMessageTypes.PretriggerDailyOnUiOpen,
+          {
+            requestId,
+            protectionBypassExecution,
+          },
+        )
+
+        const responseSummary = response.success ? response.summary : undefined
+
+        void trackProductAnalyticsActionCompleted({
+          ...UI_OPEN_PRETRIGGER_ANALYTICS_CONTEXT,
+          result: toAnalyticsResult(response),
+          insights: responseSummary
+            ? {
+                itemCount: responseSummary.totalEligible,
+                successCount: responseSummary.successCount,
+                failureCount: responseSummary.failedCount,
+                skippedCount: responseSummary.skippedCount,
+              }
+            : undefined,
+        })
+
+        if (!response?.success || !response?.started) {
+          return
+        }
+
+        setDialog({
+          isOpen: presentUiOpenPretriggerCompletion(response.summary, t),
+          summary: response?.summary ?? null,
+          lastRunResult: response?.lastRunResult ?? null,
+          pendingRetry: Boolean(response?.pendingRetry),
+        })
+      } catch (error) {
+        logger.error("UI-open pretrigger request failed", error)
+        void trackProductAnalyticsActionCompleted({
+          ...UI_OPEN_PRETRIGGER_ANALYTICS_CONTEXT,
+          result: PRODUCT_ANALYTICS_RESULTS.Failure,
+        })
+      }
+    })()
+  }, [autoCheckinPreferences, shouldAttemptPretrigger, t])
+
+  return {
+    dialog,
+    setDialogOpen: (open) =>
+      setDialog((prev) => ({
+        ...prev,
+        isOpen: open,
+      })),
+  }
+}

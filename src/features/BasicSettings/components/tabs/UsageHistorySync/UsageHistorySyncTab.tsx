@@ -1,0 +1,418 @@
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { Card, CardContent, Input } from "~/components/ui"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { PreferenceSettingSection as SettingSection } from "~/features/BasicSettings/components/shared/PreferenceSettingSection"
+import toast from "~/lib/notify"
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { buildAccountDisplayNameMap } from "~/services/accounts/utils/accountDisplayName"
+import { sendUsageHistoryMessage } from "~/services/history/usageHistory/messaging"
+import { usageHistoryStorage } from "~/services/history/usageHistory/storage"
+import { UsageHistoryMessageTypes } from "~/services/runtimeMessaging/messageTypes"
+import type { SiteAccount } from "~/types"
+import {
+  DEFAULT_USAGE_HISTORY_PREFERENCES,
+  USAGE_HISTORY_SCHEDULE_MODE,
+} from "~/types/usageHistory"
+import type {
+  UsageHistoryScheduleMode,
+  UsageHistoryStore,
+} from "~/types/usageHistory"
+import { hasAlarmsAPI } from "~/utils/browser/alarms"
+import { getErrorMessage } from "~/utils/core/error"
+import { formatLocaleDateTime } from "~/utils/core/formatters"
+import { createLogger } from "~/utils/core/logger"
+import { revealNavigationTarget } from "~/utils/dom/navigationTarget"
+import { matchesDefaultSettings } from "~/utils/preferences/matchesDefaultSettings"
+
+import UsageHistorySyncSettingsSection from "./UsageHistorySyncSettingsSection"
+import UsageHistorySyncStateTable, {
+  type UsageHistoryAccountRow,
+} from "./UsageHistorySyncStateTable"
+
+/**
+ * Unified logger scoped to the Basic Settings usage-history sync tab.
+ */
+const logger = createLogger("UsageHistorySyncTab")
+const USAGE_HISTORY_STATE_SECTION_ID = "usage-history-sync-state"
+
+const hasNonSuccessUsageHistoryTotals = (totals: {
+  skipped?: number
+  error?: number
+  unsupported?: number
+}) =>
+  (totals.skipped ?? 0) > 0 ||
+  (totals.error ?? 0) > 0 ||
+  (totals.unsupported ?? 0) > 0
+
+const scrollToUsageHistoryStateSection = () => {
+  const target = document.getElementById(USAGE_HISTORY_STATE_SECTION_ID)
+  if (target) revealNavigationTarget(target, { behavior: "smooth" })
+}
+
+/**
+ * Basic Settings tab for usage-history synchronization: sync settings + per-account sync state.
+ */
+export default function UsageHistorySyncTab() {
+  const { t } = useTranslation("usageAnalytics")
+  const { preferences, loadPreferences } = useUserPreferencesContext()
+
+  const [accounts, setAccounts] = useState<SiteAccount[]>([])
+  const [store, setStore] = useState<UsageHistoryStore | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSyncingAll, setIsSyncingAll] = useState(false)
+  const [syncingAccountIds, setSyncingAccountIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+
+  const [accountSearch, setAccountSearch] = useState("")
+
+  const [enabled, setEnabled] = useState<boolean>(
+    preferences.usageHistory?.enabled ??
+      DEFAULT_USAGE_HISTORY_PREFERENCES.enabled,
+  )
+  const [retentionDays, setRetentionDays] = useState<number>(
+    preferences.usageHistory?.retentionDays ??
+      DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays,
+  )
+  const [scheduleMode, setScheduleMode] = useState<UsageHistoryScheduleMode>(
+    preferences.usageHistory?.scheduleMode ??
+      DEFAULT_USAGE_HISTORY_PREFERENCES.scheduleMode,
+  )
+  const [syncIntervalMinutes, setSyncIntervalMinutes] = useState<number>(
+    preferences.usageHistory?.syncIntervalMinutes ??
+      DEFAULT_USAGE_HISTORY_PREFERENCES.syncIntervalMinutes,
+  )
+
+  useEffect(() => {
+    setEnabled(
+      preferences.usageHistory?.enabled ??
+        DEFAULT_USAGE_HISTORY_PREFERENCES.enabled,
+    )
+    setScheduleMode(
+      preferences.usageHistory?.scheduleMode ??
+        DEFAULT_USAGE_HISTORY_PREFERENCES.scheduleMode,
+    )
+    setSyncIntervalMinutes(
+      preferences.usageHistory?.syncIntervalMinutes ??
+        DEFAULT_USAGE_HISTORY_PREFERENCES.syncIntervalMinutes,
+    )
+  }, [preferences.usageHistory])
+
+  useEffect(() => {
+    setRetentionDays(
+      preferences.usageHistory?.retentionDays ??
+        DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays,
+    )
+  }, [preferences.usageHistory?.retentionDays])
+
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const [nextAccounts, nextStore] = await Promise.all([
+        accountQueries.getEnabledAccounts(),
+        usageHistoryStorage.getStore(),
+      ])
+      setAccounts(nextAccounts)
+      setStore(nextStore)
+    } catch (error) {
+      logger.error("Failed to load data", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  const accountLabelById = useMemo(
+    () => buildAccountDisplayNameMap(accounts),
+    [accounts],
+  )
+
+  const filteredAccounts = useMemo(() => {
+    const query = accountSearch.trim().toLowerCase()
+    if (!query) return accounts
+    return accounts.filter((account) => {
+      const label = accountLabelById.get(account.id) ?? account.site_name
+      return (
+        label.toLowerCase().includes(query) ||
+        account.site_name.toLowerCase().includes(query)
+      )
+    })
+  }, [accountLabelById, accountSearch, accounts])
+
+  const tableRows = useMemo<UsageHistoryAccountRow[]>(() => {
+    return filteredAccounts.map((account) => {
+      const status = store?.accounts?.[account.id]?.status
+      const state = status?.state ?? "never"
+      const lastSyncAtMs =
+        typeof status?.lastSyncAt === "number" ? status.lastSyncAt : null
+      const lastSyncAtLabel = formatLocaleDateTime(
+        lastSyncAtMs,
+        t("status.never"),
+      )
+
+      return {
+        id: account.id,
+        accountName: accountLabelById.get(account.id) ?? account.site_name,
+        state,
+        lastSyncAtMs,
+        lastSyncAtLabel,
+        lastError: status?.lastError,
+        lastWarning: status?.lastWarning,
+      }
+    })
+  }, [accountLabelById, filteredAccounts, store, t])
+
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const saveSettings = useCallback(
+    async (settings: {
+      enabled?: boolean
+      retentionDays?: number
+      scheduleMode?: UsageHistoryScheduleMode
+      syncIntervalMinutes?: number
+    }) => {
+      setIsSavingSettings(true)
+      try {
+        const response = await sendUsageHistoryMessage(
+          UsageHistoryMessageTypes.UpdateSettings,
+          {
+            settings,
+          },
+        )
+
+        if (!response?.success) {
+          throw new Error(response?.error || "Unknown error")
+        }
+
+        if (response?.data?.warning) {
+          toast.warning(
+            t("messages.warning.scheduleFallback", {
+              warning: response.data.warning,
+            }),
+          )
+        } else {
+          toast.success(t("messages.success.settingsSaved"))
+        }
+
+        await loadPreferences()
+        await loadData()
+        return {
+          ok: true,
+          scheduleFallback: Boolean(response.data?.warning),
+        } as const
+      } catch (error) {
+        toast.error(
+          t("messages.error.settingsSaveFailed", {
+            error: getErrorMessage(error),
+          }),
+        )
+        return { ok: false } as const
+      } finally {
+        setIsSavingSettings(false)
+      }
+    },
+    [loadData, loadPreferences, t],
+  )
+
+  /**
+   * Trigger a forced manual sync for all accounts, or for an explicit subset.
+   * Uses runtime messaging so background can enforce serialization and persistence.
+   */
+  const handleManualSync = useCallback(
+    async (accountIds?: string[]) => {
+      const hasSelection = Boolean(accountIds?.length)
+      const nextAccountIds = hasSelection ? accountIds : undefined
+
+      if (nextAccountIds?.length) {
+        setSyncingAccountIds((prev) => {
+          const next = new Set(prev)
+          nextAccountIds.forEach((id) => next.add(id))
+          return next
+        })
+      } else {
+        setIsSyncingAll(true)
+      }
+
+      let toastId: string | undefined
+      try {
+        toastId = toast.loading(t("messages.loading.syncing"))
+        const response = await sendUsageHistoryMessage(
+          UsageHistoryMessageTypes.SyncNow,
+          nextAccountIds ? { accountIds: nextAccountIds } : undefined,
+        )
+
+        if (!response?.success) {
+          throw new Error(response?.error || "Unknown error")
+        }
+
+        const totals = response?.data?.totals
+        if (totals) {
+          if (hasNonSuccessUsageHistoryTotals(totals)) {
+            toast.warning(
+              t("messages.warning.syncCompletedWithIssues", {
+                success: totals.success ?? 0,
+                skipped: totals.skipped ?? 0,
+                error: totals.error ?? 0,
+                unsupported: totals.unsupported ?? 0,
+              }),
+              {
+                id: toastId,
+                action: {
+                  label: t("syncTab.actions.viewStatus"),
+                  onClick: () => {
+                    scrollToUsageHistoryStateSection()
+                  },
+                },
+              },
+            )
+          } else {
+            toast.success(
+              t("messages.success.syncCompleted", {
+                success: totals.success ?? 0,
+                skipped: totals.skipped ?? 0,
+                error: totals.error ?? 0,
+                unsupported: totals.unsupported ?? 0,
+              }),
+              { id: toastId },
+            )
+          }
+        } else {
+          toast.success(t("messages.success.syncCompletedNoSummary"), {
+            id: toastId,
+          })
+        }
+
+        await loadData()
+      } catch (error) {
+        toast.error(
+          t("messages.error.syncFailed", { error: getErrorMessage(error) }),
+          {
+            id: toastId,
+          },
+        )
+      } finally {
+        if (nextAccountIds?.length) {
+          setSyncingAccountIds((prev) => {
+            const next = new Set(prev)
+            nextAccountIds.forEach((id) => next.delete(id))
+            return next
+          })
+        } else {
+          setIsSyncingAll(false)
+        }
+      }
+    },
+    [loadData, t],
+  )
+
+  const handleSyncNow = useCallback(async () => {
+    await handleManualSync()
+  }, [handleManualSync])
+
+  const alarmsSupported = hasAlarmsAPI()
+
+  return (
+    <div className="space-y-density-6">
+      <UsageHistorySyncSettingsSection
+        reset={{
+          resetDisabled:
+            isSavingSettings ||
+            (matchesDefaultSettings(
+              preferences.usageHistory,
+              DEFAULT_USAGE_HISTORY_PREFERENCES,
+            ) &&
+              retentionDays ===
+                DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays),
+          resetRequiresConfirmation:
+            (preferences.usageHistory?.retentionDays ??
+              DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays) >
+            DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays,
+          onReset: async () => {
+            const defaults = DEFAULT_USAGE_HISTORY_PREFERENCES
+            const result = await saveSettings({
+              enabled: defaults.enabled,
+              retentionDays: defaults.retentionDays,
+              scheduleMode: defaults.scheduleMode,
+              syncIntervalMinutes: defaults.syncIntervalMinutes,
+            })
+            if (result.ok) {
+              setEnabled(defaults.enabled)
+              setRetentionDays(defaults.retentionDays)
+              setScheduleMode(defaults.scheduleMode)
+              setSyncIntervalMinutes(defaults.syncIntervalMinutes)
+            }
+            return result
+          },
+        }}
+        enabled={enabled}
+        onEnabledChange={(value) => {
+          void saveSettings({ enabled: value }).then((result) => {
+            if (result.ok) setEnabled(value)
+          })
+        }}
+        retentionDays={retentionDays}
+        onRetentionDaysChange={setRetentionDays}
+        scheduleMode={scheduleMode}
+        onScheduleModeChange={(value) => {
+          void saveSettings({ scheduleMode: value }).then((result) => {
+            if (result.ok)
+              setScheduleMode(
+                result.scheduleFallback
+                  ? USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH
+                  : value,
+              )
+          })
+        }}
+        syncIntervalMinutes={syncIntervalMinutes}
+        onSyncIntervalMinutesChange={setSyncIntervalMinutes}
+        alarmsSupported={alarmsSupported}
+        isLoading={isLoading}
+        isSyncingAll={isSyncingAll}
+        onApplySettings={() =>
+          saveSettings({ retentionDays }).then(() => undefined)
+        }
+        isSavingSettings={isSavingSettings}
+        onSyncIntervalMinutesCommit={(value) =>
+          saveSettings({ syncIntervalMinutes: value }).then((result) => {
+            if (result.ok) setSyncIntervalMinutes(value)
+            return result.ok
+          })
+        }
+        onSyncNow={handleSyncNow}
+        onRefreshStatus={loadData}
+      />
+
+      <SettingSection
+        resetNotApplicable="runtime-status"
+        id={USAGE_HISTORY_STATE_SECTION_ID}
+        title={t("syncTab.stateTitle")}
+        description={t("syncTab.stateDescription")}
+      >
+        <Card>
+          <CardContent className="space-y-density-4">
+            <div className="space-y-density-3">
+              <Input
+                value={accountSearch}
+                onChange={(event) => setAccountSearch(event.target.value)}
+                placeholder={t("syncTab.searchPlaceholder")}
+              />
+            </div>
+
+            <UsageHistorySyncStateTable
+              rows={tableRows}
+              isLoading={isLoading}
+              hasAnyAccounts={accounts.length > 0}
+              isSyncingAll={isSyncingAll}
+              syncingAccountIds={syncingAccountIds}
+              onSyncAccounts={handleManualSync}
+            />
+          </CardContent>
+        </Card>
+      </SettingSection>
+    </div>
+  )
+}

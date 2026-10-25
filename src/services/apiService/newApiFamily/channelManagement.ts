@@ -1,0 +1,357 @@
+import type { ManagedSitePaginatedChannelRequestOptions } from "~/services/apiAdapters/contracts/managedSiteCapabilities"
+import { newApiFamilyRequests } from "~/services/apiService/newApiFamily/request"
+import { REQUEST_CONFIG } from "~/services/apiTransport/constant"
+import { ApiError } from "~/services/apiTransport/errors"
+import { fetchAllItems } from "~/services/apiTransport/pagination"
+import type {
+  ApiResponse,
+  ApiServiceRequest,
+} from "~/services/apiTransport/type"
+import type {
+  CreateChannelPayload,
+  NewApiChannel,
+  NewApiChannelListData,
+  UpdateChannelPayload,
+} from "~/types/newApi"
+import { CHANNEL_STATUS } from "~/types/newApi"
+import { createLogger } from "~/utils/core/logger"
+
+const CHANNEL_API_BASE = "/api/channel/"
+
+type DraftChannelModelProbe = {
+  type: number
+  baseUrl: string
+  key: string
+}
+
+const logger = createLogger("NewApiFamilyChannelManagement")
+
+const serializeChannelGroups = <T extends { groups?: string[] }>(
+  payload: T,
+) => {
+  if (!payload.groups) {
+    return payload
+  }
+
+  const { groups, ...rest } = payload
+  return {
+    ...rest,
+    group: groups.join(","),
+  }
+}
+
+const serializeUpdateChannelPayload = (payload: UpdateChannelPayload) => {
+  const serializedPayload = serializeChannelGroups(payload)
+  const { status: _status, ...payloadWithoutStatus } = serializedPayload
+
+  // QuantumNous/new-api omits blank edit keys; sending an empty key can
+  // overwrite or reject the secret.
+  if (payloadWithoutStatus.key?.trim() !== "") {
+    return payloadWithoutStatus
+  }
+
+  const { key: _key, ...payloadWithoutEmptyKey } = payloadWithoutStatus
+  return payloadWithoutEmptyKey
+}
+
+export const updateChannelStatus = async (
+  request: ApiServiceRequest,
+  channelId: number,
+  status: number,
+) => {
+  // QuantumNous/new-api router/channel-router.go maps manual status changes to
+  // POST /api/channel/:id/status and rejects `status` in PUT /api/channel/.
+  return await newApiFamilyRequests.envelope<boolean>(request, {
+    endpoint: `${CHANNEL_API_BASE}${channelId}/status`,
+    options: {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    },
+  })
+}
+
+export const isNewApiManualStatus = (status: number) =>
+  status === CHANNEL_STATUS.Enable || status === CHANNEL_STATUS.ManuallyDisabled
+
+/**
+ * 搜索指定关键词的渠道。
+ * @param request ApiServiceRequest（包含 baseUrl + 认证信息）。
+ * @param keyword 搜索关键词。
+ */
+export async function searchChannel(
+  request: ApiServiceRequest,
+  keyword: string,
+): Promise<NewApiChannelListData | null> {
+  try {
+    return await newApiFamilyRequests.data<NewApiChannelListData>(request, {
+      endpoint: `${CHANNEL_API_BASE}search?keyword=${encodeURIComponent(keyword)}`,
+    })
+  } catch (error) {
+    if (error instanceof ApiError) {
+      logger.error("API 请求失败", error)
+    } else {
+      logger.error("搜索渠道失败", error)
+    }
+    return null
+  }
+}
+
+/**
+ * 创建新渠道。
+ * @param request ApiServiceRequest（包含 baseUrl + 认证信息）。
+ * @param channelData 渠道数据。
+ */
+export async function createChannel(
+  request: ApiServiceRequest,
+  channelData: CreateChannelPayload,
+) {
+  try {
+    const payload = {
+      ...channelData,
+      channel: serializeChannelGroups(channelData.channel),
+    }
+
+    return await newApiFamilyRequests.envelope<void>(request, {
+      endpoint: CHANNEL_API_BASE,
+      options: {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    })
+  } catch (error) {
+    logger.error("创建渠道失败")
+    throw new ApiError(
+      "创建渠道失败，请检查网络或 New API 配置。",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      error,
+    )
+  }
+}
+
+/** Update only the editable channel fields in one New API request. */
+export async function updateChannelFields(
+  request: ApiServiceRequest,
+  channelData: UpdateChannelPayload,
+  options?: Pick<RequestInit, "signal">,
+) {
+  const payload = serializeUpdateChannelPayload(channelData)
+  return await newApiFamilyRequests.envelope<void>(request, {
+    endpoint: CHANNEL_API_BASE,
+    options: {
+      method: "PUT",
+      body: JSON.stringify(payload),
+      signal: options?.signal,
+    },
+  })
+}
+
+/**
+ * 删除渠道。
+ * @param request ApiServiceRequest（包含 baseUrl + 认证信息）。
+ * @param channelId 渠道 ID。
+ */
+export async function deleteChannel(
+  request: ApiServiceRequest,
+  channelId: number,
+) {
+  try {
+    return await newApiFamilyRequests.envelope<void>(request, {
+      endpoint: `${CHANNEL_API_BASE}${channelId}`,
+      options: {
+        method: "DELETE",
+      },
+    })
+  } catch (error) {
+    logger.error("删除渠道失败")
+    throw new ApiError(
+      "删除渠道失败，请检查网络或 New API 配置。",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      error,
+    )
+  }
+}
+
+type ChannelListAllOptions = ManagedSitePaginatedChannelRequestOptions
+
+/**
+ * Fetch all channels from New API with pagination aggregation.
+ *
+ * Notes:
+ * - Aggregates `type_counts` across pages.
+ * - Uses the first page's `total` as the authoritative total when later pages omit it.
+ * - Optionally invokes a `beforeRequest` hook (e.g. rate limiter) before each page request.
+ * @param request ApiServiceRequest（包含 baseUrl + 认证信息）。
+ * @param options Additional pagination options.
+ */
+export async function listAllChannels(
+  request: ApiServiceRequest,
+  options?: ChannelListAllOptions,
+): Promise<NewApiChannelListData> {
+  const pageSize = options?.pageSize ?? REQUEST_CONFIG.DEFAULT_PAGE_SIZE
+  const beforeRequest = options?.beforeRequest
+  const endpoint = options?.endpoint ?? CHANNEL_API_BASE
+  const pageStart = options?.pageStart ?? 1
+
+  let total = 0
+  const typeCounts: Record<string, number> = {}
+
+  const items = await fetchAllItems<NewApiChannel>(
+    async (page) => {
+      const params = new URLSearchParams({
+        p: page.toString(),
+        page_size: pageSize.toString(),
+      })
+
+      await beforeRequest?.()
+
+      const response =
+        await newApiFamilyRequests.envelope<NewApiChannelListData>(request, {
+          endpoint: `${endpoint}?${params.toString()}`,
+          options: { signal: options?.signal },
+        })
+
+      if (!response.success || !response.data) {
+        throw new ApiError(
+          response.message || "Failed to fetch channels",
+          undefined,
+          endpoint,
+        )
+      }
+
+      const { data } = response
+      if (page === pageStart) {
+        total = data.total || data.items.length || 0
+        Object.assign(typeCounts, data.type_counts || {})
+      } else if (data.type_counts) {
+        for (const [key, value] of Object.entries(data.type_counts)) {
+          typeCounts[key] = (typeCounts[key] || 0) + value
+        }
+      }
+
+      return {
+        items: data.items || [],
+        total: total || 0,
+      }
+    },
+    {
+      pageSize,
+      startPage: pageStart,
+      requireComplete: options?.requireCompleteInventory,
+    },
+  )
+
+  return {
+    items,
+    total,
+    type_counts: typeCounts,
+  } as NewApiChannelListData
+}
+
+/**
+ * Fetch one channel without scanning the paginated channel inventory.
+ * QuantumNous/new-api exposes GET /api/channel/:id for channel-read access:
+ * https://github.com/QuantumNous/new-api/blob/f116414284162ad15d8925f7bca494c109b83e93/router/channel-router.go#L45
+ */
+export async function fetchChannel(
+  request: ApiServiceRequest,
+  channelId: number,
+  options?: Pick<RequestInit, "signal">,
+): Promise<NewApiChannel> {
+  return await newApiFamilyRequests.data<NewApiChannel>(request, {
+    endpoint: `${CHANNEL_API_BASE}${channelId}`,
+    options: { signal: options?.signal },
+  })
+}
+
+const readChannelModelResponse = (
+  response: ApiResponse<string[]>,
+  endpoint: string,
+) => {
+  // New API reports upstream model lookup failures as a successful HTTP response
+  // with `success: false` and the diagnostic in `message` for both endpoints.
+  // Source: https://github.com/QuantumNous/new-api/blob/f116414284162ad15d8925f7bca494c109b83e93/controller/channel.go#L230-L254
+  // Source: https://github.com/QuantumNous/new-api/blob/f116414284162ad15d8925f7bca494c109b83e93/controller/channel.go#L1274-L1324
+  if (!response.success || !Array.isArray(response.data)) {
+    throw new ApiError(
+      response.message || "Failed to fetch models",
+      undefined,
+      endpoint,
+    )
+  }
+  return response.data
+}
+
+/**
+ * Fetch raw model list for a given channel.
+ * @param request ApiServiceRequest（包含 baseUrl + 认证信息）。
+ * @param channelId Target channel id.
+ */
+export async function fetchChannelModels(
+  request: ApiServiceRequest,
+  channelId: number,
+  options?: Pick<RequestInit, "signal">,
+): Promise<string[]> {
+  const endpoint = `${CHANNEL_API_BASE}fetch_models/${channelId}`
+  const response = await newApiFamilyRequests.envelope<string[]>(request, {
+    endpoint,
+    options,
+  })
+
+  return readChannelModelResponse(response, endpoint)
+}
+
+/**
+ * Probes models from an unsaved New API channel configuration.
+ * QuantumNous/new-api accepts type, base_url, and key at this endpoint:
+ * https://github.com/QuantumNous/new-api/blob/f116414284162ad15d8925f7bca494c109b83e93/web/src/features/channels/api.ts
+ */
+export async function fetchDraftChannelModels(
+  request: ApiServiceRequest,
+  draft: DraftChannelModelProbe,
+  options?: Pick<RequestInit, "signal">,
+): Promise<string[]> {
+  const endpoint = `${CHANNEL_API_BASE}fetch_models`
+  const response = await newApiFamilyRequests.envelope<string[]>(request, {
+    endpoint,
+    options: {
+      method: "POST",
+      body: JSON.stringify({
+        type: draft.type,
+        base_url: draft.baseUrl,
+        key: draft.key,
+      }),
+      signal: options?.signal,
+    },
+  })
+
+  return readChannelModelResponse(response, endpoint)
+}
+
+/**
+ * Native multi-key actions preserve status/reason indices when deleting entries.
+ * https://github.com/QuantumNous/new-api/blob/main/controller/channel.go#L1499
+ */
+export function manageChannelKey(
+  request: ApiServiceRequest,
+  channelId: number,
+  action: "delete_key" | "enable_key" | "disable_key",
+  keyIndex: number,
+) {
+  return newApiFamilyRequests.envelope<void>(request, {
+    endpoint: "/api/channel/multi_key/manage",
+    options: {
+      method: "POST",
+      body: JSON.stringify({
+        channel_id: channelId,
+        action,
+        key_index: keyIndex,
+      }),
+    },
+  })
+}

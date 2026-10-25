@@ -1,0 +1,274 @@
+{
+  "accountOperations": {
+    "autoProvisionAlreadyHad": "{{accountName}} 已存在 API 密钥，已跳过自动创建。",
+    "autoProvisionCreated": "已为 {{accountName}} 自动创建默认 API 密钥。",
+    "autoProvisionFailed": "账号已保存，但自动创建 API 密钥失败。你可以在密钥管理中使用“{{actionLabel}}”重试。",
+    "autoProvisionGroupsCovered": "已确认 {{accountName}} 的所有可用分组都有可用密钥。",
+    "autoProvisionGroupsCreated": "已为 {{accountName}} 自动创建 {{count}} 个分组密钥。",
+    "autoProvisionGroupsIncomplete": "已为 {{accountName}} 创建 {{count}} 个分组密钥，但仍有分组未能补齐。请到“密钥管理 → {{actionLabel}}”查看并处理。",
+    "autoProvisionGroupsUnavailable": "未获取到 {{accountName}} 的可用分组，未创建密钥。请到“密钥管理 → {{actionLabel}}”检查。",
+    "autoProvisionGroupsUnsupported": "暂不支持为 {{accountName}} 自动补齐所有分组的密钥。请到“密钥管理”查看该账号可用的密钥操作。",
+    "autoProvisionNeedsManualAction": "{{accountName}} 已保存，但默认密钥需要手动选择或处理一次性密钥。请前往密钥管理使用“{{actionLabel}}”完成。",
+    "autoProvisionUnsupported": "{{accountName}} 已保存，但该站点类型暂不支持自动创建默认 API 密钥。",
+    "checkingApiKeys": "正在检查 API 密钥...",
+    "tokenNotFound": "无法创建或找到 API 令牌"
+  },
+  "aihubmix": {
+    "oneTimeKeyPromptCancelled": "账号已保存。你之后可以在密钥管理中手动创建 AIHubMix API 密钥。",
+    "oneTimeKeyUnavailableAfterCreate": "账号已保存，但未能获取完整 AIHubMix API 密钥。AIHubMix 密钥只在创建时显示一次，请在密钥管理中重新创建并立即保存完整密钥。"
+  },
+  "aiToolbox": {
+    "attemptingRedirect": "正在尝试跳转到 AI Toolbox",
+    "invalidApp": "不支持的 AI Toolbox 目标应用",
+    "invalidBaseUrl": "接口地址无效或未填写",
+    "invalidHomepage": "主页地址无效或未填写",
+    "missingCredentials": "缺少必要的账户或密钥信息",
+    "unableToOpen": "无法打开 AI Toolbox，请确认已安装"
+  },
+  "autodetect": {
+    "currentTabNeedsReload": "当前页面可能是在安装或更新扩展前打开的，插件暂时无法读取该标签页的信息。请刷新当前页面后再重试自动识别。",
+    "failed": "自动识别失败：{{error}}",
+    "forbidden": "访问被拒绝。请确认是否为网站防火墙拦截了相关请求。",
+    "loginThisSite": "登录此站点",
+    "networkError": "网络连接失败，请检查网络连接后重试。",
+    "notFound": "未能自动识别该站点。请检查地址是否正确，或登录目标站点后重试。",
+    "notLoggedIn": "您尚未登录当前站点，或登录信息已过期，无法自动添加。请先登录，或查看帮助文档。",
+    "serverError": "服务器错误，请稍后重试。",
+    "timeout": "自动识别超时，请尝试手动添加。",
+    "unexpectedData": "自动识别失败，站点返回的数据不符合预期。请手动输入信息，或确保已登录目标站点。"
+  },
+  "axonhub": {
+    "configMissing": "请先在设置中配置 AxonHub 地址、管理员邮箱和密码",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "background": {
+    "cannotCreateWindowOrTab": "无法创建窗口或获取标签页",
+    "incognitoAccessRequired": "需要允许扩展在无痕模式运行才能使用无痕临时窗口，请在扩展管理页开启“允许在无痕模式运行”后重试",
+    "invalidFetchRequest": "无效的请求参数",
+    "pageLoadTimeout": "页面加载超时",
+    "tempWindowPolicyContextInvalid": "这次操作无法继续，请重新发起。",
+    "windowCreationUnavailable": "当前流程需要浏览器打开一个临时窗口，但窗口创建不可用。请允许扩展创建窗口，或改用支持该能力的浏览器后重试。",
+    "windowNotFound": "未找到对应窗口或标签页"
+  },
+  "ccswitch": {
+    "attemptingRedirect": "正在尝试跳转到 CC Switch",
+    "invalidApp": "不支持的 CC Switch 目标应用",
+    "invalidEndpoint": "接口地址无效或未填写",
+    "invalidHomepage": "主页地址无效或未填写",
+    "missingCredentials": "缺少必要的账户或密钥信息",
+    "unableToOpen": "无法打开 CC Switch，请确认已安装"
+  },
+  "cherryStudio": {
+    "attemptingRedirect": "正在尝试跳转到 Cherry Studio",
+    "missingCredentials": "缺少必要的账户或密钥信息",
+    "unableToOpen": "无法打开，请确保已安装 Cherry Studio。"
+  },
+  "claudecodehub": {
+    "configMissing": "请先在设置中配置 Claude Code Hub 地址和管理员令牌",
+    "noChannelsToSync": "没有可同步的提供商"
+  },
+  "claudeCodeRouter": {
+    "configMissing": "请先在设置中配置 Claude Code Router 基础 URL",
+    "importFailed": "导入到 Claude Code Router 失败",
+    "importSuccess": "已成功将提供商 {{name}} 导入到 Claude Code Router",
+    "modelsMissing": "请至少填写一个模型",
+    "updateSuccess": "已成功更新 Claude Code Router 提供商 {{name}}"
+  },
+  "cliProxyApi": {
+    "managementApiForbidden": "CLIProxyAPI 拒绝了当前请求。请检查管理密钥是否多次填写错误，或当前访问是否被服务端限制。",
+    "managementApiHttpError": "CLIProxyAPI Management API 返回了异常状态码（HTTP {{status}}）",
+    "managementApiInvalidKey": "CLIProxyAPI Management Key 无效，请检查设置中的管理密钥是否正确。",
+    "managementApiNotFound": "未找到 CLIProxyAPI Management API。请确认基础 URL 以 /v0/management 结尾，并且 CLIProxyAPI 已配置管理密钥。",
+    "managementApiUnreachable": "无法连接到 CLIProxyAPI Management API。请检查基础 URL、服务状态，以及浏览器到该地址的网络连通性。"
+  },
+  "content": {
+    "userInfoNotFound": "未找到用户信息，请确保已登录",
+    "waitUserInfoTimeout": "等待用户信息超时，请确保已登录"
+  },
+  "cookieTransport": {
+    "permissionRequired": "当前浏览器无法使用此账号的 Cookie 发起请求。请检查扩展权限或更新浏览器后重试。",
+    "requestUnavailable": "请求准备失败，请重试；若仍失败，请重新加载扩展。",
+    "scopeUnavailable": "此请求无法使用所选 Cookie 范围。请导入目标账号的 Cookie，或使用该账号的普通浏览器会话。",
+    "sessionUnavailable": "登录态不可用。请重新登录同一账号；若使用已导入的 Cookie，请重新导入。"
+  },
+  "donehub": {
+    "configMissing": "请先在设置中配置 Done Hub 地址、管理员令牌和用户 ID",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "errors": {
+    "api": {
+      "invalidResponseFormat": "响应数据格式错误",
+      "nonJsonContent": "返回了 {{contentType}} 而不是 JSON（HTTP {{status}}）",
+      "onlyJsonSupported": "仅支持 JSON 响应数据",
+      "requestFailed": "请求失败：{{status}}"
+    },
+    "dayaRedemptionUnconfirmed": "请到官方控制台核对兑换结果，确认权益发放状态或完成优惠码应用后再重试。",
+    "operation": {
+      "accountDataFetchTimeout": "获取账号数据超时（{{seconds}} 秒）",
+      "failed": "操作失败：{{error}}",
+      "saveFailed": "保存失败：{{error}}"
+    },
+    "relayForRedemptionUnconfirmed": "官网未返回可确认的兑换结果，请先到官网核实，避免重复兑换。",
+    "relayForVerificationRequired": "此操作需要动态验证码。请前往官网控制台完成操作，然后返回刷新。",
+    "unknown": "未知错误",
+    "validation": {
+      "bookmarkNameRequired": "书签名称不能为空",
+      "bookmarkUrlRequired": "书签链接不能为空",
+      "incompleteAccountInfo": "请填写完整的账号信息",
+      "loginProviderInUse": "{{provider}} 登录方式已被启用自动签到的 AgentRouter 账号「{{account}}」占用。请改用另一种登录方式，或先停用该账号的自动签到，或清空本账号的选择。",
+      "updateAccountFailed": "更新账号失败 {{error}}",
+      "urlRequired": "站点地址不能为空",
+      "userIdNumeric": "用户 ID 必须是数字"
+    }
+  },
+  "gptLoad": {
+    "configMissing": "请先在设置中配置 gpt-load 部署地址与管理密钥",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "grsai": {
+    "openApiTokenRejected": "这是 Grsai 用户信息页展示的 Token，它是给平台开放接口用的，控制台并不接受它。请用「自动识别」读取已登录的控制台会话，或改为粘贴控制台会话 token。",
+    "sessionExpired": "保存的 Grsai 控制台会话已过期（一次会话约 30 天）。请先在 Grsai 控制台重新登录，再用「自动识别」重新添加账号。"
+  },
+  "kelivo": {
+    "copied": "已复制 Kelivo 移动端导入码，请在 Kelivo 移动端的提供商导入中粘贴。",
+    "copyFailed": "无法复制 Kelivo 导入码，请检查剪贴板权限后重试。",
+    "customGoogleEndpointUnsupported": "Kelivo 导入码无法保留自定义 Google API 地址。",
+    "invalidBaseUrl": "Base URL 必须是有效的 HTTP 或 HTTPS 地址。",
+    "missingCredentials": "需要提供商名称和完整 API 密钥。",
+    "unsupportedApiType": "此 API 协议暂时无法导出到 Kelivo。"
+  },
+  "magpie": {
+    "configMissing": "请先在设置中配置 Magpie Web 地址和 Web 管理密钥。",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "managedSite": {
+    "unsupportedModelSync": "当前版本不支持 {{siteName}} 管理站点模型同步"
+  },
+  "newapi": {
+    "configMissing": "请先在设置中配置 New API 地址、管理员令牌和用户 ID",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "octopus": {
+    "configMissing": "请先在设置中配置 Octopus 地址、用户名和密码",
+    "corsError": "这可能是 CORS 配置问题。请在 Octopus 设置中检查 CORS 白名单配置。",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "omniroute": {
+    "configMissing": "请先在设置中配置 OmniRoute 部署地址和访问令牌",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "openrouter": {
+    "bootstrap": {
+      "cancelled_before_create": "OpenRouter 密钥创建已在创建前取消。",
+      "cancelledAfterCreate": "取消操作等待期间密钥已创建。请在下方检查，然后保存或撤销。",
+      "failed": "无法确认 OpenRouter 密钥是否创建成功。请手动输入密钥，或检查管理密钥。",
+      "invalid_origin": "创建 OpenRouter 密钥需要打开规范的 OpenRouter 页面。",
+      "logged_out": "请先登录 OpenRouter，然后重试自动识别。",
+      "mutationUnconfirmed": "OpenRouter 可能已创建密钥，但结果未能返回。请在重试前检查管理密钥。",
+      "page_changed": "请保持 OpenRouter 管理密钥页面打开，然后重试自动识别。",
+      "timeout": "OpenRouter 密钥创建超时。请在重试前检查管理密钥。",
+      "validationFailed": "OpenRouter 已创建密钥，但验证失败。请在下方粘贴，或从管理密钥中撤销。"
+    },
+    "credentialInvalid": "此 OpenRouter 管理密钥无效或已撤销。",
+    "malformedResponse": "OpenRouter 返回了意外响应，请稍后重试。",
+    "managementKeyRequired": "请在 OpenRouter 中新建管理密钥并立即复制。现有管理密钥的明文无法再次显示。",
+    "networkFallback": "无法连接 OpenRouter。请检查网络连接后重试。",
+    "permissionDenied": "此 OpenRouter 管理密钥没有读取账号余额的权限。"
+  },
+  "operations": {
+    "detection": {
+      "failed": "自动检测失败，请手动输入信息或确保已在目标站点登录",
+      "getAccessTokenFailedDetailed": "已识别到账号，但未能获取访问令牌。请确认账号有创建或查看 API 令牌的权限，或改用手动输入。",
+      "getInfoFailed": "未能获取到用户名或访问令牌",
+      "getSiteStatusFailedDetailed": "已识别到账号，但读取站点状态失败。请稍后重试；如果仍失败，可先手动保存账号。",
+      "getUserIdFailed": "无法获取用户 ID",
+      "getUserIdFailedDetailed": "未能确认当前登录的账号。请在当前浏览器打开目标站点，确认已登录后重试；仍失败时，可手动补全账号信息。",
+      "getUsernameFailedDetailed": "已识别到账号，但站点未返回用户名。请确认已登录，或改用手动输入。"
+    }
+  },
+  "storage": {
+    "accountDisabled": "账号 {{id}} 已禁用",
+    "accountNotFound": "账号 {{id}} 不存在",
+    "updateFailed": "更新账号失败"
+  },
+  "sub2api": {
+    "authPersistenceFailed": "无法将刷新的 Sub2API 登录信息安全地保存到此账号。请刷新或重新导入该账号，然后重试。",
+    "configMissing": "请先在基础设置中配置 Sub2API 基础 URL 和管理员 API Key。",
+    "loginRequired": "请先登录 Sub2API 控制台（插件会读取 auth_token/auth_user 用于导入会话）后再重试。",
+    "refreshTokenInvalid": "Sub2API refresh_token 已失效/已轮转。请从控制台重新导入会话（推荐无痕/隐私窗口），或粘贴新的 refresh_token 后重试。"
+  },
+  "toast": {
+    "error": {
+      "copyFailed": "复制失败",
+      "duplicateCleanupFailed": "删除重复账号失败：{{error}}",
+      "externalCheckInNonePending": "没有今日未打开过的外部签到站。",
+      "externalCheckInPartialFailed": "{{totalCount}} 个外部签到中有 {{failedCount}} 个打开失败。",
+      "findAccountDetailsFailed": "找不到账户详情",
+      "operationFailed": "操作失败：{{error}}",
+      "operationFailedGeneric": "操作失败",
+      "refreshAccount": "刷新 {{accountName}} 失败",
+      "saveFailed": "保存失败",
+      "shareSnapshotAccountDisabled": "账号已禁用",
+      "shareSnapshotNoEnabledAccounts": "没有可分享的已启用账号"
+    },
+    "loading": {
+      "refreshingAccount": "正在刷新 {{accountName}}..."
+    },
+    "success": {
+      "accountDisabled": "已禁用 {{accountName}}",
+      "accountEnabled": "已启用 {{accountName}}",
+      "accountPinned": "已置顶 {{accountName}}",
+      "accountSaveSuccess": "账号保存成功",
+      "accountsDisabled": "已禁用 {{count}} 个账号",
+      "accountsEnabled": "已启用 {{count}} 个账号",
+      "accountUnpinned": "已取消置顶 {{accountName}}",
+      "accountUpdateSuccess": "账号更新成功",
+      "bookmarkAdded": "书签 {{name}} 添加成功!",
+      "bookmarkDeleted": "书签 {{name}} 已删除",
+      "bookmarkPinned": "已置顶 {{name}}",
+      "bookmarkUnpinned": "已取消置顶 {{name}}",
+      "bookmarkUpdated": "书签 {{name}} 更新成功!",
+      "bookmarkUrlCopied": "{{name}} 的链接已复制到剪贴板",
+      "duplicateCleanupSuccess": "已从 {{groups}} 组重复中删除 {{count}} 个账号。",
+      "externalCheckInModeAll": "全部",
+      "externalCheckInModeUnchecked": "仅未签到",
+      "externalCheckInOpened": "已为 {{count}} 个账号打开外部签到（{{mode}}）。",
+      "operationCompleted": "操作成功",
+      "refreshAccount": "{{accountName}} 刷新成功！",
+      "refreshSkipped": "刷新间隔未到，已跳过",
+      "shareSnapshotCaptionCopied": "文案已复制",
+      "shareSnapshotCopied": "快照已复制到剪贴板",
+      "shareSnapshotDownloaded": "快照已下载",
+      "urlCopied": "{{accountName}} 的 URL 已复制到剪贴板"
+    }
+  },
+  "tokenProvisioning": {
+    "createRequiresGroup": "创建密钥前需要先确定分组，请先选择一个可用分组后再继续。",
+    "createRequiresGroupSelection": "当前账号有多个可用分组，请先选择要使用的分组，再创建密钥。",
+    "selectGroupTitle": "选择密钥分组"
+  },
+  "veloera": {
+    "configMissing": "请先在设置中配置 Veloera 地址、管理员令牌和用户 ID",
+    "noChannelsToSync": "没有可同步的渠道"
+  },
+  "warnings": {
+    "accountSavedWithoutDataRefresh": "账号已保存，但未能获取余额、额度和今日用量，当前显示可能为占位值。请稍后在账号列表中刷新。",
+    "accountUpdatedWithoutDataRefresh": "账号配置已保存，但未能刷新最新余额、额度和今日用量，当前显示可能仍是旧数据。请稍后在账号列表中刷新。"
+  },
+  "webdav": {
+    "authFailed": "鉴权失败，请检查用户名/密码",
+    "configIncomplete": "请先完整填写 WebDAV URL、用户名和密码",
+    "connectionFailed": "连接失败，状态码: {{status}}",
+    "decryptFailed": "解密备份失败，请检查密码",
+    "decryptFailedNoPassword": "备份已加密，但未设置密码",
+    "downloadFailed": "下载失败，状态码: {{status}}",
+    "encryptFailedNoPassword": "已开启加密，但未设置密码",
+    "fileNotFound": "远程备份文件不存在",
+    "invalidBackupJson": "云端备份文件不完整，无法用于同步。为避免合并损坏的数据，本次同步已停止。如果当前设备的数据是完整的，请使用“上传到 WebDAV”重新创建云端备份；如果当前设备数据不完整，请先在另一台数据完整的设备上上传，或导入一份完整备份文件。",
+    "safeCommitFailed": "无法确认云端备份已保存。请检查连接和读写权限后重试。",
+    "syncDataSelectionRequired": "请至少选择一个要同步的数据类型",
+    "uploadFailed": "上传失败，状态码: {{status}}",
+    "uploadStillProcessing": "云盘仍在处理刚上传的备份，暂时无法完成校验。请稍后重试。",
+    "uploadVerificationFailed": "备份上传后校验未通过，云端文件可能不完整。请重试同步，必要时使用本地备份恢复。"
+  }
+}

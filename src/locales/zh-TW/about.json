@@ -1,0 +1,83 @@
+{
+  "alreadyStarred": "已 Star",
+  "copyrightAck": "版權與致謝",
+  "description": "查看擴充功能版本、更新紀錄與專案連結，取得協助或回報問題。",
+  "devMaintenance": "開發與維護",
+  "devMode": {
+    "activatedToast": "🛠️ 開發者模式已啟用！全部 Dev 實驗室已解鎖",
+    "alreadyDevToast": "目前處於開發建置環境 (wxt dev)，開發者模式預設保持啟用",
+    "deactivatedToast": "已結束開發者模式",
+    "tooltipDev": "目前處於開發調試環境 (wxt dev)",
+    "tooltipProd": "連續點擊 7 次可切換開發者模式"
+  },
+  "features": "功能特性",
+  "feedbackSection": {
+    "bugReport": {
+      "button": "開啟問題反饋",
+      "description": "使用問題反饋模板提交異常行為、報錯或與預期不符的結果。"
+    },
+    "community": {
+      "button": "檢視交流渠道",
+      "description": "檢視微信群二維碼、QQ 群、Discord 多語言社羣、Telegram 群和其他交流入口，適合提問、交流使用經驗與排查問題。"
+    },
+    "discussion": {
+      "button": "開啟討論區",
+      "description": "前往 GitHub Discussions 提問、交流配置經驗，或發起更廣泛的社羣討論。"
+    },
+    "featureRequest": {
+      "button": "開啟功能建議",
+      "description": "透過功能建議模板分享你的改進想法或使用場景需求。"
+    },
+    "languageRequest": {
+      "button": "開啟新語言請求",
+      "description": "請求 My API Box 支援新的介面語言。"
+    },
+    "title": "反饋與支援"
+  },
+  "githubDesc": "檢視原始碼、提交問題或參與專案開發",
+  "githubRepo": "GitHub 倉庫",
+  "homepage": "專案官網",
+  "homepageDesc": "檢視詳細文件、使用指南和更多資訊",
+  "implementedFeatures": "已實現功能",
+  "intro": "My API Box 集中管理中轉站帳號、餘額和 API 憑據，提供自動重新整理、簽到與模型驗證；支援 CLIProxyAPI、New API、Sub2API 等自建站點的渠道或提供商管理，並依站點能力提供模型同步。另可使用 WebDAV 備份與資料匯入匯出。",
+  "privacyText": "帳號、API Key、Cookie、餘額、請求內容和使用者輸入等敏感資料預設僅儲存在本機。可關閉的匿名產品統計只用於優先修復常見問題、改進常用流程與相容性，並減少不必要的干擾，不會收集上述敏感資料。",
+  "privacyTitle": "隱私保護",
+  "projectLinks": "專案連結",
+  "releaseUpdate": {
+    "currentVersion": "目前版本：v{{version}}",
+    "latestVersion": "最新正式版：v{{version}}",
+    "title": "版本更新"
+  },
+  "starRepo": "去點個Star",
+  "stores": {
+    "chrome": "Chrome 應用商店",
+    "edge": "Edge 擴充套件商店",
+    "firefox": "Firefox 附加元件"
+  },
+  "storesSection": {
+    "download": {
+      "button": "開啟商店",
+      "description": "從 {{store}} 下載/安裝。"
+    },
+    "review": {
+      "button": "前往 {{store}} 評分",
+      "description": "如果 My API Box 對你有幫助，歡迎在 {{store}} 留下正向評價，支援我們持續更新。",
+      "title": "給我們一個好評"
+    },
+    "title": "評分與下載"
+  },
+  "techStack": {
+    "radix": "可訪問 UI 基礎元件",
+    "react": "使用者介面庫",
+    "tailwindcss": "原子化CSS框架",
+    "title": "技術棧",
+    "typescript": "型別安全的JavaScript",
+    "wxt": "瀏覽器擴充套件開發框架"
+  },
+  "thanksDesc": "感謝所有為開源社羣做出貢獻的開發者們，本外掛的開發得益於這些優秀的開源專案和工具",
+  "title": "關於",
+  "upcomingFeatures": "即將支援",
+  "version": "版本號:",
+  "viewRepo": "造訪倉庫",
+  "visitHomepage": "訪問官網"
+}

@@ -1,0 +1,238 @@
+import type { AccountSiteType } from "~/constants/siteType"
+import type { ApiErrorCode } from "~/services/apiTransport/errors"
+import type {
+  ProtectionBypassExecution,
+  TempWindowFetchTaskKind,
+} from "~/services/protectionBypass/contracts"
+import type { AuthTypeEnum } from "~/types/index"
+import type {
+  CheckinPageActionTriggerResult,
+  TurnstilePreTrigger,
+} from "~/types/turnstile"
+
+export const TEMP_WINDOW_REQUEST_SOURCES = {
+  Popup: "popup",
+  Options: "options",
+  Sidepanel: "sidepanel",
+  ContentScript: "content_script",
+  Background: "background",
+} as const
+
+export type TempWindowRequestSource =
+  (typeof TEMP_WINDOW_REQUEST_SOURCES)[keyof typeof TEMP_WINDOW_REQUEST_SOURCES]
+
+/** Checks whether an untrusted value is a supported temp-window request source. */
+export function isTempWindowRequestSource(
+  value: unknown,
+): value is TempWindowRequestSource {
+  return Object.values(TEMP_WINDOW_REQUEST_SOURCES).includes(
+    value as TempWindowRequestSource,
+  )
+}
+
+export type TempWindowResponseType = "json" | "text" | "arrayBuffer" | "blob"
+
+/** Cloneable evidence produced at the context that owns the upstream fetch. */
+export interface ApiTransportRemoteLifecycleEvidence {
+  upstreamRequestDispatched: boolean
+  upstreamResponseReceived: boolean
+}
+
+/** Process-local callbacks; these must never be copied into runtime messages. */
+export interface ApiTransportRemoteLifecycleObserver {
+  onDispatch: () => void
+  onResponse: () => void
+}
+
+export interface TempWindowFetchParams {
+  originUrl: string
+  fetchUrl: string
+  fetchOptions?: RequestInit
+  requestId?: string
+  responseType?: TempWindowResponseType
+  tempWindowRequestSource?: TempWindowRequestSource
+  protectionBypassExecution: ProtectionBypassExecution
+  tempContextTaskKind?: TempWindowFetchTaskKind
+  /** Controlled evidence from the failed primary request, for local history only. */
+  fallbackDiagnostic?: { statusCode?: number; code?: ApiErrorCode }
+  suppressMinimize?: boolean
+  /** Account ID for per-request cookie isolation */
+  accountId?: string
+  /** Auth type for cookie auth handling */
+  authType?: AuthTypeEnum
+  /** Per-account session cookie header to merge with WAF cookies */
+  cookieAuthSessionCookie?: string
+  /** Open the temporary context in an incognito/private window. */
+  useIncognito?: boolean
+  /** Browser cookie store to use when reading cookies for injected requests. */
+  cookieStoreId?: string
+}
+
+/** Closed provider request used for Octopus' same-origin admin cookie. */
+export const OCTOPUS_API_RESOURCE_BINDINGS = {
+  ConfigurationTest: "configuration_test",
+} as const
+
+export type OctopusApiResourceBinding =
+  (typeof OCTOPUS_API_RESOURCE_BINDINGS)[keyof typeof OCTOPUS_API_RESOURCE_BINDINGS]
+
+export interface TempWindowOctopusApiFetchParams {
+  originUrl: string
+  resourceUsername: string
+  fetchUrl: string
+  fetchOptions?: RequestInit
+  requestId?: string
+  responseType?: TempWindowResponseType
+  tempWindowRequestSource?: TempWindowRequestSource
+  protectionBypassExecution: ProtectionBypassExecution
+  resourceBinding?: OctopusApiResourceBinding
+}
+
+export const TEMP_WINDOW_TURNSTILE_STATUSES = {
+  NotPresent: "not_present",
+  TokenObtained: "token_obtained",
+  Timeout: "timeout",
+  Error: "error",
+} as const
+
+export type TempWindowTurnstileStatus =
+  (typeof TEMP_WINDOW_TURNSTILE_STATUSES)[keyof typeof TEMP_WINDOW_TURNSTILE_STATUSES]
+
+export interface TempWindowTurnstileMeta {
+  status: TempWindowTurnstileStatus
+  hasTurnstile: boolean
+}
+
+export interface TempWindowTurnstileFetchParams extends TempWindowFetchParams {
+  /** Page URL used to render Turnstile in the temporary context. */
+  pageUrl: string
+  /**
+   * When true, open the temporary context in an incognito/private window.
+   *
+   * This is useful for sites whose login state is stored in local/session
+   * storage, where a normal temp tab may inherit the currently logged-in user
+   * and fail to render Turnstile (multi-account scenarios).
+   */
+  useIncognito?: boolean
+  /** Timeout (ms) for Turnstile token wait in the content script. */
+  turnstileTimeoutMs?: number
+  /** Token field name (default: `turnstile`); applies to the chosen placement. */
+  turnstileParamName?: string
+  /** Defaults to query for existing callers; JSON APIs can opt into body attachment. */
+  turnstileTokenPlacement?: "query" | "json-body"
+  /** Optional pre-trigger used to render the Turnstile widget (best-effort). */
+  turnstilePreTrigger?: TurnstilePreTrigger
+}
+
+export const TEMP_WINDOW_CHECKIN_PAGE_ACTION_REASONS = {
+  Clicked: "clicked",
+  IdentityMissing: "identity_missing",
+  IdentityMismatch: "identity_mismatch",
+  InvalidRequest: "invalid_request",
+  TargetNotFound: "target_not_found",
+  Throttled: "throttled",
+  TriggerFailed: "trigger_failed",
+} as const
+
+export type TempWindowCheckinPageActionReason =
+  (typeof TEMP_WINDOW_CHECKIN_PAGE_ACTION_REASONS)[keyof typeof TEMP_WINDOW_CHECKIN_PAGE_ACTION_REASONS]
+
+export interface TempWindowPageAccountIdentity {
+  userId: string
+  user: unknown
+  siteTypeHint?: AccountSiteType
+}
+
+export interface TempWindowCheckinPageActionParams {
+  originUrl: string
+  pageUrl: string
+  requestId?: string
+  tempWindowRequestSource?: TempWindowRequestSource
+  suppressMinimize?: boolean
+  siteType: AccountSiteType
+  expectedUserId: string
+  trigger?: TurnstilePreTrigger
+  accountId?: string
+  authType?: AuthTypeEnum
+  cookieAuthSessionCookie?: string
+  cookieStoreId?: string
+  protectionBypassExecution: ProtectionBypassExecution
+}
+
+export interface TempWindowFetch {
+  transportLifecycle?: ApiTransportRemoteLifecycleEvidence
+  success: boolean
+  status?: number
+  code?: ApiErrorCode
+  headers?: Record<string, string>
+  data?: any
+  error?: string
+}
+
+export interface TempWindowTurnstileFetch extends TempWindowFetch {
+  turnstile: TempWindowTurnstileMeta
+}
+
+export interface TempWindowCheckinPageAction {
+  success: boolean
+  reason: TempWindowCheckinPageActionReason
+  identity?: TempWindowPageAccountIdentity | null
+  expectedUserId?: string
+  trigger?: CheckinPageActionTriggerResult
+  error?: string
+  code?: ApiErrorCode
+}
+
+export interface TempWindowRenderedTitleResponse {
+  success: boolean
+  title?: string
+  error?: string
+  code?: ApiErrorCode
+}
+
+export type TempWindowOpenContextResult =
+  | { success: true; tabId: number; windowId?: number }
+  | { success: false; error: string; code?: ApiErrorCode }
+
+export interface TempWindowRenderedTitleParams {
+  originUrl: string
+  requestId?: string
+  tempWindowRequestSource?: TempWindowRequestSource
+  suppressMinimize?: boolean
+  protectionBypassExecution: ProtectionBypassExecution
+}
+
+export interface TempWindowFallbackAllowlist {
+  statusCodes?: number[]
+  codes?: ApiErrorCode[]
+}
+
+export interface TempWindowFallbackContext {
+  baseUrl: string
+  url: string
+  endpoint: string
+  fetchOptions: RequestInit
+  onlyData: boolean
+  responseType: TempWindowResponseType
+  tempWindowRequestSource?: TempWindowRequestSource
+  protectionBypassExecution: ProtectionBypassExecution
+  /**
+   * Allowlist controlling which `ApiError.statusCode` and/or `ApiError.code` values can trigger temp-window fallback.
+   * When provided, this fully overrides the default allowlist: omitted fields default to empty lists.
+   */
+  tempWindowFallback?: TempWindowFallbackAllowlist
+  /** Account ID for per-request cookie isolation */
+  accountId?: string
+  /** Auth type for cookie auth handling */
+  authType: AuthTypeEnum
+  /** Per-account session cookie header to merge with WAF cookies */
+  cookieAuthSessionCookie?: string
+  /** Whether the temp-window fallback should use an incognito/private context. */
+  useIncognito?: boolean
+  /** Browser cookie store to use when reading cookies for injected requests. */
+  cookieStoreId?: string
+  /** Skip the primary request and execute directly in the temp context. */
+  forceTempWindow?: boolean
+  /** Local observer for the remote upstream fetch lifecycle. */
+  transportLifecycleObserver?: ApiTransportRemoteLifecycleObserver
+}

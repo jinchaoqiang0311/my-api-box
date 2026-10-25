@@ -1,0 +1,1019 @@
+{
+  "accountManagement": {
+    "description": "Verwalten Sie Konten, Salden, API-Schlüssel und konfigurieren Sie Sortierprioritäten in der dedizierten Verwaltungskonsole.",
+    "openPage": "Kontoverwaltungsseite öffnen",
+    "title": "Kontoverwaltung"
+  },
+  "actionClick": {
+    "actionIconClickDesc": "Wählen Sie, ob durch Klicken in der Symbolleiste das Popup, die Seitenleiste oder die Seite mit den vollständigen Optionen geöffnet wird.",
+    "actionIconClickTitle": "Standardziel",
+    "description": "Legen Sie fest, was geöffnet wird, wenn Sie auf das Erweiterungssymbol in der Browser-Symbolleiste klicken.",
+    "optionsLabel": "Optionsseite",
+    "optionsTitle": "Vollständige Optionsseite öffnen",
+    "popupLabel": "Popup",
+    "popupTitle": "Popup öffnen",
+    "sidepanelFallbackToast": "Einstellung für die Seitenleiste gespeichert. Dieser Browser unterstützt keine Seitenleiste; Klicks auf die Symbolleiste öffnen daher das Popup.",
+    "sidepanelLabel": "Seitenleiste",
+    "sidepanelTitle": "Seitenleiste öffnen",
+    "sidepanelUnsupportedHelper": "Dieser Browser unterstützt keine Seitenleiste; die Auswahl „Seitenleiste“ wird daher auf das Popup zurückgesetzt.",
+    "title": "Klicken Sie auf das Erweiterungssymbol"
+  },
+  "appearance": {
+    "color": "Akzentfarbe",
+    "colors": {
+      "blue": "Blau",
+      "green": "Grün",
+      "orange": "Orange",
+      "rose": "Rosa",
+      "slate": "Schiefergrau",
+      "violet": "Violett"
+    },
+    "contentWidth": "Inhaltsbreite",
+    "contentWidthDescription": "Gilt nur für die vollständige Verwaltungsseite.",
+    "contentWidths": {
+      "centered": "Zentriert",
+      "full": "Volle Breite"
+    },
+    "densities": {
+      "comfortable": "Geräumig",
+      "compact": "Kompakt",
+      "default": "Standard"
+    },
+    "density": "Oberflächendichte",
+    "densityDescription": "Zeilenabstände und Höhe der Bedienelemente anpassen, ohne die Schriftgröße zu ändern.",
+    "description": "Änderungen werden automatisch gespeichert und auf Einstellungen, Popup und Seitenleiste angewendet.",
+    "font": "Schriftart",
+    "fontDescription": "Wählen Sie die Schriftart der Oberfläche. Bei „Dem Design folgen“ verwendet das Standarddesign eine serifenlose Schrift und Anthropic eine Serifenschrift.",
+    "fonts": {
+      "default": "Dem Design folgen",
+      "sans": "Serifenlos",
+      "serif": "Serifen"
+    },
+    "preset": "Designvorlage",
+    "presetColorsHint": "Dieses Design hat eine eigene Farbpalette. Im Standarddesign können Sie die Akzentfarbe separat wählen.",
+    "presetDescriptions": {
+      "anthropic": "Warmes Creme und Terrakotta mit anthrazitfarbenem Dunkelmodus.",
+      "default": "Klassische Neutraltöne mit frei wählbarer Akzentfarbe."
+    },
+    "presets": {
+      "anthropic": "Anthropic",
+      "default": "Standarddesign"
+    },
+    "radii": {
+      "default": "Standard",
+      "large": "Groß",
+      "none": "Eckig",
+      "small": "Klein"
+    },
+    "radius": "Eckenradius",
+    "reset": "Darstellung zurücksetzen",
+    "resetDensity": "Dichte zurücksetzen",
+    "resetFont": "Schriftart zurücksetzen",
+    "resetTextSize": "Textgröße zurücksetzen",
+    "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "textSize": "Textgröße",
+    "textSizeDescription": "Schriftgröße und Zeilenhöhe anpassen. Bedienelemente passen sich dem Inhalt an, ohne die eingestellte Dichte zu ändern.",
+    "textSizes": {
+      "default": "Standard",
+      "extraLarge": "Sehr groß",
+      "large": "Groß"
+    },
+    "title": "Darstellung"
+  },
+  "appearanceLanguage": {
+    "language": "Sprache",
+    "languageDesc": "Wählen Sie Ihre bevorzugte Sprache",
+    "onboardingHelper": "Die Anleitung und spätere Einstellungsseiten verwenden Ihre ausgewählte Sprache.",
+    "onboardingLabel": "Wählen Sie Ihre Sprache",
+    "onboardingLanguageRequest": "Sehen Sie Ihre Sprache nicht? Sprachunterstützung anfordern",
+    "switcher": {
+      "currentLanguage": "Aktuelle Oberflächensprache: {{language}}",
+      "groupLabel": "Sprachauswahl für die Benutzeroberfläche",
+      "options": {
+        "de": {
+          "label": "DE",
+          "name": "Deutsch"
+        },
+        "en": {
+          "label": "EN",
+          "name": "Englisch"
+        },
+        "es-419": {
+          "label": "ES",
+          "name": "Spanisch (Lateinamerika)"
+        },
+        "ja": {
+          "label": "JA",
+          "name": "Japanisch"
+        },
+        "pt-BR": {
+          "label": "PT-BR",
+          "name": "Portugiesisch (Brasilien)"
+        },
+        "vi": {
+          "label": "VI",
+          "name": "Vietnamesisch"
+        },
+        "zh-CN": {
+          "label": "SC",
+          "name": "Vereinfachtes Chinesisch"
+        },
+        "zh-TW": {
+          "label": "TC",
+          "name": "Traditionelles Chinesisch"
+        }
+      },
+      "switchToLanguage": "Schnittstellensprache auf {{language}} umstellen"
+    }
+  },
+  "autoFillCurrentSiteUrlOnAccountAdd": {
+    "description": "Steuern Sie, ob „Konto hinzufügen“ mit der bereits ausgefüllten URL der aktuellen Website beginnt.",
+    "title": "Konten",
+    "toggleDesc": "Wenn diese Option aktiviert ist, wird beim Öffnen von „Konto hinzufügen“ das URL-Feld vorab mit dem Website-Ursprung der aktuellen Browser-Registerkarte ausgefüllt. Die Erkennung verwendet weiterhin den vorhandenen nächsten Schritt.",
+    "toggleLabel": "Füllen Sie beim Hinzufügen von Konten die URL der aktuellen Website vorab aus"
+  },
+  "autoProvisionKeyOnAccountAdd": {
+    "description": "Nach dem Hinzufügen eines Kontos API-Schlüssel vorbereiten: einen Standardschlüssel oder Schlüssel für alle verfügbaren Gruppen.",
+    "manualHint": "Für gespeicherte Konten können fehlende Schlüssel aller verfügbaren Gruppen unter Schlüsselverwaltung → {{actionLabel}} ergänzt werden.",
+    "modeDescription": "Standard bereitet einen Schlüssel vor, wenn kein aktiver vorhanden ist. Alle Gruppen ergänzt fehlende Gruppen; Seiten ohne Gruppenanforderungen erhalten einen Standardschlüssel. Beide Modi können einen Dialog für erforderliche Eingaben oder einmalig sichtbare Schlüssel öffnen.",
+    "modeLabel": "Umfang der automatischen Erstellung",
+    "modes": {
+      "allGroups": "Alle verfügbaren Gruppen",
+      "default": "Nur Standardschlüssel"
+    },
+    "title": "API-Schlüssel",
+    "toggleDesc": "Nach dem Speichern des Kontos werden fehlende Schlüssel im ausgewählten Umfang geprüft und erstellt.",
+    "toggleLabel": "Nach dem Hinzufügen eines Kontos automatisch Schlüssel erstellen"
+  },
+  "axonHub": {
+    "cors": {
+      "description": "Neue AxonHub-Instanzen erfordern normalerweise ein serverseitiges CORS-Update, bevor die Browsererweiterung auf AxonHub zugreifen kann. Lassen Sie lieber nur den vertrauenswürdigen Browser-/Erweiterungsursprung in AXONHUB_SERVER_CORS_ALLOWED_ORIGINS zu und verwenden Sie „*“ nur als kurzlebigen Fallback für die lokale Entwicklung.",
+      "title": "Erforderliches CORS-Setup"
+    },
+    "description": "Konfigurieren Sie Integrationseinstellungen für die Verbindung mit einer AxonHub-Administratorseite.",
+    "fields": {
+      "baseUrlDesc": "Legen Sie die Basis-URL der Website AxonHub fest",
+      "baseUrlLabel": "Basis-URL",
+      "baseUrlPlaceholder": "https://axonhub.example.com",
+      "emailDesc": "AxonHub Administrator-E-Mail für /admin/auth/signin",
+      "emailLabel": "Admin-E-Mail",
+      "emailPlaceholder": "admin@example.com",
+      "hidePassword": "Passwort verbergen",
+      "passwordDesc": "AxonHub Administratorkennwort zum Erhalten eines Administrator-GraphQL-Sitzungstokens",
+      "passwordLabel": "Admin-Passwort",
+      "passwordPlaceholder": "Passwort eingeben",
+      "showPassword": "Passwort anzeigen"
+    },
+    "title": "AxonHub Integrationseinstellungen",
+    "validation": {
+      "corsFailed": "AxonHub Validierung fehlgeschlagen: {{error}}. Dies bedeutet normalerweise, dass die AxonHub-Instanz den Browserursprung der Erweiterung noch nicht zugelassen hat. Aktualisieren Sie AXONHUB_SERVER_CORS_ALLOWED_ORIGINS, um den vertrauenswürdigen Browser-/Erweiterungsursprung zuzulassen, und verwenden Sie „*“ nur als kurzlebigen Fallback für die lokale Entwicklung. Versuchen Sie es dann erneut.",
+      "description": "Prüfen, ob die aktuelle Konfiguration die Verbindung und Verwaltung der Website ermöglicht.",
+      "failed": "AxonHub Validierung fehlgeschlagen: {{error}}",
+      "missingFields": "Bitte füllen Sie alle erforderlichen Felder aus",
+      "title": "Verbindung prüfen"
+    }
+  },
+  "changelogOnUpdate": {
+    "description": "Steuern Sie, ob My API Box beim ersten Öffnen der Einstellungsseite nach Aktualisierungen ein Dialogfeld „Neuigkeiten“ anzeigt.",
+    "title": "Änderungsprotokoll",
+    "toggleDesc": "Wenn aktiviert, wird das Update-Protokoll beim ersten Öffnen der Einstellungsseite nach einem Update inline angezeigt (einmal pro Version). Sie können das vollständige Änderungsprotokoll der Dokumentation weiterhin manuell öffnen.",
+    "toggleLabel": "Zeigt, was nach Updates neu ist"
+  },
+  "claudeCodeHub": {
+    "description": "Konfigurieren Sie Verbindungseinstellungen für eine Claude Code Hub Admin-Website.",
+    "fields": {
+      "adminTokenDesc": "Admin-Token oder API-Schlüssel, der von der Aktions-API von Claude Code Hub akzeptiert wird",
+      "adminTokenLabel": "Admin-Token",
+      "adminTokenPlaceholder": "Admin-Token eingeben",
+      "baseUrlDesc": "Legen Sie die Basis-URL der Website Claude Code Hub fest",
+      "baseUrlLabel": "Basis-URL",
+      "baseUrlPlaceholder": "https://claude-code-hub.example.com",
+      "hideAdminToken": "Admin-Token ausblenden",
+      "showAdminToken": "Admin-Token anzeigen"
+    },
+    "title": "Claude-Code-Hub-Integrationseinstellungen",
+    "unsupported": {
+      "description": "Modellsynchronisierung und Modellumleitung sind in dieser Version für Claude Code Hub nicht verfügbar.",
+      "title": "Nicht unterstützte Kanalaktionen"
+    },
+    "validation": {
+      "description": "Prüfen, ob die aktuelle Konfiguration die Verbindung und Verwaltung der Website ermöglicht.",
+      "failed": "Claude Code Hub Validierung fehlgeschlagen: {{error}}",
+      "missingFields": "Bitte füllen Sie alle erforderlichen Felder aus",
+      "title": "Verbindung prüfen"
+    }
+  },
+  "claudeCodeRouter": {
+    "apiKeyLabel": "API-Schlüssel",
+    "apiKeyPlaceholder": "sk-123456",
+    "baseUrlLabel": "Basis-URL",
+    "baseUrlPlaceholder": "http://localhost:3000",
+    "description": "Verbindung zur Claude Code Router Admin API konfigurieren",
+    "keyDesc": "Optionaler API-Schlüssel für /api/config (APIKEY)",
+    "title": "Claude Code Router",
+    "urlDesc": "Basis-URL des Claude-Code-Router-Servers, z. B. http://localhost:3000"
+  },
+  "cliProxyApi": {
+    "baseUrlLabel": "Management-API-Basis-URL",
+    "checkConnectionDesc": "Prüfen, ob die aktuelle Konfiguration die Verbindung und Verwaltung der Website ermöglicht.",
+    "checkConnectionLabel": "Verbindung prüfen",
+    "description": "Verbindung zur CLIProxyAPI Management API konfigurieren",
+    "hideKey": "Schlüssel ausblenden",
+    "keyDesc": "Verwaltungsschlüssel für die Authentifizierung des Schnittstellenzugriffs",
+    "managementDocsLinkLabel": "Management-API-Dokumente öffnen",
+    "managementKeyLabel": "Verwaltungsschlüssel",
+    "showKey": "Schlüssel anzeigen",
+    "title": "CLIProxyAPI Einstellungen",
+    "urlDesc": "Legen Sie die Basis-URL der Management-API fest, z. B. http://localhost:8317/v0/management"
+  },
+  "danger": {
+    "resetAllSettings": "Alle Einstellungen zurücksetzen",
+    "resetDesc": "Alle Konfigurationen auf Standardwerte zurücksetzen, dieser Vorgang kann nicht rückgängig gemacht werden",
+    "resetFailed": "Einstellungen konnten nicht zurückgesetzt werden",
+    "resetSettings": "Einstellungen zurücksetzen",
+    "title": "Gefahrenzone"
+  },
+  "dataBackup": {
+    "importExport": {
+      "description": "Greifen Sie auf die spezielle Seite zum Importieren und Exportieren von Daten zu.",
+      "info": "Die Import/Export-Seite bietet vollen Zugriff auf den Datenimport, den Export in verschiedene Formate und die Backup-Verwaltung.",
+      "openPage": "Import-/Exportseite öffnen",
+      "title": "Import & Export"
+    }
+  },
+  "description": "Darstellung, Kontoverwaltung, automatische Aufgaben und Datensicherung anpassen.",
+  "display": {
+    "cny": "CNY (¥)",
+    "currencyDesc": "Legen Sie die Standardwährungseinheit für die Saldo- und Cashflow-Anzeige fest",
+    "currencyUnit": "Währungseinheit",
+    "defaultTab": "Standardregisterkarte",
+    "defaultTabDesc": "Legen Sie die Standardregisterkarte fest, die beim Start des Plugins angezeigt wird",
+    "description": "Passen Sie Sprache und Anzeigeeinstellungen des Plugins an",
+    "title": "Anzeigeeinstellungen",
+    "todayCashflow": "Heutiger Cashflow",
+    "todayCashflowEnabled": "Heutigen Cashflow anzeigen",
+    "todayCashflowEnabledDesc": "Steuert, ob die heutigen Verbrauchs-/Einkommensstatistiken angezeigt und abgerufen werden. Wenn diese Option deaktiviert ist, werden die heutigen Statistiken ausgeblendet und bei der Aktualisierung werden die zu ihrer Berechnung verwendeten Datenanfragen übersprungen.",
+    "totalBalance": "Gesamtsaldo",
+    "usd": "USD ($)"
+  },
+  "doneHub": {
+    "adminCredentialsLink": {
+      "description": "Öffnen Sie die Profilseite, um das Systemzugriffstoken und die Benutzer-ID zu finden.",
+      "open": "Seite öffnen",
+      "title": "Schnellzugriff"
+    },
+    "description": "Konfigurieren Sie Integrationseinstellungen für die Verbindung mit Done Hub-kompatiblen Diensten.",
+    "fields": {
+      "adminTokenLabel": "Systemzugriffstoken des Administrators",
+      "baseUrlLabel": "Basis-URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "Systemzugriffstoken ausblenden",
+      "showToken": "Systemzugriffstoken anzeigen",
+      "userIdLabel": "Administrator-Benutzer-ID"
+    },
+    "title": "Done-Hub-Integrationseinstellungen",
+    "tokenDesc": "Systemzugriffstoken für den Administratorbenutzer. Finden Sie es im Done Hub-Dashboard → Persönliche Einstellungen → Token.",
+    "urlDesc": "Legen Sie die Basis-URL für die Done Hub-Integration fest",
+    "userIdDesc": "Administrator-Benutzer-ID (nur numerisch). Der Root-Administrator ist normalerweise 1."
+  },
+  "duplicateAccountWarningOnAdd": {
+    "description": "Gespeicherte Konten vor dem Hinzufügen prüfen, um Duplikate zu vermeiden.",
+    "title": "Konten",
+    "toggleDesc": "Bestätigung anfordern, wenn dieselbe Benutzer-ID für diese Website bereits gespeichert ist. Bei OpenRouter wird nach einem identischen Management Key gesucht.",
+    "toggleLabel": "Warnung vor dem Hinzufügen von Duplikaten"
+  },
+  "gptLoad": {
+    "description": "Manage a self-hosted gpt-load instance: a lightweight Go AI gateway that load balances requests across provider channels.",
+    "fields": {
+      "baseUrlDesc": "The base URL of your gpt-load dashboard (for example https://gateway.example.com).",
+      "baseUrlLabel": "Gateway address",
+      "baseUrlPlaceholder": "https://gateway.example.com",
+      "hideManagementKey": "Hide management key",
+      "managementKeyDesc": "The gateway's root AUTH_KEY, presented to the management API as a bearer token. It holds the same power as every workspace channel key.",
+      "managementKeyLabel": "Management key",
+      "managementKeyPlaceholder": "The AUTH_KEY from your gateway config",
+      "showManagementKey": "Show management key"
+    },
+    "title": "gpt-load",
+    "validation": {
+      "description": "Send one request with the key above to verify the gateway is reachable and the key is accepted.",
+      "failed": "Could not reach the gateway: {{error}}",
+      "insufficientPrivilege": "The management key lacks permission: {{error}}",
+      "invalidCredential": "The management key was rejected: {{error}}",
+      "missingFields": "Enter the gateway address and management key first",
+      "title": "Check connection"
+    }
+  },
+  "logging": {
+    "consoleEnabled": "Protokollierung aktivieren",
+    "consoleEnabledDesc": "Bei Deaktivierung werden Konsolenausgabe und neue lokale Protokolle gestoppt.",
+    "description": "Protokollausgabe und lokalen Diagnoseverlauf konfigurieren.",
+    "history": {
+      "allContexts": "Alle Quellen",
+      "allLevels": "Alle Stufen",
+      "allTime": "Alle gespeicherten Protokolle",
+      "clearDescription": "Alle auf diesem Gerät gespeicherten Protokolle löschen.",
+      "clearError": "Protokolle konnten nicht gelöscht werden",
+      "clearTitle": "Lokale Protokolle löschen",
+      "context": "Quelle",
+      "copied": "Protokolle kopiert",
+      "copy": "Gefilterte Protokolle kopieren",
+      "copyError": "Protokolle konnten nicht kopiert werden",
+      "description": "Zeigt bis zu {{limit}} lokale Einträge der letzten {{hours}} Stunden. Veraltete Einträge werden beim Aufzeichnen oder Anzeigen von Protokollen bereinigt. Aktiviere die Protokollierung, um Ereignisse aufzuzeichnen; stelle die Mindestprotokollstufe für mehr Details auf Debug.",
+      "details": "Details",
+      "empty": "Keine passenden Protokolle. Protokollierung aktivieren, das Problem reproduzieren und hierher zurückkehren.",
+      "entryDescription": "Protokolle aller Erweiterungsseiten live verfolgen oder den Verlauf ansehen.",
+      "lastHour": "Letzte Stunde",
+      "lastMinutes": "Letzte 5 Minuten",
+      "level": "Protokollstufe",
+      "loadError": "Protokolle konnten nicht gelesen werden. Bereits angezeigte Einträge bleiben erhalten. Bitte erneut versuchen.",
+      "more": "Ältere Protokolle laden",
+      "open": "Protokolle anzeigen",
+      "pause": "Aktualisierung pausieren",
+      "period": "Zeitraum",
+      "resume": "Live-Aktualisierung fortsetzen",
+      "search": "Nach Meldung, Modul oder Anfrage-ID suchen",
+      "showing": "Anzeige {{visible}} / {{total}}",
+      "title": "Letzte Protokolle"
+    },
+    "levels": {
+      "debug": "Debug",
+      "error": "Fehler",
+      "info": "Info",
+      "warn": "Warnung"
+    },
+    "minLevel": "Mindestprotokollstufe",
+    "minLevelDesc": "Protokolle unter der gewählten Stufe werden weder ausgegeben noch gespeichert.",
+    "title": "Protokollierung"
+  },
+  "magpie": {
+    "description": "Anbieter auf Ihrem selbst gehosteten Magpie-Webserver verwalten.",
+    "fields": {
+      "baseUrlDesc": "Starten Sie magpie web (Standardport 3430). Geben Sie die Web-URL ein, nicht die Inferenz-URL auf Port 3425.",
+      "baseUrlLabel": "Web-Verwaltungs-URL",
+      "baseUrlPlaceholder": "http://localhost:3430",
+      "hideWebKey": "Verwaltungsschlüssel ausblenden",
+      "showWebKey": "Verwaltungsschlüssel anzeigen",
+      "webKeyDesc": "Verwenden Sie MAGPIE_WEB_KEY oder den k-Wert im Startlink. Ein fester MAGPIE_WEB_KEY bleibt nach Neustarts gültig; andernfalls aktualisieren Sie diesen Wert nach einem Neustart. Inferenz-API-Schlüssel erlauben keine Verwaltung.",
+      "webKeyLabel": "Web-Verwaltungsschlüssel",
+      "webKeyPlaceholder": "Web-Verwaltungsschlüssel eingeben"
+    },
+    "title": "Magpie",
+    "validation": {
+      "description": "Mit dem obigen Schlüssel die Verbindung und den Zugriff auf die Anbieterliste prüfen.",
+      "failed": "Keine Verbindung zu Magpie. Prüfen Sie die Web-Adresse und ob der Server läuft.",
+      "invalidCredential": "Der Web-Schlüssel wurde abgelehnt. Prüfen Sie MAGPIE_WEB_KEY oder den aktuellen Startschlüssel.",
+      "missingFields": "Geben Sie zuerst die Gateway-Adresse und den Verwaltungsschlüssel ein",
+      "title": "Verbindung prüfen"
+    }
+  },
+  "managedSite": {
+    "axonHub": "AxonHub",
+    "claudeCodeHub": "Claude Code Hub",
+    "cliProxyApi": "CLIProxyAPI",
+    "deploymentDocs": "Offizielle Bereitstellungsdokumentation",
+    "deploymentDocsLink": "Offizielle Bereitstellungsdokumentation für {{site}}",
+    "description": "Wählen Sie aus, welche API-Aggregator-Plattform Sie verwalten möchten. Dadurch wird bestimmt, welche Konfiguration für die Kanalverwaltung und Modellsynchronisierung verwendet wird.",
+    "doneHub": "Done Hub",
+    "gatewayGuidance": {
+      "actions": {
+        "importAccountKeys": "Kanal mit Kontoschlüssel hinzufügen",
+        "importApiKeys": "Kanal mit API-Schlüssel hinzufügen",
+        "viewChannels": "Importierte Kanäle ansehen"
+      },
+      "configComplete": {
+        "description": "Die Gateway-Einstellungen sind gespeichert. Importiere Kontoschlüssel oder API-Zugangsdaten als Gateway-Kanäle. Die Verbindung wird bei der Überprüfung oder beim Import geprüft.",
+        "title": "Nächster Schritt: Kanäle importieren"
+      },
+      "unconfigured": {
+        "description": "Konfigurieren Sie Ihr selbst gehostetes KI-Gateway und importieren Sie dann Kontoschlüssel oder API-Schlüssel als Gateway-Kanäle, damit mehrere Schlüssel über eine KI-API verwendet werden können.",
+        "title": "Konfigurieren Sie Ihr selbst gehostetes KI-Gateway"
+      }
+    },
+    "gptLoad": "gpt-load",
+    "magpie": "Magpie",
+    "newApi": "New API",
+    "octopus": "Octopus",
+    "omniroute": "OmniRoute",
+    "popularityHint": "Nach einer Momentaufnahme der GitHub-Sterne sortiert.",
+    "siteTypeDesc": "Wählen Sie die Plattform aus, die für die Kanalverwaltung und Modellsynchronisierung verwendet wird",
+    "siteTypeLabel": "Gateway-Typ",
+    "sub2api": "Sub2API",
+    "title": "Selbstgehostete KI-Gateway-Konfiguration",
+    "veloera": "Veloera"
+  },
+  "managedSiteConnection": {
+    "check": "Verbindung prüfen",
+    "checkError": "Konfiguration gespeichert, aber Verbindungsprüfung fehlgeschlagen. Bitte erneut versuchen.",
+    "checking": "Prüfen…",
+    "conflict": "Die Konfiguration wurde auf einer anderen Seite geändert. Ihre Eingabe wurde beibehalten. Prüfen Sie die aktuellen Einstellungen oder laden Sie die gespeicherte Konfiguration, um Ihre Eingabe zu ersetzen.",
+    "failed": "Konfiguration gespeichert, aber Verbindungsprüfung fehlgeschlagen: {{reason}}",
+    "invalidField": "Prüfen Sie {{field}} vor dem Speichern",
+    "reload": "Gespeicherte Konfiguration neu laden",
+    "saveError": "Konfiguration konnte nicht gespeichert werden. Ihre Eingabe wurde beibehalten. Bitte erneut versuchen.",
+    "saveFailed": "Konfiguration konnte nicht gespeichert werden: {{reason}}. Ihre Eingabe wurde beibehalten. Bitte erneut versuchen.",
+    "saving": "Speichern…",
+    "success": "Konfiguration gespeichert. Verbindung bestätigt.",
+    "unreachable": "Die Website konnte nicht erreicht werden"
+  },
+  "messages": {
+    "alreadyDefault": "Bereits auf Standardwerten",
+    "confirmReset": "Zurücksetzen bestätigen",
+    "preferencesChangedExternally": "Einstellungen wurden extern geändert. Aktualisieren Sie und versuchen Sie es erneut.",
+    "resetAllConfirmDesc": "Alle Einstellungen zurücksetzen und konfigurierte Verbindungsadressen und Zugangsdaten löschen? Gespeicherte Konten bleiben erhalten; auch die Aufbewahrungsregeln werden zurückgesetzt.",
+    "resetConfirmDesc": "Sind Sie sicher, dass Sie {{name}} auf die Standardeinstellungen zurücksetzen möchten? Dieser Vorgang kann nicht rückgängig gemacht werden.",
+    "resetConnectionConfirmDesc": "Die Verbindungsadressen, Zugangsdaten und zugehörigen Einstellungen dieser Gruppe werden gelöscht und müssen erneut eingerichtet werden. Standardwerte wiederherstellen?",
+    "resetFailed": "Fehler beim Zurücksetzen von {{name}}",
+    "resetHistoryConfirmDesc": "Die Standardwerte verkürzen die Aufbewahrungsdauer. Ältere Einträge können dauerhaft gelöscht werden. Fortfahren?",
+    "resetSuccess": "{{name}} wurde auf die Standardeinstellungen zurückgesetzt",
+    "retentionSaveHint": "Andere Optionen werden automatisch gespeichert. Die Aufbewahrungsdauer muss angewendet werden; eine Verkürzung kann Verlaufseinträge löschen.",
+    "runtimeRequestFailed": "Laufzeitanforderung fehlgeschlagen. Versuchen Sie es später noch einmal.",
+    "saveSettingsFailed": "Einstellungen konnten nicht gespeichert werden",
+    "updateFailed": "{{name}} Update fehlgeschlagen",
+    "updateSuccess": "{{name}} Update erfolgreich"
+  },
+  "newApi": {
+    "adminCredentialsLink": {
+      "description": "Öffnen Sie die Seite mit den persönlichen Administratoreinstellungen, um das Systemzugriffstoken und die Benutzer-ID zu finden.",
+      "open": "Seite öffnen",
+      "title": "Schnellzugriff"
+    },
+    "description": "Konfigurieren Sie Integrationseinstellungen für die Verbindung mit New API-kompatiblen Diensten.",
+    "fields": {
+      "adminTokenLabel": "Systemzugriffstoken des Administrators",
+      "baseUrlLabel": "Basis-URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hidePassword": "Login-Passwort ausblenden",
+      "hideToken": "Systemzugriffstoken ausblenden",
+      "hideTotpSecret": "TOTP-Geheimnis verbergen",
+      "passwordDesc": "Optional. Wird zusammen mit dem Anmeldebenutzernamen verwendet, um sich bei der New API-Administratorkonsole anzumelden und eine Anmeldesitzung einzurichten, wenn ein Kanalschlüssel angezeigt oder ein vollständiger Schlüsselvergleich ausgeführt wird.",
+      "passwordLabel": "Login-Passwort",
+      "passwordPlaceholder": "Passwort eingeben",
+      "showPassword": "Login-Passwort anzeigen",
+      "showToken": "Systemzugriffstoken anzeigen",
+      "showTotpSecret": "TOTP-Geheimnis anzeigen",
+      "totpSecretDesc": "Optional. Sofern bereitgestellt, kann My API Box automatisch TOTP-Codes für die 2FA-Anmeldung und die sichere Verifizierung generieren, die zum Anzeigen von Kanalschlüsseln erforderlich ist.",
+      "totpSecretLabel": "TOTP-Geheimnis",
+      "totpSecretPlaceholder": "Base32 TOTP-Geheimnis einfügen",
+      "userIdLabel": "Administrator-Benutzer-ID",
+      "usernameDesc": "Optional. Wird verwendet, um sich bei der New-API-Administratorkonsole anzumelden und bei Bedarf 2FA abzuschließen. Dies dient hauptsächlich der Anzeige des echten Kanalschlüssels in der Kanalverwaltung und der Überprüfung, ob ein Schlüssel bereits von einem Kanal in der Schlüsselverwaltung verwendet wird.",
+      "usernameLabel": "Login-Benutzername",
+      "usernamePlaceholder": "admin"
+    },
+    "sessionTest": {
+      "description": "Testen Sie, ob der eingegebene Login-Benutzername, das Passwort und das TOTP-Geheimnis korrekt und verwendbar sind. Nach erfolgreicher Prüfung können Sie mit Aktionen fortfahren, die eine Anmeldung und 2FA erfordern.",
+      "testing": "Konfiguration testen...",
+      "title": "Login und 2FA-Konfiguration testen"
+    },
+    "title": "New-API-Integrationseinstellungen",
+    "tokenDesc": "Systemzugriffstoken für den Administratorbenutzer",
+    "urlDesc": "Legen Sie die Basis-URL der New-API-Integration fest",
+    "userIdDesc": "Administrator-Benutzer-ID (nur numerisch)"
+  },
+  "octopus": {
+    "description": "Konfigurieren Sie Integrationseinstellungen für die Verbindung mit selbstgehosteten Octopus-Websites. Das System meldet sich automatisch mit Ihren Anmeldeinformationen an und verwaltet das JWT-Token.",
+    "fields": {
+      "baseUrlDesc": "Legen Sie die Basis-URL der Octopus-Integration fest",
+      "baseUrlLabel": "Basis-URL",
+      "baseUrlPlaceholder": "https://octopus.example.com",
+      "hidePassword": "Passwort verbergen",
+      "passwordDesc": "Octopus Admin-Passwort für automatische Anmeldung",
+      "passwordLabel": "Passwort",
+      "passwordPlaceholder": "Passwort eingeben",
+      "showPassword": "Passwort anzeigen",
+      "usernameDesc": "Octopus Admin-Benutzername für automatische Anmeldung",
+      "usernameLabel": "Benutzername",
+      "usernamePlaceholder": "admin"
+    },
+    "title": "Octopus-Integrationseinstellungen",
+    "validation": {
+      "description": "Prüfen, ob die aktuelle Konfiguration die Verbindung und Verwaltung der Website ermöglicht.",
+      "error": "Bei der Validierung ist ein Fehler aufgetreten",
+      "failed": "Konfigurationsvalidierung fehlgeschlagen, bitte überprüfen Sie Benutzernamen und Passwort",
+      "missingFields": "Bitte füllen Sie alle erforderlichen Felder aus",
+      "title": "Verbindung prüfen"
+    }
+  },
+  "omniroute": {
+    "accessTokens": {
+      "description": "Verwalte die Zugriffstoken im Dashboard des Gateways und widerrufe jederzeit das, welches diese Erweiterung nutzt.",
+      "missingBaseUrl": "Trage zuerst die Deployment-Adresse ein, um die Token-Seite des Gateways zu öffnen.",
+      "open": "Token-Seite öffnen",
+      "title": "Zugriffstoken des Gateways verwalten"
+    },
+    "description": "Konfiguriere die Verbindung zu deinem selbst gehosteten OmniRoute-Gateway.",
+    "fields": {
+      "baseUrlDesc": "Die Adresse, unter der du das OmniRoute-Dashboard im Browser öffnest.",
+      "baseUrlLabel": "Deployment-Adresse",
+      "baseUrlPlaceholder": "http://localhost:20128",
+      "credentialDesc": "Erstellen Sie in Settings → Access Tokens des Gateways ein Zugriffstoken mit admin-Berechtigung und fügen Sie es hier ein.",
+      "credentialLabel": "Zugriffstoken",
+      "credentialPlaceholder": "oma_…",
+      "hideCredential": "Zugriffstoken ausblenden",
+      "showCredential": "Zugriffstoken anzeigen"
+    },
+    "title": "OmniRoute-Integrationseinstellungen",
+    "validation": {
+      "description": "Prüft, ob die aktuelle Konfiguration die Verbindung und Verwaltung der Site erlaubt.",
+      "failed": "Prüfung der OmniRoute-Konfiguration fehlgeschlagen: {{error}}",
+      "insufficientScope": "Der Scope des Tokens reicht nicht: vorhanden ist {{have}}, benötigt wird {{need}}. Lege unter Settings → Access Tokens des Gateways ein neues Token mit dem Scope admin an.",
+      "invalidCredential": "Das Zugriffstoken ist ungültig oder abgelaufen: {{error}}",
+      "missingFields": "Geben Sie die Bereitstellungs-URL und das Zugriffstoken ein",
+      "title": "Verbindung prüfen",
+      "unknownScope": "unbekannt"
+    }
+  },
+  "permissions": {
+    "actions": {
+      "allow": "Zulassen (empfohlen)",
+      "refresh": "Status aktualisieren",
+      "remove": "Widerrufen"
+    },
+    "description": "Gewähren Sie nach Bedarf optionale Berechtigungen für die Aktualisierung von Kontodaten, Hilfstools, Aufgabenbenachrichtigungen und Website-Importe.",
+    "helper": "Jede Berechtigung wird nur von der zugehörigen Funktion verwendet und kann jederzeit widerrufen werden. Funktionen ohne Genehmigung können eingeschränkt sein, während andere weiterhin funktionieren.",
+    "incognito": {
+      "checking": "Zugriff auf private Fenster wird geprüft…",
+      "chromeInstructions": "Aktivieren Sie in den Chrome-Details dieser Erweiterung „Im Inkognitomodus zulassen“.",
+      "denied": "Zugriff auf private Fenster nicht erlaubt",
+      "details": "Einstellungen",
+      "edgeInstructions": "Aktivieren Sie in den Edge-Details dieser Erweiterung „In InPrivate zulassen“.",
+      "enabled": "Zugriff auf private Fenster erlaubt",
+      "firefoxInstructions": "Öffnen Sie in Firefox Add-ons und Themes, wählen Sie diese Erweiterung und erlauben Sie die Ausführung in privaten Fenstern.",
+      "firefoxMobileInstructions": "Firefox: Öffnen Sie die Erweiterungsverwaltung im Browsermenü und prüfen Sie den privaten Zugriff. Menüs und Unterstützung hängen von der Version ab.",
+      "genericInstructions": "Prüfen Sie den privaten Zugriff in der Erweiterungsverwaltung Ihres Browsers.",
+      "manualSteps": "Anleitung ansehen",
+      "mobileInstructions": "Öffnen Sie die Erweiterungsverwaltung im Browsermenü und prüfen Sie den privaten Zugriff. Menüs und Unterstützung hängen von der Version ab.",
+      "openChromeSettings": "Chrome-Einstellungen",
+      "openEdgeSettings": "Edge-Einstellungen",
+      "recommended": "Private Fenster für getrennte Anmeldungen erlauben",
+      "reloadWarning": "Eine Änderung kann die Erweiterung neu laden, Erweiterungsseiten schließen oder Aufgaben unterbrechen. Speichern Sie zuerst Ihre Änderungen.",
+      "safariInstructions": "Wählen Sie diese Erweiterung in den Safari-Erweiterungseinstellungen und erlauben Sie privates Surfen. Die Optionen hängen von der Safari-Version ab.",
+      "settingsFailed": "Die Einstellungen konnten nicht geöffnet werden. Erlauben Sie private Fenster über die Erweiterungsverwaltung Ihres Browsers.",
+      "summary": "Trennen Sie die Passwortanmeldung von normalen Fenstern, um Kontoverwechslungen und Sitzungskonflikte zu vermeiden.",
+      "title": "Zugriff auf private Fenster",
+      "unknown": "Privater Zugriff konnte nicht geprüft werden"
+    },
+    "items": {
+      "bookmarks": {
+        "description": "Lesen Sie gespeicherte URLs nur, wenn Sie Websites aus Browser-Lesezeichen importieren.",
+        "title": "Browser-Lesezeichen"
+      },
+      "clipboardRead": {
+        "description": "Nachdem Sie verwandte Inhalte kopiert haben, helfen Sie Redemption Assist oder AI API Test dabei, Einlösecodes und API-Details zu erkennen.",
+        "title": "Zwischenablage lesen"
+      },
+      "cookies": {
+        "description": "Lesen Sie nur die Cookies, die für die entsprechende Website benötigt werden, wenn Sie den Anmeldestatus überprüfen oder Kontodaten aktualisieren.",
+        "title": "Cookie-Zugriff"
+      },
+      "declarativeNetRequestWithHostAccess": {
+        "description": "Tragen Sie die für das aktuelle Konto benötigten Anfragedetails in einem temporären Fenster ein, um eine Verwechslung von Daten verschiedener Konten zu verhindern.",
+        "title": "Netzwerkanforderungsregeln"
+      },
+      "notifications": {
+        "description": "Ermöglichen Sie, dass geplante Hintergrundaufgaben nach Abschluss Systembenachrichtigungen senden.",
+        "title": "Systembenachrichtigungen"
+      },
+      "webRequest": {
+        "description": "Identifizieren Sie Anfragen, die Kontodetails nur während der temporären Fensterüberprüfung oder der automatischen Aktualisierung benötigen.",
+        "title": "Netzwerkanforderungszugriff"
+      },
+      "webRequestBlocking": {
+        "description": "Fügen Sie das erforderliche Cookie des aktuellen Kontos hinzu, bevor eine Anfrage gesendet wird, damit die Überprüfung des temporären Fensters abgeschlossen werden kann.",
+        "title": "Netzwerkanfragen ändern"
+      }
+    },
+    "messages": {
+      "granted": "{{name}} aktiviert. Zugehörige Arbeitsabläufe werden nun wie erwartet ausgeführt.",
+      "grantFailed": "{{name}} konnte nicht aktiviert werden. Bitte versuchen Sie es später erneut, wenn Sie es noch benötigen.",
+      "revoked": "Berechtigung für {{name}} widerrufen",
+      "revokeFailed": "Die Berechtigung {{name}} konnte nicht widerrufen werden"
+    },
+    "status": {
+      "checking": "Überprüfung…",
+      "denied": "Nicht gewährt",
+      "granted": "Gewährt",
+      "unavailable": "Nicht verfügbar"
+    },
+    "statusCaption": "Der Berechtigungsstatus wird mit dem Browser synchronisiert. Klicken Sie auf „Aktualisieren“, wenn Sie Berechtigungen außerhalb dieser Seite geändert haben.",
+    "title": "Berechtigungen"
+  },
+  "permissionsOnboarding": {
+    "actions": {
+      "allowAll": "Alle empfohlenen Berechtigungen zulassen",
+      "maybeLater": "Nicht jetzt"
+    },
+    "analyticsDisclosure": "Anonyme Analysen helfen uns nur, Probleme zu finden und das Erlebnis zu verbessern. Sie können sie jederzeit deaktivieren; Sie enthalten niemals Ihre Kontoinformationen, Anmeldeinformationen oder die von Ihnen gesendeten oder eingegebenen Inhalte.",
+    "intro": "Die Quelle steht jedem zur Überprüfung offen. Sie entscheiden, ob Berechtigungen und anonyme Analysen aktiviert werden sollen.",
+    "openSourceBadge": "Open Source, transparent und von der Community erstellt",
+    "permissionListDescription": "Für einige Funktionen sind zusätzliche Berechtigungen erforderlich. Überprüfen Sie, wofür jede Berechtigung verwendet wird, gewähren Sie nur das, was Sie benötigen, und widerrufen Sie den Zugriff jederzeit.",
+    "permissionListTitle": "Wählen Sie optionale Berechtigungen",
+    "project": {
+      "cta": "Entdecken Sie die Quelle und den neuesten Fortschritt auf GitHub. Sie können auch Probleme melden oder Ideen austauschen.",
+      "getStartedCta": "Erste Schritte öffnen",
+      "label": "Quellcode",
+      "starCta": "Finden Sie My API Box nützlich? Markieren Sie es auf GitHub, um das Projekt zu unterstützen"
+    },
+    "reason": {
+      "newPermissions": "Neue Funktionen erfordern zusätzliche optionale Berechtigungen. Überprüfen Sie, was jede einzelne bewirkt, und lassen Sie nur das zu, was Sie benötigen."
+    },
+    "subtitle": "Wählen Sie Ihre Sprache und aktivieren Sie dann nur die optionalen Berechtigungen, die Sie benötigen. Sie können diese Einstellungen später ändern.",
+    "title": "Willkommen bei My API Box",
+    "toasts": {
+      "error": "Nicht alle empfohlenen Berechtigungen wurden erteilt",
+      "success": "Alle empfohlenen Berechtigungen erteilt"
+    }
+  },
+  "productAnalytics": {
+    "description": "Anonyme Statistiken, die uns helfen, häufige Probleme früher zu erkennen, alltägliche Arbeitsabläufe zu verbessern und die Kompatibilität zu stärken. Wir erfassen keine API-Schlüssel, Cookies, Konto-URLs, Guthaben, Anfrageinhalte oder Benutzereingaben.",
+    "enableDescription": "Erlauben Sie die Erfassung eingeschränkter Nutzungsdaten, Fehlerkategorien und grober Website-Typ-Statistiken, damit wir uns auf die Bereiche konzentrieren können, die Ihr Erlebnis am stärksten beeinflussen.",
+    "enableLabel": "Anonyme Produktanalyse aktivieren",
+    "title": "Anonyme Produktanalyse"
+  },
+  "refresh": {
+    "autoRefresh": "Automatische Aktualisierung",
+    "autoRefreshDesc": "Kontodaten regelmäßig automatisch aktualisieren (läuft auch nach dem Schließen der Erweiterungsoberfläche im Hintergrund weiter)",
+    "description": "Konfigurieren Sie Einstellungen für die automatische Aktualisierung, z. B. Aktualisierungsintervall und Verhalten beim Start",
+    "minRefreshInterval": "Mindestaktualisierungsintervall",
+    "minRefreshIntervalDesc": "Mindestzeitintervall zwischen Aktualisierungen, um häufige Anfragen zu vermeiden (mindestens {{minSeconds}} Sekunden)",
+    "minRefreshIntervalInvalid": "Bitte geben Sie ein gültiges Mindestaktualisierungsintervall ein (mindestens {{minSeconds}} Sekunden).",
+    "refreshInterval": "Aktualisierungsintervall",
+    "refreshIntervalDesc": "Legen Sie das Zeitintervall für die automatische Aktualisierung fest (Standard {{defaultInterval}} Sekunden, es wird empfohlen, es nicht zu klein einzustellen, um häufige Anfragen zu vermeiden)",
+    "refreshIntervalHint": "Häufiges Aktualisieren kann bei vielen Konten die Anfragelimits der Websites auslösen. Ein Intervall von mindestens {{minutes}} Minuten wird empfohlen.",
+    "refreshIntervalInvalid": "Bitte geben Sie ein gültiges Aktualisierungsintervall ein (mindestens {{minSeconds}} Sekunden).",
+    "refreshOnOpen": "Automatische Aktualisierung beim Öffnen des Plugins",
+    "refreshOnOpenDesc": "Kontodaten automatisch aktualisieren, wenn das Plugin-Popup geöffnet wird",
+    "shieldAutomaticFeatureAccountRefresh": "Kontoaktualisierung",
+    "shieldAutomaticFeatureBalanceHistory": "Saldenverlauf",
+    "shieldAutomaticFeatureCheckin": "Check-in",
+    "shieldAutomaticFeatureKeyManagement": "Schlüsselverwaltung",
+    "shieldAutomaticFeatureLdohSiteLookup": "Website-Suche",
+    "shieldAutomaticFeatureManagedSiteChannels": "Kanäle verwalteter Websites",
+    "shieldAutomaticFeatureManagedSiteModelSync": "Modellsynchronisierung verwalteter Websites",
+    "shieldAutomaticFeatureRedemptionAssist": "Einlösehilfe",
+    "shieldAutomaticFeaturesDesc": "Wählen Sie aus, welche automatischen Funktionen eine temporäre Bestätigungsseite öffnen können. Diese Auswahlmöglichkeiten aktivieren oder deaktivieren die Produktfunktion nicht und wirken sich nicht auf Aktionen aus, die Sie selbst starten.",
+    "shieldAutomaticFeaturesTitle": "Automatische Funktionen",
+    "shieldDescriptionTempWindowOnly": "Wenn eine Website eine Verifizierung anfordert, kann die Erweiterung vorübergehend einen Tab oder ein Fenster öffnen. Der Vorgang wird fortgesetzt, nachdem die Überprüfung erfolgreich war.",
+    "shieldDescriptionWithCookieInterceptor": "In Firefox kann die Erweiterung eine temporäre Seite zur Website-Verifizierung öffnen und anschließend mit dem bestätigten Anmeldestatus fortfahren. Dafür sind die Berechtigungen „Cookies“, „Web-Anfragen“ und „Web-Anfragen blockieren“ erforderlich.",
+    "shieldDevFocusDuring": "Während: {{transition}}",
+    "shieldDevFocusEnd": "Ende: {{state}}",
+    "shieldDevFocusStart": "Beginn: {{state}}",
+    "shieldDevFocusStateFocused": "Browser im Vordergrund",
+    "shieldDevFocusStateUnfocused": "Browser im Hintergrund",
+    "shieldDevFocusStateUnknown": "nicht bestimmbar",
+    "shieldDevFocusTitle": "Dieser Lauf",
+    "shieldDevFocusTransitionBackgrounded": "Browser in den Hintergrund verschoben",
+    "shieldDevFocusTransitionForegrounded": "Browser in den Vordergrund zurückgekehrt",
+    "shieldDevFocusTransitionMixed": "Browser zwischen Vordergrund und Hintergrund verschoben",
+    "shieldDevFocusTransitionRemainedFocused": "Browser blieb im Vordergrund",
+    "shieldDevFocusTransitionRemainedUnfocused": "Browser blieb im Hintergrund",
+    "shieldDevFocusTransitionUnknown": "nicht bestimmbar",
+    "shieldDevTriggerCancel": "Abbrechen",
+    "shieldDevTriggerCountdown_one": "Löst in {{count}} Sekunde aus",
+    "shieldDevTriggerCountdown_other": "Löst in {{count}} Sekunden aus",
+    "shieldDevTriggerDelayLabel": "Verzögerung (Sekunden)",
+    "shieldDevTriggerDescription": "Simulieren Sie nach einer Verzögerung ein vorhandenes automatisches Verhalten und rufen Sie die angegebene URL mithilfe der Website-Verifizierungsunterstützung auf. Nur im Entwicklungsmodus verfügbar.",
+    "shieldDevTriggerFailureFallback": "Die Anfrage ist fehlgeschlagen. Weitere Informationen finden Sie in den Erweiterungsprotokollen.",
+    "shieldDevTriggerInvalidDelay": "Geben Sie eine ganze Zahl von 0 bis {{maxSeconds}} Sekunden ein.",
+    "shieldDevTriggerInvalidUrl": "Geben Sie eine gültige HTTP- oder HTTPS-URL ein.",
+    "shieldDevTriggerPresetAccountRefreshScheduled": "Geplante Kontoaktualisierung",
+    "shieldDevTriggerPresetBalanceHistoryScheduled": "Geplanter Saldoverlauf",
+    "shieldDevTriggerPresetCheckinScheduled": "Geplanter Check-in",
+    "shieldDevTriggerPresetKeyManagementRecovery": "Wiederherstellung der Schlüsselverwaltung",
+    "shieldDevTriggerPresetLabel": "Zu simulierendes Verhalten",
+    "shieldDevTriggerPresetLdohSiteLookupRecovery": "Wiederherstellung der Website-Suche",
+    "shieldDevTriggerPresetRedemptionAssistRecovery": "Wiederherstellung der Einlösehilfe",
+    "shieldDevTriggerPresetTurnstileAutomatic": "Turnstile: automatischer Erfolg",
+    "shieldDevTriggerPresetTurnstileFailure": "Turnstile: fehlgeschlagene Verifizierung",
+    "shieldDevTriggerPresetTurnstileInteractive": "Turnstile: manuelle Verifizierung",
+    "shieldDevTriggerPresetTurnstileQueue": "Turnstile: Warteschlange für drei Websites",
+    "shieldDevTriggerRunning": "Wird ausgelöst...",
+    "shieldDevTriggerStart": "Nach Verzögerung auslösen",
+    "shieldDevTriggerSuccess": "Anfrage abgeschlossen (HTTP {{status}})",
+    "shieldDevTriggerTitle": "Entwicklungstest",
+    "shieldDevTriggerTurnstileHint": "Starten Sie zuerst pnpm dev:turnstile. Die Szenarien verwenden die offizielle lokale Testkomponente ohne echte Konto-Check-ins. Aktivieren Sie Hinweise in der Oberfläche und öffnen Sie jede Verifizierung per Klick auf den Hinweis.",
+    "shieldDevTriggerUrlLabel": "Ziel-URL",
+    "shieldEnabled": "Automatischen Aufgaben erlauben, temporäre Seiten zu öffnen",
+    "shieldEnabledDescTempWindowOnly": "Wenn diese Option aktiviert ist, können automatische Aktualisierung, Check-in und ähnliche Aufgaben eine temporäre Seite öffnen, wenn eine Website-Verifizierung erforderlich ist. Wenn die Funktion deaktiviert ist, können Aktionen, die Sie selbst starten, diese Funktion gemäß den folgenden Einstellungen weiterhin verwenden.",
+    "shieldEnabledDescWithCookieInterceptor": "Wenn diese Option aktiviert ist, können automatische Aktualisierung, Check-in und ähnliche Aufgaben eine temporäre Seite öffnen, wenn eine Website-Verifizierung erforderlich ist. Wenn die Funktion deaktiviert ist, können Aktionen, die Sie selbst starten, diese Funktion gemäß den folgenden Einstellungen weiterhin verwenden.",
+    "shieldMethodAuto": "Automatisch",
+    "shieldMethodComposite": "Einzelnes gemeinsames Fenster",
+    "shieldMethodDesc": "Wählen Sie aus, wie temporäre Seiten geöffnet werden, wenn eine Website eine Überprüfung erfordert.",
+    "shieldMethodHintAuto": "Wechselt automatisch je nach Browserstatus: Während Sie den Browser verwenden, bleiben die Überprüfungsseiten in einem gemeinsamen Fenster, anstatt sich mit Ihren regulären Registerkarten zu vermischen. Während sich der Browser im Hintergrund befindet, verwenden sie einen inaktiven Tab, um zu vermeiden, dass das Fenster in den Vordergrund gerückt wird.",
+    "shieldMethodHintComposite": "Am besten, wenn Sie die Verifizierungsseiten vom alltäglichen Surfen trennen möchten. Die Seiten bleiben in einem separaten Fenster zusammen; Der Browser wird möglicherweise beim ersten Öffnen dieses Fensters in den Vordergrund gerückt.",
+    "shieldMethodHintTab": "Am besten, wenn Sie nicht möchten, dass die Verifizierung Ihre Arbeit unterbricht. Die Seite wird als inaktiver Tab in Ihrem aktuellen Browserfenster geöffnet, ohne dass ein anderes Fenster geöffnet oder der Browser in den Vordergrund geholt werden muss.",
+    "shieldMethodHintWindow": "Am besten, wenn Sie möchten, dass jede Überprüfung ein eigenes Fenster verwendet. Jede Überprüfung wird separat geöffnet; aufeinanderfolgende Überprüfungen können mehrere Fenster erstellen und den Browser wiederholt in den Vordergrund bringen.",
+    "shieldMethodRecommended": "Empfohlen",
+    "shieldMethodTab": "Tab im aktuellen Fenster",
+    "shieldMethodTitle": "Öffnungsmethode",
+    "shieldMethodWindow": "Jedes Mal neues Fenster",
+    "shieldPermissionAction": "Registerkarte „Berechtigungen“ öffnen",
+    "shieldPermissionWarningDesc": "Firefox benötigt diese drei Berechtigungen, um während der Website-Verifizierung erstellte Cookies zu lesen und den Anmeldestatus für nachfolgende Anfragen beizubehalten.",
+    "shieldPermissionWarningTitle": "Berechtigungen für Cookies, Webanfragen und Blockierung von Webanfragen erforderlich",
+    "shieldPopupFirefoxNote": "In Firefox würde das Starten dieser Funktion über das Erweiterungs-Popup das Popup schließen. Dieser Einstiegspunkt ist daher nicht verfügbar. Verwenden Sie stattdessen die Seitenleiste oder die Einstellungsseite.",
+    "shieldTitle": "Unterstützung bei der Website-Verifizierung",
+    "shieldTurnstileAssistDesc": "Wählen Sie, wie Sie informiert werden, wenn Turnstile von Hand abgeschlossen werden muss. Das Prüffenster bleibt offen, bis es fertig ist oder die Zeit abläuft.",
+    "shieldTurnstileAssistNotify": "Browser-Benachrichtigungen",
+    "shieldTurnstileAssistNotifyHint": "Sendet eine lokale Browser-Benachrichtigung. Ein Klick öffnet die Verifizierung; eine Benachrichtigungsberechtigung ist erforderlich.",
+    "shieldTurnstileAssistPage": "Hinweise in der Oberfläche",
+    "shieldTurnstileAssistPageHint": "Zeigt einen Hinweis auf der aktuellen Webseite oder Erweiterungsseite. Ein Klick öffnet die Verifizierung.",
+    "shieldTurnstileAssistQuietNotice": "Alle Erinnerungen sind deaktiviert. Die Verifizierung läuft im Hintergrundfenster weiter, fordert Sie jedoch nicht auf.",
+    "shieldTurnstileAssistTitle": "Wenn die Prüfung Sie braucht",
+    "shieldWindowHeight": "Höhe (px)",
+    "shieldWindowSizeDesc": "Breite und Höhe in Pixeln einstellen und speichern. Gilt für neu geöffnete Verifizierungsfenster; bestehende Fenster und Tabs behalten ihre Größe.",
+    "shieldWindowSizeReset": "Standardwerte wiederherstellen",
+    "shieldWindowSizeTitle": "Größe des Verifizierungsfensters",
+    "shieldWindowWidth": "Breite (px)",
+    "title": "Aktualisierungseinstellungen",
+    "turnstileNotificationEnable": "Systembenachrichtigungen erlauben",
+    "turnstileNotificationManage": "Benachrichtigungsrechte verwalten",
+    "turnstileNotificationPermissionTitle": "Browser-Benachrichtigungen von My API Box erlauben",
+    "turnstileNotificationStatus": {
+      "available": "Systembenachrichtigungen: erlaubt. Ruhemodus oder Browsereinstellungen können sie weiterhin ausblenden.",
+      "blocked": "Der Browser blockiert Benachrichtigungen. Prüfen Sie die Benachrichtigungseinstellungen und versuchen Sie es hier erneut.",
+      "loading": "Benachrichtigungsrechte werden geprüft…",
+      "permission_required": "Systembenachrichtigungen: Berechtigung erforderlich. Seitenhinweise benötigen diese nicht.",
+      "unavailable": "Dieser Browser unterstützt keine Benachrichtigungen. Hinweise in der Oberfläche können separat aktiviert werden.",
+      "unknown": "Die Verfügbarkeit konnte nicht bestätigt werden. Prüfen Sie die Berechtigungen und versuchen Sie es erneut."
+    }
+  },
+  "releaseUpdate": {
+    "changelog": "Änderungsprotokoll",
+    "checkNow": "Nach Updates suchen",
+    "downloadUpdate": "Update herunterladen",
+    "helpers": {
+      "amoUpdate": "Eine neue Version ist auf Firefox Add-ons verfügbar. Öffnen Sie den Store oder warten Sie auf das automatische Update.",
+      "checkFailed": "Bitte erneut nach Updates suchen.",
+      "manualUpdate": "Diese Installation wird manuell aktualisiert. Öffnen Sie die Release-Seite, um die neue Version zu erhalten.",
+      "manualUpdateGeneric": "Aktualisieren Sie über Ihren aktuellen Installationskanal oder öffnen Sie die Release-Seite, wenn Sie manuell aktualisieren müssen.",
+      "storeUpdate": "Store-Versionen werden automatisch vom Browser aktualisiert. Bitte auf die Bereitstellung im Store warten.",
+      "storeUpdateReady": "Der Browser hat ein Store-Update gefunden. Laden Sie die Erweiterung neu, um die neue Version zu verwenden.",
+      "unavailable": "Bitte erneut nach Updates suchen."
+    },
+    "latestAmoVersion": "Firefox Add-ons: v{{version}}",
+    "latestNightlyVersion": "Neuestes Nightly: {{version}}",
+    "reloadToUpdate": "Zum Aktualisieren neu laden",
+    "states": {
+      "checkFailed": "Updates konnten nicht geprüft werden",
+      "notChecked": "Die neueste stabile Version wurde noch nicht überprüft. Führen Sie eine manuelle Prüfung durch, um Versionen zu vergleichen",
+      "storeUpdatePending": "Store-Update steht noch aus",
+      "storeUpdateReady": "Update bereit",
+      "unavailable": "Update-Status nicht verfügbar",
+      "updateAvailable": "Update verfügbar",
+      "upToDate": "Auf dem neuesten Stand"
+    },
+    "versionBadge": {
+      "changelogAriaLabel": "Änderungsprotokoll für Version {{version}}",
+      "updateAvailableAriaLabel": "Update für Version {{version}} verfügbar"
+    }
+  },
+  "siteAnnouncementNotifications": {
+    "description": "Steuert, ob aktivierte Kontoseiten im Hintergrund auf Seitenankündigungen überprüft werden.",
+    "page": {
+      "description": "Prüft alle {{intervalMinutes}} Minuten im Hintergrund. Sie können auch eine manuelle Prüfung durchführen.",
+      "open": "Ankündigungen anzeigen",
+      "title": "Ankündigungsseite"
+    },
+    "polling": {
+      "enable": "Abruf von Website-Ankündigungen aktivieren",
+      "enableDesc": "Wenn deaktiviert, wird die geplante Hintergrundabfrage gestoppt. Vorhandene lokale Aufzeichnungen bleiben erhalten und auf der Ankündigungsseite kann weiterhin eine manuelle Überprüfung durchgeführt werden.",
+      "interval": "Abfrageintervall",
+      "intervalDesc": "Legen Sie das Abfrageintervall für Hintergrund-Website-Ankündigungen in Minuten fest, von 15 bis 1440.",
+      "intervalInvalid": "Geben Sie eine ganze Minutenzahl zwischen {{min}} und {{max}} ein.",
+      "maxAge": "Gültigkeitsdauer für Benachrichtigungen",
+      "maxAgeDesc": "Ankündigungen, die früher veröffentlicht wurden, werden als gelesen gespeichert und lösen keine Benachrichtigung aus.",
+      "maxAgeInvalid": "Geben Sie eine ganze Zahl zwischen {{min}} und {{max}} Tagen ein.",
+      "upstreamRead": "Nach der Benachrichtigung auf der Website als gelesen markieren",
+      "upstreamReadDesc": "Wenn aktiviert, markiert eine zugestellte Benachrichtigung die abgerufenen Ankündigungen auch auf der Website als gelesen. Wenn deaktiviert, wird der Lesestatus nur synchronisiert, nachdem du eine Ankündigung auf der Seite als gelesen markierst; benachrichtigt zu werden ist nicht dasselbe wie gelesen zu haben. Gilt nur für Websites, die eine Synchronisierung des Lesestatus unterstützen."
+    },
+    "title": "Website-Ankündigungen"
+  },
+  "sorting": {
+    "contextBoostDescription": "Zuerst erscheint das Konto der aktuellen Website, dann Konten mit geöffneten zugehörigen Seiten, vor anderen angehefteten Konten. Innerhalb jeder Stufe kommen angeheftete Konten zuerst, danach gilt das gewählte Sortierfeld. Deaktivierte Konten bleiben am Ende. Bei Suche und manueller Sortierung gelten diese Regeln nicht.",
+    "contextBoostTitle": "Besuchte Websites bevorzugen",
+    "currentSiteDesc": "Das Konto des auf der aktuellen Website angemeldeten Benutzers zuerst anzeigen.",
+    "currentSitePriority": "Konto der aktuellen Website bevorzugen",
+    "customCheckInUrl": "Externe Check-in-URL",
+    "customRedeemUrl": "Benutzerdefinierte Einlöse-URL",
+    "description": "Der Browserkontext hat Vorrang vor angehefteten Konten. Andere Konten bleiben nach angeheftet, normal und deaktiviert sortiert.",
+    "matchedOpenTabs": "Konten anderer geöffneter Tabs bevorzugen",
+    "matchedOpenTabsDesc": "Konten bevorzugen, deren Website oder konfigurierte Check-in- oder Einlöseseite geöffnet ist, und mit „Zugehörige Seite geöffnet“ kennzeichnen.",
+    "title": "Sortierprioritätseinstellungen",
+    "unknownSortRule": "Unbekannte Sortierregel"
+  },
+  "sub2apiManagedSite": {
+    "adminCredentialsLink": {
+      "description": "Melde dich als Administrator an und erstelle und kopiere unter Systemeinstellungen → Sicherheit und Authentifizierung einen Schlüssel. Der vollständige Schlüssel wird nur einmal angezeigt. Eine Neugenerierung macht den alten Schlüssel ungültig.",
+      "missingBaseUrl": "Gib zuerst eine gültige Website-URL ein, um das Dashboard zu öffnen und einen Admin API Key abzurufen.",
+      "open": "Systemeinstellungen öffnen",
+      "title": "Admin API Key abrufen"
+    },
+    "defaultScope": {
+      "description": "Wenn deine Website für sensible Vorgänge eine zusätzliche Verifizierung verlangt, kann die Erweiterung Kanalschlüssel weder anzeigen noch exportieren. Führe diese Aktionen im Sub2API-Dashboard aus. Migrationen sind ebenfalls betroffen, wenn dafür ein Quellschlüssel gelesen werden muss.",
+      "title": "Einschränkungen bei Schlüsselanzeige und Export"
+    },
+    "description": "Verbinde deine Website, um vorhandene API-Schlüssel in Sub2API zu importieren und Kanäle in My API Box anzuzeigen, zu bearbeiten und zu migrieren.",
+    "fields": {
+      "adminApiKeyDesc": "Verwende zur Kanalverwaltung einen im Dashboard erstellten Admin API Key. Ein gewöhnlicher API-Schlüssel für Modellaufrufe funktioniert hier nicht.",
+      "adminApiKeyLabel": "Admin API Key",
+      "adminApiKeyPlaceholder": "Admin API Key aus dem Dashboard einfügen",
+      "baseUrlDesc": "Gib die URL deines Sub2API-Dashboards einschließlich http:// oder https:// ein.",
+      "baseUrlLabel": "Website-URL",
+      "baseUrlPlaceholder": "https://sub2api.example.com",
+      "hideAdminApiKey": "Admin API Key ausblenden",
+      "showAdminApiKey": "Admin API Key anzeigen"
+    },
+    "title": "Mit Sub2API verbinden",
+    "validation": {
+      "description": "Prüfen, ob die aktuelle Konfiguration die Verbindung und Verwaltung der Website ermöglicht.",
+      "failed": "Sub2API-Verbindungsprüfung fehlgeschlagen: {{error}}",
+      "missingFields": "Gib zuerst die Website-URL und den Admin API Key ein",
+      "title": "Verbindung prüfen"
+    }
+  },
+  "tabs": {
+    "accountManagement": "Kontoverwaltung",
+    "accountUsage": "Kontonutzung",
+    "balanceHistory": "Kontostandverlauf",
+    "checkinRedeem": "Einchecken und einlösen",
+    "claudeCodeRouter": "Claude Code Router",
+    "dataBackup": "Daten und Sicherung",
+    "general": "Allgemein",
+    "managedSite": "Selbstgehostetes KI-Gateway",
+    "notifications": "Benachrichtigungen",
+    "permissions": "Berechtigungen",
+    "refresh": "Datenaktualisierung",
+    "select": "Wählen Sie eine Registerkarte",
+    "siteAnnouncements": "Website-Ankündigungen",
+    "webAiApiCheck": "AI API-Test"
+  },
+  "taskNotifications": {
+    "channels": {
+      "browser": {
+        "description": "Senden Sie Systembenachrichtigungen über den Browser. Erfordert die Benachrichtigungsberechtigung.",
+        "title": "Browser-Systembenachrichtigungen"
+      },
+      "dingtalk": {
+        "description": "Senden Sie Aufgabenbenachrichtigungen über einen benutzerdefinierten Bot der Gruppe DingTalk. Es wird empfohlen, die vollständige Webhook-URL von DingTalk einzufügen, und der access_token-Wert wird weiterhin unterstützt.",
+        "docsLink": "Setup-Dokumente anzeigen",
+        "secret": "Signaturgeheimnis (optional)",
+        "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "DingTalk Bot",
+        "webhookKey": "Webhook-URL oder access_token",
+        "webhookKeyDescription": "Kopieren Sie die Webhook-URL von der Seite mit den benutzerdefinierten Bot-Einstellungen DingTalk und fügen Sie sie hier ein. Wenn Sie nur den Wert nach `access_token=` eingeben, vervollständigt My API Box die URL automatisch. Wenn die signierte Sicherheit aktiviert ist, geben Sie auch das Geheimnis ein.",
+        "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "feishu": {
+        "description": "Senden Sie Aufgabenbenachrichtigungen über einen benutzerdefinierten Feishu-Bot. Es wird empfohlen, die vollständige Webhook-URL von Feishu einzufügen, und das letzte Schlüsselsegment wird weiterhin unterstützt.",
+        "docsLink": "Setup-Dokumente anzeigen",
+        "title": "Feishu Bot",
+        "webhookKey": "Webhook-URL oder Schlüssel",
+        "webhookKeyDescription": "Kopieren Sie die Webhook-URL von der Seite mit den benutzerdefinierten Bot-Einstellungen Feishu und fügen Sie sie hier ein. Wenn Sie nach `/hook/` nur den Schlüssel eingeben, vervollständigt My API Box die URL automatisch.",
+        "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      "ntfy": {
+        "accessToken": "Zugriffstoken (optional)",
+        "accessTokenPlaceholder": "tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "description": "Senden Sie Aufgabenbenachrichtigungen über ein NTFY-Thema, indem Sie ntfy.sh oder einen selbst gehosteten NTFY-Server verwenden.",
+        "docsLink": "Setup-Dokumente anzeigen",
+        "title": "ntfy",
+        "topicUrl": "Themen-URL oder Themenname",
+        "topicUrlDescription": "Geben Sie eine vollständige Themen-URL ein, z. B. `https://ntfy.sh/mytopic`, oder geben Sie nur einen ntfy.sh-Themennamen ein. Fügen Sie ein Zugriffstoken hinzu, wenn Ihr selbstgehosteter Server oder Ihr privates Thema eines erfordert.",
+        "topicUrlPlaceholder": "https://ntfy.sh/mytopic"
+      },
+      "telegram": {
+        "botToken": "Bot-Token",
+        "botTokenPlaceholder": "123456:ABC-DEF...",
+        "chatId": "Chat-ID",
+        "chatIdPlaceholder": "123456789 oder -1001234567890",
+        "description": "Senden Sie Aufgabenbenachrichtigungen über einen Telegram Bot.",
+        "title": "Telegram Bot"
+      },
+      "webhook": {
+        "description": "Senden Sie JSON-Benachrichtigungen an einen benutzerdefinierten HTTP(S)-Webhook. Die URL unterstützt Vorlagenvariablen für Dienste wie Bark, die Benachrichtigungstext in den Pfad einfügen.",
+        "title": "Allgemeiner Webhook",
+        "url": "Webhook-URL",
+        "urlDescription": "Verwenden Sie {title}, {message}, {task}, {status}, {total}, {success}, {failed} oder {skipped} in der URL. Die Werte werden vor dem Senden URL-kodiert. Für Bark können Sie https://api.day.app/your-key/{title}/{message} verwenden.",
+        "urlPlaceholder": "https://api.day.app/your-key/{title}/{message}"
+      },
+      "wecom": {
+        "description": "Senden Sie Aufgabenbenachrichtigungen über den Gruppennachrichten-Push WeCom. Es wird empfohlen, die vollständige Webhook-URL von WeCom einzufügen, und der Schlüsselwert wird weiterhin unterstützt.",
+        "docsLink": "Setup-Dokumente anzeigen",
+        "title": "WeCom Bot",
+        "webhookKey": "Webhook-URL oder Schlüssel",
+        "webhookKeyDescription": "Kopieren Sie die Webhook-URL aus den Nachrichten-Push-Einstellungen der Gruppe WeCom und fügen Sie sie hier ein. Wenn Sie nach `key=` nur den Schlüssel eingeben, vervollständigt My API Box die URL automatisch.",
+        "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    "enable": "Aufgabenbenachrichtigungen aktivieren",
+    "enableDesc": "Wenn diese Option aktiviert ist, senden ausgewählte Aufgaben nach Abschluss geplanter Ausführungen Erfolgs-, Teilerfolgs- oder Fehlerbenachrichtigungen.",
+    "groups": {
+      "channels": {
+        "description": "Wählen Sie aus, wo Benachrichtigungen zugestellt werden. Browserbenachrichtigungen benötigen eine Berechtigung, während Telegram, Feishu, DingTalk, WeCom, ntfy und Webhook-Kanäle separat konfiguriert und getestet werden können.",
+        "title": "Benachrichtigungskanäle"
+      },
+      "setup": {
+        "description": "Schalten Sie Benachrichtigungen über geplante Aufgaben ein oder aus, bevor Sie Kanäle und Ereignistypen auswählen.",
+        "title": "Einstellungen"
+      },
+      "tasks": {
+        "description": "Wählen Sie aus, über welche geplanten Aufgabenabschlüsse oder Website-Ankündigungsaktualisierungen Sie benachrichtigt werden sollen.",
+        "title": "Benachrichtigungsereignisse"
+      }
+    },
+    "notification": {
+      "body": {
+        "failure": "{{task}} fehlgeschlagen.",
+        "partialSuccess": "{{task}} teilweise abgeschlossen.",
+        "success": "{{task}} erfolgreich abgeschlossen."
+      },
+      "counts": "Gesamt {{total}}, Erfolg {{success}}, fehlgeschlagen {{failed}}, übersprungen {{skipped}}.",
+      "countsWithAutoCheckinCategories": "Gesamt {{total}}, in diesem Lauf eingecheckt {{success}}, bereits eingecheckt {{alreadyChecked}}, fehlgeschlagen {{failed}}, Bestätigung ausstehend {{uncertain}}, nicht ausgeführt {{skipped}}.",
+      "title": {
+        "failure": "{{task}} fehlgeschlagen",
+        "partialSuccess": "{{task}} teilweise erfolgreich",
+        "success": "{{task}} abgeschlossen"
+      }
+    },
+    "permission": {
+      "description": "Systembenachrichtigungen erfordern die optionale Benachrichtigungsberechtigung des Browsers. Sie können sie auch unter „Berechtigungen“ widerrufen.",
+      "request": "Benachrichtigungsberechtigung erteilen",
+      "requestFailed": "Die Benachrichtigungsberechtigung wurde nicht erteilt",
+      "requestSuccess": "Benachrichtigungsberechtigung erteilt",
+      "title": "Benachrichtigungsberechtigung"
+    },
+    "siteAnnouncements": {
+      "enable": "Website-Ankündigungsbenachrichtigungen",
+      "enableDesc": "Wenn diese Option aktiviert ist, lösen neu abgerufene Website-Ankündigungen Aufgabenbenachrichtigungen aus. Lokale Ankündigungsdaten werden auch bei deaktivierter Funktion gespeichert."
+    },
+    "taskDescriptions": {
+      "autoCheckin": "Benachrichtigung nach Abschluss des täglichen automatischen Check-ins und der automatischen Wiederholungsläufe.",
+      "balanceHistoryCapture": "Benachrichtigung nach Abschluss der Erfassung des Tagesendsaldoverlaufs.",
+      "managedSiteModelSync": "Benachrichtigung nach Abschluss der geplanten Modellsynchronisierung für die verwaltete Website.",
+      "usageHistorySync": "Benachrichtigung nach Abschluss der geplanten Synchronisierung des Nutzungsverlaufs.",
+      "webdavAutoSync": "Benachrichtigung nach Abschluss der geplanten automatischen WebDAV-Synchronisierung."
+    },
+    "tasks": {
+      "autoCheckin": "Automatischer Check-in",
+      "balanceHistoryCapture": "Erfassung des Tagesendsaldos",
+      "managedSiteModelSync": "Modellsynchronisierung",
+      "usageHistorySync": "Synchronisierung des Nutzungsverlaufs",
+      "webdavAutoSync": "Automatische WebDAV-Synchronisierung"
+    },
+    "tasksLabel": "Aufgabenbenachrichtigungen",
+    "test": {
+      "action": "Testbenachrichtigung senden",
+      "browserFailed": "Der Browser-Benachrichtigungstest ist fehlgeschlagen. Stellen Sie sicher, dass der Browser-Benachrichtigungskanal aktiviert und die Benachrichtigungsberechtigung erteilt ist.",
+      "channelDisabled": "Das Senden der Testbenachrichtigung ist fehlgeschlagen. Aktivieren und konfigurieren Sie zunächst diesen Benachrichtigungskanal.",
+      "dingtalkMissingConfig": "DingTalk Bot-Webhook-URL oder access_token ist nicht konfiguriert.",
+      "failed": "Das Senden der Testbenachrichtigung ist fehlgeschlagen. Überprüfen Sie die Konfiguration dieses Benachrichtigungskanals.",
+      "feishuMissingConfig": "Feishu Bot-Webhook-URL oder -Schlüssel ist nicht konfiguriert.",
+      "httpError": "{{label}} hat HTTP {{status}} zurückgegeben.",
+      "httpErrorWithDetail": "{{label}} hat HTTP {{status}} zurückgegeben: {{detail}}",
+      "message": "Dies ist ein My API Box-Aufgabenbenachrichtigungstest.",
+      "ntfyInvalidUrl": "Das ntfy-Thema muss eine http://- oder https://-URL oder ein gültiger ntfy.sh-Themenname sein.",
+      "ntfyMissingConfig": "Die NTFY-Themen-URL oder der Themenname ist nicht konfiguriert.",
+      "sent": "Testbenachrichtigung gesendet",
+      "telegramMissingConfig": "Telegram Bot-Token oder Chat-ID ist nicht konfiguriert.",
+      "title": "My API Box-Testbenachrichtigung",
+      "webhookInvalidUrl": "Die Webhook-URL muss http:// oder https:// verwenden.",
+      "webhookMissingConfig": "Webhook-URL ist nicht konfiguriert.",
+      "wecomMissingConfig": "WeCom Bot-Webhook-URL oder -Schlüssel ist nicht konfiguriert."
+    }
+  },
+  "theme": {
+    "appearance": "Aussehen",
+    "current": "Aktuell: {{theme}} ({{resolvedTheme}})",
+    "currentTheme": "Aktuell: Systemeinstellung ({{theme}})",
+    "dark": "Dunkel",
+    "followSystem": "Systemeinstellung",
+    "followSystemTheme": "Systemdesign verwenden",
+    "light": "Hell",
+    "mode": "Darstellungsmodus",
+    "selectTheme": "Hell, Dunkel oder Systemeinstellung wählen",
+    "switchTo": "Zum Thema {{theme}} wechseln: {{description}}",
+    "useDarkTheme": "Dunkles Thema verwenden",
+    "useLightTheme": "Verwenden Sie ein helles Thema"
+  },
+  "title": "Einstellungen",
+  "veloera": {
+    "adminCredentialsLink": {
+      "description": "Öffnen Sie die Seite mit den persönlichen Administratoreinstellungen, um das Systemzugriffstoken und die Benutzer-ID zu finden.",
+      "open": "Seite öffnen",
+      "title": "Schnellzugriff"
+    },
+    "description": "Konfigurieren Sie Integrationseinstellungen für die Verbindung mit Veloera-kompatiblen Diensten.",
+    "fields": {
+      "adminTokenLabel": "Systemzugriffstoken des Administrators",
+      "baseUrlLabel": "Basis-URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "Systemzugriffstoken ausblenden",
+      "showToken": "Systemzugriffstoken anzeigen",
+      "userIdLabel": "Administrator-Benutzer-ID"
+    },
+    "title": "Veloera-Integrationseinstellungen",
+    "tokenDesc": "Systemzugriffstoken für den Administratorbenutzer",
+    "urlDesc": "Legen Sie die Basis-URL der Veloera-Integration fest",
+    "userIdDesc": "Administrator-Benutzer-ID (nur numerisch)"
+  }
+}

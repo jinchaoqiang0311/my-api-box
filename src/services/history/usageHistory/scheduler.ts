@@ -1,0 +1,406 @@
+import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { normalizeHistoryRetentionDays } from "~/services/history/retention"
+import { notifyTaskResult } from "~/services/notifications/taskNotificationService"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { UsageHistoryMessageTypes } from "~/services/runtimeMessaging/messageTypes"
+import { createRuntimeMessageFailure } from "~/services/runtimeMessaging/result"
+import type { RuntimeMessageResponse } from "~/services/runtimeMessaging/result"
+import {
+  getTaskNotificationStatusFromCounts,
+  TASK_NOTIFICATION_STATUSES,
+  TASK_NOTIFICATION_TASKS,
+} from "~/types/taskNotifications"
+import type { UsageHistoryPreferences } from "~/types/usageHistory"
+import {
+  DEFAULT_USAGE_HISTORY_PREFERENCES,
+  USAGE_HISTORY_SCHEDULE_MODE,
+} from "~/types/usageHistory"
+import {
+  clearAlarm,
+  createAlarm,
+  getAlarm,
+  hasAlarmsAPI,
+  onAlarm,
+} from "~/utils/browser/alarms"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+
+import { USAGE_HISTORY_ALARM_NAME } from "./constants"
+import {
+  onUsageHistoryMessage,
+  type UsageHistorySyncNowRequest,
+  type UsageHistorySyncNowResponse,
+  type UsageHistoryUpdateSettingsRequest,
+  type UsageHistoryUpdateSettingsResponse,
+} from "./messaging"
+import { usageHistoryStorage } from "./storage"
+import {
+  syncUsageHistoryForAccount,
+  USAGE_HISTORY_SYNC_TRIGGERS,
+  type UsageHistorySyncTrigger,
+} from "./sync"
+
+const logger = createLogger("UsageHistoryScheduler")
+
+interface UsageHistoryBatchSyncResult {
+  totals: {
+    success: number
+    skipped: number
+    error: number
+    unsupported: number
+  }
+  perAccount: Array<Awaited<ReturnType<typeof syncUsageHistoryForAccount>>>
+}
+
+interface UsageHistorySyncRequest {
+  trigger: UsageHistorySyncTrigger
+  accountIds?: string[]
+  force?: boolean
+}
+
+/**
+ * Clamp sync interval (minutes) to a safe bounded range.
+ */
+function clampSyncIntervalMinutes(value: unknown): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed))
+    return DEFAULT_USAGE_HISTORY_PREFERENCES.syncIntervalMinutes
+  return Math.min(24 * 60, Math.max(1, Math.trunc(parsed)))
+}
+
+class UsageHistoryScheduler {
+  private isInitialized = false
+  private runningSync: Promise<UsageHistoryBatchSyncResult | null> | null = null
+
+  async initialize() {
+    if (this.isInitialized) {
+      return
+    }
+
+    onAlarm(async (alarm) => {
+      if (alarm.name !== USAGE_HISTORY_ALARM_NAME) {
+        return
+      }
+
+      // Await to keep the MV3 service worker alive while the sync runs.
+      const result = await this.runSync({
+        trigger: USAGE_HISTORY_SYNC_TRIGGERS.Alarm,
+      })
+      if (!result) {
+        return
+      }
+
+      await this.notifyAlarmResult(result)
+    })
+
+    await this.applyScheduleFromPreferences()
+    this.isInitialized = true
+  }
+
+  private async applyScheduleFromPreferences(): Promise<void> {
+    const prefs = await userPreferences.getPreferences()
+    const config = prefs.usageHistory ?? DEFAULT_USAGE_HISTORY_PREFERENCES
+
+    if (
+      !config.enabled ||
+      config.scheduleMode !== USAGE_HISTORY_SCHEDULE_MODE.ALARM
+    ) {
+      await clearAlarm(USAGE_HISTORY_ALARM_NAME)
+      return
+    }
+
+    if (!hasAlarmsAPI()) {
+      await clearAlarm(USAGE_HISTORY_ALARM_NAME)
+
+      const fallback: UsageHistoryPreferences = {
+        ...config,
+        scheduleMode: USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH,
+      }
+
+      await userPreferences.savePreferences({ usageHistory: fallback })
+      logger.warn(
+        "Alarms API unavailable; falling back to after-refresh schedule",
+      )
+      return
+    }
+
+    const intervalMinutes = clampSyncIntervalMinutes(config.syncIntervalMinutes)
+    const existingAlarm = await getAlarm(USAGE_HISTORY_ALARM_NAME)
+
+    if (
+      existingAlarm?.periodInMinutes != null &&
+      Math.abs(existingAlarm.periodInMinutes - intervalMinutes) < 0.001
+    ) {
+      return
+    }
+
+    await clearAlarm(USAGE_HISTORY_ALARM_NAME)
+    await createAlarm(USAGE_HISTORY_ALARM_NAME, {
+      periodInMinutes: intervalMinutes,
+      delayInMinutes: 1,
+    })
+  }
+
+  async updateSettings(
+    updates: Partial<
+      Pick<
+        UsageHistoryPreferences,
+        "enabled" | "retentionDays" | "scheduleMode" | "syncIntervalMinutes"
+      >
+    >,
+  ): Promise<{ warning?: string }> {
+    const prefs = await userPreferences.getPreferences()
+    const current = prefs.usageHistory ?? DEFAULT_USAGE_HISTORY_PREFERENCES
+
+    const next: UsageHistoryPreferences = {
+      ...current,
+      ...updates,
+      retentionDays: normalizeHistoryRetentionDays(
+        updates.retentionDays ?? current.retentionDays,
+        DEFAULT_USAGE_HISTORY_PREFERENCES.retentionDays,
+      ),
+      syncIntervalMinutes: clampSyncIntervalMinutes(
+        updates.syncIntervalMinutes ?? current.syncIntervalMinutes,
+      ),
+    }
+
+    let warning: string | undefined
+    if (
+      next.enabled &&
+      next.scheduleMode === USAGE_HISTORY_SCHEDULE_MODE.ALARM &&
+      !hasAlarmsAPI()
+    ) {
+      next.scheduleMode = USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH
+      warning =
+        "Alarms API not supported; falling back to after-refresh scheduling."
+    }
+
+    await userPreferences.savePreferences({ usageHistory: next })
+    await usageHistoryStorage.pruneAllAccounts(next.retentionDays)
+    await this.applyScheduleFromPreferences()
+
+    return { warning }
+  }
+
+  async runAfterRefreshSync(accountIds?: string[]) {
+    // Refreshes finish independently. Wait rather than dropping accounts that
+    // finish while a previous automatic or manual sync is still running.
+    while (this.runningSync) {
+      await this.runningSync.catch(() => null)
+    }
+    return await this.runSync({
+      trigger: USAGE_HISTORY_SYNC_TRIGGERS.AfterRefresh,
+      accountIds,
+    })
+  }
+
+  async runManualSync(accountIds?: string[]) {
+    return await this.runSync({
+      trigger: USAGE_HISTORY_SYNC_TRIGGERS.Manual,
+      accountIds,
+      force: true,
+    })
+  }
+
+  private runSync(
+    params: UsageHistorySyncRequest,
+  ): Promise<UsageHistoryBatchSyncResult | null> {
+    if (this.runningSync) {
+      return Promise.resolve(null)
+    }
+
+    this.runningSync = this.performSync(params).finally(() => {
+      this.runningSync = null
+    })
+    return this.runningSync
+  }
+
+  private async performSync(
+    params: UsageHistorySyncRequest,
+  ): Promise<UsageHistoryBatchSyncResult | null> {
+    try {
+      const prefs = await userPreferences.getPreferences()
+      const config = prefs.usageHistory ?? DEFAULT_USAGE_HISTORY_PREFERENCES
+
+      const scheduleMismatch =
+        (params.trigger === USAGE_HISTORY_SYNC_TRIGGERS.AfterRefresh &&
+          config.scheduleMode !== USAGE_HISTORY_SCHEDULE_MODE.AFTER_REFRESH) ||
+        (params.trigger === USAGE_HISTORY_SYNC_TRIGGERS.Alarm &&
+          config.scheduleMode !== USAGE_HISTORY_SCHEDULE_MODE.ALARM)
+      if ((!config.enabled || scheduleMismatch) && !params.force) {
+        return {
+          totals: { success: 0, skipped: 0, error: 0, unsupported: 0 },
+          perAccount: [],
+        }
+      }
+
+      const accounts = params.accountIds?.length
+        ? await Promise.all(
+            params.accountIds.map((id) => accountQueries.getAccountById(id)),
+          ).then((values) =>
+            values
+              .filter((value): value is NonNullable<typeof value> =>
+                Boolean(value),
+              )
+              .filter((account) => account.disabled !== true),
+          )
+        : await accountQueries.getEnabledAccounts()
+
+      const perAccount: Array<
+        Awaited<ReturnType<typeof syncUsageHistoryForAccount>>
+      > = []
+
+      for (const account of accounts) {
+        const result = await syncUsageHistoryForAccount({
+          accountId: account.id,
+          trigger: params.trigger,
+          force: params.force,
+          config,
+        })
+        perAccount.push(result)
+      }
+
+      const totals = perAccount.reduce(
+        (acc, item) => {
+          acc[item.status] += 1
+          return acc
+        },
+        {
+          success: 0,
+          skipped: 0,
+          error: 0,
+          unsupported: 0,
+        } as UsageHistoryBatchSyncResult["totals"],
+      )
+
+      return { totals, perAccount }
+    } catch (error) {
+      logger.error("Sync run failed", error)
+      if (params.trigger === USAGE_HISTORY_SYNC_TRIGGERS.Alarm) {
+        await notifyTaskResult({
+          task: TASK_NOTIFICATION_TASKS.UsageHistorySync,
+          status: TASK_NOTIFICATION_STATUSES.Failure,
+          message: getErrorMessage(error),
+        })
+      }
+      return null
+    }
+  }
+
+  private async notifyAlarmResult(
+    result: UsageHistoryBatchSyncResult,
+  ): Promise<void> {
+    const processedCount = result.totals.success + result.totals.error
+    if (processedCount === 0) {
+      return
+    }
+
+    await notifyTaskResult({
+      task: TASK_NOTIFICATION_TASKS.UsageHistorySync,
+      status: getTaskNotificationStatusFromCounts({
+        successCount: result.totals.success,
+        failedCount: result.totals.error,
+      }),
+      counts: {
+        total: result.perAccount.length,
+        success: result.totals.success,
+        failed: result.totals.error,
+        skipped: result.totals.skipped + result.totals.unsupported,
+      },
+    })
+  }
+}
+
+export const usageHistoryScheduler = new UsageHistoryScheduler()
+
+let usageHistoryMessagingCleanup: (() => void)[] | null = null
+
+/**
+ * Register typed background listeners for usage-history scheduler messages.
+ */
+export function setupUsageHistoryMessagingListeners() {
+  if (usageHistoryMessagingCleanup) {
+    return
+  }
+
+  usageHistoryMessagingCleanup = [
+    onUsageHistoryMessage(UsageHistoryMessageTypes.UpdateSettings, ({ data }) =>
+      resolveUsageHistoryUpdateSettingsMessage(data),
+    ),
+    onUsageHistoryMessage(UsageHistoryMessageTypes.SyncNow, ({ data }) =>
+      resolveUsageHistorySyncNowMessage(data),
+    ),
+    onUsageHistoryMessage(UsageHistoryMessageTypes.Prune, () =>
+      resolveUsageHistoryPruneMessage(),
+    ),
+  ]
+}
+
+/**
+ * Resolve a typed request to persist usage-history scheduler settings.
+ */
+export async function resolveUsageHistoryUpdateSettingsMessage(
+  request: UsageHistoryUpdateSettingsRequest,
+): Promise<UsageHistoryUpdateSettingsResponse> {
+  try {
+    const result = await usageHistoryScheduler.updateSettings(
+      request.settings ?? {},
+    )
+    return { success: true, data: result }
+  } catch (error) {
+    logger.error("Message handling failed", error)
+    return createRuntimeMessageFailure(getErrorMessage(error))
+  }
+}
+
+/**
+ * Resolve a typed request to run a manual usage-history sync.
+ */
+export async function resolveUsageHistorySyncNowMessage(
+  request?: UsageHistorySyncNowRequest,
+): Promise<UsageHistorySyncNowResponse> {
+  try {
+    if (
+      request &&
+      request.accountIds !== undefined &&
+      !Array.isArray(request.accountIds)
+    ) {
+      return createRuntimeMessageFailure(
+        "accountIds must be an array when provided",
+      )
+    }
+
+    const accountIds = Array.isArray(request?.accountIds)
+      ? request.accountIds
+      : undefined
+    const result = await usageHistoryScheduler.runManualSync(accountIds)
+    if (!result) {
+      return createRuntimeMessageFailure(
+        "Usage-history sync is already running",
+      )
+    }
+    return { success: true, data: result }
+  } catch (error) {
+    logger.error("Message handling failed", error)
+    return createRuntimeMessageFailure(getErrorMessage(error))
+  }
+}
+
+/**
+ * Resolve a typed request to prune retained usage-history data.
+ */
+export async function resolveUsageHistoryPruneMessage(): Promise<
+  RuntimeMessageResponse<undefined>
+> {
+  try {
+    const prefs = await userPreferences.getPreferences()
+    const config = prefs.usageHistory ?? DEFAULT_USAGE_HISTORY_PREFERENCES
+    const ok = await usageHistoryStorage.pruneAllAccounts(config.retentionDays)
+    return ok
+      ? ({ success: true, data: undefined } as const)
+      : createRuntimeMessageFailure("Failed to prune usage history")
+  } catch (error) {
+    logger.error("Message handling failed", error)
+    return createRuntimeMessageFailure(getErrorMessage(error))
+  }
+}

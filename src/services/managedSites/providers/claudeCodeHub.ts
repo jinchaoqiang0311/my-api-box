@@ -1,0 +1,198 @@
+import { CLAUDE_CODE_HUB_PROVIDER_TYPE } from "~/constants/claudeCodeHub"
+import type { ManagedSiteChannelDraftRequestOptions } from "~/services/apiAdapters/contracts/managedSiteCapabilities"
+import { requireNumericManagedResourceId } from "~/services/apiAdapters/managedResources/shared/resourceIds"
+import * as claudeCodeHubApi from "~/services/apiService/claudeCodeHub"
+import type { ScheduledReadOptions } from "~/services/apiTransport/requestScheduling"
+import {
+  MANAGED_SITE_CHANNEL_MATCH_UNRESOLVED_REASONS,
+  MatchResolutionUnresolvedError,
+} from "~/services/managedSites/matching/channelMatch"
+import { hasUsableManagedSiteChannelKey } from "~/services/managedSites/utils/channelKeys"
+import { fetchManagedSiteImportModels } from "~/services/managedSites/utils/fetchManagedSiteImportModels"
+import { type UserPreferences } from "~/services/preferences/preferencesSchema"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { toSanitizedErrorSummary } from "~/services/verification/aiApiVerification/utils"
+import type { ClaudeCodeHubConfig } from "~/types/claudeCodeHubConfig"
+import type {
+  ManagedSiteChannelDraft,
+  ManagedSiteChannelDraftSource,
+} from "~/types/managedSiteChannelDraft"
+import { createLogger } from "~/utils/core/logger"
+import { normalizeList } from "~/utils/core/string"
+
+const logger = createLogger("ClaudeCodeHubService")
+const DEFAULT_GROUP_TAG = "default"
+
+/** Creates a detached error safe for user-facing and local-log disclosure. */
+export function toClaudeCodeHubDisclosureError(
+  error: unknown,
+  config: ClaudeCodeHubConfig,
+  extraSecrets: readonly string[] = [],
+): Error {
+  const message = toSanitizedErrorSummary(error, [
+    config.adminToken,
+    ...extraSecrets,
+  ])
+  return new Error(message || "Claude Code Hub request failed")
+}
+
+const runClaudeCodeHubRead = async <T>(
+  config: ClaudeCodeHubConfig,
+  operation: () => Promise<T>,
+  options?: ScheduledReadOptions,
+): Promise<T> => {
+  options?.signal?.throwIfAborted()
+  try {
+    const result = await operation()
+    options?.signal?.throwIfAborted()
+    return result
+  } catch (error) {
+    options?.signal?.throwIfAborted()
+    throw toClaudeCodeHubDisclosureError(error, config)
+  }
+}
+
+/**
+ * Checks whether preferences contain a usable Claude Code Hub admin config.
+ */
+function hasValidClaudeCodeHubConfig(prefs: UserPreferences | null): boolean {
+  if (!prefs?.claudeCodeHub) return false
+  const { baseUrl, adminToken } = prefs.claudeCodeHub
+  return Boolean(baseUrl?.trim() && adminToken?.trim())
+}
+
+/**
+ * Verifies the saved Claude Code Hub config can authenticate successfully.
+ */
+export async function checkValidClaudeCodeHubConfig(): Promise<boolean> {
+  let config: ClaudeCodeHubConfig | undefined
+  try {
+    const prefs = await userPreferences.getPreferences()
+    if (!hasValidClaudeCodeHubConfig(prefs) || !prefs.claudeCodeHub) {
+      return false
+    }
+    config = prefs.claudeCodeHub
+    return await claudeCodeHubApi.validateClaudeCodeHubConfig(config)
+  } catch (error) {
+    logger.warn(
+      "Claude Code Hub config validation failed",
+      config
+        ? toClaudeCodeHubDisclosureError(error, config).message
+        : toSanitizedErrorSummary(error, []),
+    )
+    return false
+  }
+}
+
+/**
+ * Resolves a real provider key when list data only contains a masked key.
+ */
+async function hydrateComparableChannelKey<
+  T extends { id: number; key?: string },
+>(
+  config: ClaudeCodeHubConfig,
+  channel: T,
+  options?: ScheduledReadOptions,
+): Promise<T | null> {
+  if (hasUsableManagedSiteChannelKey(channel.key)) {
+    return channel
+  }
+
+  try {
+    const key = await claudeCodeHubApi.getUnmaskedProviderKey(
+      config,
+      requireNumericManagedResourceId(channel.id),
+      options,
+    )
+    if (!hasUsableManagedSiteChannelKey(key)) {
+      throw new Error("Claude Code Hub returned an unusable provider key")
+    }
+    return {
+      ...channel,
+      key: key.trim(),
+    }
+  } catch (error) {
+    options?.signal?.throwIfAborted()
+    const disclosed = toClaudeCodeHubDisclosureError(error, config)
+    logger.warn("Failed to hydrate Claude Code Hub provider key", {
+      channelId: channel.id,
+      error: disclosed.message,
+    })
+    return null
+  }
+}
+
+/**
+ * Hydrates Claude Code Hub provider keys for shared channel comparison.
+ */
+export async function hydrateComparableChannelKeys<
+  T extends { id: number; key?: string },
+>(
+  config: ClaudeCodeHubConfig,
+  candidates: T[],
+  options?: ScheduledReadOptions,
+): Promise<T[]> {
+  const hydratedCandidates: T[] = []
+
+  for (const candidate of candidates) {
+    options?.signal?.throwIfAborted()
+    if (hasUsableManagedSiteChannelKey(candidate.key)) {
+      hydratedCandidates.push(candidate)
+      continue
+    }
+
+    const hydratedChannel = await hydrateComparableChannelKey(
+      config,
+      candidate,
+      options,
+    )
+    if (hydratedChannel) {
+      hydratedCandidates.push(hydratedChannel)
+      continue
+    }
+
+    throw new MatchResolutionUnresolvedError(
+      MANAGED_SITE_CHANNEL_MATCH_UNRESOLVED_REASONS.KEY_RESOLUTION_FAILED,
+    )
+  }
+
+  return hydratedCandidates
+}
+
+/**
+ * Fetches the real Claude Code Hub provider key for edit, comparison, and export flows.
+ */
+export async function fetchChannelSecretKey(
+  config: ClaudeCodeHubConfig,
+  channelId: number,
+  options?: ScheduledReadOptions,
+): Promise<string> {
+  return await runClaudeCodeHubRead(
+    config,
+    async () =>
+      await claudeCodeHubApi.getUnmaskedProviderKey(config, channelId, options),
+    options,
+  )
+}
+
+/**
+ * Prefills channel form data from resolved credentials and their live models.
+ */
+export async function prepareChannelFormData(
+  source: ManagedSiteChannelDraftSource,
+  options?: ManagedSiteChannelDraftRequestOptions,
+): Promise<ManagedSiteChannelDraft> {
+  const { models: availableModels, fetchFailed } =
+    await fetchManagedSiteImportModels(source, options)
+
+  return {
+    name: source.name,
+    type: CLAUDE_CODE_HUB_PROVIDER_TYPE.OPENAI_COMPATIBLE,
+    key: source.apiKey,
+    base_url: source.baseUrl,
+    models: normalizeList(availableModels),
+    ...(fetchFailed ? { modelPrefillFetchFailed: true } : {}),
+    groups: [DEFAULT_GROUP_TAG],
+    enabled: true,
+  }
+}

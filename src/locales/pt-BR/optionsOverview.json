@@ -1,0 +1,414 @@
+{
+  "actions": {
+    "open": "Abrir"
+  },
+  "attention": {
+    "accountsAllDisabled": {
+      "description": "Contas desativadas ficam fora da atualização, do check-in e de outras automações. Reative as que você ainda usa.",
+      "title_one": "A única conta está desativada",
+      "title_many": "Todas as {{count}} contas estão desativadas",
+      "title_other": "Todas as {{count}} contas estão desativadas"
+    },
+    "accountTempWindowIssue": {
+      "description": "{{reason}}",
+      "title": "{{name}} precisa revisar as configurações do navegador"
+    },
+    "accountUnhealthy": {
+      "description": "{{reason}}",
+      "title": "{{name}} tem um problema de integridade"
+    },
+    "actions": {
+      "addAccount": "Adicionar conta",
+      "addProfile": "Adicionar credencial de API",
+      "editAccount": "Editar conta",
+      "fixAccount": "Corrigir conta",
+      "handleCheckIn": "Resolver check-in",
+      "manageAccounts": "Gerenciar contas",
+      "openSettings": "Abrir configurações",
+      "refreshAccounts": "Atualizar contas",
+      "signInAgain": "Entrar novamente",
+      "viewAccount": "Ver conta",
+      "viewAnnouncements": "Ver avisos",
+      "viewCheckIn": "Ver check-in",
+      "viewCheckInResults": "Ver resultados"
+    },
+    "addAccount": {
+      "description": "Adicione uma conta para ver resumos de saldos, uso e automações.",
+      "title": "Ainda não há contas"
+    },
+    "addProfile": {
+      "description": "A biblioteca guarda API Keys, chaves de coding plan e outros tipos de chave, e monitora saldo e uso em um só lugar — incluindo quanto resta da cota de 5 horas / 7 dias / mês de um coding plan.",
+      "title": "Ainda não há credenciais de API"
+    },
+    "autoCheckinGloballyDisabled": {
+      "description_one": "{{count}} conta tem o check-in automático ativado, mas nada será executado enquanto o interruptor global estiver desativado. Reative-o nas configurações de check-in.",
+      "description_many": "{{count}} contas têm o check-in automático ativado, mas nada será executado enquanto o interruptor global estiver desativado. Reative-o nas configurações de check-in.",
+      "description_other": "{{count}} contas têm o check-in automático ativado, mas nada será executado enquanto o interruptor global estiver desativado. Reative-o nas configurações de check-in.",
+      "title": "O check-in automático está desativado globalmente"
+    },
+    "autoCheckinNeedsAttention": {
+      "description": "A última execução teve falhas ou resultados não confirmados. Abra o check-in automático para ver os motivos e tentar novamente.",
+      "title_one": "{{count}} conta precisa de acompanhamento no check-in",
+      "title_many": "{{count}} contas precisam de acompanhamento no check-in",
+      "title_other": "{{count}} contas precisam de acompanhamento no check-in"
+    },
+    "categories": {
+      "accounts": "Contas",
+      "automation": "Automação",
+      "credentials": "Credenciais",
+      "data": "Dados"
+    },
+    "categoryFilterLabel": "Categoria",
+    "checkInAccountDataMissing": {
+      "description": "As credenciais ou os dados da conta estão incompletos. Redetecte a conta em Gerenciar contas e tente o check-in novamente.",
+      "title_one": "{{count}} conta está sem dados de login salvos",
+      "title_many": "{{count}} contas estão sem dados de login salvos",
+      "title_other": "{{count}} contas estão sem dados de login salvos"
+    },
+    "checkInMethodUnresolved": {
+      "description": "O check-in automático está ativado, mas ainda não há um método disponível. Em Contas, detecte novamente ou escolha um método antes da próxima execução.",
+      "title": "{{name}} precisa de um método de check-in"
+    },
+    "checkInPermissionDenied": {
+      "description": "O site recusou a solicitação de check-in. Entre novamente ou revise as permissões da conta antes de tentar de novo.",
+      "title_one": "{{count}} conta teve o check-in recusado",
+      "title_many": "{{count}} contas tiveram o check-in recusado",
+      "title_other": "{{count}} contas tiveram o check-in recusado"
+    },
+    "checkInReloginRequired": {
+      "description": "A última execução ignorou estas contas porque a sessão do site expirou. Entre no site e execute o check-in novamente.",
+      "title_one": "{{count}} conta precisa entrar novamente",
+      "title_many": "{{count}} contas precisam entrar novamente",
+      "title_other": "{{count}} contas precisam entrar novamente"
+    },
+    "filterAll": "Todos",
+    "severityFilterLabel": "Gravidade",
+    "siteTypeMismatch": {
+      "description": "Este site corresponde a {{suggestedType}}, mas a conta está definida como {{storedType}}. Edite a conta e defina o Tipo de site como {{suggestedType}}.",
+      "title": "{{name}} pode estar com o tipo de site errado"
+    },
+    "siteTypeUnknown": {
+      "description": "O check-in automático não consegue determinar o protocolo deste site. Edite a conta e escolha o tipo correto ou execute a detecção automática novamente.",
+      "title": "{{name}} tem um tipo de site desconhecido"
+    },
+    "sortHint": "Ordenado por impacto",
+    "summary_one": "{{count}} pendente",
+    "summary_many": "{{count}} pendentes",
+    "summary_other": "{{count}} pendentes",
+    "unreadSiteAnnouncements": {
+      "description": "Abra os avisos do site para marcá-los como lidos e não perder comunicados de manutenção ou risco.",
+      "title_one": "{{count}} aviso do site não lido",
+      "title_many": "{{count}} avisos do site não lidos",
+      "title_other": "{{count}} avisos do site não lidos"
+    },
+    "usageRefreshPending": {
+      "description": "Atualize as contas para completar as estatísticas de solicitações, tokens e custo de hoje.",
+      "title_one": "{{count}} conta precisa atualizar as estatísticas",
+      "title_many": "{{count}} contas precisam atualizar as estatísticas",
+      "title_other": "{{count}} contas precisam atualizar as estatísticas"
+    }
+  },
+  "autoCheckin": {
+    "actions": {
+      "open": "Ver check-in",
+      "retryFailed": "Tentar novamente falhas"
+    },
+    "empty": {
+      "disabled": {
+        "description": "O check-in automático está desativado. Ative-o novamente quando quiser que a extensão resgate as recompensas de check-in para você."
+      },
+      "notRun": {
+        "description": "Nenhum check-in foi executado ainda. Após a detecção de conta ser ativada, o próximo agendamento cuidará disso, ou você pode abrir o check-in automático para executá-lo manualmente."
+      }
+    },
+    "lastRun": "Última execução",
+    "metrics": {
+      "failed": "Com falha",
+      "skipped": "Ignorado",
+      "success": "Com sucesso"
+    },
+    "nextRetry": "Próxima tentativa",
+    "nextRun": "Próxima execução",
+    "notRunYet": "Ainda não executado",
+    "notScheduled": "Não agendado",
+    "status": {
+      "disabled": "Desativado",
+      "failed": "Com falha",
+      "not_run": "Aguardando primeira execução",
+      "partial": "Sucesso parcial",
+      "ready": "Pronto",
+      "skipped": "Não executado",
+      "success": "Com sucesso"
+    },
+    "summary": "Resumo da execução do check-in automático"
+  },
+  "automation": {
+    "automaticEnabled": "A execução automática está ativada",
+    "empty": {
+      "autoCheckin": {
+        "disabled": "Ative o check-in automático quando quiser resgatar recompensas automaticamente. Agendamentos e resultados futuros aparecerão aqui."
+      },
+      "managedSiteModelSync": {
+        "disabled": "Ative a sincronização de modelos quando quiser atualizar automaticamente os modelos do gateway de IA auto-hospedado. O intervalo e o escopo da sincronização aparecerão aqui."
+      },
+      "siteAnnouncements": {
+        "disabled": "Ative a consulta de anúncios quando quiser que as atualizações do site sejam exibidas aqui. As verificações recentes e a contagem de anúncios aparecerão aqui."
+      },
+      "webdavAutoSync": {
+        "disabled": "Configure a sincronização automática do WebDAV quando quiser backups entre dispositivos. A estratégia e o escopo da sincronização aparecerão aqui."
+      }
+    },
+    "items": {
+      "autoCheckin": {
+        "label": "Check-in automático"
+      },
+      "managedSiteModelSync": {
+        "allowedModels": "Modelos permitidos",
+        "concurrency": "Concorrência",
+        "interval": "Intervalo de sincronização (horas)",
+        "label": "Sincronização de modelos do gateway de IA auto-hospedado",
+        "open": "Abrir sincronização"
+      },
+      "siteAnnouncements": {
+        "interval": "Intervalo de consulta (minutos)",
+        "label": "Consulta de anúncios do site",
+        "lastChecked": "Última verificação",
+        "openPage": "Ver anúncios",
+        "openSettings": "Configurações de consulta",
+        "records": "Total de anúncios",
+        "unread": "Anúncios não lidos"
+      },
+      "webdavAutoSync": {
+        "domains": "Escopos de sincronização",
+        "interval": "Intervalo de sincronização (minutos)",
+        "label": "Sincronização de backup do WebDAV",
+        "open": "Abrir sincronização de backup",
+        "strategy": "Estratégia de sincronização"
+      }
+    },
+    "metrics": {
+      "failed": "Falha",
+      "skipped": "Ignorado",
+      "success": "Sucesso",
+      "unsupported": "Não compatível"
+    },
+    "neverChecked": "Ainda não verificado",
+    "openItem": "Abrir {{name}}",
+    "status": {
+      "disabled": "Desativado",
+      "failed": "Falha na execução",
+      "limited": "Compatibilidade parcial",
+      "notRun": "Aguardando primeira execução",
+      "partial": "Falha parcial",
+      "ready": "Pronto",
+      "running": "Em execução",
+      "skipped": "Não executado",
+      "success": "Execução concluída",
+      "unknown": "Status desconhecido",
+      "unsupported": "Não compatível"
+    },
+    "statusUnavailable": "O status da execução está indisponível. Abra os detalhes ou atualize para tentar novamente."
+  },
+  "configurationOverview": {
+    "accountFoundation": {
+      "description": "Contas, saldos e estado de integridade dos quais outros recursos dependem.",
+      "label": "Base de contas",
+      "state": {
+        "disabled": "O status da conta ainda não pode ser lido. Verifique se a configuração da conta está concluída.",
+        "needs_setup": "Adicione pelo menos uma conta para que a visão geral possa resumir saldos, uso e status da automação para você.",
+        "not_applicable": "Você pode continuar sem adicionar uma conta neste ambiente."
+      }
+    },
+    "automation": {
+      "description": "Se o check-in automático e a consulta de anúncios estão prontos para execução.",
+      "label": "Automação",
+      "state": {
+        "disabled": "Nenhuma tarefa será executada automaticamente por enquanto. Ative o check-in ou a consulta de anúncios quando precisar deles.",
+        "needs_setup": "A automação ainda precisa de uma conta qualificada ou configuração de detecção antes de poder ser executada.",
+        "not_applicable": "Não há tarefas de automação disponíveis neste ambiente ainda."
+      }
+    },
+    "backupSync": {
+      "description": "Configuração de backup local de dados e sincronização entre dispositivos.",
+      "label": "Sincronização de backup",
+      "state": {
+        "disabled": "Seus dados permanecem neste dispositivo. Ative a sincronização do WebDAV quando quiser um backup entre dispositivos.",
+        "needs_setup": "Conecte o WebDAV primeiro para que os dados locais possam ser salvos remotamente.",
+        "not_applicable": "A sincronização de backup ainda não está disponível neste ambiente."
+      }
+    },
+    "credentialAssets": {
+      "description": "Armazenamento das suas chaves, além do monitoramento de saldo, cota e uso.",
+      "label": "Credenciais disponíveis",
+      "state": {
+        "disabled": "Ainda não há credenciais reutilizáveis. Verifique a configuração da conta ou da credencial de API.",
+        "needs_setup": "Salve uma credencial de API (Base URL + API Key) para monitorar saldo, cota e uso em um só lugar.",
+        "not_applicable": "Este ambiente não precisa de credenciais de API separadas."
+      }
+    },
+    "dataHistory": {
+      "description": "Se o histórico de uso e saldo possui dados para inspeção.",
+      "label": "Histórico de dados",
+      "state": {
+        "disabled": "O histórico ainda não está sendo salvo. Ative-o para manter futuras alterações de uso e saldo.",
+        "needs_setup": "O histórico está ativado, mas ainda precisa de uma conta ou do primeiro ponto de dados. Esta seção será atualizada assim que os dados aparecerem.",
+        "not_applicable": "Ainda não há histórico de dados para visualizar neste ambiente."
+      }
+    },
+    "managedSite": {
+      "description": "Administração de canais e sincronização de modelos para seu gateway de IA auto-hospedado.",
+      "label": "Gateway de IA auto-hospedado",
+      "state": {
+        "disabled": "Nenhum gateway de IA auto-hospedado foi configurado ainda. Configure um quando precisar de gerenciamento de canais ou modelos.",
+        "needs_setup": "Configure um gateway de IA auto-hospedado primeiro; depois você poderá gerenciar canais ou sincronizar modelos aqui.",
+        "not_applicable": "Este tipo de site ainda não suporta a administração de gateway de IA auto-hospedado."
+      }
+    },
+    "subItems": {
+      "accounts": "Contas",
+      "apiKeys": "Chaves de API",
+      "apiProfiles": "Credenciais de API",
+      "autoCheckin": "Check-in automático",
+      "balanceHistory": "Histórico de saldo",
+      "managedSiteChannels": "Gerenciamento de canais",
+      "managedSiteModelSync": "Sincronização de modelos",
+      "siteAnnouncements": "Anúncios do site",
+      "usageAnalytics": "Análise de uso",
+      "webdavAutoSync": "Sincronização automática do WebDAV",
+      "webdavManual": "Backup manual do WebDAV"
+    }
+  },
+  "coverageStatus": {
+    "configured": "Configurado",
+    "disabled": "Não ativado",
+    "needs_setup": "Requer configuração",
+    "not_applicable": "Não aplicável"
+  },
+  "description": "Confira contas, chaves e uso, e acompanhe tarefas automáticas e ações pendentes.",
+  "sections": {
+    "automationOverview": "Execuções de automação",
+    "configurationOverview": "Visão geral da configuração",
+    "needsAttention": "Requer atenção",
+    "recentUsage": "Uso recente",
+    "unifiedApiGuidance": "Configuração de API unificada"
+  },
+  "severity": {
+    "error": "Erro",
+    "info": "Informação",
+    "warning": "Aviso"
+  },
+  "states": {
+    "allClear": "Não há nada que exija atenção neste momento.",
+    "allClearDescription": "Problemas de conta, métodos de check-in ausentes e estatísticas pendentes aparecerão aqui automaticamente.",
+    "loadDetailUnavailable": "Algumas informações da visão geral estão temporariamente indisponíveis. Tente carregá-las novamente.",
+    "loadedWithError": "Falha ao carregar algumas informações. Exibindo dados disponíveis.",
+    "loading": "Carregando visão geral..."
+  },
+  "status": {
+    "accounts": {
+      "label": "Contas"
+    },
+    "attention": {
+      "label": "Atenção"
+    },
+    "profiles": {
+      "label": "Credenciais"
+    },
+    "todayUsage": {
+      "label": "Hoje"
+    }
+  },
+  "title": "Visão geral",
+  "todayMetricAvailability": {
+    "coverage": "Completo {{complete}} · Parcial {{partial}} · Elegível {{eligible}}",
+    "coverageWithRefresh": "Completo {{complete}} · Parcial {{partial}} · Atualização necessária {{refresh}} · Elegível {{eligible}}",
+    "includesPendingRefresh": "Inclui atualização pendente",
+    "partial": "Estatística diária parcial",
+    "pendingRefresh": "Atualização pendente",
+    "pendingRefreshHelp": "As estatísticas de hoje ainda não foram confirmadas. Atualize a conta correspondente na lista de Contas.",
+    "unavailable": "Indisponível"
+  },
+  "unifiedApiGuidance": {
+    "actions": {
+      "addAccount": "Adicionar conta",
+      "addApiCredential": "Adicionar credencial de API",
+      "addGatewayChannel": "Adicionar primeiro canal do gateway",
+      "configureManagedSite": "Configurar gateway de IA auto-hospedado",
+      "manageChannels": "Gerenciar canais",
+      "openApiCredentialProfiles": "Abrir biblioteca de credenciais",
+      "openModelSync": "Abrir sincronização de modelos"
+    },
+    "boundaryNote": "O My API Box gerencia e importa configurações. Ele não atua como proxy para solicitações de modelos; os clientes externos chamam seu gateway de IA auto-hospedado.",
+    "description": {
+      "has_gateway_channels": "O guia de configuração do gateway foi concluído. Abra o gerenciamento de canais para verificar o status atual.",
+      "needs_importable_source": "Você possui contas, mas os tipos de conta atuais não podem expor chaves importáveis. Salve uma chave de API primeiro ou adicione um tipo de conta que suporte acesso a chaves e, em seguida, importe-a para o seu gateway de IA auto-hospedado.",
+      "needs_managed_site": "Você possui chaves de conta ou chaves de API. Configure seu gateway de IA auto-hospedado para importá-las como canais do gateway, permitindo que várias chaves sejam usadas por meio de uma única API de IA.",
+      "needs_sources": "Adicione uma conta ou salve uma chave de API e importe-a para seu gateway de IA auto-hospedado para oferecer uma API de IA unificada.",
+      "ready_accounts": "A configuração básica do seu gateway de IA auto-hospedado está concluída. Continue importando uma chave de conta ou chave de API; o fluxo de importação validará a conexão e criará um canal do gateway.",
+      "ready_profiles": "A configuração básica do seu gateway de IA auto-hospedado está concluída. Abra a biblioteca de credenciais para validar e importar uma chave de API salva como um canal do gateway."
+    },
+    "headline": "Combine chaves de conta ou chaves de API em uma API de IA unificada",
+    "modelSyncOptional": "A sincronização de modelos pode atualizar automaticamente as listas de modelos do gateway e reduzir a manutenção manual; ative-a após a criação dos canais, quando necessário.",
+    "optionalLabel": "Manutenção opcional",
+    "overview": {
+      "collapse": "Recolher",
+      "completedDescription": "O guia de configuração foi concluído. Você pode rever as etapas ou gerenciar os canais do gateway a qualquer momento.",
+      "description": "Importe chaves de contas ou credenciais de API para seu gateway e use um único endereço de API.",
+      "progress": "Progresso {{completed}}/{{total}}",
+      "reopen": "Guia de configuração",
+      "resume": "Continuar configuração",
+      "start": "Ver etapas",
+      "title": "API unificada"
+    },
+    "sources": {
+      "account": "Fontes de contas",
+      "accountUnavailable": "Contas não importáveis",
+      "both": "Contas + credenciais",
+      "none": "Nenhuma fonte ainda",
+      "profile": "Fontes de credenciais"
+    },
+    "stepper": {
+      "label": "Progresso da configuração da API unificada",
+      "states": {
+        "completed": "Concluído",
+        "current": "Etapa atual",
+        "upcoming": "Posterior"
+      },
+      "steps": {
+        "gatewayChannel": {
+          "description": "Importe pelo menos uma chave de conta ou credencial de API salva.",
+          "title": "Criar um canal do gateway"
+        },
+        "gatewaySettings": {
+          "description": "Insira os detalhes de conexão de administrador do seu gateway de IA auto-hospedado.",
+          "title": "Salvar configurações do gateway"
+        },
+        "source": {
+          "description": "Adicione uma conta que possa expor chaves ou salve uma credencial de API.",
+          "title": "Preparar uma fonte"
+        }
+      }
+    },
+    "unavailable": {
+      "description": "Não foi possível carregar as contas, credenciais ou configurações do gateway. Nenhuma conclusão sobre fontes ausentes foi tomada.",
+      "retry": "Tentar novamente a verificação da configuração",
+      "title": "Status da configuração indisponível"
+    }
+  },
+  "usage": {
+    "activityMix": "Tendência recente",
+    "empty": {
+      "description": "Depois que você enviar uma solicitação ou sincronizar o histórico de uso, este cartão resumirá as solicitações, tokens, custo de hoje e a tendência mais recente dos últimos 7 dias.",
+      "title": "Nenhum uso registrado ainda"
+    },
+    "noRecentActivity": "Nenhum uso recente registrado.",
+    "requestShare": "Proporção de solicitações",
+    "sevenDayRequests": "Solicitações em 7 dias",
+    "sevenDayTokens": "Tokens em 7 dias",
+    "todayCost": "Custo de hoje",
+    "todayRequests": "Solicitações de hoje",
+    "todayShare": "Proporção de hoje dos últimos 7 dias",
+    "todayTokens": "Tokens de hoje",
+    "tokenShare": "Proporção de tokens"
+  }
+}

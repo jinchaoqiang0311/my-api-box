@@ -1,0 +1,56 @@
+{
+  "dialog": {
+    "actions": {
+      "cleanupOwnedSessionAndRetry": "清理擴充功能會話並重試",
+      "close": "關閉",
+      "configureTotp": "設定自動驗證",
+      "openSite": "開啟站點",
+      "retry": "重試",
+      "retryAfterPasskey": "完成 Passkey 後重試",
+      "saveAndRetry": "儲存並重試",
+      "submitLoginCode": "提交登入驗證碼",
+      "submitVerificationCode": "提交安全驗證碼"
+    },
+    "body": {
+      "credentialsMissing": "請先在設定中填寫 New API 登入使用者名稱和密碼，再執行會話輔助驗證。",
+      "failure": "New API 驗證流程未能完成。",
+      "loggingIn": "正在檢查當前 New API 會話，並在需要時準備驗證流程。",
+      "loginTwoFactor": "New API 登入步驟需要先提交一次驗證碼，瀏覽器會話才能繼續。",
+      "passkeyManual": "當前帳號在該步驟使用 Passkey 驗證。請先在站點上完成 Passkey 校驗，然後返回這裡重試。",
+      "secureVerification": "管理員會話已經登入，但在讀取隱藏渠道金鑰之前，New API 仍需要一次安全驗證碼驗證。",
+      "sessionActiveLimit": "New API 的作用中會話已達上限。目前沒有可由擴充功能安全清理的會話，請在站點的會話管理中撤銷不再使用的會話後重試。",
+      "sessionActiveLimitCleanup": "New API 的作用中會話已達上限。擴充功能可以先精確撤銷自己建立的會話，再重試目前操作。",
+      "sessionIssuanceLimit": "New API 已達到 24 小時會話簽發上限。清理現有會話不會解除此限制，請等待限制視窗恢復。",
+      "successChannel": "{{label}} 的驗證已成功，真實渠道 key 已載入。",
+      "successSettings": "New API 登入與驗證流程已成功完成。現在可以繼續執行需要登入與驗證的相關操作。",
+      "successToken": "{{label}} 的驗證已成功，管理站點狀態已重新整理。"
+    },
+    "fields": {
+      "codeLabel": "驗證碼"
+    },
+    "hints": {
+      "configureTotp": "經常需要驗證？可在設定 → {{section}} → {{provider}} 中填寫 TOTP 密鑰，由擴充功能自動產生並提交驗證碼，減少手動輸入。",
+      "manualFallback": "請手動輸入驗證碼完成本次驗證。",
+      "openSettingsShortcut": "你可以直接在這裡補齊所需設定，然後繼續驗證。",
+      "passkey": "請開啟站點，在那裡完成 Passkey 提示後，再返回這裡重試。"
+    },
+    "messages": {
+      "cleaningOwnedSession": "正在清理擴充功能建立的 New API 會話...",
+      "completeRequiredConfig": "請先補齊目前缺失的設定項目。",
+      "finishing": "正在完成 New API 會話檢測...",
+      "missingBaseUrl": "請先填寫 New API 基礎 URL，再測試會話流程。",
+      "missingCode": "請先輸入驗證碼。",
+      "ownedSessionCleanupFailed": "無法清理擴充功能建立的會話。請開啟站點的會話管理並手動撤銷不再使用的會話。",
+      "quickConfigSaveFailed": "儲存快捷設定失敗，請稍後再試。",
+      "refreshingChannel": "正在載入真實渠道 key...",
+      "refreshingToken": "正在重新整理該金鑰的管理站點狀態...",
+      "starting": "正在啟動 New API 驗證流程...",
+      "submitting": "正在提交驗證碼..."
+    },
+    "title": {
+      "channel": "New API 渠道 key 驗證",
+      "settings": "New API 會話檢測",
+      "token": "New API 驗證重試"
+    }
+  }
+}

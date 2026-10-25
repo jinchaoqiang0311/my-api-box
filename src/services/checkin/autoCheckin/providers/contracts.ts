@@ -1,0 +1,105 @@
+import {
+  type CHECK_IN_METHOD_STATUS_OUTCOMES,
+  type CHECK_IN_PROVIDER_READINESS_REASONS,
+} from "~/constants/checkIn"
+import type {
+  ApiServiceRequest,
+  ApiTransportRequestObserver,
+} from "~/services/apiTransport/type"
+import type { AutoCheckinProviderOutcome } from "~/services/checkin/autoCheckin/providers/types"
+import type { ProtectionBypassExecution } from "~/services/protectionBypass/contracts"
+import type { SiteAccount } from "~/types"
+import type {
+  CheckInMethodDetection,
+  CheckInMethodStatus,
+  CheckInMethodUnknownReason,
+} from "~/types/checkIn"
+import type { TempWindowRequestSource } from "~/types/tempWindowFetch"
+
+/** Read-only context shared by discovery and selected status refresh. */
+export interface AutoCheckinProviderReadContext {
+  account?: SiteAccount
+  /** Existing refresh transport context; discovery supplies `account`. */
+  request?: ApiServiceRequest
+  signal?: AbortSignal
+  observedAt: number
+}
+
+export type AutoCheckinProviderDetectResult =
+  | CheckInMethodDetection
+  | {
+      detection: CheckInMethodDetection
+      status?: CheckInMethodStatus
+    }
+
+export interface AnyrouterCheckInParams {
+  id?: string
+  site_url: string
+  cookieAuthSessionCookie?: string
+  account_info: {
+    id: number
+  }
+}
+
+/** Execution dependencies supplied by the check-in scheduler. */
+export interface AutoCheckinMutationLifecycle
+  extends ApiTransportRequestObserver {
+  dispatched: boolean
+  responseReceived: boolean
+}
+
+export type KnownCheckInMethodStatus = Extract<
+  CheckInMethodStatus,
+  { outcome: typeof CHECK_IN_METHOD_STATUS_OUTCOMES.Known }
+>
+
+export interface AutoCheckinProviderContext {
+  tempWindowRequestSource: TempWindowRequestSource
+  protectionBypassExecution: ProtectionBypassExecution
+  /** Process-local evidence for classifying a lost mutation response. */
+  mutationLifecycle?: AutoCheckinMutationLifecycle
+  /** Fresh status read by the Module in this execution cycle. */
+  statusProof?: KnownCheckInMethodStatus
+  /** Rechecks current selection and automatic intent before a recovered POST. */
+  beforeRecoveredMutation?: () => Promise<boolean>
+}
+
+export type AutoCheckinProviderReadiness =
+  | { ready: true }
+  | {
+      ready: false
+      reason: (typeof CHECK_IN_PROVIDER_READINESS_REASONS)[keyof typeof CHECK_IN_PROVIDER_READINESS_REASONS]
+    }
+
+/** Executable compatibility contract for a registered check-in method. */
+export interface AutoCheckinProvider {
+  /** Maps provider-specific status errors for both discovery and execution. */
+  classifyStatusError?: (error: unknown) => CheckInMethodUnknownReason
+  /**
+   * This protocol must confirm today's status before it mutates. Only a method
+   * with `getStatus` can honour it; a method without readback submits directly.
+   */
+  readonly requiresAuthoritativeStatusBeforeMutation?: boolean
+  getReadiness(account: SiteAccount): AutoCheckinProviderReadiness
+  /** Optional read-only protocol probe used by full discovery. */
+  detect?: (
+    context: AutoCheckinProviderReadContext,
+  ) => Promise<AutoCheckinProviderDetectResult>
+  /** Optional read-only status readback. */
+  getStatus?: (
+    context: AutoCheckinProviderReadContext,
+  ) => Promise<CheckInMethodStatus | undefined>
+  /**
+   * Executes the daily check-in.
+   *
+   * A success whose response carries the award the deployment granted must also
+   * set `reward` as internal monetary quota or an explicitly identified native
+   * asset. A method whose response carries no authoritative amount leaves it unset rather
+   * than report a constant or an estimate. See `docs/agents/site-integrations.md`
+   * for the per-family helpers and the coverage table.
+   */
+  checkIn(
+    account: SiteAccount | AnyrouterCheckInParams,
+    context: AutoCheckinProviderContext,
+  ): Promise<AutoCheckinProviderOutcome>
+}

@@ -1,0 +1,118 @@
+import { useCallback, useEffect, useRef, useState } from "react"
+
+import {
+  apiCredentialProfilesStorage,
+  subscribeToApiCredentialProfilesChanges,
+} from "~/services/apiCredentialProfiles/storage/profiles"
+import type { ApiVerificationApiType } from "~/services/verification/aiApiVerification"
+import type {
+  ApiCredentialProfile,
+  ApiCredentialTelemetryConfig,
+} from "~/types/apiCredentialProfiles"
+import { createLogger } from "~/utils/core/logger"
+
+/**
+ * Unified logger scoped to the API credential profiles hook.
+ */
+const logger = createLogger("ApiCredentialProfilesHook")
+
+type CreateProfileInput = {
+  name: string
+  apiType: ApiVerificationApiType
+  baseUrl: string
+  apiKey: string
+  requestHeaders?: Record<string, string>
+  tagIds?: string[]
+  notes?: string
+  sourceUrl?: string
+  expiresAt?: number | null
+  telemetryConfig?: ApiCredentialTelemetryConfig
+}
+
+type UpdateProfileInput = Partial<CreateProfileInput>
+
+/**
+ * Loads and mutates API credential profiles stored in extension local storage.
+ *
+ * This hook provides the page with a simple data API and keeps the list fresh
+ * after mutations.
+ */
+export function useApiCredentialProfiles() {
+  const [profiles, setProfiles] = useState<ApiCredentialProfile[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const mountedRef = useRef(false)
+  const loadGenerationRef = useRef(0)
+
+  const reload = useCallback(async () => {
+    if (!mountedRef.current) return
+    const generation = ++loadGenerationRef.current
+    setIsLoading(true)
+    try {
+      const list = await apiCredentialProfilesStorage.listProfiles()
+      if (generation !== loadGenerationRef.current) return
+      setProfiles(list)
+    } catch (error) {
+      if (generation !== loadGenerationRef.current) return
+      logger.error("Failed to load profiles", error)
+      setProfiles([])
+    } finally {
+      if (generation === loadGenerationRef.current) {
+        setIsLoading(false)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    mountedRef.current = true
+    void reload()
+    return () => {
+      mountedRef.current = false
+      loadGenerationRef.current += 1
+    }
+  }, [reload])
+
+  useEffect(() => {
+    return subscribeToApiCredentialProfilesChanges(() => {
+      void reload()
+    })
+  }, [reload])
+
+  const createProfile = useCallback(
+    async (input: CreateProfileInput) => {
+      const created = await apiCredentialProfilesStorage.createProfile(input)
+      await reload()
+      return created
+    },
+    [reload],
+  )
+
+  const updateProfile = useCallback(
+    async (id: string, updates: UpdateProfileInput) => {
+      const updated = await apiCredentialProfilesStorage.updateProfile(
+        id,
+        updates,
+      )
+      await reload()
+      return updated
+    },
+    [reload],
+  )
+
+  const deleteProfile = useCallback(
+    async (id: string) => {
+      const deleted = await apiCredentialProfilesStorage.deleteProfile(id)
+      await reload()
+      return deleted
+    },
+    [reload],
+  )
+
+  return {
+    profiles,
+    isLoading,
+    reload,
+    createProfile,
+    updateProfile,
+    deleteProfile,
+  }
+}

@@ -1,0 +1,535 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import {
+  appendQueryParam,
+  coerceBaseUrlToPathSuffix,
+  joinUrl,
+  navigateToAnchor,
+  normalizeBaseUrl,
+  normalizeHttpUrl,
+  parseTabFromUrl,
+  sanitizeOriginUrl,
+  updateUrlWithTab,
+} from "~/utils/core/url"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+describe("joinUrl", () => {
+  it("should join base and path with single slash", () => {
+    expect(joinUrl("https://example.com", "api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should remove trailing slash from base", () => {
+    expect(joinUrl("https://example.com/", "api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should remove leading slash from path", () => {
+    expect(joinUrl("https://example.com", "/api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should handle both trailing and leading slashes", () => {
+    expect(joinUrl("https://example.com/", "/api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should handle multiple trailing slashes", () => {
+    expect(joinUrl("https://example.com///", "api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should handle multiple leading slashes", () => {
+    expect(joinUrl("https://example.com", "///api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should handle both multiple slashes", () => {
+    expect(joinUrl("https://example.com///", "///api/users")).toBe(
+      "https://example.com/api/users",
+    )
+  })
+
+  it("should handle empty path", () => {
+    expect(joinUrl("https://example.com", "")).toBe("https://example.com/")
+  })
+
+  it("should handle path with query parameters", () => {
+    expect(joinUrl("https://example.com", "api?key=value")).toBe(
+      "https://example.com/api?key=value",
+    )
+  })
+
+  it("should handle path with hash", () => {
+    expect(joinUrl("https://example.com", "page#section")).toBe(
+      "https://example.com/page#section",
+    )
+  })
+
+  it("should handle nested paths", () => {
+    expect(joinUrl("https://example.com/api", "v1/users")).toBe(
+      "https://example.com/api/v1/users",
+    )
+  })
+})
+
+describe("appendQueryParam", () => {
+  it("returns the original url when the query key is blank", () => {
+    expect(appendQueryParam("https://example.com/path", "   ", "value")).toBe(
+      "https://example.com/path",
+    )
+  })
+
+  it("appends or overwrites params on absolute urls", () => {
+    expect(
+      appendQueryParam("https://example.com/path?foo=1", "token", "abc"),
+    ).toBe("https://example.com/path?foo=1&token=abc")
+    expect(
+      appendQueryParam("https://example.com/path?token=old", "token", "new"),
+    ).toBe("https://example.com/path?token=new")
+  })
+
+  it("falls back gracefully for non-absolute urls while preserving fragments", () => {
+    expect(appendQueryParam("/relative/path#frag", "token", "a b")).toBe(
+      "/relative/path?token=a%20b#frag",
+    )
+    expect(appendQueryParam("/relative/path?foo=1", "token", "x")).toBe(
+      "/relative/path?foo=1&token=x",
+    )
+  })
+})
+
+describe("normalizeHttpUrl", () => {
+  it("returns null for empty input", () => {
+    expect(normalizeHttpUrl(undefined)).toBeNull()
+    expect(normalizeHttpUrl(null)).toBeNull()
+    expect(normalizeHttpUrl("")).toBeNull()
+    expect(normalizeHttpUrl("   ")).toBeNull()
+  })
+
+  it("adds https:// when scheme is missing", () => {
+    expect(normalizeHttpUrl("example.com")).toBe("https://example.com")
+    expect(normalizeHttpUrl("example.com/")).toBe("https://example.com")
+  })
+
+  it("rejects path/fragment/query-like input", () => {
+    expect(normalizeHttpUrl("/path")).toBeNull()
+    expect(normalizeHttpUrl("?tab=basic")).toBeNull()
+    expect(normalizeHttpUrl("#section")).toBeNull()
+    expect(normalizeHttpUrl("./relative")).toBeNull()
+    expect(normalizeHttpUrl("../relative")).toBeNull()
+  })
+
+  it("keeps http/https scheme and strips trailing slash", () => {
+    expect(normalizeHttpUrl("https://example.com/")).toBe("https://example.com")
+    expect(normalizeHttpUrl("http://example.com/")).toBe("http://example.com")
+  })
+
+  it("rejects non-http schemes and invalid urls", () => {
+    expect(normalizeHttpUrl("ftp://example.com")).toBeNull()
+    expect(normalizeHttpUrl("not a url")).toBeNull()
+  })
+})
+
+describe("sanitizeOriginUrl", () => {
+  it("returns undefined for empty input", () => {
+    expect(sanitizeOriginUrl(undefined)).toBeUndefined()
+    expect(sanitizeOriginUrl(null)).toBeUndefined()
+    expect(sanitizeOriginUrl("")).toBeUndefined()
+    expect(sanitizeOriginUrl("   ")).toBeUndefined()
+  })
+
+  it("rejects path/fragment/query-like input", () => {
+    expect(sanitizeOriginUrl("/path")).toBeUndefined()
+    expect(sanitizeOriginUrl("?tab=basic")).toBeUndefined()
+    expect(sanitizeOriginUrl("#section")).toBeUndefined()
+    expect(sanitizeOriginUrl("./relative")).toBeUndefined()
+    expect(sanitizeOriginUrl("../relative")).toBeUndefined()
+  })
+
+  it("normalizes origins and prefixes https:// when needed", () => {
+    expect(sanitizeOriginUrl("example.com")).toBe("https://example.com")
+    expect(sanitizeOriginUrl("example.com/path")).toBe("https://example.com")
+    expect(sanitizeOriginUrl("//example.com")).toBe("https://example.com")
+    expect(sanitizeOriginUrl("https://example.com/path")).toBe(
+      "https://example.com",
+    )
+  })
+
+  it("supports host:port inputs and rejects non-http schemes", () => {
+    expect(sanitizeOriginUrl("localhost:3000")).toBe("https://localhost:3000")
+    expect(sanitizeOriginUrl("ftp://example.com")).toBeUndefined()
+    expect(sanitizeOriginUrl("file:///etc/hosts")).toBeUndefined()
+  })
+
+  it("preserves explicit non-http schemes for parsing and still rejects them", () => {
+    expect(sanitizeOriginUrl("mailto:test@example.com")).toBeUndefined()
+  })
+})
+
+describe("coerceBaseUrlToPathSuffix", () => {
+  it("appends suffix when missing", () => {
+    expect(coerceBaseUrlToPathSuffix("https://x.test", "/v1")).toBe(
+      "https://x.test/v1",
+    )
+    expect(coerceBaseUrlToPathSuffix("https://x.test/", "/v1")).toBe(
+      "https://x.test/v1",
+    )
+  })
+
+  it("keeps suffix when present", () => {
+    expect(coerceBaseUrlToPathSuffix("https://x.test/v1", "/v1")).toBe(
+      "https://x.test/v1",
+    )
+    expect(coerceBaseUrlToPathSuffix("https://x.test/v1/", "/v1")).toBe(
+      "https://x.test/v1",
+    )
+  })
+
+  it("accepts suffix without leading slash", () => {
+    expect(coerceBaseUrlToPathSuffix("https://x.test", "v1beta")).toBe(
+      "https://x.test/v1beta",
+    )
+  })
+
+  it("returns trimmed non-absolute inputs unchanged apart from trailing slashes", () => {
+    expect(coerceBaseUrlToPathSuffix("example.com///", "/v1")).toBe(
+      "example.com",
+    )
+  })
+})
+
+describe("normalizeBaseUrl", () => {
+  it("removes a single trailing slash", () => {
+    expect(normalizeBaseUrl("https://example.com/")).toBe("https://example.com")
+    expect(normalizeBaseUrl("https://example.com")).toBe("https://example.com")
+  })
+})
+
+describe("parseTabFromUrl", () => {
+  beforeEach(() => {
+    // Reset location mock before each test
+    delete (window as any).location
+    ;(window as any).location = {
+      hash: "",
+      search: "",
+      href: "https://example.com",
+    }
+  })
+
+  describe("Query parameter parsing", () => {
+    it("should parse tab from query parameter", () => {
+      window.location.search = "?tab=settings"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("settings")
+      expect(result.anchor).toBeNull()
+      expect(result.isHeadingAnchor).toBe(false)
+    })
+
+    it("should handle multiple query parameters", () => {
+      window.location.search = "?page=1&tab=profile&sort=desc"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("profile")
+    })
+
+    it("should return null when no tab parameter", () => {
+      window.location.search = "?page=1&sort=desc"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBeNull()
+    })
+  })
+
+  describe("Hash-based tab parsing", () => {
+    it("should parse tab from hash with tab= prefix", () => {
+      window.location.hash = "#tab=dashboard"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("dashboard")
+    })
+
+    it("should parse tab from hash query parameters", () => {
+      window.location.hash = "#page?tab=settings"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("settings")
+    })
+
+    it("should prioritize search tab over hash tab", () => {
+      window.location.search = "?tab=search-tab"
+      window.location.hash = "#tab=hash-tab"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("search-tab")
+    })
+  })
+
+  describe("Anchor parsing", () => {
+    it("should detect heading anchor", () => {
+      window.location.hash = "#section-heading"
+      const result = parseTabFromUrl()
+      expect(result.anchor).toBe("section-heading")
+      expect(result.isHeadingAnchor).toBe(true)
+    })
+
+    it("should ignore anchors in ignoreAnchors list", () => {
+      window.location.hash = "#ignored"
+      const result = parseTabFromUrl({ ignoreAnchors: ["ignored"] })
+      expect(result.anchor).toBeNull()
+      expect(result.isHeadingAnchor).toBe(false)
+    })
+
+    it("should ignore defaultHashPage", () => {
+      window.location.hash = "#home"
+      const result = parseTabFromUrl({ defaultHashPage: "home" })
+      expect(result.anchor).toBeNull()
+      expect(result.isHeadingAnchor).toBe(false)
+    })
+
+    it("should not treat tab= pattern as anchor", () => {
+      window.location.hash = "#tab=settings"
+      const result = parseTabFromUrl()
+      expect(result.anchor).toBeNull()
+      expect(result.isHeadingAnchor).toBe(false)
+    })
+
+    it("should handle empty hash", () => {
+      window.location.hash = ""
+      const result = parseTabFromUrl()
+      expect(result.anchor).toBeNull()
+      expect(result.isHeadingAnchor).toBe(false)
+    })
+
+    it("should handle hash with only #", () => {
+      window.location.hash = "#"
+      const result = parseTabFromUrl()
+      expect(result.anchor).toBeNull()
+      expect(result.isHeadingAnchor).toBe(false)
+    })
+  })
+
+  describe("Combined scenarios", () => {
+    it("should handle tab in search and anchor in hash", () => {
+      window.location.search = "?tab=settings"
+      window.location.hash = "#security-section"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("settings")
+      expect(result.anchor).toBe("security-section")
+      expect(result.isHeadingAnchor).toBe(true)
+    })
+
+    it("should handle complex hash with tab and anchor", () => {
+      window.location.hash = "#page?tab=advanced"
+      const result = parseTabFromUrl()
+      expect(result.tab).toBe("advanced")
+      // "page" is treated as an anchor (heading ID) since it's in hashPath
+      expect(result.anchor).toBe("page")
+      expect(result.isHeadingAnchor).toBe(true)
+    })
+
+    it("should handle whitespace in hash", () => {
+      window.location.hash = "#  section-id  "
+      const result = parseTabFromUrl()
+      expect(result.anchor).toBe("section-id")
+      expect(result.isHeadingAnchor).toBe(true)
+    })
+  })
+})
+
+describe("updateUrlWithTab", () => {
+  beforeEach(() => {
+    delete (window as any).location
+    delete (window as any).history
+    ;(window as any).location = {
+      href: "https://example.com/page",
+      search: "",
+      hash: "",
+    }
+    ;(window as any).history = {
+      replaceState: vi.fn(),
+      pushState: vi.fn(),
+    }
+  })
+
+  it("should add tab parameter to URL", () => {
+    updateUrlWithTab("settings")
+    expect(window.history.replaceState).toHaveBeenCalled()
+    const call = vi.mocked(window.history.replaceState).mock.calls[0]
+    const url = atIndex(call, 2) as string
+    expect(url).toContain("tab=settings")
+  })
+
+  it("should use replaceState by default", () => {
+    updateUrlWithTab("profile")
+    expect(window.history.replaceState).toHaveBeenCalled()
+    expect(window.history.pushState).not.toHaveBeenCalled()
+  })
+
+  it("should use pushState when replaceHistory is false", () => {
+    updateUrlWithTab("profile", { replaceHistory: false })
+    expect(window.history.pushState).toHaveBeenCalled()
+    expect(window.history.replaceState).not.toHaveBeenCalled()
+  })
+
+  it("should add hash with hashPage option", () => {
+    updateUrlWithTab("settings", { hashPage: "config" })
+    const call = vi.mocked(window.history.replaceState).mock.calls[0]
+    const url = atIndex(call, 2) as string
+    expect(url).toContain("#config")
+    expect(url).toContain("?tab=settings")
+  })
+
+  it("should preserve a pre-prefixed hashPage value", () => {
+    updateUrlWithTab("settings", { hashPage: "#config" })
+    const call = vi.mocked(window.history.replaceState).mock.calls[0]
+    const url = atIndex(call, 2) as string
+    expect(url).toContain("#config")
+  })
+
+  it("should preserve existing search parameters", () => {
+    // Need to set full href for URL constructor to work properly
+    ;(window.location as any).href = "https://example.com/page?page=1"
+    ;(window.location as any).search = "?page=1"
+    updateUrlWithTab("profile")
+    const call = vi.mocked(window.history.replaceState).mock.calls[0]
+    const url = atIndex(call, 2) as string
+    expect(url).toContain("page=1")
+    expect(url).toContain("tab=profile")
+  })
+})
+
+describe("navigateToAnchor", () => {
+  beforeEach(() => {
+    delete (window as any).location
+    delete (window as any).history
+    delete (window as any).document
+    ;(window as any).location = {
+      href: "https://example.com/page",
+      search: "",
+      hash: "",
+    }
+    ;(window as any).history = {
+      replaceState: vi.fn(),
+      pushState: vi.fn(),
+    }
+
+    const mockElement = {
+      scrollIntoView: vi.fn(),
+    }
+
+    ;(window as any).document = {
+      getElementById: vi.fn(() => mockElement),
+    }
+
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it("should scroll to element by anchor", async () => {
+    navigateToAnchor("section-id")
+
+    // Wait for requestAnimationFrame and setTimeout
+    await vi.runAllTimersAsync()
+
+    const mockElement = document.getElementById("section-id")
+    expect(mockElement?.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    })
+  })
+
+  it("should update tab before scrolling", async () => {
+    navigateToAnchor("section-id", "settings")
+
+    await vi.runAllTimersAsync()
+
+    expect(window.history.replaceState).toHaveBeenCalled()
+    const mockElement = document.getElementById("section-id")
+    expect(mockElement?.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it("should handle custom delay", async () => {
+    navigateToAnchor("section-id", undefined, { delay: 500 })
+
+    // Advance by 100ms - should not scroll yet
+    await vi.advanceTimersByTimeAsync(100)
+    let mockElement = document.getElementById("section-id")
+    expect(mockElement?.scrollIntoView).not.toHaveBeenCalled()
+
+    // Advance remaining time
+    await vi.runAllTimersAsync()
+    mockElement = document.getElementById("section-id")
+    expect(mockElement?.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it("should retry scrolling until the anchor appears", async () => {
+    const mockElement = {
+      scrollIntoView: vi.fn(),
+    }
+    let lookupCount = 0
+
+    ;(document.getElementById as any).mockImplementation(() => {
+      lookupCount += 1
+      return lookupCount >= 3 ? mockElement : null
+    })
+
+    navigateToAnchor("section-id")
+
+    await vi.runAllTimersAsync()
+
+    expect(document.getElementById).toHaveBeenCalledTimes(3)
+    expect(mockElement.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    })
+  })
+
+  it("should handle hashPage option with tab", async () => {
+    navigateToAnchor("section-id", "settings", { hashPage: "config" })
+
+    await vi.runAllTimersAsync()
+
+    expect(window.history.replaceState).toHaveBeenCalled()
+    const call = vi.mocked(window.history.replaceState).mock.calls[0]
+    const url = atIndex(call, 2) as string
+    expect(url).toContain("#config")
+    expect(url).toContain("?tab=settings")
+  })
+
+  it("should handle element not found gracefully", async () => {
+    ;(document.getElementById as any).mockReturnValue(null)
+
+    expect(() => {
+      navigateToAnchor("non-existent")
+    }).not.toThrow()
+
+    await vi.runAllTimersAsync()
+  })
+
+  it("should stop retrying if the document is no longer available", async () => {
+    ;(document.getElementById as any).mockReturnValue(null)
+
+    navigateToAnchor("non-existent")
+    await vi.advanceTimersByTimeAsync(100)
+
+    vi.stubGlobal("document", undefined)
+
+    await vi.runAllTimersAsync()
+
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("should not update tab if tab parameter is undefined", async () => {
+    navigateToAnchor("section-id")
+
+    await vi.runAllTimersAsync()
+
+    expect(window.history.replaceState).not.toHaveBeenCalled()
+  })
+})

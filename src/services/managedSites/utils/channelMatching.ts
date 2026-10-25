@@ -1,0 +1,585 @@
+import {
+  type AccountSiteType,
+  type ManagedSiteType,
+} from "~/constants/siteType"
+import {
+  formatOptionalSkPrefixTokenComparableKey,
+  hasOptionalSkPrefixSiteTokenSemantics,
+} from "~/services/accountTokens/apiTokenKey"
+import {
+  areKeyMasksIncompatible,
+  type KeyMaskEvidence,
+} from "~/services/accountTokens/keyMaskEvidence"
+import {
+  MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS,
+  MANAGED_SITE_CHANNEL_MATCH_LEVELS,
+  MANAGED_SITE_CHANNEL_MATCH_REASONS,
+  MANAGED_SITE_CHANNEL_MODEL_SIMILARITY_THRESHOLD,
+  MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS,
+  type ManagedSiteChannelKeyAssessment,
+  type ManagedSiteChannelMatchResult,
+  type ManagedSiteChannelModelsAssessment,
+} from "~/services/managedSites/matching/channelMatch"
+import { hasUsableManagedSiteChannelKey } from "~/services/managedSites/utils/channelKeys"
+import { normalizeOpenAiFamilyBaseUrl } from "~/services/verification/webAiApiCheck/credentialExtraction/baseUrlCandidates"
+import type { ManagedResourceMatchCandidate } from "~/types/managedResourceMatching"
+import { isArraysEqual } from "~/utils"
+import { normalizeList, parseDelimitedList } from "~/utils/core/string"
+
+interface FindManagedSiteChannelsByBaseUrlParams {
+  channels: ManagedResourceMatchCandidate[]
+  accountBaseUrl: string
+}
+
+interface FindManagedSiteChannelsByBaseUrlAndModelsParams {
+  channels: ManagedResourceMatchCandidate[]
+  accountBaseUrl: string
+  models: string[]
+}
+
+interface FindBestManagedSiteChannelMatchParams {
+  channels: ManagedResourceMatchCandidate[]
+  accountBaseUrl: string
+  models: string[]
+}
+
+interface InspectManagedSiteChannelKeyMatchParams {
+  channels: ManagedResourceMatchCandidate[]
+  accountBaseUrl: string
+  key?: string
+  keyMask?: KeyMaskEvidence
+  keyIdentity?: string
+  exactChannel?: ManagedResourceMatchCandidate | null
+  keyComparisonMode?: ManagedSiteChannelKeyComparisonMode
+}
+
+interface InspectManagedSiteChannelKeyValueMatchParams {
+  sourceKey?: string
+  channelKey?: string
+  keyComparisonMode?: ManagedSiteChannelKeyComparisonMode
+}
+
+interface InspectManagedSiteChannelModelsMatchParams {
+  channels: ManagedResourceMatchCandidate[]
+  accountBaseUrl: string
+  models: string[]
+  exactChannel?: ManagedResourceMatchCandidate | null
+}
+
+interface RankedManagedSiteChannelCandidate {
+  channel: ManagedResourceMatchCandidate
+  reason: RankedManagedSiteChannelMatchReason
+  similarityScore: number
+  lengthDelta: number
+}
+
+type RankedManagedSiteChannelMatchReason =
+  | typeof MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_EXACT
+  | typeof MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_CONTAINED
+  | typeof MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_SIMILAR
+
+const MODEL_MATCH_REASON_PRIORITY: Record<
+  RankedManagedSiteChannelCandidate["reason"],
+  number
+> = {
+  [MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_EXACT]: 3,
+  [MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_CONTAINED]: 2,
+  [MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_SIMILAR]: 1,
+}
+
+const toNormalizedModelList = (models: string[] | string): string[] =>
+  normalizeList(Array.isArray(models) ? models : parseDelimitedList(models))
+
+export const MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES = {
+  EXACT: "exact",
+  OPTIONAL_SK_PREFIX: "optional-sk-prefix",
+} as const
+
+type ManagedSiteChannelKeyComparisonMode =
+  (typeof MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES)[keyof typeof MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES]
+
+/**
+ * Selects channel-key identity comparison semantics from source-confirmed
+ * upstream behavior plus the One/New API compatibility buckets documented in
+ * AGENTS.md.
+ */
+export function getManagedSiteChannelKeyComparisonMode(
+  siteType?: AccountSiteType | ManagedSiteType | string,
+): ManagedSiteChannelKeyComparisonMode {
+  return hasOptionalSkPrefixSiteTokenSemantics(siteType)
+    ? MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES.OPTIONAL_SK_PREFIX
+    : MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES.EXACT
+}
+
+const toComparableChannelKey = (
+  key: string,
+  mode: ManagedSiteChannelKeyComparisonMode,
+): string => {
+  const trimmed = key.trim()
+  if (
+    mode === MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES.OPTIONAL_SK_PREFIX &&
+    trimmed.startsWith("sk-")
+  ) {
+    return formatOptionalSkPrefixTokenComparableKey(trimmed)
+  }
+  return trimmed
+}
+
+const toChannelKeyCandidatesFromString = (
+  key: string,
+  mode: ManagedSiteChannelKeyComparisonMode,
+): string[] =>
+  key
+    .split(/[\n,]/)
+    .map((candidate) => toComparableChannelKey(candidate, mode))
+    .filter(Boolean)
+
+const toChannelKeyCandidates = (
+  channel: ManagedResourceMatchCandidate,
+  mode: ManagedSiteChannelKeyComparisonMode,
+): string[] => toChannelKeyCandidatesFromString(channel.key ?? "", mode)
+
+/** A complete pool can be excluded only when every key has conflicting evidence. */
+export function canExcludeManagedSiteChannelKey(
+  channel: ManagedResourceMatchCandidate,
+  key: string | undefined,
+  keyMask: KeyMaskEvidence | undefined,
+  mode: ManagedSiteChannelKeyComparisonMode,
+): boolean {
+  const usableSource = hasUsableManagedSiteChannelKey(key)
+  const source = usableSource
+    ? { prefix: key!.trim(), suffix: toComparableChannelKey(key!, mode) }
+    : keyMask
+  if (!source) return false
+  const keys = (channel.key ?? "")
+    .split(/[\n,]/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+  const evidence =
+    keys.length > 0 && keys.every(hasUsableManagedSiteChannelKey)
+      ? keys.map((value) => ({
+          prefix: value,
+          suffix: toComparableChannelKey(value, mode),
+        }))
+      : channel.keyMasks
+  return (
+    !!evidence?.length &&
+    evidence.every((mask) =>
+      areKeyMasksIncompatible(
+        source,
+        mask,
+        mode === MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES.OPTIONAL_SK_PREFIX,
+      ),
+    )
+  )
+}
+
+const isSubset = (subset: string[], superset: string[]) =>
+  subset.every((item) => superset.includes(item))
+
+const getModelSimilarityScore = (left: string[], right: string[]): number => {
+  if (left.length === 0 || right.length === 0) {
+    return 0
+  }
+
+  const intersectionSize = left.filter((item) => right.includes(item)).length
+  const unionSize = new Set([...left, ...right]).size
+
+  return unionSize === 0 ? 0 : intersectionSize / unionSize
+}
+
+const pickBetterCandidate = (
+  current: RankedManagedSiteChannelCandidate | null,
+  candidate: RankedManagedSiteChannelCandidate,
+) => {
+  if (!current) {
+    return candidate
+  }
+
+  const currentPriority = MODEL_MATCH_REASON_PRIORITY[current.reason]
+  const candidatePriority = MODEL_MATCH_REASON_PRIORITY[candidate.reason]
+
+  if (candidatePriority !== currentPriority) {
+    return candidatePriority > currentPriority ? candidate : current
+  }
+
+  if (candidate.similarityScore !== current.similarityScore) {
+    return candidate.similarityScore > current.similarityScore
+      ? candidate
+      : current
+  }
+
+  if (candidate.lengthDelta !== current.lengthDelta) {
+    return candidate.lengthDelta < current.lengthDelta ? candidate : current
+  }
+
+  return current
+}
+
+const toManagedSiteChannelModelsMatchReason = (
+  reason: RankedManagedSiteChannelMatchReason,
+) => {
+  switch (reason) {
+    case MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_EXACT:
+      return MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.EXACT
+    case MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_CONTAINED:
+      return MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.CONTAINED
+    case MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_SIMILAR:
+      return MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.SIMILAR
+  }
+}
+
+/**
+ * Normalize a managed-site base URL before duplicate checks or channel matching.
+ */
+export function normalizeManagedSiteChannelBaseUrl(baseUrl: string): string {
+  return normalizeOpenAiFamilyBaseUrl(baseUrl) ?? baseUrl.trim()
+}
+
+/**
+ * Filters managed-site channels by normalized base URL.
+ */
+export function findManagedSiteChannelsByBaseUrl(
+  params: FindManagedSiteChannelsByBaseUrlParams,
+): ManagedResourceMatchCandidate[] {
+  const normalizedAccountBaseUrl = normalizeManagedSiteChannelBaseUrl(
+    params.accountBaseUrl,
+  )
+
+  return params.channels.filter(
+    (channel) =>
+      normalizeManagedSiteChannelBaseUrl(channel.base_url) ===
+      normalizedAccountBaseUrl,
+  )
+}
+
+/**
+ * Filters managed-site channels by normalized base URL and models.
+ */
+export function findManagedSiteChannelsByBaseUrlAndModels(
+  params: FindManagedSiteChannelsByBaseUrlAndModelsParams,
+): ManagedResourceMatchCandidate[] {
+  const { accountBaseUrl, models } = params
+  const normalizedDesiredModels = normalizeList(models)
+  const urlBucket = findManagedSiteChannelsByBaseUrl({
+    channels: params.channels,
+    accountBaseUrl,
+  })
+
+  return urlBucket.filter((channel) => {
+    const normalizedChannelModels = normalizeList(
+      parseDelimitedList(channel.models),
+    )
+
+    return isArraysEqual(normalizedChannelModels, normalizedDesiredModels)
+  })
+}
+
+/**
+ * Inspects whether any channel under the normalized URL bucket can be matched
+ * by comparable key material.
+ */
+export function inspectManagedSiteChannelKeyMatch(
+  params: InspectManagedSiteChannelKeyMatchParams,
+): ManagedSiteChannelKeyAssessment {
+  const keyComparisonMode =
+    params.keyComparisonMode ?? MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES.EXACT
+  const normalizedDesiredKey = toComparableChannelKey(
+    params.key ?? "",
+    keyComparisonMode,
+  )
+
+  const usableSource = hasUsableManagedSiteChannelKey(params.key)
+  if (!usableSource && !params.keyMask) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.NO_KEY_PROVIDED,
+      channel: null,
+    }
+  }
+
+  if (usableSource && params.exactChannel) {
+    return {
+      comparable: true,
+      matched: true,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.MATCHED,
+      channel: params.exactChannel,
+    }
+  }
+
+  const urlBucket = findManagedSiteChannelsByBaseUrl({
+    channels: params.channels,
+    accountBaseUrl: params.accountBaseUrl,
+  })
+
+  if (urlBucket.length === 0) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+      channel: null,
+    }
+  }
+
+  const matchedChannel =
+    urlBucket.find((channel) => {
+      if (!usableSource) return false
+      if (
+        params.keyIdentity !== undefined &&
+        channel.keyIdentities !== undefined
+      )
+        return channel.keyIdentities.includes(params.keyIdentity)
+      return toChannelKeyCandidates(channel, keyComparisonMode)
+        .filter(hasUsableManagedSiteChannelKey)
+        .includes(normalizedDesiredKey)
+    }) ?? null
+
+  if (matchedChannel) {
+    return {
+      comparable: true,
+      matched: true,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.MATCHED,
+      channel: matchedChannel,
+    }
+  }
+
+  // A negative result requires readable keys for every candidate, including multi-key entries.
+  const hasComparableChannelKey = urlBucket.every((channel) => {
+    if (
+      canExcludeManagedSiteChannelKey(
+        channel,
+        params.key,
+        params.keyMask,
+        keyComparisonMode,
+      )
+    )
+      return true
+    if (params.keyIdentity !== undefined && channel.keyIdentities !== undefined)
+      return true
+    const keys = toChannelKeyCandidates(channel, keyComparisonMode)
+    return (
+      usableSource &&
+      keys.length > 0 &&
+      keys.every(hasUsableManagedSiteChannelKey)
+    )
+  })
+
+  if (!hasComparableChannelKey) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+      channel: null,
+    }
+  }
+
+  return {
+    comparable: true,
+    matched: false,
+    reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.NO_MATCH,
+    channel: null,
+  }
+}
+
+/**
+ * Compares a source token key against a single verified channel-key payload
+ * without requiring a full managed-site channel object.
+ */
+export function inspectManagedSiteChannelKeyValueMatch(
+  params: InspectManagedSiteChannelKeyValueMatchParams,
+): Omit<ManagedSiteChannelKeyAssessment, "channel"> {
+  const keyComparisonMode =
+    params.keyComparisonMode ?? MANAGED_SITE_CHANNEL_KEY_COMPARISON_MODES.EXACT
+  const normalizedSourceKey = toComparableChannelKey(
+    params.sourceKey ?? "",
+    keyComparisonMode,
+  )
+
+  if (!normalizedSourceKey) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.NO_KEY_PROVIDED,
+    }
+  }
+
+  const channelKeyCandidates = toChannelKeyCandidatesFromString(
+    params.channelKey ?? "",
+    keyComparisonMode,
+  )
+
+  if (channelKeyCandidates.length === 0) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+    }
+  }
+
+  const matched = channelKeyCandidates.includes(normalizedSourceKey)
+
+  return {
+    comparable: true,
+    matched,
+    reason: matched
+      ? MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.MATCHED
+      : MANAGED_SITE_CHANNEL_KEY_MATCH_REASONS.NO_MATCH,
+  }
+}
+
+/**
+ * Inspects the strongest model-based result inside the normalized URL bucket.
+ */
+export function inspectManagedSiteChannelModelsMatch(
+  params: InspectManagedSiteChannelModelsMatchParams,
+): ManagedSiteChannelModelsAssessment {
+  const normalizedDesiredModels = toNormalizedModelList(params.models)
+
+  if (normalizedDesiredModels.length === 0) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.NO_MODELS_PROVIDED,
+      channel: null,
+    }
+  }
+
+  if (params.exactChannel) {
+    return {
+      comparable: true,
+      matched: true,
+      reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.EXACT,
+      channel: params.exactChannel,
+      similarityScore: 1,
+    }
+  }
+
+  const bestMatch = findBestManagedSiteChannelMatch({
+    channels: params.channels,
+    accountBaseUrl: params.accountBaseUrl,
+    models: normalizedDesiredModels,
+  })
+
+  if (bestMatch.level === MANAGED_SITE_CHANNEL_MATCH_LEVELS.NONE) {
+    return {
+      comparable: false,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.COMPARISON_UNAVAILABLE,
+      channel: null,
+    }
+  }
+
+  if (bestMatch.level === MANAGED_SITE_CHANNEL_MATCH_LEVELS.FUZZY) {
+    return {
+      comparable: true,
+      matched: false,
+      reason: MANAGED_SITE_CHANNEL_MODELS_MATCH_REASONS.NO_MATCH,
+      channel: null,
+    }
+  }
+
+  return {
+    comparable: true,
+    matched: true,
+    reason: toManagedSiteChannelModelsMatchReason(
+      bestMatch.reason as RankedManagedSiteChannelMatchReason,
+    ),
+    channel: bestMatch.channel,
+    similarityScore: bestMatch.similarityScore,
+  }
+}
+
+/**
+ * Finds the strongest ranked channel match within a normalized URL bucket.
+ */
+export function findBestManagedSiteChannelMatch(
+  params: FindBestManagedSiteChannelMatchParams,
+): ManagedSiteChannelMatchResult {
+  const { channels, accountBaseUrl, models } = params
+  const normalizedDesiredModels = toNormalizedModelList(models)
+  const urlBucket = findManagedSiteChannelsByBaseUrl({
+    channels,
+    accountBaseUrl,
+  })
+
+  if (urlBucket.length === 0) {
+    return {
+      level: MANAGED_SITE_CHANNEL_MATCH_LEVELS.NONE,
+      reason: MANAGED_SITE_CHANNEL_MATCH_REASONS.UNRESOLVED,
+      channel: null,
+    }
+  }
+
+  let bestSecondaryMatch: RankedManagedSiteChannelCandidate | null = null
+
+  for (const channel of urlBucket) {
+    const normalizedChannelModels = toNormalizedModelList(channel.models)
+
+    if (
+      normalizedDesiredModels.length === 0 ||
+      normalizedChannelModels.length === 0
+    ) {
+      continue
+    }
+
+    if (isArraysEqual(normalizedChannelModels, normalizedDesiredModels)) {
+      bestSecondaryMatch = pickBetterCandidate(bestSecondaryMatch, {
+        channel,
+        reason: MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_EXACT,
+        similarityScore: 1,
+        lengthDelta: 0,
+      })
+      continue
+    }
+
+    if (
+      isSubset(normalizedDesiredModels, normalizedChannelModels) ||
+      isSubset(normalizedChannelModels, normalizedDesiredModels)
+    ) {
+      bestSecondaryMatch = pickBetterCandidate(bestSecondaryMatch, {
+        channel,
+        reason: MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_CONTAINED,
+        similarityScore: getModelSimilarityScore(
+          normalizedChannelModels,
+          normalizedDesiredModels,
+        ),
+        lengthDelta: Math.abs(
+          normalizedChannelModels.length - normalizedDesiredModels.length,
+        ),
+      })
+      continue
+    }
+
+    const similarityScore = getModelSimilarityScore(
+      normalizedChannelModels,
+      normalizedDesiredModels,
+    )
+
+    if (similarityScore >= MANAGED_SITE_CHANNEL_MODEL_SIMILARITY_THRESHOLD) {
+      bestSecondaryMatch = pickBetterCandidate(bestSecondaryMatch, {
+        channel,
+        reason: MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_MODELS_SIMILAR,
+        similarityScore,
+        lengthDelta: Math.abs(
+          normalizedChannelModels.length - normalizedDesiredModels.length,
+        ),
+      })
+    }
+  }
+
+  if (bestSecondaryMatch) {
+    return {
+      level: MANAGED_SITE_CHANNEL_MATCH_LEVELS.SECONDARY,
+      reason: bestSecondaryMatch.reason,
+      channel: bestSecondaryMatch.channel,
+      similarityScore: bestSecondaryMatch.similarityScore,
+    }
+  }
+
+  return {
+    level: MANAGED_SITE_CHANNEL_MATCH_LEVELS.FUZZY,
+    reason: MANAGED_SITE_CHANNEL_MATCH_REASONS.URL_ONLY,
+    channel: urlBucket[0] ?? null,
+  }
+}

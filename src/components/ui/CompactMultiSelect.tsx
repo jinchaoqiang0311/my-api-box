@@ -1,0 +1,705 @@
+import {
+  CheckIcon,
+  ChevronsUpDownIcon,
+  ListChecksIcon,
+  ListXIcon,
+  XIcon,
+} from "lucide-react"
+import * as React from "react"
+import { useTranslation } from "react-i18next"
+
+import toast from "~/lib/notify"
+import { cn } from "~/lib/utils"
+import { createLogger } from "~/utils/core/logger"
+
+import { Badge } from "./badge"
+import { Button } from "./button"
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "./combobox"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./command"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Spinner } from "./spinner"
+import {
+  useCompactMultiSelectModel,
+  type ChipsItem,
+  type CompactMultiSelectOption,
+} from "./useCompactMultiSelectModel"
+
+const logger = createLogger("CompactMultiSelect")
+
+export interface CompactMultiSelectProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {
+  options: CompactMultiSelectOption[]
+  selected: string[]
+  onChange: (values: string[]) => void
+  /**
+   * Optional field label rendered above the control (mirrors legacy `MultiSelect` usage).
+   */
+  label?: string
+  /**
+   * Controls how selected values are displayed.
+   * - `summary`: button trigger with preview text + count
+   * - `chips`: inline chips with a searchable input
+   */
+  displayMode?: "summary" | "chips"
+  /**
+   * Placeholder shown when no selection is made.
+   * Defaults to the localized `ui:multiSelect.placeholder` string.
+   */
+  placeholder?: string
+  disabled?: boolean
+  /** Indicates pending options while preserving selection and input behavior. */
+  loading?: boolean
+  clearable?: boolean
+  /**
+   * When enabled, pressing Enter with a non-empty search term can add values that are not present
+   * in `options` (useful for model ids / group ids that may not be listed yet).
+   */
+  allowCustom?: boolean
+  /**
+   * When `allowCustom` is enabled, Enter can parse comma-separated values and add them in batch.
+   */
+  parseCommaStrings?: boolean
+  /**
+   * Max number of selected labels shown in the trigger before collapsing to a "+N" suffix.
+   */
+  maxDisplayValues?: number
+  /** Optional summary-mode text for an exact selection of all selectable options. */
+  allSelectedLabel?: string
+  searchPlaceholder?: string
+  emptyMessage?: string
+  /**
+   * Trigger button size. Defaults to "default" to match regular form controls.
+   */
+  size?: React.ComponentProps<typeof Button>["size"]
+  /**
+   * Minimum selectable option count required before rendering bulk action buttons in either display mode.
+   * Defaults to `0` to preserve the current always-visible behavior.
+   */
+  bulkActionsMinOptions?: number
+  /** Enables chips-mode bulk actions scoped to the current search results. */
+  enableFilteredBulkActions?: boolean
+  /**
+   * Optional stable selector for the searchable chips input.
+   */
+  inputTestId?: string
+}
+
+const getOptionAccessibleLabel = (option: CompactMultiSelectOption) =>
+  typeof option.count === "number"
+    ? `${option.label} ${option.count}`
+    : option.label
+
+const OptionCountBadge = ({ count }: { count?: number }) =>
+  typeof count === "number" ? (
+    <Badge
+      variant="secondary"
+      size="sm"
+      className="ml-auto shrink-0 tabular-nums"
+    >
+      {count}
+    </Badge>
+  ) : null
+
+/**
+ * CompactMultiSelect
+ *
+ * A compact multi-select combobox built from shadcn-style primitives (Popover + Command).
+ *
+ * Compared to the legacy `MultiSelect`, this aims to take less vertical space by using a
+ * button trigger (with a summary + count badge) instead of an always-visible input field.
+ */
+export function CompactMultiSelect({
+  options,
+  selected,
+  onChange,
+  label,
+  displayMode = "chips",
+  placeholder,
+  disabled = false,
+  loading = false,
+  clearable = true,
+  allowCustom = false,
+  parseCommaStrings = true,
+  maxDisplayValues = 2,
+  allSelectedLabel,
+  searchPlaceholder,
+  emptyMessage,
+  size = "default",
+  bulkActionsMinOptions = 0,
+  enableFilteredBulkActions = true,
+  inputTestId,
+  className,
+  ...buttonProps
+}: CompactMultiSelectProps) {
+  const { t } = useTranslation("ui")
+  const localizedPlaceholder = placeholder ?? t("ui:multiSelect.placeholder")
+  const [open, setOpen] = React.useState(false)
+  const chipsAnchor = useComboboxAnchor()
+  const chipsInputRef = React.useRef<HTMLInputElement | null>(null)
+  const actionsRef = React.useRef<HTMLDivElement | null>(null)
+  const [actionsOrientation, setActionsOrientation] = React.useState<
+    "horizontal" | "vertical"
+  >("horizontal")
+  const reactId = React.useId()
+  const labelId = label ? `${reactId}-label` : undefined
+
+  const restoreChipsInputFocus = React.useCallback(() => {
+    chipsInputRef.current?.focus()
+  }, [])
+
+  const {
+    searchTerm,
+    setSearchTerm,
+    selection: {
+      hasSelection,
+      triggerText,
+      selectableOptionValues,
+      showBulkActions,
+      allSelectableOptionsSelected,
+      selectAllSelectableOptions,
+      toggleValue,
+      clearSelection,
+    },
+    filtered: {
+      filteredMatchCount,
+      showFilteredBulkActions,
+      filteredSelectedCount,
+      allFilteredOptionsSelected,
+      hasFilteredSelection,
+      selectAllFilteredOptions,
+      invertFilteredOptions,
+      deselectAllFilteredOptions,
+    },
+    chips: {
+      chipsItems,
+      chipsSelectedItems,
+      chipsFilter,
+      chipsIsItemEqualToValue,
+    },
+    custom: { commitCustomValues, handleCustomKeyDown, handleCustomPaste },
+  } = useCompactMultiSelectModel({
+    options,
+    selected,
+    onChange,
+    disabled,
+    allowCustom,
+    parseCommaStrings,
+    maxDisplayValues,
+    bulkActionsMinOptions,
+    enableFilteredBulkActions,
+    localizedPlaceholder,
+    restoreChipsInputFocus,
+  })
+
+  const selectAllButtonLabel = t("ui:multiSelect.selectAll")
+
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? t("ui:searchableSelect.searchPlaceholder")
+
+  const defaultEmptyMessage =
+    options.length === 0
+      ? t("ui:searchableSelect.noOptions")
+      : t("ui:searchableSelect.empty")
+
+  const resolvedEmptyMessage = emptyMessage ?? defaultEmptyMessage
+
+  React.useEffect(() => {
+    if (!open) setSearchTerm("")
+  }, [open, setSearchTerm])
+
+  React.useEffect(() => {
+    if (displayMode !== "chips") return
+
+    const element = chipsAnchor.current
+    if (!element) return
+
+    const computeOrientation = () => {
+      const chipsHeight = element.getBoundingClientRect().height
+      const actionsEl = actionsRef.current
+      const actionButtons = actionsEl?.querySelectorAll("button") ?? []
+      const firstButton = actionButtons[0] as HTMLButtonElement | undefined
+
+      if (!firstButton) {
+        setActionsOrientation("horizontal")
+        return
+      }
+
+      const buttonHeight = firstButton.getBoundingClientRect().height
+      if (!Number.isFinite(buttonHeight) || buttonHeight <= 0) {
+        setActionsOrientation("horizontal")
+        return
+      }
+
+      // Switch to vertical only when the chips control is tall enough to host two icon buttons
+      // without increasing total row height (i.e. the buttons can stretch to match the chips).
+      const canUseVertical = chipsHeight >= buttonHeight * 2
+      setActionsOrientation(canUseVertical ? "vertical" : "horizontal")
+    }
+
+    computeOrientation()
+
+    const observer = new ResizeObserver(() => {
+      computeOrientation()
+    })
+
+    observer.observe(element)
+    if (actionsRef.current) observer.observe(actionsRef.current)
+
+    return () => observer.disconnect()
+  }, [chipsAnchor, displayMode])
+
+  const clearButtonSize: React.ComponentProps<typeof Button>["size"] =
+    size === "sm" ? "icon-sm" : size === "lg" ? "icon-lg" : "icon"
+
+  const chipsInputPlaceholder = hasSelection
+    ? resolvedSearchPlaceholder
+    : localizedPlaceholder
+
+  const chipsInputAriaLabel =
+    typeof buttonProps["aria-label"] === "string"
+      ? buttonProps["aria-label"]
+      : undefined
+
+  const chipsInputAriaLabelledBy =
+    typeof buttonProps["aria-labelledby"] === "string"
+      ? buttonProps["aria-labelledby"]
+      : labelId
+
+  const chipsInputAriaDescribedBy =
+    typeof buttonProps["aria-describedby"] === "string"
+      ? buttonProps["aria-describedby"]
+      : undefined
+
+  const chipsInputAriaInvalid = buttonProps["aria-invalid"]
+  const chipsInputAriaRequired = buttonProps["aria-required"]
+
+  const copyChipText = React.useCallback(
+    async (text: string) => {
+      if (typeof navigator === "undefined") return
+      if (!navigator.clipboard?.writeText) {
+        toast.error(t("ui:multiSelect.copyError"))
+        return
+      }
+
+      try {
+        await navigator.clipboard.writeText(text)
+        toast.success(
+          t("ui:multiSelect.chipCopied", {
+            value: text,
+          }),
+        )
+      } catch (error) {
+        logger.warn("Failed to copy selected chip text", error)
+        toast.error(t("ui:multiSelect.copyError"))
+      }
+    },
+    [t],
+  )
+
+  const handleChipTextClick = React.useCallback(
+    (event: React.MouseEvent<HTMLSpanElement>, text: string) => {
+      event.stopPropagation()
+
+      const selectedText = window.getSelection()?.toString().trim()
+      if (selectedText) return
+
+      void copyChipText(text)
+    },
+    [copyChipText],
+  )
+
+  const handleChipTextKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLSpanElement>, text: string) => {
+      if (event.key !== "Enter" && event.key !== " ") return
+
+      event.preventDefault()
+      event.stopPropagation()
+      void copyChipText(text)
+    },
+    [copyChipText],
+  )
+
+  const selectAllButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size={clearButtonSize}
+      onClick={selectAllSelectableOptions}
+      aria-label={selectAllButtonLabel}
+      title={selectAllButtonLabel}
+      disabled={
+        disabled ||
+        selectableOptionValues.length === 0 ||
+        allSelectableOptionsSelected
+      }
+      className="dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-card/80 shrink-0"
+    >
+      <ListChecksIcon className="size-4" />
+    </Button>
+  )
+
+  if (displayMode === "chips") {
+    const chipsControl = (
+      <div className="gap-density-2 flex w-full items-center">
+        <Combobox
+          multiple
+          autoHighlight
+          items={chipsItems}
+          value={chipsSelectedItems}
+          onValueChange={(value) => {
+            onChange(value.map((item) => item.value))
+            setSearchTerm("")
+          }}
+          inputValue={searchTerm}
+          onInputValueChange={(value) => setSearchTerm(value)}
+          open={open}
+          onOpenChange={setOpen}
+          disabled={disabled}
+          filter={chipsFilter}
+          isItemEqualToValue={chipsIsItemEqualToValue}
+        >
+          <ComboboxChips
+            ref={chipsAnchor}
+            className={cn(
+              "max-h-24 min-w-0 flex-1 flex-nowrap items-stretch",
+              className,
+            )}
+          >
+            <div className="gap-y-density-1-5 flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 overflow-x-hidden overflow-y-auto">
+              <ComboboxValue>
+                {(values) => (
+                  <React.Fragment>
+                    {Array.isArray(values)
+                      ? values.map((item: ChipsItem) => (
+                          <ComboboxChip key={item.value} showRemove={!disabled}>
+                            <span
+                              className="max-w-48 cursor-copy truncate select-text"
+                              title={item.label}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={t("ui:multiSelect.copyChipValue", {
+                                value: item.label,
+                              })}
+                              onClick={(event) =>
+                                handleChipTextClick(event, item.label)
+                              }
+                              onKeyDown={(event) =>
+                                handleChipTextKeyDown(event, item.label)
+                              }
+                            >
+                              {item.label}
+                            </span>
+                          </ComboboxChip>
+                        ))
+                      : null}
+                    <ComboboxChipsInput
+                      ref={chipsInputRef}
+                      data-testid={inputTestId}
+                      aria-label={chipsInputAriaLabel}
+                      aria-labelledby={chipsInputAriaLabelledBy}
+                      aria-describedby={chipsInputAriaDescribedBy}
+                      aria-description={buttonProps["aria-description"]}
+                      aria-invalid={chipsInputAriaInvalid}
+                      aria-required={chipsInputAriaRequired}
+                      aria-busy={loading || buttonProps["aria-busy"]}
+                      placeholder={chipsInputPlaceholder}
+                      disabled={disabled}
+                      onKeyDown={handleCustomKeyDown}
+                      onPaste={handleCustomPaste}
+                    />
+                  </React.Fragment>
+                )}
+              </ComboboxValue>
+            </div>
+            {loading && (
+              <Spinner
+                size="sm"
+                variant="current"
+                aria-hidden="true"
+                className="pointer-events-none shrink-0 self-center"
+              />
+            )}
+          </ComboboxChips>
+
+          <ComboboxContent anchor={chipsAnchor}>
+            {showFilteredBulkActions ? (
+              <div
+                role="group"
+                aria-label={t("multiSelect.filteredResultsScope")}
+                className="border-border bg-muted/40 gap-x-density-2 gap-y-density-1 py-density-1-5 pointer-coarse:gap-y-density-2 pointer-coarse:py-density-2 flex flex-wrap items-center justify-between border-b px-2 pointer-coarse:px-3"
+              >
+                <p
+                  className="text-muted-foreground mr-auto text-xs tabular-nums"
+                  aria-live="polite"
+                >
+                  {t("multiSelect.filteredMatchCount", {
+                    count: filteredMatchCount,
+                  })}
+                  {" · "}
+                  {t("multiSelect.filteredSelectedCount", {
+                    count: filteredSelectedCount,
+                  })}
+                </p>
+                <div className="flex max-w-full flex-wrap items-center justify-end gap-0.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={selectAllFilteredOptions}
+                    aria-label={t("multiSelect.selectAllMatches")}
+                    disabled={
+                      disabled ||
+                      filteredMatchCount === 0 ||
+                      allFilteredOptionsSelected
+                    }
+                    className="min-h-(--density-control-tight) px-2 text-xs pointer-coarse:h-11 pointer-coarse:px-3 pointer-coarse:text-sm"
+                  >
+                    {t("multiSelect.selectAll")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={invertFilteredOptions}
+                    aria-label={t("multiSelect.invertMatches")}
+                    disabled={disabled || filteredMatchCount === 0}
+                    className="min-h-(--density-control-tight) px-2 text-xs pointer-coarse:h-11 pointer-coarse:px-3 pointer-coarse:text-sm"
+                  >
+                    {t("multiSelect.invert")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={deselectAllFilteredOptions}
+                    aria-label={t("multiSelect.deselectMatches")}
+                    disabled={disabled || !hasFilteredSelection}
+                    className="min-h-(--density-control-tight) px-2 text-xs pointer-coarse:h-11 pointer-coarse:px-3 pointer-coarse:text-sm"
+                  >
+                    {t("multiSelect.deselect")}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            <ComboboxEmpty>
+              {loading ? <Spinner size="sm" /> : resolvedEmptyMessage}
+            </ComboboxEmpty>
+            <ComboboxList>
+              {(item) => (
+                <ComboboxItem
+                  key={item.value}
+                  value={item}
+                  disabled={disabled || Boolean(item.disabled)}
+                  aria-label={getOptionAccessibleLabel(item)}
+                >
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  <OptionCountBadge count={item.count} />
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+
+        {showBulkActions ? (
+          <div
+            ref={actionsRef}
+            data-testid="compact-multiselect-bulk-actions"
+            data-orientation={actionsOrientation}
+            className={cn(
+              "shrink-0",
+              actionsOrientation === "vertical"
+                ? "gap-density-2 flex flex-col items-start self-stretch"
+                : "gap-density-2 flex flex-row items-center",
+            )}
+          >
+            {selectAllButton}
+            <Button
+              type="button"
+              variant="outline"
+              size={clearButtonSize}
+              onClick={clearSelection}
+              aria-label={t("multiSelect.cancelSelected")}
+              title={t("multiSelect.cancelSelected")}
+              disabled={disabled || !hasSelection || !clearable}
+              className="dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-card/80"
+            >
+              <ListXIcon className="size-4" />
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    )
+
+    return (
+      <div className="w-full">
+        {label && (
+          <label
+            id={labelId}
+            className="dark:text-foreground text-secondary-foreground mb-density-1 block text-sm font-medium"
+          >
+            {label}
+          </label>
+        )}
+        {chipsControl}
+      </div>
+    )
+  }
+
+  const triggerAriaLabelledBy =
+    typeof buttonProps["aria-labelledby"] === "string"
+      ? buttonProps["aria-labelledby"]
+      : labelId
+
+  const summaryText =
+    allSelectedLabel &&
+    !loading &&
+    allSelectableOptionsSelected &&
+    selected.every((value) => selectableOptionValues.includes(value))
+      ? allSelectedLabel
+      : triggerText
+
+  return (
+    <div className="w-full">
+      {label && (
+        <label
+          id={labelId}
+          className="dark:text-foreground text-secondary-foreground mb-density-1 block text-sm font-medium"
+        >
+          {label}
+        </label>
+      )}
+      <div className="gap-density-2 flex w-full items-center">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size={size}
+              role="combobox"
+              aria-expanded={open}
+              aria-labelledby={triggerAriaLabelledBy}
+              className={cn(
+                "dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-card/80 gap-density-2 flex min-w-0 flex-1 items-center justify-between overflow-hidden text-left",
+                "whitespace-nowrap",
+                !hasSelection && "text-muted-foreground",
+                className,
+              )}
+              disabled={disabled}
+              {...buttonProps}
+              aria-busy={loading || buttonProps["aria-busy"]}
+            >
+              <span className="min-w-0 flex-1 truncate">{summaryText}</span>
+              <span className="gap-density-2 flex shrink-0 items-center">
+                {hasSelection && (
+                  <Badge variant="secondary" size="sm">
+                    {selected.length}
+                  </Badge>
+                )}
+                {loading ? (
+                  <Spinner size="sm" variant="current" aria-hidden="true" />
+                ) : (
+                  <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+                )}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-(--radix-popper-anchor-width) p-0">
+            <Command className="rounded-(--popover-inner-radius)">
+              <CommandInput
+                placeholder={resolvedSearchPlaceholder}
+                value={searchTerm}
+                onValueChange={setSearchTerm}
+                onClear={() => setSearchTerm("")}
+                clearButtonLabel={t("multiSelect.clearInput")}
+              />
+              <CommandList>
+                <CommandEmpty>
+                  {loading ? (
+                    <Spinner size="sm" className="mx-auto" />
+                  ) : (
+                    resolvedEmptyMessage
+                  )}
+                </CommandEmpty>
+                <CommandGroup>
+                  {allowCustom && searchTerm.trim().length > 0 && (
+                    <CommandItem
+                      key={`__custom__${searchTerm}`}
+                      value={searchTerm}
+                      disabled={disabled}
+                      onSelect={() => commitCustomValues(searchTerm)}
+                    >
+                      <CheckIcon className="size-4 opacity-0" />
+                      <span className="truncate">{searchTerm}</span>
+                    </CommandItem>
+                  )}
+                  {options.map((option) => {
+                    const isSelected = selected.includes(option.value)
+                    const isOptionDisabled =
+                      disabled || Boolean(option.disabled)
+
+                    return (
+                      <CommandItem
+                        key={option.value}
+                        value={option.value}
+                        keywords={[option.label]}
+                        disabled={isOptionDisabled}
+                        aria-label={getOptionAccessibleLabel(option)}
+                        onSelect={() => toggleValue(option.value)}
+                      >
+                        <CheckIcon
+                          className={cn(
+                            "size-4",
+                            isSelected ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          {option.label}
+                        </span>
+                        <OptionCountBadge count={option.count} />
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {showBulkActions ? selectAllButton : null}
+
+        {/* Keep selection clearing out of the options list to avoid it being mistaken as a real option. */}
+        {clearable && !disabled && hasSelection && (
+          <Button
+            type="button"
+            variant="outline"
+            size={clearButtonSize}
+            onClick={clearSelection}
+            aria-label={t("multiSelect.clearSelected")}
+            title={t("multiSelect.clearSelected")}
+            className="dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-card/80 shrink-0"
+          >
+            <XIcon className="size-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}

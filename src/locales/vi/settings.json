@@ -1,0 +1,1018 @@
+{
+  "accountManagement": {
+    "description": "Quản lý tài khoản, số dư, API Key và cấu hình thứ tự ưu tiên trong bảng điều khiển chuyên dụng.",
+    "openPage": "Mở trang quản lý tài khoản",
+    "title": "Quản lý tài khoản"
+  },
+  "actionClick": {
+    "actionIconClickDesc": "Chọn thao tác bấm biểu tượng trên thanh công cụ sẽ mở popup, thanh bên hay toàn bộ trang tùy chọn.",
+    "actionIconClickTitle": "Đích mở mặc định",
+    "description": "Thiết lập nội dung mở ra khi bấm biểu tượng tiện ích trên thanh công cụ của trình duyệt.",
+    "optionsLabel": "Trang tùy chọn",
+    "optionsTitle": "Mở toàn bộ trang tùy chọn",
+    "popupLabel": "Popup",
+    "popupTitle": "Mở popup",
+    "sidepanelFallbackToast": "Đã lưu tùy chọn thanh bên. Trình duyệt này không hỗ trợ thanh bên, nên thao tác bấm sẽ mở popup.",
+    "sidepanelLabel": "Thanh bên",
+    "sidepanelTitle": "Mở thanh bên",
+    "sidepanelUnsupportedHelper": "Trình duyệt này không hỗ trợ thanh bên; lựa chọn thanh bên sẽ tự động chuyển về popup.",
+    "title": "Bấm biểu tượng tiện ích"
+  },
+  "appearance": {
+    "color": "Màu chủ đề",
+    "colors": {
+      "blue": "Xanh dương",
+      "green": "Xanh lá",
+      "orange": "Cam",
+      "rose": "Hồng",
+      "slate": "Xám đá",
+      "violet": "Tím"
+    },
+    "contentWidth": "Chiều rộng nội dung",
+    "contentWidthDescription": "Chỉ áp dụng cho trang quản lý đầy đủ.",
+    "contentWidths": {
+      "centered": "Căn giữa",
+      "full": "Toàn chiều rộng"
+    },
+    "densities": {
+      "comfortable": "Thoáng",
+      "compact": "Gọn",
+      "default": "Mặc định"
+    },
+    "density": "Mật độ giao diện",
+    "densityDescription": "Điều chỉnh khoảng cách giữa các hàng và chiều cao điều khiển mà không đổi cỡ chữ.",
+    "description": "Thay đổi được lưu tự động và áp dụng cho trang cài đặt, cửa sổ bật lên và bảng bên.",
+    "font": "Phông chữ",
+    "fontDescription": "Chọn phông chữ giao diện. Khi theo chủ đề, chủ đề mặc định dùng chữ không chân và Anthropic dùng chữ có chân.",
+    "fonts": {
+      "default": "Theo chủ đề",
+      "sans": "Không chân",
+      "serif": "Có chân"
+    },
+    "preset": "Chủ đề có sẵn",
+    "presetColorsHint": "Chủ đề này có bảng màu riêng. Chọn chủ đề mặc định để chọn màu nhấn riêng.",
+    "presetDescriptions": {
+      "anthropic": "Màu kem ấm và đất nung, cùng chế độ tối màu than.",
+      "default": "Tông trung tính cổ điển với màu nhấn tùy chọn."
+    },
+    "presets": {
+      "anthropic": "Anthropic",
+      "default": "Chủ đề mặc định"
+    },
+    "radii": {
+      "default": "Mặc định",
+      "large": "Lớn",
+      "none": "Vuông",
+      "small": "Nhỏ"
+    },
+    "radius": "Độ bo góc",
+    "reset": "Đặt lại giao diện",
+    "resetDensity": "Đặt lại mật độ",
+    "resetFont": "Đặt lại phông chữ",
+    "resetTextSize": "Đặt lại cỡ chữ",
+    "saveFailed": "Không thể lưu. Vui lòng thử lại.",
+    "textSize": "Cỡ chữ",
+    "textSizeDescription": "Điều chỉnh cỡ chữ và chiều cao dòng. Các thành phần điều khiển giãn theo nội dung mà không đổi thiết lập mật độ.",
+    "textSizes": {
+      "default": "Mặc định",
+      "extraLarge": "Rất lớn",
+      "large": "Lớn"
+    },
+    "title": "Cài đặt giao diện"
+  },
+  "appearanceLanguage": {
+    "language": "Ngôn ngữ",
+    "languageDesc": "Chọn ngôn ngữ hiển thị bạn muốn dùng",
+    "onboardingHelper": "Phần hướng dẫn và các trang cài đặt sau đó sẽ dùng ngôn ngữ bạn chọn.",
+    "onboardingLabel": "Chọn ngôn ngữ giao diện",
+    "onboardingLanguageRequest": "Không thấy ngôn ngữ của bạn? Yêu cầu hỗ trợ ngôn ngữ",
+    "switcher": {
+      "currentLanguage": "Ngôn ngữ giao diện hiện tại: {{language}}",
+      "groupLabel": "Chọn ngôn ngữ giao diện",
+      "options": {
+        "de": {
+          "label": "DE",
+          "name": "Tiếng Đức"
+        },
+        "en": {
+          "label": "EN",
+          "name": "Tiếng Anh"
+        },
+        "es-419": {
+          "label": "ES",
+          "name": "Tiếng Tây Ban Nha Mỹ Latinh"
+        },
+        "ja": {
+          "label": "JA",
+          "name": "Tiếng Nhật"
+        },
+        "pt-BR": {
+          "label": "PT-BR",
+          "name": "Tiếng Bồ Đào Nha (Brazil)"
+        },
+        "vi": {
+          "label": "VI",
+          "name": "Tiếng Việt"
+        },
+        "zh-CN": {
+          "label": "SC",
+          "name": "Tiếng Trung giản thể"
+        },
+        "zh-TW": {
+          "label": "TC",
+          "name": "Tiếng Trung phồn thể"
+        }
+      },
+      "switchToLanguage": "Chuyển ngôn ngữ giao diện sang {{language}}"
+    }
+  },
+  "autoFillCurrentSiteUrlOnAccountAdd": {
+    "description": "Kiểm soát việc tự động điền URL trang hiện tại vào ô URL khi thêm tài khoản mới.",
+    "title": "Tài khoản",
+    "toggleDesc": "Sau khi bật, khi mở hộp thoại thêm tài khoản, địa chỉ trang của tab trình duyệt hiện tại sẽ được điền sẵn vào ô URL. Quy trình nhận diện vẫn dùng thao tác bước tiếp theo hiện có.",
+    "toggleLabel": "Tự động điền URL trang hiện tại khi thêm tài khoản"
+  },
+  "autoProvisionKeyOnAccountAdd": {
+    "description": "Tự động chuẩn bị khóa API sau khi thêm tài khoản: khóa mặc định hoặc khóa cho tất cả nhóm khả dụng.",
+    "manualHint": "Với tài khoản đã lưu, dùng Quản lý khóa → {{actionLabel}} để bổ sung khóa còn thiếu cho tất cả nhóm khả dụng.",
+    "modeDescription": "Chế độ mặc định chuẩn bị một khóa khi không có khóa hoạt động. Tất cả nhóm bổ sung từng nhóm còn thiếu; trang không yêu cầu nhóm sẽ chuẩn bị một khóa mặc định. Cả hai chế độ đều có thể mở hộp thoại để nhập thông tin hoặc xử lý khóa chỉ hiển thị một lần.",
+    "modeLabel": "Phạm vi tạo tự động",
+    "modes": {
+      "allGroups": "Tất cả nhóm khả dụng",
+      "default": "Chỉ khóa mặc định"
+    },
+    "title": "API Key",
+    "toggleDesc": "Sau khi lưu tài khoản, kiểm tra và tạo khóa còn thiếu trong phạm vi đã chọn.",
+    "toggleLabel": "Tự động tạo khóa sau khi thêm tài khoản"
+  },
+  "axonHub": {
+    "cors": {
+      "description": "Phiên bản AxonHub mới thường cần điều chỉnh cấu hình CORS phía máy chủ, nếu không tiện ích My API Box không thể truy cập AxonHub từ trình duyệt. Có thể đặt AXONHUB_SERVER_CORS_ALLOWED_ORIGINS thành \"*\", hoặc giới hạn trong nguồn trình duyệt / tiện ích mà bạn tin cậy.",
+      "title": "Cài đặt CORS bắt buộc"
+    },
+    "description": "Cấu hình tích hợp để kết nối với bảng quản trị AxonHub.",
+    "fields": {
+      "baseUrlDesc": "Đặt URL cơ sở của trang AxonHub",
+      "baseUrlLabel": "URL cơ sở",
+      "baseUrlPlaceholder": "https://axonhub.example.com",
+      "emailDesc": "Email quản trị viên AxonHub dùng để đăng nhập /admin/auth/signin",
+      "emailLabel": "Email quản trị viên",
+      "emailPlaceholder": "admin@example.com",
+      "hidePassword": "Ẩn mật khẩu",
+      "passwordDesc": "Mật khẩu quản trị viên dùng để lấy token phiên GraphQL quản trị AxonHub",
+      "passwordLabel": "Mật khẩu quản trị viên",
+      "passwordPlaceholder": "Nhập mật khẩu",
+      "showPassword": "Hiển thị mật khẩu"
+    },
+    "title": "Cài đặt tích hợp AxonHub",
+    "validation": {
+      "corsFailed": "Xác minh cấu hình AxonHub thất bại: {{error}}. Điều này thường có nghĩa là phiên bản AxonHub mới chưa cho phép nguồn trình duyệt của tiện ích. Hãy điều chỉnh cấu hình CORS phía máy chủ AxonHub, đặt AXONHUB_SERVER_CORS_ALLOWED_ORIGINS thành \"*\", hoặc cho phép nguồn tiện ích / trình duyệt rồi thử lại.",
+      "description": "Kiểm tra xem cấu hình hiện tại có thể kết nối và quản lý trang web hay không.",
+      "failed": "Xác minh cấu hình AxonHub thất bại: {{error}}",
+      "missingFields": "Vui lòng điền tất cả trường bắt buộc",
+      "title": "Xác minh kết nối"
+    }
+  },
+  "changelogOnUpdate": {
+    "description": "Kiểm soát việc hiển thị nội dung cập nhật trong tiện ích khi mở trang cài đặt lần đầu sau khi cập nhật xong.",
+    "title": "Nhật ký thay đổi",
+    "toggleDesc": "Sau khi bật, lần đầu mở trang cài đặt sau khi cập nhật xong, tiện ích sẽ hiển thị nội dung cập nhật trong app (mỗi phiên bản chỉ một lần), đồng thời có thể mở thủ công trang nhật ký thay đổi đầy đủ.",
+    "toggleLabel": "Tự động hiển thị nội dung cập nhật sau khi cập nhật"
+  },
+  "claudeCodeHub": {
+    "description": "Cấu hình thông tin kết nối cho trang quản trị Claude Code Hub.",
+    "fields": {
+      "adminTokenDesc": "Token quản trị viên hoặc API Key được Claude Code Hub action API chấp nhận",
+      "adminTokenLabel": "Token quản trị viên",
+      "adminTokenPlaceholder": "Nhập token quản trị viên",
+      "baseUrlDesc": "Đặt URL cơ sở của trang Claude Code Hub",
+      "baseUrlLabel": "URL cơ sở",
+      "baseUrlPlaceholder": "https://claude-code-hub.example.com",
+      "hideAdminToken": "Ẩn token quản trị viên",
+      "showAdminToken": "Hiển thị token quản trị viên"
+    },
+    "title": "Cài đặt tích hợp Claude Code Hub",
+    "unsupported": {
+      "description": "Phiên bản hiện tại chưa hỗ trợ đồng bộ mô hình và chuyển hướng mô hình của Claude Code Hub.",
+      "title": "Thao tác kênh chưa được hỗ trợ"
+    },
+    "validation": {
+      "description": "Kiểm tra xem cấu hình hiện tại có thể kết nối và quản lý trang web hay không.",
+      "failed": "Xác minh cấu hình Claude Code Hub thất bại: {{error}}",
+      "missingFields": "Vui lòng điền tất cả trường bắt buộc",
+      "title": "Xác minh kết nối"
+    }
+  },
+  "claudeCodeRouter": {
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "sk-123456",
+    "baseUrlLabel": "URL cơ sở",
+    "baseUrlPlaceholder": "http://localhost:3000",
+    "description": "Cấu hình thông tin kết nối API quản trị Claude Code Router",
+    "keyDesc": "APIKEY tùy chọn dùng cho /api/config (có thể để trống nếu chưa bật)",
+    "title": "Claude Code Router",
+    "urlDesc": "URL cơ sở của dịch vụ Claude Code Router, ví dụ http://localhost:3000"
+  },
+  "cliProxyApi": {
+    "baseUrlLabel": "URL cơ sở API quản trị",
+    "checkConnectionDesc": "Kiểm tra xem cấu hình hiện tại có thể kết nối và quản lý trang web hay không.",
+    "checkConnectionLabel": "Xác minh kết nối",
+    "description": "Cấu hình thông tin kết nối tới API quản trị CLIProxyAPI.",
+    "hideKey": "Ẩn key quản trị",
+    "keyDesc": "Key quản trị dùng để xác thực truy cập API quản trị",
+    "managementDocsLinkLabel": "Xem tài liệu Management API",
+    "managementKeyLabel": "Key quản trị",
+    "showKey": "Hiển thị key quản trị",
+    "title": "Cài đặt CLIProxyAPI",
+    "urlDesc": "Đặt URL cơ sở API quản trị, ví dụ http://localhost:8317/v0/management"
+  },
+  "danger": {
+    "resetAllSettings": "Đặt lại tất cả cài đặt",
+    "resetDesc": "Đặt lại toàn bộ cấu hình về mặc định. Thao tác này không thể hoàn tác",
+    "resetFailed": "Đặt lại cài đặt thất bại",
+    "resetSettings": "Đặt lại cài đặt",
+    "title": "Thao tác nguy hiểm"
+  },
+  "dataBackup": {
+    "importExport": {
+      "description": "Truy cập trang nhập và xuất dữ liệu chuyên dụng.",
+      "info": "Trang nhập/xuất cung cấp đầy đủ chức năng nhập dữ liệu, xuất theo nhiều định dạng và quản lý sao lưu.",
+      "openPage": "Mở trang nhập/xuất",
+      "title": "Nhập và xuất"
+    }
+  },
+  "description": "Điều chỉnh giao diện, quản lý tài khoản, tác vụ tự động và sao lưu dữ liệu.",
+  "display": {
+    "cny": "Nhân dân tệ (¥)",
+    "currencyDesc": "Đặt đơn vị tiền tệ mặc định để hiển thị số dư và thu chi",
+    "currencyUnit": "Đơn vị tiền tệ",
+    "defaultTab": "Tab mặc định",
+    "defaultTabDesc": "Đặt tab hiển thị mặc định khi khởi động tiện ích",
+    "description": "Tùy chỉnh ngôn ngữ giao diện và tùy chọn hiển thị của tiện ích",
+    "title": "Cài đặt hiển thị",
+    "todayCashflow": "Thu chi hôm nay",
+    "todayCashflowEnabled": "Hiển thị thu chi hôm nay",
+    "todayCashflowEnabledDesc": "Kiểm soát việc hiển thị và lấy thống kê tiêu hao/thu nhập hôm nay. Sau khi tắt, thống kê hôm nay sẽ bị ẩn và các yêu cầu dữ liệu liên quan sẽ bị bỏ qua khi làm mới.",
+    "totalBalance": "Tổng số dư",
+    "usd": "Đô la Mỹ ($)"
+  },
+  "doneHub": {
+    "adminCredentialsLink": {
+      "description": "Mở trang hồ sơ quản trị để nhanh chóng lấy token truy cập hệ thống và ID người dùng.",
+      "open": "Mở trang",
+      "title": "Lấy nhanh"
+    },
+    "description": "Cấu hình tích hợp để kết nối với dịch vụ tương thích Done Hub.",
+    "fields": {
+      "adminTokenLabel": "Token truy cập hệ thống của quản trị viên",
+      "baseUrlLabel": "URL cơ sở",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "Ẩn token truy cập hệ thống",
+      "showToken": "Hiển thị token truy cập hệ thống",
+      "userIdLabel": "ID người dùng quản trị viên"
+    },
+    "title": "Cài đặt tích hợp Done Hub",
+    "tokenDesc": "Token truy cập hệ thống của quản trị viên. Vui lòng tạo trong Done Hub Admin -> Cài đặt cá nhân -> Token",
+    "urlDesc": "Đặt URL cơ sở dùng cho tích hợp Done Hub",
+    "userIdDesc": "ID người dùng quản trị viên (chỉ số), quản trị viên root thường là 1"
+  },
+  "duplicateAccountWarningOnAdd": {
+    "description": "Kiểm tra tài khoản đã lưu trước khi thêm để tránh trùng lặp.",
+    "title": "Tài khoản",
+    "toggleDesc": "Yêu cầu xác nhận khi cùng ID người dùng đã được lưu cho trang web này. Với OpenRouter, kiểm tra Management Key giống hệt nhau.",
+    "toggleLabel": "Nhắc trước khi thêm tài khoản trùng lặp"
+  },
+  "gptLoad": {
+    "description": "Manage a self-hosted gpt-load instance: a lightweight Go AI gateway that load balances requests across provider channels.",
+    "fields": {
+      "baseUrlDesc": "The base URL of your gpt-load dashboard (for example https://gateway.example.com).",
+      "baseUrlLabel": "Gateway address",
+      "baseUrlPlaceholder": "https://gateway.example.com",
+      "hideManagementKey": "Hide management key",
+      "managementKeyDesc": "The gateway's root AUTH_KEY, presented to the management API as a bearer token. It holds the same power as every workspace channel key.",
+      "managementKeyLabel": "Management key",
+      "managementKeyPlaceholder": "The AUTH_KEY from your gateway config",
+      "showManagementKey": "Show management key"
+    },
+    "title": "gpt-load",
+    "validation": {
+      "description": "Send one request with the key above to verify the gateway is reachable and the key is accepted.",
+      "failed": "Could not reach the gateway: {{error}}",
+      "insufficientPrivilege": "The management key lacks permission: {{error}}",
+      "invalidCredential": "The management key was rejected: {{error}}",
+      "missingFields": "Enter the gateway address and management key first",
+      "title": "Check connection"
+    }
+  },
+  "logging": {
+    "consoleEnabled": "Bật nhật ký",
+    "consoleEnabledDesc": "Khi tắt, đầu ra bảng điều khiển và việc ghi nhật ký cục bộ mới sẽ dừng.",
+    "description": "Cấu hình đầu ra nhật ký và lịch sử chẩn đoán cục bộ.",
+    "history": {
+      "allContexts": "Tất cả nguồn",
+      "allLevels": "Tất cả mức",
+      "allTime": "Tất cả nhật ký đã lưu",
+      "clearDescription": "Xóa tất cả nhật ký được giữ trên thiết bị này.",
+      "clearError": "Không thể xóa nhật ký",
+      "clearTitle": "Xóa nhật ký cục bộ",
+      "context": "Nguồn",
+      "copied": "Đã sao chép nhật ký",
+      "copy": "Sao chép nhật ký đã lọc",
+      "copyError": "Không thể sao chép nhật ký",
+      "description": "Hiển thị tối đa {{limit}} bản ghi cục bộ trong {{hours}} giờ qua. Việc dọn dẹp bản ghi hết hạn diễn ra khi ghi hoặc xem nhật ký. Bật nhật ký để ghi lại sự kiện; đặt mức nhật ký tối thiểu thành Gỡ lỗi để có thêm chi tiết.",
+      "details": "Chi tiết",
+      "empty": "Không có nhật ký phù hợp. Bật nhật ký, tái hiện sự cố rồi quay lại đây.",
+      "entryDescription": "Theo dõi trực tiếp nhật ký từ các trang của tiện ích hoặc xem lịch sử gần đây.",
+      "lastHour": "1 giờ gần nhất",
+      "lastMinutes": "5 phút gần nhất",
+      "level": "Mức nhật ký",
+      "loadError": "Không thể đọc nhật ký. Các mục đang hiển thị được giữ lại. Vui lòng thử lại.",
+      "more": "Tải nhật ký cũ hơn",
+      "open": "Xem nhật ký",
+      "pause": "Tạm dừng cập nhật",
+      "period": "Khoảng thời gian",
+      "resume": "Tiếp tục cập nhật trực tiếp",
+      "search": "Tìm thông báo, mô-đun hoặc ID yêu cầu",
+      "showing": "Hiển thị {{visible}} / {{total}}",
+      "title": "Nhật ký gần đây"
+    },
+    "levels": {
+      "debug": "Gỡ lỗi",
+      "error": "Lỗi",
+      "info": "Thông tin",
+      "warn": "Cảnh báo"
+    },
+    "minLevel": "Cấp nhật ký tối thiểu",
+    "minLevelDesc": "Nhật ký dưới mức đã chọn không được xuất hoặc lưu.",
+    "title": "Nhật ký"
+  },
+  "magpie": {
+    "description": "Quản lý nhà cung cấp trên máy chủ Magpie Web tự lưu trữ.",
+    "fields": {
+      "baseUrlDesc": "Khởi động magpie web (cổng mặc định 3430). Nhập URL Web, không phải URL suy luận ở cổng 3425.",
+      "baseUrlLabel": "URL quản trị Web",
+      "baseUrlPlaceholder": "http://localhost:3430",
+      "hideWebKey": "Ẩn khóa quản trị",
+      "showWebKey": "Hiện khóa quản trị",
+      "webKeyDesc": "Dùng MAGPIE_WEB_KEY hoặc giá trị k trong liên kết khởi động. MAGPIE_WEB_KEY cố định vẫn dùng được sau khi khởi động lại; nếu không, hãy cập nhật khóa tại đây. API key suy luận không dùng để quản trị.",
+      "webKeyLabel": "Khóa quản trị Web",
+      "webKeyPlaceholder": "Nhập khóa quản trị Web"
+    },
+    "title": "Magpie",
+    "validation": {
+      "description": "Dùng khóa ở trên để kiểm tra kết nối và quyền truy cập danh sách nhà cung cấp.",
+      "failed": "Không thể kết nối Magpie. Kiểm tra địa chỉ Web và máy chủ đã chạy chưa.",
+      "invalidCredential": "Khóa Web bị từ chối. Kiểm tra MAGPIE_WEB_KEY hoặc dùng khóa khởi động hiện tại.",
+      "missingFields": "Trước tiên hãy nhập địa chỉ cổng và khóa quản trị",
+      "title": "Kiểm tra kết nối"
+    }
+  },
+  "managedSite": {
+    "axonHub": "AxonHub",
+    "claudeCodeHub": "Claude Code Hub",
+    "cliProxyApi": "CLIProxyAPI",
+    "deploymentDocs": "Tài liệu triển khai chính thức",
+    "deploymentDocsLink": "Tài liệu triển khai chính thức của {{site}}",
+    "description": "Chọn trang nền tảng tổng hợp API mà bạn muốn quản lý. Lựa chọn này quyết định cấu hình dùng cho quản lý kênh và đồng bộ mô hình.",
+    "doneHub": "Done Hub",
+    "gatewayGuidance": {
+      "actions": {
+        "importAccountKeys": "Thêm kênh bằng key tài khoản",
+        "importApiKeys": "Thêm kênh bằng API key",
+        "viewChannels": "Xem kênh đã nhập"
+      },
+      "configComplete": {
+        "description": "Đã lưu cấu hình cổng. Nhập khóa tài khoản hoặc thông tin xác thực API thành kênh. Kết nối được kiểm tra khi xác minh hoặc nhập.",
+        "title": "Tiếp theo: nhập kênh"
+      },
+      "unconfigured": {
+        "description": "Trước tiên hãy cấu hình AI gateway tự triển khai, sau đó nhập key tài khoản hoặc API key làm kênh gateway. Như vậy nhiều key có thể cùng cung cấp một AI API thống nhất.",
+        "title": "Cấu hình AI gateway tự triển khai"
+      }
+    },
+    "gptLoad": "gpt-load",
+    "magpie": "Magpie",
+    "newApi": "New API",
+    "octopus": "Octopus",
+    "omniroute": "OmniRoute",
+    "popularityHint": "Sắp xếp theo số sao GitHub tại thời điểm cập nhật.",
+    "siteTypeDesc": "Chọn nền tảng dùng cho quản lý kênh và đồng bộ mô hình",
+    "siteTypeLabel": "Loại gateway",
+    "sub2api": "Sub2API",
+    "title": "Cấu hình AI gateway tự triển khai",
+    "veloera": "Veloera"
+  },
+  "managedSiteConnection": {
+    "check": "Kiểm tra kết nối",
+    "checkError": "Đã lưu cấu hình nhưng kiểm tra kết nối thất bại. Vui lòng thử lại.",
+    "checking": "Đang kiểm tra…",
+    "conflict": "Cấu hình đã thay đổi trên trang khác. Nội dung nhập được giữ lại. Hãy xem cấu hình mới nhất hoặc tải lại cấu hình đã lưu để thay thế nội dung nhập.",
+    "failed": "Đã lưu cấu hình nhưng kiểm tra kết nối thất bại: {{reason}}",
+    "invalidField": "Kiểm tra {{field}} trước khi lưu",
+    "reload": "Tải lại cấu hình đã lưu",
+    "saveError": "Không thể lưu cấu hình. Nội dung nhập được giữ lại. Vui lòng thử lại.",
+    "saveFailed": "Không thể lưu cấu hình: {{reason}}. Nội dung nhập được giữ lại. Vui lòng thử lại.",
+    "saving": "Đang lưu…",
+    "success": "Đã lưu cấu hình. Kết nối đã được xác minh.",
+    "unreachable": "Không thể kết nối đến trang"
+  },
+  "messages": {
+    "alreadyDefault": "Đã ở giá trị mặc định",
+    "confirmReset": "Xác nhận đặt lại",
+    "preferencesChangedExternally": "Tùy chọn đã thay đổi ở nơi khác. Vui lòng làm mới rồi thử lại.",
+    "resetAllConfirmDesc": "Khôi phục mọi tùy chọn và xóa địa chỉ kết nối cùng thông tin xác thực đã cấu hình? Các tài khoản đã lưu được giữ lại; chính sách lưu lịch sử cũng trở về mặc định.",
+    "resetConfirmDesc": "Bạn có chắc muốn đặt lại {{name}} về cài đặt mặc định không? Thao tác này không thể hoàn tác.",
+    "resetConnectionConfirmDesc": "Thao tác này xóa địa chỉ kết nối, thông tin xác thực và cài đặt liên quan trong nhóm này. Bạn sẽ cần cấu hình lại. Khôi phục mặc định?",
+    "resetFailed": "Đặt lại {{name}} thất bại",
+    "resetHistoryConfirmDesc": "Khôi phục mặc định sẽ rút ngắn thời gian lưu lịch sử. Các bản ghi cũ có thể bị xóa vĩnh viễn. Tiếp tục?",
+    "resetSuccess": "{{name}} đã được đặt lại về cài đặt mặc định",
+    "retentionSaveHint": "Các tùy chọn khác được lưu tự động. Số ngày lưu cần được áp dụng riêng; rút ngắn thời gian có thể xóa lịch sử.",
+    "runtimeRequestFailed": "Yêu cầu runtime thất bại. Vui lòng thử lại sau.",
+    "saveSettingsFailed": "Lưu cài đặt thất bại",
+    "updateFailed": "Cập nhật {{name}} thất bại",
+    "updateSuccess": "Cập nhật {{name}} thành công"
+  },
+  "newApi": {
+    "adminCredentialsLink": {
+      "description": "Mở trang cài đặt cá nhân của bảng quản trị để nhanh chóng lấy token truy cập hệ thống và ID người dùng.",
+      "open": "Mở trang",
+      "title": "Lấy nhanh"
+    },
+    "description": "Cấu hình tích hợp để kết nối với dịch vụ tương thích New API.",
+    "fields": {
+      "adminTokenLabel": "Token truy cập hệ thống của quản trị viên",
+      "baseUrlLabel": "URL cơ sở",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hidePassword": "Ẩn mật khẩu đăng nhập",
+      "hideToken": "Ẩn token truy cập hệ thống",
+      "hideTotpSecret": "Ẩn TOTP secret",
+      "passwordDesc": "Tùy chọn. Dùng cùng tên đăng nhập để đăng nhập bảng quản trị New API và tạo phiên đăng nhập khi cần xem key kênh hoặc thực hiện đối chiếu key đầy đủ.",
+      "passwordLabel": "Mật khẩu đăng nhập",
+      "passwordPlaceholder": "Nhập mật khẩu",
+      "showPassword": "Hiển thị mật khẩu đăng nhập",
+      "showToken": "Hiển thị token truy cập hệ thống",
+      "showTotpSecret": "Hiển thị TOTP secret",
+      "totpSecretDesc": "Tùy chọn. Sau khi điền, My API Box có thể tự động tạo mã xác minh TOTP để hoàn tất đăng nhập 2FA và xác minh bảo mật cần thiết khi xem key kênh.",
+      "totpSecretLabel": "TOTP secret",
+      "totpSecretPlaceholder": "Dán Base32 TOTP secret",
+      "userIdLabel": "ID người dùng quản trị viên",
+      "usernameDesc": "Tùy chọn. Dùng để đăng nhập bảng quản trị New API và hoàn tất xác minh hai bước khi cần. Chủ yếu dùng trong quản lý kênh để xem key kênh thật và trong quản lý key để xác định một key có đang được dùng trong kênh hay không.",
+      "usernameLabel": "Tên đăng nhập",
+      "usernamePlaceholder": "admin"
+    },
+    "sessionTest": {
+      "description": "Kiểm tra tên đăng nhập, mật khẩu và TOTP secret đã điền có chính xác và khả dụng hay không. Sau khi xác minh thành công, bạn có thể tiếp tục thực hiện các thao tác cần đăng nhập và xác minh hai bước.",
+      "testing": "Đang kiểm tra cấu hình...",
+      "title": "Kiểm tra đăng nhập và xác minh hai bước"
+    },
+    "title": "Cài đặt tích hợp New API",
+    "tokenDesc": "Token truy cập hệ thống của quản trị viên. Vui lòng tạo trong New API Admin -> Cài đặt cá nhân -> Cài đặt bảo mật -> Token truy cập hệ thống",
+    "urlDesc": "Đặt URL cơ sở dùng cho tích hợp New API",
+    "userIdDesc": "ID người dùng quản trị viên (chỉ số). Vui lòng xem trong New API Admin -> Cài đặt cá nhân"
+  },
+  "octopus": {
+    "description": "Cấu hình tích hợp để kết nối với trang Octopus tự triển khai. Hệ thống sẽ tự động dùng thông tin xác thực của bạn để đăng nhập và quản lý JWT Token.",
+    "fields": {
+      "baseUrlDesc": "Đặt URL cơ sở của trang Octopus",
+      "baseUrlLabel": "URL cơ sở",
+      "baseUrlPlaceholder": "https://octopus.example.com",
+      "hidePassword": "Ẩn mật khẩu",
+      "passwordDesc": "Mật khẩu quản trị viên Octopus, dùng để tự động đăng nhập",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholder": "Nhập mật khẩu",
+      "showPassword": "Hiển thị mật khẩu",
+      "usernameDesc": "Tên người dùng quản trị viên Octopus, dùng để tự động đăng nhập",
+      "usernameLabel": "Tên người dùng",
+      "usernamePlaceholder": "admin"
+    },
+    "title": "Cài đặt tích hợp Octopus",
+    "validation": {
+      "description": "Kiểm tra xem cấu hình hiện tại có thể kết nối và quản lý trang web hay không.",
+      "error": "Đã xảy ra lỗi trong quá trình xác minh",
+      "failed": "Xác minh cấu hình thất bại, vui lòng kiểm tra tên người dùng và mật khẩu",
+      "missingFields": "Vui lòng điền tất cả trường bắt buộc",
+      "title": "Xác minh kết nối"
+    }
+  },
+  "omniroute": {
+    "accessTokens": {
+      "description": "Quản lý token truy cập trên bảng điều khiển của gateway và thu hồi bất cứ lúc nào token mà tiện ích này dùng.",
+      "missingBaseUrl": "Hãy nhập địa chỉ triển khai trước để mở trang token của gateway.",
+      "open": "Mở trang token truy cập",
+      "title": "Quản lý token truy cập của gateway"
+    },
+    "description": "Cấu hình kết nối tới gateway OmniRoute tự triển khai.",
+    "fields": {
+      "baseUrlDesc": "Địa chỉ bạn dùng để mở bảng điều khiển OmniRoute trong trình duyệt.",
+      "baseUrlLabel": "Địa chỉ triển khai",
+      "baseUrlPlaceholder": "http://localhost:20128",
+      "credentialDesc": "Tạo token truy cập có phạm vi admin trong Settings → Access Tokens của gateway rồi dán vào đây.",
+      "credentialLabel": "Token truy cập",
+      "credentialPlaceholder": "oma_…",
+      "hideCredential": "Ẩn token truy cập",
+      "showCredential": "Hiện token truy cập"
+    },
+    "title": "Cài đặt tích hợp OmniRoute",
+    "validation": {
+      "description": "Kiểm tra xem cấu hình hiện tại có kết nối và quản lý được site không.",
+      "failed": "Kiểm tra cấu hình OmniRoute thất bại: {{error}}",
+      "insufficientScope": "Phạm vi token không đủ: hiện có {{have}}, cần {{need}}. Hãy tạo token mới với phạm vi admin trong Settings → Access Tokens của gateway.",
+      "invalidCredential": "Token truy cập không hợp lệ hoặc đã hết hạn: {{error}}",
+      "missingFields": "Nhập địa chỉ triển khai và token truy cập",
+      "title": "Kiểm tra kết nối",
+      "unknownScope": "không rõ"
+    }
+  },
+  "permissions": {
+    "actions": {
+      "allow": "Cho phép (khuyến nghị)",
+      "refresh": "Làm mới trạng thái",
+      "remove": "Thu hồi"
+    },
+    "description": "Cấp quyền tùy chọn khi cần để làm mới dữ liệu tài khoản, dùng công cụ hỗ trợ, nhận thông báo tác vụ và nhập trang.",
+    "helper": "Mỗi quyền chỉ được dùng cho chức năng tương ứng và có thể thu hồi bất cứ lúc nào. Chức năng chưa được cấp quyền có thể bị hạn chế, còn các chức năng khác vẫn hoạt động.",
+    "incognito": {
+      "checking": "Đang kiểm tra quyền truy cập cửa sổ riêng tư…",
+      "chromeInstructions": "Trong chi tiết tiện ích trên Chrome, bật “Cho phép ở chế độ ẩn danh”.",
+      "denied": "Chưa cho phép truy cập riêng tư",
+      "details": "Cài đặt",
+      "edgeInstructions": "Trong chi tiết tiện ích trên Edge, bật “Cho phép trong InPrivate”.",
+      "enabled": "Đã cho phép truy cập riêng tư",
+      "firefoxInstructions": "Mở Tiện ích và chủ đề trong Firefox, chọn tiện ích này và cho phép chạy trong cửa sổ riêng tư.",
+      "firefoxMobileInstructions": "Firefox: Mở trình quản lý tiện ích từ menu trình duyệt và kiểm tra tùy chọn truy cập riêng tư. Menu và khả năng hỗ trợ tùy thuộc phiên bản trình duyệt.",
+      "genericInstructions": "Kiểm tra quyền truy cập riêng tư trong trình quản lý tiện ích của trình duyệt.",
+      "manualSteps": "Xem hướng dẫn",
+      "mobileInstructions": "Mở trình quản lý tiện ích từ menu trình duyệt và kiểm tra tùy chọn truy cập riêng tư. Menu và khả năng hỗ trợ tùy thuộc phiên bản trình duyệt.",
+      "openChromeSettings": "Cài đặt Chrome",
+      "openEdgeSettings": "Cài đặt Edge",
+      "recommended": "Nên cho phép tiện ích chạy trong cửa sổ riêng tư",
+      "reloadWarning": "Thay đổi quyền này có thể tải lại tiện ích, đóng trang tiện ích hoặc gián đoạn tác vụ. Hãy lưu các chỉnh sửa chưa hoàn tất trước.",
+      "safariInstructions": "Chọn tiện ích này trong cài đặt tiện ích của Safari và cho phép dùng trong chế độ riêng tư. Các tùy chọn phụ thuộc vào phiên bản Safari.",
+      "settingsFailed": "Không thể mở cài đặt. Hãy mở trình quản lý tiện ích của trình duyệt và cho phép tiện ích chạy trong cửa sổ riêng tư.",
+      "summary": "Tách đăng nhập khỏi cửa sổ thường để tránh nhầm tài khoản hoặc ảnh hưởng đến phiên đang đăng nhập.",
+      "title": "Quyền truy cập cửa sổ ẩn danh / riêng tư",
+      "unknown": "Không thể kiểm tra quyền truy cập riêng tư"
+    },
+    "items": {
+      "bookmarks": {
+        "description": "Chỉ đọc URL đã lưu khi bạn chọn nhập trang từ dấu trang trình duyệt.",
+        "title": "Dấu trang trình duyệt"
+      },
+      "clipboardRead": {
+        "description": "Sau khi bạn sao chép nội dung liên quan, giúp trợ lý đổi mã hoặc công cụ kiểm tra AI API nhận diện mã đổi thưởng và thông tin API.",
+        "title": "Đọc clipboard"
+      },
+      "cookies": {
+        "description": "Chỉ đọc Cookie cần thiết của trang tương ứng khi kiểm tra trạng thái đăng nhập hoặc làm mới dữ liệu tài khoản.",
+        "title": "Truy cập Cookie"
+      },
+      "declarativeNetRequestWithHostAccess": {
+        "description": "Áp dụng thông tin yêu cầu cần thiết cho tài khoản hiện tại trong cửa sổ tạm để tránh trộn dữ liệu giữa nhiều tài khoản.",
+        "title": "Quy tắc yêu cầu mạng"
+      },
+      "notifications": {
+        "description": "Cho phép tác vụ nền gửi thông báo hệ thống sau khi hoàn tất.",
+        "title": "Thông báo hệ thống"
+      },
+      "webRequest": {
+        "description": "Chỉ nhận diện các yêu cầu cần thông tin tài khoản khi xác minh bằng cửa sổ tạm hoặc tự động làm mới.",
+        "title": "Truy cập yêu cầu mạng"
+      },
+      "webRequestBlocking": {
+        "description": "Thêm Cookie cần thiết của tài khoản hiện tại trước khi gửi yêu cầu để hoàn tất xác minh bằng cửa sổ tạm.",
+        "title": "Sửa đổi yêu cầu mạng"
+      }
+    },
+    "messages": {
+      "granted": "Đã bật {{name}}, các quy trình liên quan sẽ chạy như mong đợi",
+      "grantFailed": "Không thể bật {{name}}, nếu vẫn cần dùng vui lòng thử lại sau",
+      "revoked": "Đã thu hồi quyền {{name}}",
+      "revokeFailed": "Thu hồi quyền {{name}} thất bại"
+    },
+    "status": {
+      "checking": "Đang kiểm tra...",
+      "denied": "Chưa cấp",
+      "granted": "Đã cấp",
+      "unavailable": "Không xác định"
+    },
+    "statusCaption": "Trạng thái quyền được đồng bộ với trình duyệt. Nếu đã sửa ngoài trang này, hãy bấm làm mới.",
+    "title": "Quản lý quyền"
+  },
+  "permissionsOnboarding": {
+    "actions": {
+      "allowAll": "Cấp tất cả quyền khuyến nghị",
+      "maybeLater": "Chưa cấp lúc này"
+    },
+    "analyticsDisclosure": "Thống kê ẩn danh chỉ giúp chúng tôi phát hiện vấn đề và cải thiện trải nghiệm. Bạn có thể tắt bất kỳ lúc nào; dữ liệu này không bao gồm thông tin tài khoản, thông tin xác thực hay nội dung bạn gửi hoặc nhập.",
+    "intro": "Mã nguồn luôn mở để mọi người xem xét. Bạn quyết định có bật quyền và số liệu thống kê ẩn danh hay không.",
+    "openSourceBadge": "Mã nguồn mở, minh bạch, cùng cộng đồng xây dựng",
+    "permissionListDescription": "Một số chức năng cần thêm quyền. Hãy xem mục đích của từng quyền, chỉ cấp những quyền bạn cần và thu hồi bất cứ lúc nào.",
+    "permissionListTitle": "Chọn quyền tùy chọn cần dùng",
+    "project": {
+      "cta": "Ghé GitHub để xem mã nguồn và những cập nhật mới nhất. Bạn cũng có thể báo lỗi hoặc chia sẻ ý tưởng.",
+      "getStartedCta": "Mở hướng dẫn bắt đầu",
+      "label": "Mã nguồn",
+      "starCta": "My API Box hữu ích với bạn? Hãy Star trên GitHub để ủng hộ dự án"
+    },
+    "reason": {
+      "newPermissions": "Chức năng mới cần thêm quyền tùy chọn. Hãy xem mục đích của từng quyền và chỉ cấp những quyền bạn cần."
+    },
+    "subtitle": "Chọn ngôn ngữ rồi bật những quyền tùy chọn bạn cần. Bạn có thể thay đổi các thiết lập này sau.",
+    "title": "Chào mừng đến với My API Box",
+    "toasts": {
+      "error": "Chưa cấp đủ tất cả quyền khuyến nghị",
+      "success": "Đã cấp tất cả quyền khuyến nghị"
+    }
+  },
+  "productAnalytics": {
+    "description": "Thống kê ẩn danh giúp chúng tôi phát hiện vấn đề thường gặp nhanh hơn, cải thiện quy trình hay dùng và nâng cao tương thích. Chúng tôi không thu thập API Key, Cookie, URL tài khoản, số dư, nội dung yêu cầu hoặc dữ liệu người dùng nhập.",
+    "enableDescription": "Cho phép gửi một lượng giới hạn dữ liệu sử dụng chức năng, loại lỗi và thống kê loại trang ở mức thô, dùng để ưu tiên cải thiện những phần ảnh hưởng nhất tới trải nghiệm của bạn.",
+    "enableLabel": "Bật thống kê sản phẩm ẩn danh",
+    "title": "Thống kê sản phẩm ẩn danh"
+  },
+  "refresh": {
+    "autoRefresh": "Tự động làm mới",
+    "autoRefreshDesc": "Định kỳ tự động làm mới dữ liệu tài khoản (vẫn chạy dưới nền ngay cả sau khi đóng giao diện tiện ích)",
+    "description": "Cấu hình các cài đặt liên quan đến tự động làm mới dữ liệu, ví dụ khoảng thời gian làm mới và hành vi khi khởi động.",
+    "minRefreshInterval": "Khoảng làm mới tối thiểu",
+    "minRefreshIntervalDesc": "Giới hạn khoảng thời gian tối thiểu giữa các lần làm mới liên tiếp để tránh yêu cầu quá thường xuyên (ít nhất {{minSeconds}} giây)",
+    "minRefreshIntervalInvalid": "Vui lòng nhập khoảng làm mới tối thiểu hợp lệ (ít nhất {{minSeconds}} giây).",
+    "refreshInterval": "Khoảng làm mới",
+    "refreshIntervalDesc": "Đặt khoảng thời gian tự động làm mới (mặc định {{defaultInterval}} giây, khuyến nghị không đặt quá nhỏ để tránh yêu cầu quá thường xuyên)",
+    "refreshIntervalHint": "Làm mới thường xuyên có thể kích hoạt giới hạn yêu cầu của trang web khi có nhiều tài khoản. Nên đặt khoảng thời gian từ {{minutes}} phút trở lên.",
+    "refreshIntervalInvalid": "Vui lòng nhập khoảng làm mới hợp lệ (ít nhất {{minSeconds}} giây).",
+    "refreshOnOpen": "Tự động làm mới khi mở tiện ích",
+    "refreshOnOpenDesc": "Tự động làm mới dữ liệu tài khoản khi mở popup tiện ích",
+    "shieldAutomaticFeatureAccountRefresh": "Làm mới tài khoản",
+    "shieldAutomaticFeatureBalanceHistory": "Lịch sử số dư",
+    "shieldAutomaticFeatureCheckin": "Điểm danh",
+    "shieldAutomaticFeatureKeyManagement": "Quản lý khóa",
+    "shieldAutomaticFeatureLdohSiteLookup": "Tra cứu trang web",
+    "shieldAutomaticFeatureManagedSiteChannels": "Kênh trang web được quản lý",
+    "shieldAutomaticFeatureManagedSiteModelSync": "Đồng bộ mô hình trang web được quản lý",
+    "shieldAutomaticFeatureRedemptionAssist": "Hỗ trợ đổi mã",
+    "shieldAutomaticFeaturesDesc": "Chọn các tính năng tự động được mở trang xác minh tạm thời. Các lựa chọn này không bật hoặc tắt tính năng sản phẩm và không ảnh hưởng đến thao tác do bạn bắt đầu.",
+    "shieldAutomaticFeaturesTitle": "Tính năng tự động",
+    "shieldDescriptionTempWindowOnly": "Khi trang web yêu cầu xác minh, tiện ích có thể tạm thời mở một tab hoặc cửa sổ. Thao tác sẽ tiếp tục sau khi xác minh thành công.",
+    "shieldDescriptionWithCookieInterceptor": "Trên Firefox, tiện ích có thể mở trang tạm để xác minh trang web và tiếp tục bằng trạng thái đăng nhập đã được xác minh. Tính năng này cần các quyền Cookies, Web Request và Web Request Blocking.",
+    "shieldDevFocusDuring": "Trong quá trình: {{transition}}",
+    "shieldDevFocusEnd": "Kết thúc: {{state}}",
+    "shieldDevFocusStart": "Bắt đầu: {{state}}",
+    "shieldDevFocusStateFocused": "trình duyệt ở phía trước",
+    "shieldDevFocusStateUnfocused": "trình duyệt ở nền",
+    "shieldDevFocusStateUnknown": "không thể xác định",
+    "shieldDevFocusTitle": "Lần kiểm tra này",
+    "shieldDevFocusTransitionBackgrounded": "trình duyệt đã chuyển xuống nền",
+    "shieldDevFocusTransitionForegrounded": "trình duyệt đã trở lại phía trước",
+    "shieldDevFocusTransitionMixed": "trình duyệt đã chuyển qua lại giữa phía trước và nền",
+    "shieldDevFocusTransitionRemainedFocused": "trình duyệt vẫn ở phía trước",
+    "shieldDevFocusTransitionRemainedUnfocused": "trình duyệt vẫn ở nền",
+    "shieldDevFocusTransitionUnknown": "không thể xác định",
+    "shieldDevTriggerCancel": "Hủy",
+    "shieldDevTriggerCountdown_other": "Sẽ kích hoạt sau {{count}} giây",
+    "shieldDevTriggerDelayLabel": "Độ trễ (giây)",
+    "shieldDevTriggerDescription": "Sau một khoảng trễ, mô phỏng một hành vi tự động hiện có và gửi yêu cầu đến URL đã chỉ định thông qua hỗ trợ xác minh trang web. Chỉ khả dụng ở chế độ phát triển.",
+    "shieldDevTriggerFailureFallback": "Yêu cầu thất bại. Hãy kiểm tra nhật ký tiện ích để biết chi tiết.",
+    "shieldDevTriggerInvalidDelay": "Nhập số giây nguyên từ 0 đến {{maxSeconds}}.",
+    "shieldDevTriggerInvalidUrl": "Nhập URL HTTP hoặc HTTPS hợp lệ.",
+    "shieldDevTriggerPresetAccountRefreshScheduled": "Làm mới tài khoản theo lịch",
+    "shieldDevTriggerPresetBalanceHistoryScheduled": "Ghi lịch sử số dư theo lịch",
+    "shieldDevTriggerPresetCheckinScheduled": "Điểm danh theo lịch",
+    "shieldDevTriggerPresetKeyManagementRecovery": "Khôi phục quản lý khóa",
+    "shieldDevTriggerPresetLabel": "Hành vi cần mô phỏng",
+    "shieldDevTriggerPresetLdohSiteLookupRecovery": "Khôi phục tra cứu trang",
+    "shieldDevTriggerPresetRedemptionAssistRecovery": "Khôi phục sau đổi mã",
+    "shieldDevTriggerPresetTurnstileAutomatic": "Turnstile: tự động thành công",
+    "shieldDevTriggerPresetTurnstileFailure": "Turnstile: xác minh thất bại",
+    "shieldDevTriggerPresetTurnstileInteractive": "Turnstile: xác minh thủ công",
+    "shieldDevTriggerPresetTurnstileQueue": "Turnstile: hàng đợi ba trang web",
+    "shieldDevTriggerRunning": "Đang kích hoạt...",
+    "shieldDevTriggerStart": "Kích hoạt sau độ trễ",
+    "shieldDevTriggerSuccess": "Yêu cầu đã hoàn tất (HTTP {{status}})",
+    "shieldDevTriggerTitle": "Kiểm thử phát triển",
+    "shieldDevTriggerTurnstileHint": "Chạy pnpm dev:turnstile trước. Các tình huống dùng thành phần thử nghiệm chính thức trên máy cục bộ, không điểm danh tài khoản thật. Bật lời nhắc trong giao diện rồi nhấp từng lời nhắc để mở xác minh.",
+    "shieldDevTriggerUrlLabel": "URL đích",
+    "shieldEnabled": "Cho phép tác vụ tự động mở trang tạm",
+    "shieldEnabledDescTempWindowOnly": "Khi bật, các tác vụ như làm mới tự động và điểm danh có thể mở trang tạm khi cần xác minh trang web. Khi tắt, thao tác do bạn chủ động bắt đầu vẫn có thể dùng tính năng này theo các cài đặt bên dưới.",
+    "shieldEnabledDescWithCookieInterceptor": "Khi bật, các tác vụ như làm mới tự động và điểm danh có thể mở trang tạm khi cần xác minh trang web. Khi tắt, thao tác do bạn chủ động bắt đầu vẫn có thể dùng tính năng này theo các cài đặt bên dưới.",
+    "shieldMethodAuto": "Tự động",
+    "shieldMethodComposite": "Một cửa sổ dùng chung",
+    "shieldMethodDesc": "Chọn cách mở trang tạm thời khi trang web yêu cầu xác minh.",
+    "shieldMethodHintAuto": "Tự động chuyển đổi theo trạng thái trình duyệt: khi bạn đang sử dụng trình duyệt, các trang xác minh được gom vào một cửa sổ dùng chung để không lẫn với các thẻ thường dùng; khi trình duyệt ở nền, tiện ích dùng một thẻ không hoạt động để tránh đưa cửa sổ ra phía trước.",
+    "shieldMethodHintComposite": "Phù hợp khi bạn muốn tách các trang xác minh khỏi việc duyệt web hằng ngày. Các trang được gom trong một cửa sổ riêng; trình duyệt có thể được đưa ra trước khi cửa sổ này mở lần đầu.",
+    "shieldMethodHintTab": "Phù hợp khi bạn không muốn công việc đang làm bị gián đoạn. Trang xác minh được thêm dưới dạng tab không hoạt động trong cửa sổ trình duyệt hiện tại, không mở cửa sổ khác hoặc đưa trình duyệt ra trước.",
+    "shieldMethodHintWindow": "Phù hợp khi bạn muốn mỗi lần xác minh có cửa sổ riêng. Mỗi lần sẽ mở một cửa sổ; khi xử lý liên tiếp có thể xuất hiện nhiều cửa sổ và trình duyệt có thể nhiều lần được đưa ra trước.",
+    "shieldMethodRecommended": "Được đề xuất",
+    "shieldMethodTab": "Tab trong cửa sổ hiện tại",
+    "shieldMethodTitle": "Cách mở",
+    "shieldMethodWindow": "Cửa sổ mới mỗi lần",
+    "shieldPermissionAction": "Đi tới cài đặt quyền",
+    "shieldPermissionWarningDesc": "Firefox cần ba quyền này để đọc Cookie được tạo trong quá trình xác minh trang web và duy trì trạng thái đăng nhập cho các yêu cầu tiếp theo.",
+    "shieldPermissionWarningTitle": "Cần các quyền Cookies, Web Request và Web Request Blocking",
+    "shieldPopupFirefoxNote": "Trên Firefox, bắt đầu tính năng này từ popup của tiện ích sẽ làm popup đóng lại, nên không thể dùng điểm truy cập này. Hãy dùng thanh bên hoặc trang cài đặt.",
+    "shieldTitle": "Hỗ trợ xác minh trang web",
+    "shieldTurnstileAssistDesc": "Chọn cách được báo khi Turnstile phải hoàn tất bằng tay. Cửa sổ xác minh vẫn mở cho đến khi xong hoặc hết thời gian.",
+    "shieldTurnstileAssistNotify": "Thông báo trình duyệt",
+    "shieldTurnstileAssistNotifyHint": "Gửi thông báo trình duyệt cục bộ. Nhấp để mở cửa sổ xác minh; cần quyền thông báo.",
+    "shieldTurnstileAssistPage": "Nhắc trong giao diện",
+    "shieldTurnstileAssistPageHint": "Hiển thị lời nhắc trên trang web hoặc giao diện tiện ích hiện tại. Nhấp để mở cửa sổ xác minh.",
+    "shieldTurnstileAssistQuietNotice": "Đã tắt tất cả lời nhắc. Xác minh vẫn tiếp tục trong cửa sổ nền nhưng sẽ không nhắc bạn.",
+    "shieldTurnstileAssistTitle": "Khi cần bạn xác minh",
+    "shieldWindowHeight": "Chiều cao (px)",
+    "shieldWindowSizeDesc": "Đặt chiều rộng và chiều cao theo pixel rồi lưu. Áp dụng cho cửa sổ xác minh mở mới; cửa sổ và thẻ hiện có giữ nguyên kích thước.",
+    "shieldWindowSizeReset": "Khôi phục mặc định",
+    "shieldWindowSizeTitle": "Kích thước cửa sổ xác minh",
+    "shieldWindowWidth": "Chiều rộng (px)",
+    "title": "Cài đặt làm mới",
+    "turnstileNotificationEnable": "Cho phép thông báo hệ thống",
+    "turnstileNotificationManage": "Quản lý quyền thông báo",
+    "turnstileNotificationPermissionTitle": "Cho phép thông báo trình duyệt từ My API Box",
+    "turnstileNotificationStatus": {
+      "available": "Thông báo hệ thống: đã được cấp quyền. Chế độ không làm phiền hoặc cài đặt trình duyệt vẫn có thể ẩn thông báo.",
+      "blocked": "Trình duyệt đã chặn thông báo. Kiểm tra cài đặt thông báo rồi quay lại thử lại.",
+      "loading": "Đang kiểm tra quyền thông báo…",
+      "permission_required": "Thông báo hệ thống: cần cấp quyền. Lời nhắc trên trang không cần quyền này.",
+      "unavailable": "Trình duyệt này không hỗ trợ thông báo. Bạn có thể bật lời nhắc trong giao diện riêng.",
+      "unknown": "Không thể xác nhận khả năng thông báo. Kiểm tra quyền rồi thử lại."
+    }
+  },
+  "releaseUpdate": {
+    "changelog": "Nhật ký thay đổi",
+    "checkNow": "Kiểm tra cập nhật",
+    "downloadUpdate": "Tải bản cập nhật",
+    "helpers": {
+      "amoUpdate": "Firefox Add-ons đã có phiên bản mới. Mở cửa hàng để cập nhật hoặc chờ Firefox tự động cập nhật.",
+      "checkFailed": "Hãy kiểm tra cập nhật lại.",
+      "manualUpdate": "Bản cài đặt hiện tại là kênh cập nhật thủ công. Vui lòng vào trang phát hành để lấy phiên bản mới.",
+      "manualUpdateGeneric": "Vui lòng cập nhật theo kênh cài đặt hiện tại; khi cần có thể vào trang phát hành để lấy phiên bản mới thủ công.",
+      "storeUpdate": "Trình duyệt tự động cập nhật bản cài từ cửa hàng. Vui lòng chờ cửa hàng phát hành.",
+      "storeUpdateReady": "Trình duyệt đã tìm thấy bản cập nhật từ cửa hàng. Hãy tải lại tiện ích để dùng phiên bản mới.",
+      "unavailable": "Hãy kiểm tra cập nhật lại."
+    },
+    "latestAmoVersion": "Firefox Add-ons: v{{version}}",
+    "latestNightlyVersion": "Nightly mới nhất: {{version}}",
+    "reloadToUpdate": "Tải lại để cập nhật",
+    "states": {
+      "checkFailed": "Không thể kiểm tra cập nhật",
+      "notChecked": "Chưa kiểm tra bản chính thức mới nhất, có thể kiểm tra thủ công",
+      "storeUpdatePending": "Đang chờ bản cập nhật từ cửa hàng",
+      "storeUpdateReady": "Bản cập nhật đã sẵn sàng",
+      "unavailable": "Không thể xem trạng thái cập nhật",
+      "updateAvailable": "Có bản cập nhật",
+      "upToDate": "Bạn đang dùng phiên bản mới nhất"
+    },
+    "versionBadge": {
+      "changelogAriaLabel": "Nhật ký thay đổi phiên bản {{version}}",
+      "updateAvailableAriaLabel": "Phiên bản {{version}} có bản cập nhật khả dụng"
+    }
+  },
+  "siteAnnouncementNotifications": {
+    "description": "Kiểm soát việc nền có định kỳ lấy thông báo website của các trang thuộc tài khoản đã bật hay không.",
+    "page": {
+      "description": "Kiểm tra nền mỗi {{intervalMinutes}} phút, cũng có thể kiểm tra ngay thủ công.",
+      "open": "Xem thông báo",
+      "title": "Trang thông báo"
+    },
+    "polling": {
+      "enable": "Bật lấy thông báo website",
+      "enableDesc": "Sau khi tắt sẽ dừng lấy định kỳ trong nền. Bản ghi thông báo cục bộ đã lưu vẫn được giữ, và trang thông báo vẫn có thể kiểm tra thủ công.",
+      "interval": "Khoảng thời gian lấy",
+      "intervalDesc": "Đặt khoảng thời gian lấy thông báo website trong nền theo phút, hỗ trợ từ 15 đến 1440 phút.",
+      "intervalInvalid": "Nhập số phút nguyên từ {{min}} đến {{max}}.",
+      "maxAge": "Giới hạn thời gian thông báo",
+      "maxAgeDesc": "Thông báo được đăng trước giới hạn này sẽ được lưu ở trạng thái đã đọc và không gửi thông báo.",
+      "maxAgeInvalid": "Nhập số ngày nguyên từ {{min}} đến {{max}}.",
+      "upstreamRead": "Đánh dấu đã đọc trên site sau khi thông báo",
+      "upstreamReadDesc": "Khi bật, thông báo gửi thành công cũng sẽ đánh dấu các thông báo vừa lấy là đã đọc trên site. Khi tắt, trạng thái đã đọc phía máy chủ chỉ được đồng bộ sau khi bạn tự đánh dấu đã đọc trên trang; được thông báo không có nghĩa là đã đọc. Chỉ áp dụng cho các site hỗ trợ đồng bộ đã đọc."
+    },
+    "title": "Thông báo website"
+  },
+  "sorting": {
+    "contextBoostDescription": "Hiển thị tài khoản của trang hiện tại trước, rồi đến tài khoản có trang liên quan đang mở, trước các tài khoản ghim khác. Trong mỗi mức ưu tiên, tài khoản ghim đứng trước, sau đó sắp xếp theo trường đã chọn. Tài khoản bị vô hiệu hóa luôn ở cuối. Không áp dụng khi tìm kiếm hoặc sắp xếp thủ công.",
+    "contextBoostTitle": "Ưu tiên trang đang duyệt",
+    "currentSiteDesc": "Hiển thị trước tài khoản khớp với người dùng đang đăng nhập trên trang hiện tại.",
+    "currentSitePriority": "Ưu tiên tài khoản của trang hiện tại",
+    "customCheckInUrl": "Liên kết điểm danh bên ngoài",
+    "customRedeemUrl": "Liên kết đổi mã tùy chỉnh",
+    "description": "Ngữ cảnh duyệt web được ưu tiên hơn ghim. Các tài khoản khác vẫn theo thứ tự ghim, thông thường và bị vô hiệu hóa.",
+    "matchedOpenTabs": "Ưu tiên tài khoản khớp với các tab khác đang mở",
+    "matchedOpenTabsDesc": "Ưu tiên tài khoản có trang web hoặc trang điểm danh hay đổi mã đã cấu hình đang mở và gắn nhãn “Trang liên quan đang mở”.",
+    "title": "Cài đặt ưu tiên sắp xếp",
+    "unknownSortRule": "Quy tắc sắp xếp không xác định"
+  },
+  "sub2apiManagedSite": {
+    "adminCredentialsLink": {
+      "description": "Đăng nhập bằng tài khoản quản trị rồi tạo và sao chép khóa trong Cài đặt hệ thống → Bảo mật và xác thực. Khóa đầy đủ chỉ hiển thị một lần; tạo lại sẽ làm khóa cũ mất hiệu lực.",
+      "missingBaseUrl": "Trước tiên, hãy nhập URL trang web hợp lệ để mở trang quản trị và lấy Admin API Key.",
+      "open": "Mở cài đặt hệ thống",
+      "title": "Lấy Admin API Key"
+    },
+    "defaultScope": {
+      "description": "Nếu trang web yêu cầu xác minh bổ sung cho thao tác nhạy cảm, tiện ích không thể xem hoặc xuất khóa kênh. Hãy thực hiện các thao tác này trong trang quản trị Sub2API. Việc di chuyển cũng bị ảnh hưởng khi cần đọc khóa nguồn.",
+      "title": "Giới hạn khi xem và xuất khóa"
+    },
+    "description": "Kết nối trang web để nhập các khóa API hiện có vào Sub2API, đồng thời xem, chỉnh sửa và di chuyển kênh trong My API Box.",
+    "fields": {
+      "adminApiKeyDesc": "Dùng Admin API Key được tạo trong trang quản trị để quản lý kênh. Khóa API thông thường dùng để gọi mô hình không dùng được ở đây.",
+      "adminApiKeyLabel": "Admin API Key",
+      "adminApiKeyPlaceholder": "Dán Admin API Key từ trang quản trị",
+      "baseUrlDesc": "Nhập URL trang quản trị Sub2API, bao gồm http:// hoặc https://.",
+      "baseUrlLabel": "URL trang web",
+      "baseUrlPlaceholder": "https://sub2api.example.com",
+      "hideAdminApiKey": "Ẩn Admin API Key",
+      "showAdminApiKey": "Hiện Admin API Key"
+    },
+    "title": "Kết nối với Sub2API",
+    "validation": {
+      "description": "Kiểm tra xem cấu hình hiện tại có thể kết nối và quản lý trang web hay không.",
+      "failed": "Kiểm tra kết nối Sub2API thất bại: {{error}}",
+      "missingFields": "Vui lòng nhập URL trang web và Admin API Key trước",
+      "title": "Xác minh kết nối"
+    }
+  },
+  "tabs": {
+    "accountManagement": "Quản lý tài khoản",
+    "accountUsage": "Mức sử dụng tài khoản",
+    "balanceHistory": "Lịch sử số dư",
+    "checkinRedeem": "Điểm danh và đổi mã",
+    "claudeCodeRouter": "Claude Code Router",
+    "dataBackup": "Dữ liệu và sao lưu",
+    "general": "Chung",
+    "managedSite": "AI gateway tự triển khai",
+    "notifications": "Thông báo",
+    "permissions": "Quản lý quyền",
+    "refresh": "Làm mới dữ liệu",
+    "select": "Chọn một nhóm",
+    "siteAnnouncements": "Thông báo website",
+    "webAiApiCheck": "Kiểm tra AI API"
+  },
+  "taskNotifications": {
+    "channels": {
+      "browser": {
+        "description": "Gửi qua thông báo hệ thống của trình duyệt, cần cấp quyền notifications.",
+        "title": "Thông báo hệ thống trình duyệt"
+      },
+      "dingtalk": {
+        "description": "Gửi thông báo tác vụ qua robot tùy chỉnh nhóm DingTalk. Khuyến nghị dán trực tiếp Webhook URL đầy đủ do DingTalk cung cấp, cũng tương thích với việc chỉ điền access_token.",
+        "docsLink": "Xem tài liệu cấu hình",
+        "secret": "Secret ký (tùy chọn)",
+        "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "Robot DingTalk",
+        "webhookKey": "Webhook URL hoặc access_token",
+        "webhookKeyDescription": "Sao chép địa chỉ Webhook từ trang cấu hình robot tùy chỉnh của nhóm DingTalk và dán vào đây; nếu chỉ điền giá trị sau `access_token=`, địa chỉ cũng sẽ được tự động hoàn chỉnh. Khi bật cài đặt bảo mật ký, vui lòng điền cả Secret.",
+        "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "feishu": {
+        "description": "Gửi thông báo tác vụ qua robot tùy chỉnh Feishu. Khuyến nghị dán trực tiếp Webhook URL đầy đủ do Feishu cung cấp, cũng tương thích với việc chỉ điền đoạn key cuối.",
+        "docsLink": "Xem tài liệu cấu hình",
+        "title": "Robot Feishu",
+        "webhookKey": "Webhook URL hoặc Key",
+        "webhookKeyDescription": "Sao chép địa chỉ Webhook từ trang cấu hình robot tùy chỉnh của nhóm Feishu và dán vào đây; nếu chỉ điền key sau `/hook/`, địa chỉ cũng sẽ được tự động hoàn chỉnh.",
+        "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      "ntfy": {
+        "accessToken": "Token truy cập (tùy chọn)",
+        "accessTokenPlaceholder": "tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "description": "Gửi thông báo tác vụ qua topic ntfy, hỗ trợ ntfy.sh hoặc dịch vụ ntfy tự triển khai.",
+        "docsLink": "Xem tài liệu cấu hình",
+        "title": "ntfy",
+        "topicUrl": "Topic URL hoặc tên topic",
+        "topicUrlDescription": "Có thể điền URL topic đầy đủ, ví dụ `https://ntfy.sh/mytopic`, hoặc chỉ điền tên topic của ntfy.sh. Dịch vụ tự triển khai hoặc topic riêng tư cần điền token truy cập theo nhu cầu.",
+        "topicUrlPlaceholder": "https://ntfy.sh/mytopic"
+      },
+      "telegram": {
+        "botToken": "Bot Token",
+        "botTokenPlaceholder": "123456:ABC-DEF...",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "123456789 hoặc -1001234567890",
+        "description": "Gửi thông báo tác vụ qua Telegram Bot.",
+        "title": "Telegram Bot"
+      },
+      "webhook": {
+        "description": "Gửi thông báo JSON tới HTTP(S) Webhook tùy chỉnh. URL hỗ trợ biến mẫu, có thể dùng cho các dịch vụ như Bark đưa nội dung thông báo vào path.",
+        "title": "Webhook chung",
+        "url": "Webhook URL",
+        "urlDescription": "URL có thể dùng {title}, {message}, {task}, {status}, {total}, {success}, {failed}, {skipped}; trước khi gửi sẽ tự động mã hóa theo từng đoạn URL. Ví dụ Bark có thể điền https://api.day.app/your-key/{title}/{message}.",
+        "urlPlaceholder": "https://api.day.app/your-key/{title}/{message}"
+      },
+      "wecom": {
+        "description": "Gửi thông báo tác vụ qua robot nhóm WeCom. Khuyến nghị dán trực tiếp Webhook URL đầy đủ do WeCom cung cấp, cũng tương thích với việc chỉ điền key.",
+        "docsLink": "Xem tài liệu cấu hình",
+        "title": "Robot WeCom",
+        "webhookKey": "Webhook URL hoặc Key",
+        "webhookKeyDescription": "Sao chép địa chỉ Webhook từ cấu hình đẩy tin nhắn của nhóm WeCom và dán vào đây; nếu chỉ điền key sau `key=`, địa chỉ cũng sẽ được tự động hoàn chỉnh.",
+        "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    "enable": "Bật thông báo tác vụ",
+    "enableDesc": "Sau khi bật, các tác vụ đã chọn sẽ gửi thông báo thành công, thành công một phần hoặc thất bại khi chạy định kỳ xong.",
+    "groups": {
+      "channels": {
+        "description": "Chọn các kênh nhận thông báo. Thông báo trình duyệt cần cấp quyền; Telegram, Feishu, DingTalk, WeCom, ntfy và Webhook có thể cấu hình và gửi thử riêng.",
+        "title": "Kênh thông báo"
+      },
+      "setup": {
+        "description": "Trước tiên bật hoặc tắt thông báo tác vụ định kỳ, sau đó chọn kênh thông báo và sự kiện cần nhắc.",
+        "title": "Cài đặt"
+      },
+      "tasks": {
+        "description": "Chọn các tác vụ nền hoặc cập nhật thông báo website cần gửi thông báo khi hoàn tất.",
+        "title": "Sự kiện thông báo"
+      }
+    },
+    "notification": {
+      "body": {
+        "failure": "{{task}} chạy thất bại.",
+        "partialSuccess": "{{task}} hoàn tất một phần.",
+        "success": "{{task}} đã hoàn tất thành công."
+      },
+      "counts": "Tổng {{total}}, thành công {{success}}, thất bại {{failed}}, bỏ qua {{skipped}}.",
+      "countsWithAutoCheckinCategories": "Tổng {{total}}, điểm danh trong lần này {{success}}, đã điểm danh {{alreadyChecked}}, thất bại {{failed}}, đang chờ xác nhận {{uncertain}}, chưa thực hiện {{skipped}}.",
+      "title": {
+        "failure": "{{task}} thất bại",
+        "partialSuccess": "{{task}} thành công một phần",
+        "success": "{{task}} hoàn tất"
+      }
+    },
+    "permission": {
+      "description": "Thông báo hệ thống cần trình duyệt cấp quyền notifications tùy chọn. Bạn cũng có thể thu hồi trong trang quản lý quyền.",
+      "request": "Cấp quyền thông báo",
+      "requestFailed": "Không thể cấp quyền thông báo",
+      "requestSuccess": "Đã cấp quyền thông báo",
+      "title": "Quyền thông báo"
+    },
+    "siteAnnouncements": {
+      "enable": "Thông báo website",
+      "enableDesc": "Sau khi bật, khi lấy được thông báo website mới, hệ thống sẽ gửi thông báo tác vụ; sau khi tắt vẫn lưu bản ghi thông báo cục bộ."
+    },
+    "taskDescriptions": {
+      "autoCheckin": "Thông báo sau khi tự động điểm danh hằng ngày và tự động thử lại hoàn tất.",
+      "balanceHistoryCapture": "Thông báo sau khi tự động chụp lịch sử số dư cuối ngày hoàn tất.",
+      "managedSiteModelSync": "Thông báo sau khi đồng bộ mô hình định kỳ của trang tự triển khai hoàn tất.",
+      "usageHistorySync": "Thông báo sau khi đồng bộ lịch sử sử dụng định kỳ hoàn tất.",
+      "webdavAutoSync": "Thông báo sau khi tự động đồng bộ WebDAV định kỳ hoàn tất."
+    },
+    "tasks": {
+      "autoCheckin": "Tự động điểm danh",
+      "balanceHistoryCapture": "Chụp lịch sử số dư cuối ngày",
+      "managedSiteModelSync": "Đồng bộ mô hình",
+      "usageHistorySync": "Đồng bộ lịch sử sử dụng",
+      "webdavAutoSync": "Tự động đồng bộ WebDAV"
+    },
+    "tasksLabel": "Thông báo tác vụ",
+    "test": {
+      "action": "Gửi thông báo thử",
+      "browserFailed": "Thông báo thử qua trình duyệt thất bại. Vui lòng xác nhận đã bật kênh thông báo trình duyệt và cấp quyền thông báo.",
+      "channelDisabled": "Gửi thông báo thử thất bại. Vui lòng bật và cấu hình kênh thông báo này trước.",
+      "dingtalkMissingConfig": "Chưa cấu hình Webhook URL hoặc access_token của robot DingTalk.",
+      "failed": "Gửi thông báo thử thất bại. Vui lòng kiểm tra cấu hình kênh thông báo này.",
+      "feishuMissingConfig": "Chưa cấu hình Webhook URL hoặc Key của robot Feishu.",
+      "httpError": "{{label}} trả về HTTP {{status}}.",
+      "httpErrorWithDetail": "{{label}} trả về HTTP {{status}}: {{detail}}",
+      "message": "Đây là một thông báo thử tác vụ của My API Box.",
+      "ntfyInvalidUrl": "ntfy Topic URL phải dùng http:// hoặc https://, hoặc điền tên topic ntfy.sh hợp lệ.",
+      "ntfyMissingConfig": "Chưa cấu hình ntfy Topic URL hoặc tên topic.",
+      "sent": "Đã gửi thông báo thử",
+      "telegramMissingConfig": "Chưa cấu hình Telegram Bot Token hoặc Chat ID.",
+      "title": "Thông báo thử My API Box",
+      "webhookInvalidUrl": "Webhook URL phải dùng http:// hoặc https://.",
+      "webhookMissingConfig": "Chưa cấu hình Webhook URL.",
+      "wecomMissingConfig": "Chưa cấu hình Webhook URL hoặc Key của robot WeCom."
+    }
+  },
+  "theme": {
+    "appearance": "Giao diện",
+    "current": "Hiện tại: {{theme}} ({{resolvedTheme}})",
+    "currentTheme": "Hiện tại: theo hệ thống ({{theme}})",
+    "dark": "Tối",
+    "followSystem": "Theo hệ thống",
+    "followSystemTheme": "Cài đặt chủ đề theo hệ thống",
+    "light": "Sáng",
+    "mode": "Chế độ giao diện",
+    "selectTheme": "Chọn sáng, tối hoặc theo hệ thống",
+    "switchTo": "Chuyển sang chủ đề {{theme}}: {{description}}",
+    "useDarkTheme": "Dùng chủ đề tối",
+    "useLightTheme": "Dùng chủ đề sáng"
+  },
+  "title": "Cài đặt",
+  "veloera": {
+    "adminCredentialsLink": {
+      "description": "Mở trang cài đặt cá nhân của bảng quản trị để nhanh chóng lấy token truy cập hệ thống và ID người dùng.",
+      "open": "Mở trang",
+      "title": "Lấy nhanh"
+    },
+    "description": "Cấu hình tích hợp để kết nối với dịch vụ tương thích Veloera.",
+    "fields": {
+      "adminTokenLabel": "Token truy cập hệ thống của quản trị viên",
+      "baseUrlLabel": "URL cơ sở",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "Ẩn token truy cập hệ thống",
+      "showToken": "Hiển thị token truy cập hệ thống",
+      "userIdLabel": "ID người dùng quản trị viên"
+    },
+    "title": "Cài đặt tích hợp Veloera",
+    "tokenDesc": "Token truy cập hệ thống của quản trị viên. Vui lòng tạo trong Veloera Admin -> Cài đặt cá nhân -> Thông tin cá nhân",
+    "urlDesc": "Đặt URL cơ sở dùng cho tích hợp Veloera",
+    "userIdDesc": "ID người dùng quản trị viên (chỉ số). Vui lòng xem trong Veloera Admin -> Cài đặt cá nhân"
+  }
+}

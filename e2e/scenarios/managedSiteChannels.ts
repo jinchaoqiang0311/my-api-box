@@ -1,0 +1,965 @@
+import type { Locator, Page } from "@playwright/test"
+
+import { OPTIONS_PAGE_PATH } from "~/constants/extensionPages"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import { SITE_TYPES, type ManagedSiteType } from "~/constants/siteType"
+import { API_CREDENTIAL_PROFILES_TEST_IDS } from "~/features/ApiCredentialProfiles/testIds"
+import { KEY_MANAGEMENT_TEST_IDS } from "~/features/KeyManagement/testIds"
+import { CHANNEL_DIALOG_TEST_IDS } from "~/features/ManagedSiteChannels/editor/ChannelDialog/testIds"
+import {
+  getManagedSiteChannelRowActionsButtonTestId,
+  getManagedSiteChannelRowEditActionTestId,
+  getManagedSiteChannelRowSelectTestId,
+  MANAGED_SITE_CHANNEL_ROW_TEST_ID_PREFIX,
+  MANAGED_SITE_CHANNELS_REFRESH_STATE_ATTRIBUTE,
+  MANAGED_SITE_CHANNELS_REFRESH_STATES,
+  MANAGED_SITE_CHANNELS_TEST_IDS,
+} from "~/features/ManagedSiteChannels/testIds"
+import { expect, test } from "~~/e2e/fixtures/extensionTest"
+import type { AccountFixture } from "~~/e2e/scenarios/accountFixtures"
+import { expectOctopusImportModels } from "~~/e2e/scenarios/octopusImportModels"
+import {
+  deleteTokenFromKeyManagementPage,
+  expectTokenCreatedInKeyManagementPage,
+  openKeyManagementForAccount,
+  submitTokenCreationFromKeyManagementPage,
+} from "~~/e2e/utils/accountLifecycle"
+import { waitForExtensionRoot } from "~~/e2e/utils/lazyLoading"
+import {
+  assertManagedChannelPreserved,
+  captureManagedChannelSnapshot,
+} from "~~/e2e/utils/realSite/managedChannelPreservation"
+import {
+  collectCleanupError,
+  runScenarioWithCleanup,
+  throwScenarioError,
+} from "~~/e2e/utils/scenarioErrors"
+import type { RealSiteUpstream } from "~~/scripts/utils/real-site-upstream.mjs"
+
+type ManagedSiteChannelScenarioContext<TSiteType extends ManagedSiteType> = {
+  page: Page
+  extensionId: string
+  siteType: TSiteType
+  label: string
+  runPrefix: string
+  cleanupPrefix?: string
+  sourceAccount?: AccountFixture
+  sourceAccountSkipReason?: string
+  tokenName?: string
+  tokenCleanupPrefix?: string
+  beforeDeleteConfirm?: () => void | Promise<void>
+  verifyRenamePreservation?: { baseUrl: string }
+  /** Controlled fixtures only: the source and channel catalogs are identical. */
+  verifyExactModelMatch?: boolean
+}
+
+const CRUD_MODEL = "gpt-4o-mini"
+const CRUD_UPDATED_MODEL = "gpt-4.1-mini"
+const STATUS_MODEL = "aah-e2e-custom-model"
+
+/**
+ * Editors whose channels carry no per-channel model list, so the scenario must
+ * not fill a models control at all. OmniRoute connections store a single
+ * `defaultModel` and resolve models from the gateway catalogue instead.
+ */
+const MANAGED_SITE_TYPES_WITHOUT_CHANNEL_MODELS = [
+  SITE_TYPES.SUB2API,
+  SITE_TYPES.OMNIROUTE,
+] as const satisfies readonly ManagedSiteType[]
+
+/** Whether the native channel editor offers a per-channel model list control. */
+function hasManagedSiteChannelModelList(siteType: ManagedSiteType): boolean {
+  return !MANAGED_SITE_TYPES_WITHOUT_CHANNEL_MODELS.some(
+    (candidate) => candidate === siteType,
+  )
+}
+
+export function shouldEditModelsInManagedSiteCrudScenario(
+  siteType: ManagedSiteType,
+): boolean {
+  // The AxonHub editor accepts a model on create but owns later model edits
+  // through its own sync fields.
+  return (
+    siteType !== SITE_TYPES.AXON_HUB && hasManagedSiteChannelModelList(siteType)
+  )
+}
+
+export function shouldSeedModelsInManagedSiteCrudScenario(
+  siteType: ManagedSiteType,
+): boolean {
+  return hasManagedSiteChannelModelList(siteType)
+}
+
+const channelsUrl = (extensionId: string, params?: Record<string, string>) => {
+  const url = new URL(`chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}`)
+
+  for (const [key, value] of Object.entries(params ?? {})) {
+    url.searchParams.set(key, value)
+  }
+
+  url.hash = MENU_ITEM_IDS.MANAGED_SITE_CHANNELS
+  return url.toString()
+}
+
+async function expectManagedSiteChannelsIdle(page: Page) {
+  const refreshButton = page.getByTestId(
+    MANAGED_SITE_CHANNELS_TEST_IDS.refreshButton,
+  )
+  await expect(refreshButton).toHaveAttribute(
+    MANAGED_SITE_CHANNELS_REFRESH_STATE_ATTRIBUTE,
+    MANAGED_SITE_CHANNELS_REFRESH_STATES.Idle,
+    { timeout: 60_000 },
+  )
+  return refreshButton
+}
+
+export async function cleanupManagedSiteChannelsByPrefix<
+  TSiteType extends ManagedSiteType,
+>(params: {
+  page: Page
+  extensionId: string
+  siteType: TSiteType
+  prefix: string
+}) {
+  await params.page.goto(
+    channelsUrl(params.extensionId, { search: params.prefix }),
+  )
+  await waitForExtensionRoot(params.page)
+  await expectManagedSiteChannelsIdle(params.page)
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const row = channelRowByText(params.page, params.prefix).first()
+    if ((await row.count()) === 0) {
+      return
+    }
+
+    const rowText = await getChannelRowName(row)
+    await deleteVisibleChannelByName(params.page, rowText)
+    await params.page.goto(
+      channelsUrl(params.extensionId, { search: params.prefix }),
+    )
+    await waitForExtensionRoot(params.page)
+    await expectManagedSiteChannelsIdle(params.page)
+  }
+
+  throw new Error(
+    `Could not clean all managed-site channels with prefix: ${params.prefix}`,
+  )
+}
+
+export async function runManagedSiteChannelsCrudScenario<
+  TSiteType extends ManagedSiteType,
+>(context: ManagedSiteChannelScenarioContext<TSiteType>) {
+  await runScenarioWithCleanup({
+    run: async () => {
+      await cleanupManagedSiteChannelsByPrefix({
+        page: context.page,
+        extensionId: context.extensionId,
+        siteType: context.siteType,
+        prefix: context.cleanupPrefix ?? context.runPrefix,
+      })
+
+      const channelName = `${context.runPrefix} CRUD`
+      const editedChannelName = `${channelName} edited`
+
+      await context.page.goto(channelsUrl(context.extensionId))
+      await waitForExtensionRoot(context.page)
+      await expect(
+        context.page.getByTestId(
+          MANAGED_SITE_CHANNELS_TEST_IDS.addChannelButton,
+        ),
+      ).toBeVisible({ timeout: 30_000 })
+
+      await createManagedSiteChannelFromUi(context.page, {
+        name: channelName,
+        key: `sk-${slugify(context.runPrefix)}-crud`,
+        baseUrl: "https://upstream.example.invalid/v1",
+        model: shouldSeedModelsInManagedSiteCrudScenario(context.siteType)
+          ? CRUD_MODEL
+          : undefined,
+      })
+      await expectManagedSiteChannelVisibleAfterRefresh({
+        page: context.page,
+        channelName,
+      })
+
+      await context.page
+        .getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.searchInput)
+        .fill(channelName)
+      await expect(channelRowByName(context.page, channelName)).toBeVisible({
+        timeout: 30_000,
+      })
+      await expectPaginationSummary(context.page, "1", "1", "1")
+
+      const captureSnapshot = (name: string) =>
+        captureManagedChannelSnapshot({
+          page: context.page,
+          siteType: context.siteType,
+          baseUrl: context.verifyRenamePreservation!.baseUrl,
+          name,
+          read: () => openSingleVisibleChannelEditDialog(context.page, name),
+        })
+      const before = context.verifyRenamePreservation
+        ? await captureSnapshot(channelName)
+        : undefined
+      if (!before)
+        await openSingleVisibleChannelEditDialog(context.page, channelName)
+      await context.page
+        .getByTestId(CHANNEL_DIALOG_TEST_IDS.nameInput)
+        .fill(editedChannelName)
+      if (
+        !context.verifyRenamePreservation &&
+        shouldEditModelsInManagedSiteCrudScenario(context.siteType)
+      ) {
+        await fillModelInput(context.page, CRUD_UPDATED_MODEL)
+      }
+      await submitChannelDialogAndWaitForClose(context.page)
+
+      if (before) {
+        const after = await captureSnapshot(editedChannelName)
+        await context.page
+          .getByTestId(CHANNEL_DIALOG_TEST_IDS.cancelButton)
+          .click()
+        assertManagedChannelPreserved(context.siteType, before, after)
+      }
+
+      await expect(
+        channelRowByName(context.page, editedChannelName),
+      ).toBeVisible({
+        timeout: 30_000,
+      })
+
+      await context.page
+        .getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.searchInput)
+        .fill(editedChannelName)
+      await expect(
+        channelRowByName(context.page, editedChannelName),
+      ).toBeVisible({
+        timeout: 30_000,
+      })
+      await expect(channelRowByName(context.page, channelName)).toHaveCount(0)
+      await expectPaginationSummary(context.page, "1", "1", "1")
+
+      await deleteVisibleChannelByName(
+        context.page,
+        editedChannelName,
+        context.beforeDeleteConfirm,
+      )
+    },
+    finalizers: [
+      async () => {
+        await cleanupManagedSiteChannelsByPrefix({
+          page: context.page,
+          extensionId: context.extensionId,
+          siteType: context.siteType,
+          prefix: context.cleanupPrefix ?? context.runPrefix,
+        })
+      },
+    ],
+    cleanupMessage: "Managed-site channel CRUD cleanup failed",
+    failureMessage: "Managed-site channel CRUD scenario failed",
+  })
+}
+
+/** Import an independently owned credential profile without creating an account or token. */
+export async function runManagedSiteCredentialImportScenario(
+  context: ManagedSiteChannelScenarioContext<ManagedSiteType> & {
+    upstream: RealSiteUpstream
+  },
+) {
+  const { page, extensionId, upstream, runPrefix, siteType } = context
+  const profileName = `${runPrefix} source`
+  const channelName = `${runPrefix} channel`
+  const profilesUrl = `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#${MENU_ITEM_IDS.API_CREDENTIAL_PROFILES}`
+  const profileRow = page.getByTestId(/^api-credential-profile-row-/).filter({
+    has: page.getByRole("heading", { name: profileName, exact: true }),
+  })
+  const duplicate = page.getByRole("dialog", {
+    name: "Channel already exists",
+    exact: true,
+  })
+
+  await runScenarioWithCleanup({
+    run: async () => {
+      await page.goto(profilesUrl)
+      await waitForExtensionRoot(page)
+      await page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.addButton).click()
+      const profileDialog = page.getByTestId(
+        API_CREDENTIAL_PROFILES_TEST_IDS.dialog,
+      )
+      await profileDialog
+        .locator("#api-credential-profile-name")
+        .fill(profileName)
+      await profileDialog
+        .locator("#api-credential-profile-baseUrl")
+        .fill(upstream.baseUrl)
+      await profileDialog
+        .locator("#api-credential-profile-apiKey")
+        .fill(upstream.apiKey)
+      await profileDialog
+        .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.dialogSaveButton)
+        .click()
+      await expect(profileDialog).toBeHidden()
+      await profileRow
+        .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.importToManagedSiteButton)
+        .click()
+      const nameInput = page.getByTestId(CHANNEL_DIALOG_TEST_IDS.nameInput)
+      await expect(nameInput.or(duplicate)).toBeVisible({ timeout: 60_000 })
+      // A reusable upstream may already be present. Create our own named channel;
+      // never edit or clean up the pre-existing duplicate.
+      if (await duplicate.isVisible()) {
+        await duplicate
+          .getByRole("button", { name: "Continue", exact: true })
+          .click()
+      }
+      await nameInput.fill(channelName)
+      if (siteType === SITE_TYPES.OCTOPUS) {
+        await expectOctopusImportModels({
+          page,
+          sourceBaseUrl: upstream.baseUrl,
+        })
+      }
+      if (hasManagedSiteChannelModelList(siteType))
+        await fillModelInput(page, STATUS_MODEL)
+      await submitChannelDialogAndWaitForClose(page)
+      // Reopen from persisted profile state to exercise a fresh duplicate lookup.
+      await page.reload()
+      await waitForExtensionRoot(page)
+      await profileRow
+        .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.importToManagedSiteButton)
+        .click()
+      await expect(duplicate.or(nameInput)).toBeVisible({ timeout: 60_000 })
+      if (await duplicate.isVisible()) {
+        await duplicate
+          .getByRole("button", { name: "Cancel", exact: true })
+          .click()
+        await expect(duplicate).toBeHidden()
+      } else {
+        // Some backends mask stored keys or require an exact model-set match.
+        // They must still identify the persisted candidate, without requiring
+        // a source account or weakening their native verification policy.
+        await expect(
+          page
+            .getByRole("dialog")
+            .getByText(
+              /^(Review potential duplicate candidates|Potential duplicate needs verification|Confirmed duplicate channel)$/u,
+            ),
+        ).toBeVisible()
+        await page.getByTestId(CHANNEL_DIALOG_TEST_IDS.cancelButton).click()
+      }
+      await openManagedSiteChannelsAndExpectRow({
+        page,
+        extensionId,
+        channelName,
+      })
+      await expectPaginationSummary(page, "1", "1", "1")
+      if (siteType === SITE_TYPES.OCTOPUS) {
+        await openSingleVisibleChannelEditDialog(page, channelName)
+        await expectOctopusImportModels({
+          page,
+          sourceBaseUrl: upstream.baseUrl,
+          saved: true,
+        })
+        await expect(
+          page.getByLabel(`Copy ${STATUS_MODEL}`, { exact: true }),
+        ).toBeVisible()
+        await page.getByTestId(CHANNEL_DIALOG_TEST_IDS.cancelButton).click()
+      }
+    },
+    finalizers: [
+      () =>
+        cleanupManagedSiteChannelsByPrefix({
+          page,
+          extensionId,
+          siteType,
+          prefix: runPrefix,
+        }),
+      async () => {
+        await page.goto(profilesUrl)
+        await waitForExtensionRoot(page)
+        await expect(
+          page.getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.addButton),
+        ).toBeVisible()
+        if (await profileRow.count()) {
+          await profileRow
+            .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.deleteTriggerButton)
+            .click()
+          await page
+            .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.deleteConfirmButton)
+            .click()
+          await expect(profileRow).toBeHidden()
+        }
+      },
+    ],
+    cleanupMessage: "Standalone credential import cleanup failed",
+    failureMessage: "Standalone credential import scenario failed",
+  })
+}
+
+export async function runManagedSiteTokenChannelStatusScenario<
+  TSiteType extends ManagedSiteType,
+>(context: ManagedSiteChannelScenarioContext<TSiteType>) {
+  if (!context.sourceAccount || !context.tokenName) {
+    return {
+      skipped: true,
+      reason:
+        context.sourceAccountSkipReason ??
+        "New API source account E2E env is missing",
+    }
+  }
+
+  const sourceAccount = context.sourceAccount
+  const tokenName = context.tokenName
+  const statusModel = context.verifyExactModelMatch ? CRUD_MODEL : STATUS_MODEL
+  const channelName = `${context.runPrefix} status`
+  let keyManagementPage = context.page
+  let createdTokenName: string | null = null
+  const tokenCleanupPrefix = context.tokenCleanupPrefix ?? tokenName
+  const sub2ApiInventoryRequests: string[] = []
+  const sub2ApiKeyExportRequests: string[] = []
+  const observeSub2ApiInventoryRequest = (request: {
+    method(): string
+    url(): string
+  }) => {
+    const url = new URL(request.url())
+    if (
+      request.method() === "GET" &&
+      url.pathname.endsWith("/api/v1/admin/accounts")
+    ) {
+      sub2ApiInventoryRequests.push(url.toString())
+    }
+    if (
+      request.method() === "GET" &&
+      url.pathname.endsWith("/api/v1/admin/accounts/data")
+    ) {
+      sub2ApiKeyExportRequests.push(url.toString())
+    }
+  }
+
+  await cleanupManagedSiteChannelsByPrefix({
+    page: context.page,
+    extensionId: context.extensionId,
+    siteType: context.siteType,
+    prefix: context.cleanupPrefix ?? context.runPrefix,
+  })
+
+  let primaryError: unknown
+  try {
+    if (context.siteType === SITE_TYPES.SUB2API) {
+      context.page.context().on("request", observeSub2ApiInventoryRequest)
+    }
+    keyManagementPage = await openKeyManagementForAccount({
+      page: context.page,
+      extensionId: context.extensionId,
+      accountId: sourceAccount.accountId,
+      openFromAccountRow: false,
+    })
+    await cleanupKeyManagementTokensByPrefix({
+      page: keyManagementPage,
+      prefix: tokenCleanupPrefix,
+    })
+
+    await submitTokenCreationFromKeyManagementPage({
+      page: keyManagementPage,
+      tokenName,
+    })
+    createdTokenName = tokenName
+
+    const tokenResult = await expectTokenCreatedInKeyManagementPage({
+      page: keyManagementPage,
+      tokenName,
+    })
+    let row = tokenResult.row
+
+    await expect(
+      row.getByTestId(KEY_MANAGEMENT_TEST_IDS.managedSiteStatusBadge),
+    ).toBeVisible({ timeout: 30_000 })
+    if (context.siteType === SITE_TYPES.SUB2API) {
+      await expect
+        .poll(() => sub2ApiInventoryRequests.length, { timeout: 30_000 })
+        .toBeGreaterThan(0)
+      for (const requestUrl of sub2ApiInventoryRequests) {
+        expect(new URL(requestUrl).searchParams.get("search")).toBeNull()
+      }
+    }
+    await openManagedSiteImportDialogFromTokenRow({
+      page: keyManagementPage,
+      row,
+    })
+    await keyManagementPage
+      .getByTestId(CHANNEL_DIALOG_TEST_IDS.nameInput)
+      .fill(channelName)
+    if (context.siteType === SITE_TYPES.OCTOPUS) {
+      await test.step("Model discovery accepts an empty upstream catalog", () =>
+        expectOctopusImportModels({
+          page: keyManagementPage,
+          sourceBaseUrl: sourceAccount.baseUrl,
+        }))
+    }
+    if (
+      hasManagedSiteChannelModelList(context.siteType) &&
+      !context.verifyExactModelMatch
+    ) {
+      // Channel identity does not require a callable upstream model. Keep this
+      // independent of the source account's group and model availability.
+      await fillModelInput(keyManagementPage, statusModel)
+    }
+    await submitChannelDialogAndWaitForClose(keyManagementPage)
+
+    // Hash navigation can preserve React state; reload to force a fresh lookup.
+    await keyManagementPage.reload()
+    await waitForExtensionRoot(keyManagementPage)
+    row = (
+      await expectTokenCreatedInKeyManagementPage({
+        page: keyManagementPage,
+        tokenName,
+      })
+    ).row
+    await expectManagedSiteImportStatusAfterChannelCreate(
+      row,
+      context.siteType !== SITE_TYPES.NEW_API &&
+        context.siteType !== SITE_TYPES.SUB2API
+        ? channelName
+        : undefined,
+      context.verifyExactModelMatch ?? false,
+    )
+    if (context.siteType === SITE_TYPES.SUB2API) {
+      await expect
+        .poll(() => sub2ApiInventoryRequests.length, { timeout: 30_000 })
+        .toBeGreaterThan(0)
+      await expect
+        .poll(() => sub2ApiKeyExportRequests.length, { timeout: 30_000 })
+        .toBeGreaterThan(0)
+      for (const requestUrl of sub2ApiInventoryRequests) {
+        expect(new URL(requestUrl).searchParams.get("search")).toBeNull()
+      }
+    }
+    if (context.verifyExactModelMatch) {
+      await row
+        .getByTestId(KEY_MANAGEMENT_TEST_IDS.importToManagedSiteButton)
+        .click()
+      const duplicate = keyManagementPage.getByRole("dialog", {
+        name: "Channel already exists",
+        exact: true,
+      })
+      await expect(duplicate).toBeVisible({ timeout: 30_000 })
+      await expect(duplicate).toContainText(channelName)
+      await duplicate
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click()
+      await expect(duplicate).toBeHidden()
+    }
+    await openManagedSiteChannelsAndExpectRow({
+      page: keyManagementPage,
+      extensionId: context.extensionId,
+      channelName,
+    })
+    await expectPaginationSummary(keyManagementPage, "1", "1", "1")
+    if (context.siteType === SITE_TYPES.OCTOPUS) {
+      await openSingleVisibleChannelEditDialog(keyManagementPage, channelName)
+      await expect(
+        keyManagementPage.getByLabel(`Copy ${statusModel}`, { exact: true }),
+      ).toBeVisible()
+      await test.step("Saved channel model discovery preserves custom models", async () => {
+        await expectOctopusImportModels({
+          page: keyManagementPage,
+          sourceBaseUrl: sourceAccount.baseUrl,
+          saved: true,
+        })
+        await expect(
+          keyManagementPage.getByLabel(`Copy ${statusModel}`, { exact: true }),
+        ).toBeVisible()
+      })
+      await keyManagementPage
+        .getByTestId(CHANNEL_DIALOG_TEST_IDS.cancelButton)
+        .click()
+    }
+  } catch (error) {
+    primaryError = error
+  }
+
+  context.page.context().off("request", observeSub2ApiInventoryRequest)
+  const cleanupFinalizers: Array<() => Promise<void>> = []
+
+  if (createdTokenName) {
+    cleanupFinalizers.push(async () => {
+      // Discard any failed import dialog before attempting source-key cleanup.
+      await keyManagementPage.reload()
+      await waitForExtensionRoot(keyManagementPage)
+      keyManagementPage = await openKeyManagementForAccount({
+        page: keyManagementPage,
+        extensionId: context.extensionId,
+        accountId: sourceAccount.accountId,
+        openFromAccountRow: false,
+      })
+      await deleteTokenFromKeyManagementPage({
+        page: keyManagementPage,
+        token: createdTokenName,
+        cleanupLinkedChannels: false,
+      })
+    })
+  }
+  cleanupFinalizers.push(async () => {
+    await cleanupKeyManagementTokensByPrefix({
+      page: keyManagementPage,
+      prefix: tokenCleanupPrefix,
+    })
+  })
+  cleanupFinalizers.push(async () => {
+    await cleanupManagedSiteChannelsByPrefix({
+      page: keyManagementPage,
+      extensionId: context.extensionId,
+      siteType: context.siteType,
+      prefix: context.cleanupPrefix ?? context.runPrefix,
+    })
+  })
+
+  const cleanupError = await collectCleanupError(
+    cleanupFinalizers,
+    "Managed-site token channel status cleanup failed",
+  )
+
+  throwScenarioError({
+    primaryError,
+    cleanupError,
+    message: "Managed-site token channel status scenario failed",
+  })
+
+  return { skipped: false as const }
+}
+
+async function openManagedSiteImportDialogFromTokenRow(params: {
+  page: Page
+  row: Locator
+}) {
+  await expect(async () => {
+    const importToManagedSiteButton = params.row.getByTestId(
+      KEY_MANAGEMENT_TEST_IDS.importToManagedSiteButton,
+    )
+
+    await expect(importToManagedSiteButton).toBeEnabled({ timeout: 20_000 })
+    await importToManagedSiteButton.click()
+    await expect(
+      params.page.getByTestId(CHANNEL_DIALOG_TEST_IDS.submitButton),
+    ).toBeVisible({ timeout: 30_000 })
+  }).toPass({
+    intervals: [1_000, 3_000, 5_000],
+    timeout: 60_000,
+  })
+}
+
+async function openManagedSiteChannelsAndExpectRow(params: {
+  page: Page
+  extensionId: string
+  channelName: string
+}) {
+  await params.page.goto(
+    channelsUrl(params.extensionId, { search: params.channelName }),
+  )
+  await waitForExtensionRoot(params.page)
+  await expectManagedSiteChannelVisibleAfterRefresh({
+    page: params.page,
+    channelName: params.channelName,
+  })
+}
+
+async function expectManagedSiteChannelVisibleAfterRefresh(params: {
+  page: Page
+  channelName: string
+}) {
+  await expect(async () => {
+    const refreshButton = await expectManagedSiteChannelsIdle(params.page)
+    const row = channelRowByName(params.page, params.channelName)
+    if ((await row.count()) > 0) {
+      await expect(row).toBeVisible({ timeout: 10_000 })
+      return
+    }
+
+    await expect(refreshButton).toBeEnabled({ timeout: 10_000 })
+    await refreshButton.click()
+    await expect(refreshButton)
+      .toHaveAttribute(
+        MANAGED_SITE_CHANNELS_REFRESH_STATE_ATTRIBUTE,
+        MANAGED_SITE_CHANNELS_REFRESH_STATES.Loading,
+        { timeout: 5_000 },
+      )
+      .catch(() => undefined)
+    await expectManagedSiteChannelsIdle(params.page)
+    await expect(row).toBeVisible({ timeout: 20_000 })
+  }).toPass({
+    intervals: [1_000, 3_000, 5_000],
+    timeout: 60_000,
+  })
+}
+
+async function expectManagedSiteImportStatusAfterChannelCreate(
+  row: Locator,
+  matchedChannelName?: string,
+  requireExactModelMatch = true,
+) {
+  if (matchedChannelName) {
+    await expect(
+      row.getByTestId(KEY_MANAGEMENT_TEST_IDS.managedSiteStatusBadge),
+    ).toHaveText(
+      requireExactModelMatch ? "Added" : /^(Added|Needs confirmation)$/u,
+      {
+        timeout: 30_000,
+      },
+    )
+  }
+  const detailsTrigger = row.getByTestId("managed-site-status-details")
+  await detailsTrigger.click()
+  await expect(detailsTrigger).toHaveAttribute("aria-expanded", "true")
+  // Status actions are rendered in a portalled popover, outside the key row.
+  const details = row.page().getByRole("dialog", {
+    name: "Managed site",
+    exact: true,
+  })
+  const channelLinkButton = details.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.managedSiteChannelLinkButton,
+  )
+  const verificationRetryButton = details.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.managedSiteVerificationRetryButton,
+  )
+
+  if (matchedChannelName) {
+    if (requireExactModelMatch) {
+      await expect(channelLinkButton).toContainText(matchedChannelName)
+    } else {
+      // A key-only match exposes "Review channels" until model differences are
+      // confirmed. The saved channel itself is checked by name below.
+      await expect(channelLinkButton).toBeVisible()
+    }
+    await expect(verificationRetryButton).toHaveCount(0)
+    await expect(details).toContainText("Key matched")
+  } else {
+    await expect(
+      channelLinkButton.or(verificationRetryButton).first(),
+    ).toBeVisible({ timeout: 30_000 })
+  }
+  await details.press("Escape")
+}
+
+async function cleanupKeyManagementTokensByPrefix(params: {
+  page: Page
+  prefix: string
+}) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const tokenHeading = params.page
+      .getByRole("heading")
+      .filter({ hasText: params.prefix })
+      .first()
+
+    if ((await tokenHeading.count()) === 0) {
+      return
+    }
+
+    const tokenName = await tokenHeading.textContent()
+    if (!tokenName) {
+      throw new Error(
+        `Could not read key name while cleaning keys with prefix: ${params.prefix}`,
+      )
+    }
+
+    await deleteTokenFromKeyManagementPage({
+      page: params.page,
+      token: tokenName,
+      // This scenario owns channel cleanup separately below.
+      cleanupLinkedChannels: false,
+    })
+  }
+
+  throw new Error(
+    `Could not clean all key-management tokens with prefix: ${params.prefix}`,
+  )
+}
+
+async function deleteVisibleChannelByName(
+  page: Page,
+  channelName: string,
+  beforeConfirm?: () => void | Promise<void>,
+) {
+  const refreshButton = await expectManagedSiteChannelsIdle(page)
+  const row = channelRowByName(page, channelName)
+  await expect(row).toBeVisible({ timeout: 30_000 })
+  const rowTestToken = await getChannelRowTestToken(row)
+  await row
+    .getByTestId(getManagedSiteChannelRowSelectTestId(rowTestToken))
+    .click()
+  await expect(
+    page.getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.deleteSelectedButton),
+  ).toBeEnabled({ timeout: 30_000 })
+  await page
+    .getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.deleteSelectedButton)
+    .click()
+  const confirmButton = page.getByTestId(
+    MANAGED_SITE_CHANNELS_TEST_IDS.deleteChannelConfirmButton,
+  )
+  await expect(confirmButton).toBeVisible({ timeout: 10_000 })
+  await expect(confirmButton).toBeEnabled({ timeout: 10_000 })
+  await beforeConfirm?.()
+  await confirmButton.click()
+  await expect(async () => {
+    expect(
+      await refreshButton.getAttribute(
+        MANAGED_SITE_CHANNELS_REFRESH_STATE_ATTRIBUTE,
+      ),
+    ).toBe(MANAGED_SITE_CHANNELS_REFRESH_STATES.Idle)
+    expect(await row.count()).toBe(0)
+  }).toPass({
+    intervals: [500, 1_000, 3_000],
+    timeout: 60_000,
+  })
+}
+
+async function createManagedSiteChannelFromUi(
+  page: Page,
+  params: {
+    name: string
+    key: string
+    baseUrl: string
+    model?: string
+  },
+) {
+  await page
+    .getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.addChannelButton)
+    .click()
+  await expect(
+    page.getByTestId(CHANNEL_DIALOG_TEST_IDS.submitButton),
+  ).toBeVisible({
+    timeout: 30_000,
+  })
+  await page.getByTestId(CHANNEL_DIALOG_TEST_IDS.nameInput).fill(params.name)
+  await page
+    .getByTestId(CHANNEL_DIALOG_TEST_IDS.keyInput)
+    .or(
+      page
+        .getByRole("group", { name: "API Key 1", exact: true })
+        .locator("input[type=password]"),
+    )
+    .fill(params.key)
+  await page
+    .getByTestId(CHANNEL_DIALOG_TEST_IDS.baseUrlInput)
+    .fill(params.baseUrl)
+  if (params.model) {
+    await fillModelInput(page, params.model)
+  }
+  await submitChannelDialogAndWaitForClose(page)
+}
+
+async function submitChannelDialogAndWaitForClose(page: Page) {
+  const submitButton = page.getByTestId(CHANNEL_DIALOG_TEST_IDS.submitButton)
+
+  await expect(submitButton).toBeEnabled({ timeout: 30_000 })
+  await submitButton.click()
+  await expect(submitButton)
+    .toBeDisabled({ timeout: 5_000 })
+    .catch(() => undefined)
+  await expect(submitButton).not.toBeVisible({ timeout: 30_000 })
+}
+
+async function fillModelInput(page: Page, model: string) {
+  await page.getByTestId(CHANNEL_DIALOG_TEST_IDS.modelsInput).fill(model)
+  await page.getByTestId(CHANNEL_DIALOG_TEST_IDS.modelsInput).press("Enter")
+  await expect(page.getByLabel(`Copy ${model}`, { exact: true })).toBeVisible({
+    timeout: 30_000,
+  })
+}
+
+async function openSingleVisibleChannelEditDialog(page: Page, rowText: string) {
+  await expect(async () => {
+    const { rowTestToken } = await openManagedSiteChannelRowActions(
+      page,
+      rowText,
+    )
+
+    const editAction = page.getByTestId(
+      getManagedSiteChannelRowEditActionTestId(rowTestToken),
+    )
+    await expect(editAction).toBeVisible({ timeout: 10_000 })
+    await editAction.click({ timeout: 10_000 })
+    await expect(
+      page.getByTestId(CHANNEL_DIALOG_TEST_IDS.submitButton),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
+  }).toPass({
+    intervals: [1_000, 3_000, 5_000],
+    timeout: 30_000,
+  })
+}
+
+export function buildManagedSiteE2ePrefix(params: {
+  label: string
+  runId?: string
+}) {
+  return ["AAH E2E", params.label, params.runId].filter(Boolean).join(" ")
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
+async function expectPaginationSummary(
+  page: Page,
+  start: string,
+  end: string,
+  total: string,
+) {
+  await expect(
+    page.getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.paginationSummary),
+  ).toHaveAttribute("data-start", start, { timeout: 30_000 })
+  await expect(
+    page.getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.paginationSummary),
+  ).toHaveAttribute("data-end", end, { timeout: 30_000 })
+  await expect(
+    page.getByTestId(MANAGED_SITE_CHANNELS_TEST_IDS.paginationSummary),
+  ).toHaveAttribute("data-total", total, { timeout: 30_000 })
+}
+
+export function channelRowByName(page: Page, channelName: string) {
+  return page
+    .locator(`[data-testid^="${MANAGED_SITE_CHANNEL_ROW_TEST_ID_PREFIX}"]`)
+    .filter({ has: page.getByText(channelName, { exact: true }) })
+}
+
+export async function getChannelRowTestToken(row: Locator) {
+  const testId = await row.getAttribute("data-testid")
+  if (!testId?.startsWith(MANAGED_SITE_CHANNEL_ROW_TEST_ID_PREFIX)) {
+    throw new Error("Managed-site channel row is missing its stable test token")
+  }
+  return testId.slice(MANAGED_SITE_CHANNEL_ROW_TEST_ID_PREFIX.length)
+}
+
+export async function openManagedSiteChannelRowActions(
+  page: Page,
+  channelName: string,
+) {
+  const row = channelRowByName(page, channelName)
+  await expect(row).toBeVisible({ timeout: 30_000 })
+  const rowTestToken = await getChannelRowTestToken(row)
+  const actionsButton = row.getByTestId(
+    getManagedSiteChannelRowActionsButtonTestId(rowTestToken),
+  )
+  await expect(actionsButton).toBeEnabled({ timeout: 10_000 })
+  await actionsButton.click()
+
+  return { row, rowTestToken }
+}
+
+async function getChannelRowName(row: ReturnType<typeof channelRowByText>) {
+  const name = await row.getAttribute("data-channel-name")
+  if (!name) {
+    throw new Error("Managed-site channel row is missing data-channel-name")
+  }
+  return name
+}
+
+function channelRowByText(page: Page, text: string) {
+  return page
+    .locator(`[data-testid^="${MANAGED_SITE_CHANNEL_ROW_TEST_ID_PREFIX}"]`)
+    .filter({ hasText: text })
+}

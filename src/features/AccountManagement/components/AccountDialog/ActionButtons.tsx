@@ -1,0 +1,234 @@
+import { Check, Pencil, Sparkles, Zap } from "lucide-react"
+import { useTranslation } from "react-i18next"
+
+import { ActionGroup, Button } from "~/components/ui"
+import { DIALOG_MODES, type DialogMode } from "~/constants/dialogModes"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { ACCOUNT_MANAGEMENT_TEST_IDS } from "~/features/AccountManagement/testIds"
+import {
+  ACCOUNT_POST_SAVE_WORKFLOW_STEPS,
+  type AccountPostSaveWorkflowStep,
+} from "~/services/accounts/accountPostSaveWorkflow"
+import { getManagedSiteLabel } from "~/services/managedSites/utils/managedSite"
+
+import {
+  ACCOUNT_DIALOG_FORM_SOURCES,
+  ACCOUNT_DIALOG_PHASES,
+  type AccountDialogFormSource,
+  type AccountDialogPhase,
+} from "./models"
+
+interface ActionButtonsProps {
+  mode: DialogMode
+  url: string
+  autoDetectPresentation?: {
+    idleLabel: string
+    pendingLabel: string
+    reDetectLabel?: string
+    multiline?: boolean
+  }
+  phase: AccountDialogPhase
+  formSource: AccountDialogFormSource
+  isDetecting: boolean
+  isSaving: boolean
+  isFormValid: boolean
+  onAutoDetect: () => void
+  onShowManualForm: () => void
+  onClose: () => void
+  onAutoConfig: () => Promise<void>
+  isAutoConfiguring: boolean
+  accountPostSaveWorkflowStep: AccountPostSaveWorkflowStep
+  formId?: string
+}
+
+/**
+ * Action bar within the account dialog handling detect/manual modes and form submission.
+ * Renders auto-detect, manual-switch, auto-config, cancel, and submit buttons based on state.
+ */
+export default function ActionButtons({
+  mode,
+  url,
+  autoDetectPresentation,
+  phase,
+  formSource,
+  isDetecting,
+  isSaving,
+  isFormValid,
+  onAutoDetect,
+  onShowManualForm,
+  onClose,
+  onAutoConfig,
+  isAutoConfiguring,
+  accountPostSaveWorkflowStep,
+  formId,
+}: ActionButtonsProps) {
+  const { t } = useTranslation(["accountDialog", "common", "settings"])
+  const { managedSiteType } = useUserPreferencesContext()
+  const isAddMode = mode === DIALOG_MODES.ADD
+  const isDetected = formSource === ACCOUNT_DIALOG_FORM_SOURCES.DETECTED
+  const shouldShowAddDetectionActions =
+    isAddMode &&
+    (phase === ACCOUNT_DIALOG_PHASES.SITE_INPUT ||
+      (!isDetected && !isFormValid))
+  const managedSiteLabel = getManagedSiteLabel(t, managedSiteType)
+  const autoConfigTitle = isFormValid
+    ? t("accountDialog:actions.autoConfigTitle", {
+        managedSite: managedSiteLabel,
+      })
+    : t("accountDialog:actions.autoConfigRequiresValidAccount")
+  const autoConfigLoadingLabelByStep: Partial<
+    Record<AccountPostSaveWorkflowStep, string>
+  > = {
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.SavingAccount]: t(
+      "accountDialog:actions.workflow.savingAccount",
+    ),
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.LoadingSavedAccount]: t(
+      "accountDialog:actions.workflow.loadingSavedAccount",
+    ),
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.CheckingToken]: t(
+      "accountDialog:actions.workflow.checkingToken",
+    ),
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.CreatingToken]: t(
+      "accountDialog:actions.workflow.creatingToken",
+    ),
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.WaitingForOneTimeKeyAcknowledgement]: t(
+      "accountDialog:actions.workflow.waitingForOneTimeKey",
+    ),
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.WaitingForKeyInput]: t(
+      "accountDialog:actions.workflow.waitingForKeyInput",
+    ),
+    [ACCOUNT_POST_SAVE_WORKFLOW_STEPS.OpeningManagedSiteDialog]: t(
+      "accountDialog:actions.workflow.openingManagedSiteDialog",
+    ),
+  }
+  const autoConfigLoadingLabel =
+    autoConfigLoadingLabelByStep[accountPostSaveWorkflowStep] ??
+    t("accountDialog:actions.configuring")
+  const autoDetectLabel = isDetecting
+    ? autoDetectPresentation?.pendingLabel ?? t("accountDialog:mode.detecting")
+    : autoDetectPresentation?.idleLabel ?? t("accountDialog:mode.autoDetect")
+
+  const detectionActions = (
+    <>
+      <Button
+        type="button"
+        onClick={onAutoDetect}
+        disabled={!url.trim()}
+        loading={isDetecting}
+        className={
+          autoDetectPresentation?.multiline
+            ? "h-auto min-h-(--density-control) flex-1 whitespace-normal"
+            : "flex-1"
+        }
+        variant="default"
+        data-testid={ACCOUNT_MANAGEMENT_TEST_IDS.autoDetectButton}
+        leftIcon={!isDetecting ? <Sparkles className="h-4 w-4" /> : undefined}
+      >
+        {autoDetectLabel}
+      </Button>
+      <Button
+        type="button"
+        onClick={onShowManualForm}
+        disabled={!url.trim()}
+        className="flex-1"
+        variant="outline"
+        data-testid={ACCOUNT_MANAGEMENT_TEST_IDS.manualAddButton}
+        leftIcon={<Pencil className="h-4 w-4" />}
+      >
+        {t("accountDialog:mode.manualAdd")}
+      </Button>
+    </>
+  )
+
+  if (shouldShowAddDetectionActions) {
+    return (
+      <ActionGroup className="grid grid-cols-2 items-stretch">
+        {detectionActions}
+      </ActionGroup>
+    )
+  }
+
+  const actions = (
+    <>
+      {mode === DIALOG_MODES.EDIT && !isDetected && (
+        <Button
+          type="button"
+          onClick={onAutoDetect}
+          disabled={!url.trim()}
+          loading={isDetecting}
+          className="w-full sm:w-auto"
+          variant="outline"
+          leftIcon={!isDetecting ? <Sparkles className="h-4 w-4" /> : undefined}
+        >
+          {isDetecting
+            ? autoDetectLabel
+            : autoDetectPresentation?.reDetectLabel ??
+              t("accountDialog:mode.reDetect")}
+        </Button>
+      )}
+
+      {isAddMode && (
+        <Button
+          type="button"
+          onClick={onAutoConfig}
+          disabled={!isFormValid || isSaving}
+          loading={isAutoConfiguring}
+          className="w-full sm:w-auto"
+          data-testid={ACCOUNT_MANAGEMENT_TEST_IDS.autoConfigButton}
+          aria-label={t("accountDialog:actions.autoConfigAriaLabel", {
+            managedSite: managedSiteLabel,
+          })}
+          title={autoConfigTitle}
+          variant="outline"
+          leftIcon={
+            !isAutoConfiguring ? <Zap className="h-4 w-4" /> : undefined
+          }
+        >
+          {isAutoConfiguring
+            ? autoConfigLoadingLabel
+            : t("accountDialog:actions.configToManagedSite", {
+                managedSite: managedSiteLabel,
+              })}
+        </Button>
+      )}
+
+      <Button
+        type="submit"
+        {...(formId ? { form: formId } : {})}
+        disabled={!isFormValid || isAutoConfiguring}
+        loading={isSaving}
+        className="w-full sm:w-auto"
+        variant="default"
+        data-testid={ACCOUNT_MANAGEMENT_TEST_IDS.confirmAddButton}
+        leftIcon={!isSaving ? <Check className="h-4 w-4" /> : undefined}
+      >
+        {isSaving
+          ? t("common:status.saving")
+          : isAddMode
+            ? isDetected
+              ? t("accountDialog:actions.confirmAdd")
+              : t("accountDialog:actions.saveAccount")
+            : t("accountDialog:actions.saveChanges")}
+      </Button>
+    </>
+  )
+  const cancel = (
+    <Button
+      type="button"
+      onClick={onClose}
+      variant="secondary"
+      className="w-full sm:w-auto"
+    >
+      {t("common:actions.cancel")}
+    </Button>
+  )
+
+  return (
+    <div className="gap-density-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between">
+      {cancel}
+      <ActionGroup className="flex-col-reverse items-stretch sm:flex-row sm:items-center">
+        {actions}
+      </ActionGroup>
+    </div>
+  )
+}

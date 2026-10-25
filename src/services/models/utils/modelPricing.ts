@@ -1,0 +1,422 @@
+/**
+ * 模型定价计算工具
+ */
+
+import {
+  isModelPriceUnavailable,
+  type ModelPricing,
+  type ModelUnavailablePriceReason,
+  type PerCallPrice,
+} from "~/services/modelList/pricingModel"
+import {
+  CALCULATED_PRICE_KINDS,
+  PRICE_RATE_UNITS,
+  PRICING_GROUP_MULTIPLIERS,
+  PRICING_METERS,
+  PRICING_USAGE_MODES,
+  TOKENS_PER_MILLION,
+} from "~/services/modelPricing/pricingConstants"
+import type {
+  PriceMeter,
+  QuoteResult,
+} from "~/services/modelPricing/pricingPlan"
+import type { QuotaQuote } from "~/services/modelPricing/quotaPricing"
+import type { CurrencyType } from "~/types"
+import { t } from "~/utils/i18n/core"
+
+export type CalculatedPrice = (
+  | CalculatedTokenPrice
+  | CalculatedPerCallPrice
+  | UnavailableCalculatedPrice
+) & {
+  quote?: QuoteResult
+  quotaQuote?: QuotaQuote
+  isComparisonActive?: boolean
+  /** Published flat per-million rates when they are not in the USD field. */
+  perMillionTokens?: TokenPricesByCurrency
+}
+
+export interface TokenPricesUSD {
+  input: number
+  output: number
+  cacheRead?: number
+  cacheWrite?: number
+}
+
+/** The plan's published per-million-Token prices, inside the rate currency. */
+export type TokenPricesByCurrency = {
+  input: { amount: number; currency: CurrencyType }
+  output: { amount: number; currency: CurrencyType }
+  cacheRead?: { amount: number; currency: CurrencyType }
+  cacheWrite?: { amount: number; currency: CurrencyType }
+}
+
+export interface CalculatedTokenPrice {
+  kind: typeof CALCULATED_PRICE_KINDS.TOKEN
+  usdPerMillionTokens: TokenPricesUSD
+  /** Published per-million prices in the currency the plan carries them in. */
+  perMillionTokens?: TokenPricesByCurrency
+}
+
+export interface CalculatedPerCallPrice {
+  kind: typeof CALCULATED_PRICE_KINDS.PER_CALL
+  usdPerCall: PerCallPrice
+}
+
+export interface UnavailableCalculatedPrice {
+  kind: typeof CALCULATED_PRICE_KINDS.UNAVAILABLE
+  billingMode: "token" | "per-call"
+  reason?: ModelUnavailablePriceReason
+}
+
+const NEW_API_QUOTA_PER_USD = 500_000
+const NEW_API_RATIO_BASE_USD_PER_MILLION_TOKENS =
+  TOKENS_PER_MILLION / NEW_API_QUOTA_PER_USD
+
+type PartialTokenPricesUSD = Partial<TokenPricesUSD>
+
+/**
+ * Returns true when the provider supplied a finite direct USD price value.
+ */
+const isFiniteTokenPrice = (value: number | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value)
+
+const isFiniteNonnegativeCachePrice = (
+  value: number | undefined,
+): value is number => isFiniteTokenPrice(value) && value >= 0
+
+const resolveOptionalCachePrice = (
+  directPrice: number | undefined,
+  ratio: number | undefined,
+  inputPrice: number,
+): number | undefined => {
+  if (isFiniteNonnegativeCachePrice(directPrice)) {
+    return directPrice
+  }
+
+  return isFiniteNonnegativeCachePrice(ratio) ? inputPrice * ratio : undefined
+}
+
+/**
+ * Reads direct USD-per-1M-token prices from providers without ratio semantics.
+ */
+const resolveDirectTokenPriceUSD = (
+  model: ModelPricing,
+): PartialTokenPricesUSD => {
+  const directInputUSD = model.token_price_usd_per_million?.input
+  const directOutputUSD = model.token_price_usd_per_million?.output
+
+  return {
+    ...(isFiniteTokenPrice(directInputUSD) ? { input: directInputUSD } : {}),
+    ...(isFiniteTokenPrice(directOutputUSD) ? { output: directOutputUSD } : {}),
+  }
+}
+
+/**
+ * Calculates token prices for New API/One API-compatible ratio responses.
+ */
+const calculateRatioTokenPriceUSD = (
+  model: Pick<ModelPricing, "model_ratio" | "completion_ratio">,
+  groupMultiplier: number,
+): TokenPricesUSD => {
+  const input =
+    model.model_ratio *
+    NEW_API_RATIO_BASE_USD_PER_MILLION_TOKENS *
+    groupMultiplier
+  const output = input * model.completion_ratio
+
+  return { input, output }
+}
+
+/**
+ * Reads a structured plan's published flat per-million rates, in their own
+ * currency. Token plans publish those rates directly; non-token and image
+ * plans have nothing to keep visible.
+ */
+const publishedTokenRates = (
+  currentPlan: NonNullable<ModelPricing["pricingPlan"]>,
+): TokenPricesByCurrency | undefined => {
+  // The flat-rate view is only for an unadorned published price: conditional
+  // plans carry context that flat rates would misrepresent, and grouped plans
+  // are not the published schedule. This mirrors the component's old guard.
+  if (
+    currentPlan.rules.length ||
+    currentPlan.issues.length ||
+    currentPlan.groupMultiplier !== PRICING_GROUP_MULTIPLIERS.INCLUDED
+  )
+    return undefined
+  const rate = (meter: PriceMeter) => {
+    const value = currentPlan.rates[meter]
+    if (!value) return undefined
+    const amount =
+      (value.amount / value.per) *
+      (value.unit === PRICE_RATE_UNITS.TOKEN ? TOKENS_PER_MILLION : 1)
+    return Number.isFinite(amount) && amount >= 0
+      ? { amount, currency: value.currency }
+      : undefined
+  }
+  const input = rate(PRICING_METERS.INPUT),
+    output = rate(PRICING_METERS.OUTPUT)
+  if (input === undefined || output === undefined) return undefined
+  // USD plans already fill the canonical field; only rates it cannot hold are
+  // kept here, so the flat-rate view stays scoped to non-USD deployments.
+  if (input.currency === "USD" && output.currency === "USD") return undefined
+  return {
+    input,
+    output,
+    ...(rate(PRICING_METERS.CACHE_READ) === undefined
+      ? {}
+      : { cacheRead: rate(PRICING_METERS.CACHE_READ)! }),
+    ...(rate(PRICING_METERS.CACHE_WRITE) === undefined
+      ? {}
+      : { cacheWrite: rate(PRICING_METERS.CACHE_WRITE)! }),
+  }
+}
+
+/**
+ * 计算模型价格
+ * @param model 模型定价信息
+ * @param groupMultiplier 已解析的有效分组倍率
+ * New API 倍率体系中 500,000 配额 = 1 USD，所以 1M tokens 的倍率 1 基准价为 2 USD。
+ * 原理 https://docs.newapi.ai/guide/console/settings/rate-settings/
+ * 当前前端实现 https://github.com/QuantumNous/new-api/blob/main/web/default/src/features/pricing/lib/price.ts
+ */
+export const calculateModelPrice = (
+  model: ModelPricing,
+  groupMultiplier: number,
+): CalculatedPrice => {
+  const effectiveGroupMultiplier =
+    Number.isFinite(groupMultiplier) && groupMultiplier >= 0
+      ? groupMultiplier
+      : 1
+
+  // Browse the same independent base prices used by the scenario evaluator.
+  const plan = model.pricingPlan
+  const billingMode = isTokenBillingType(model.quota_type)
+    ? CALCULATED_PRICE_KINDS.TOKEN
+    : CALCULATED_PRICE_KINDS.PER_CALL
+  const tokenRates =
+    plan && billingMode === CALCULATED_PRICE_KINDS.TOKEN
+      ? publishedTokenRates(plan)
+      : undefined
+
+  if (model.quotaPricing || isModelPriceUnavailable(model)) {
+    return {
+      kind: CALCULATED_PRICE_KINDS.UNAVAILABLE,
+      billingMode,
+      reason: model.price_metadata?.unavailable_reason,
+      ...(tokenRates ? { perMillionTokens: tokenRates } : {}),
+    }
+  }
+
+  if (plan?.usageMode === PRICING_USAGE_MODES.IMAGE)
+    return { kind: CALCULATED_PRICE_KINDS.UNAVAILABLE, billingMode: "per-call" }
+  const basePrice = (meter: PriceMeter) => {
+    const rate = plan?.rates[meter]
+    if (!rate || rate.currency !== "USD") return undefined
+    const amount =
+      (rate.amount / rate.per) *
+      (rate.unit === PRICE_RATE_UNITS.TOKEN ? TOKENS_PER_MILLION : 1) *
+      (plan?.groupMultiplier === PRICING_GROUP_MULTIPLIERS.INCLUDED
+        ? 1
+        : effectiveGroupMultiplier)
+    return Number.isFinite(amount) && amount >= 0 ? amount : undefined
+  }
+  const planInput = basePrice(PRICING_METERS.INPUT),
+    planOutput = basePrice(PRICING_METERS.OUTPUT)
+  if (
+    isTokenBillingType(model.quota_type) &&
+    planInput !== undefined &&
+    planOutput !== undefined
+  ) {
+    const cacheRead = basePrice(PRICING_METERS.CACHE_READ),
+      cacheWrite = basePrice(PRICING_METERS.CACHE_WRITE)
+    return {
+      kind: CALCULATED_PRICE_KINDS.TOKEN,
+      usdPerMillionTokens: {
+        input: planInput,
+        output: planOutput,
+        ...(cacheRead !== undefined ? { cacheRead } : {}),
+        ...(cacheWrite !== undefined ? { cacheWrite } : {}),
+      },
+    }
+  }
+  const planRequest = basePrice(PRICING_METERS.REQUEST)
+  if (!isTokenBillingType(model.quota_type) && planRequest !== undefined)
+    return { kind: CALCULATED_PRICE_KINDS.PER_CALL, usdPerCall: planRequest }
+
+  // Structured schedules are authoritative; missing base rates cannot be
+  // replaced by legacy ratios that omit their conditions or unknown fees.
+  if (plan)
+    return {
+      kind: CALCULATED_PRICE_KINDS.UNAVAILABLE,
+      billingMode,
+      ...(tokenRates ? { perMillionTokens: tokenRates } : {}),
+    }
+
+  if (isTokenBillingType(model.quota_type)) {
+    // 按 New API/One API 兼容倍率计费；倍率基准来自 1M tokens / 500,000 quota-per-USD。
+    // inputUSD（每 1M token） = model_ratio × baseUSDPer1M × groupRatio
+    // complUSD（每 1M token） = inputUSD × completion_ratio
+    const ratioPrice = calculateRatioTokenPriceUSD(
+      model,
+      effectiveGroupMultiplier,
+    )
+    const directPrice = resolveDirectTokenPriceUSD(model)
+    const input = directPrice.input ?? ratioPrice.input
+    const cacheRead = resolveOptionalCachePrice(
+      model.token_price_usd_per_million?.cache_read,
+      model.token_price_ratios_to_input?.cache_read,
+      input,
+    )
+    const cacheWrite = resolveOptionalCachePrice(
+      model.token_price_usd_per_million?.cache_write,
+      model.token_price_ratios_to_input?.cache_write,
+      input,
+    )
+
+    return {
+      kind: CALCULATED_PRICE_KINDS.TOKEN,
+      usdPerMillionTokens: {
+        input,
+        output: directPrice.output ?? ratioPrice.output,
+        ...(cacheRead !== undefined ? { cacheRead } : {}),
+        ...(cacheWrite !== undefined ? { cacheWrite } : {}),
+      },
+    }
+  } else {
+    // 按次计费
+    const perCallPrice = calculateModelPerCallPrice(
+      model.model_price,
+      effectiveGroupMultiplier,
+    )
+
+    return {
+      kind: CALCULATED_PRICE_KINDS.PER_CALL,
+      usdPerCall: perCallPrice,
+    }
+  }
+}
+
+/** Converts an already resolved USD amount to the selected display currency. */
+export const resolvePriceAmount = (
+  usdAmount: number,
+  currency: CurrencyType,
+  cnyPerUsd: number,
+): number => (currency === "CNY" ? usdAmount * cnyPerUsd : usdAmount)
+
+/**
+ * Projects one currency-stamped per-million rate set onto the display shape.
+ *
+ * A published row carries one currency, which is what the display needs; the
+ * amounts keep their published values so the view never re-derives them.
+ */
+export const projectTokenPrices = (
+  rates: TokenPricesByCurrency,
+): { prices: TokenPricesUSD; currency: CurrencyType } => ({
+  currency: rates.input.currency,
+  prices: {
+    input: rates.input.amount,
+    output: rates.output.amount,
+    ...(rates.cacheRead ? { cacheRead: rates.cacheRead.amount } : {}),
+    ...(rates.cacheWrite ? { cacheWrite: rates.cacheWrite.amount } : {}),
+  },
+})
+// todo: 考虑其他站点的计算方式
+// https://github.com/deanxv/done-hub/blob/6f332c162175de3333477c03faaa65d0d902f8ab/web/src/views/Pricing/component/util.js#L13
+const DONE_HUB_TOKEN_TO_CALL_RATIO = 0.002
+
+/**
+ * Calculates per-call pricing for models that charge per request rather than per token.
+ * @param cost Raw per-call definition from the API (number or separate input/output).
+ * @param factor Group multiplier applied before converting to DONE HUB ratios.
+ * @returns Normalized per-call price data aligned with the UI expectations.
+ */
+const calculateModelPerCallPrice = (
+  cost: PerCallPrice,
+  factor: number,
+): PerCallPrice => {
+  if (typeof cost === "number") {
+    return cost * factor
+  }
+  return {
+    input: cost.input * factor * DONE_HUB_TOKEN_TO_CALL_RATIO,
+    output: cost.output * factor * DONE_HUB_TOKEN_TO_CALL_RATIO,
+  }
+}
+
+/**
+ * 格式化价格显示
+ * @param price 需要展示的价格
+ * @param currency 货币类型，用于决定符号
+ * @param precision 小数位数
+ */
+export const formatPrice = (
+  price: number,
+  currency: CurrencyType = "USD",
+  precision: number = 4,
+): string => {
+  const symbol = currency === "USD" ? "$" : "¥"
+
+  if (price === 0) return `${symbol}0`
+
+  if (price < 0.0001) {
+    return `${symbol}${price.toExponential(2)}`
+  }
+
+  return `${symbol}${price.toFixed(precision)}`
+}
+
+/**
+ * 格式化价格显示 - 简洁格式
+ * @param price 需要展示的价格
+ * @param currency 货币类型，用于决定符号
+ */
+export const formatPriceCompact = (
+  price: number,
+  currency: CurrencyType = "USD",
+): string => {
+  const symbol = currency === "USD" ? "$" : "¥"
+
+  if (price === 0) return `${symbol}0`
+
+  if (price < 0.01) {
+    return `${symbol}${price.toFixed(6)}`
+  } else if (price < 1) {
+    return `${symbol}${price.toFixed(4)}`
+  } else {
+    return `${symbol}${price.toFixed(2)}`
+  }
+}
+
+/**
+ * 获取计费模式的显示文本
+ * @param quotaType 后端返回的计费模式类型
+ */
+export const getBillingModeText = (quotaType: number): string => {
+  return isTokenBillingType(quotaType)
+    ? t("ui:billing.tokenBased")
+    : t("ui:billing.perCall")
+}
+
+/**
+ * 获取模型的可用端点类型显示文本
+ * @param endpointTypes 支持的端点类型列表
+ */
+export const getEndpointTypesText = (
+  endpointTypes: string[] | undefined,
+): string => {
+  if (!endpointTypes || !Array.isArray(endpointTypes)) {
+    return t("ui:billing.notProvided")
+  }
+  return endpointTypes.join(", ")
+}
+
+/**
+ * Determines whether a quota type represents token-based pricing.
+ * @param quotaType Backend quota type enumerator.
+ * @returns True for token-based billing, false for per-call plans.
+ */
+export const isTokenBillingType = (quotaType: number) => {
+  return quotaType === 0
+}

@@ -1,0 +1,17 @@
+import { useTranslation } from "react-i18next"
+
+import { Alert } from "~/components/ui"
+
+const PrivacyNotice = () => {
+  const { t } = useTranslation("about")
+  return (
+    <Alert variant="info">
+      <div>
+        <p className="mb-density-1 font-medium">{t("privacyTitle")}</p>
+        <p className="text-sm">{t("privacyText")}</p>
+      </div>
+    </Alert>
+  )
+}
+
+export default PrivacyNotice

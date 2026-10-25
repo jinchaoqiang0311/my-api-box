@@ -1,0 +1,241 @@
+import { useCallback, useEffect, useRef, useState } from "react"
+
+import {
+  buildProbeState,
+  extractProbeResults,
+} from "~/features/Verification/api/probeState"
+import type { ProbeItemState } from "~/features/Verification/api/types"
+import type {
+  ApiVerificationApiType,
+  ModelTestModality,
+} from "~/services/verification/aiApiVerification"
+import {
+  createVerificationHistorySummary,
+  verificationResultHistoryStorage,
+  type ApiVerificationHistorySummary,
+  type ApiVerificationHistoryTarget,
+} from "~/services/verification/verificationResultHistory"
+import { createLogger } from "~/utils/core/logger"
+
+const logger = createLogger("VerificationDialogState")
+type LoadVerificationHistoryParams = {
+  apiType: ApiVerificationApiType
+  isCancelled?: () => boolean
+  onResolvedModelId?: (modelId: string) => void
+  shouldApplySummaryToProbes?: (
+    summary: ApiVerificationHistorySummary,
+  ) => boolean
+}
+
+/**
+ * Shared probe + persisted-summary state for verification dialogs.
+ */
+export function useVerificationDialogState(
+  historyTarget: ApiVerificationHistoryTarget | null,
+  modelModality?: ModelTestModality,
+  context?: { apiType: ApiVerificationApiType; isOpen: boolean },
+) {
+  const [probes, setProbeState] = useState<ProbeItemState[]>([])
+  const [persistedSummary, setPersistedSummaryState] =
+    useState<ApiVerificationHistorySummary | null>(null)
+
+  const probesRef = useRef<ProbeItemState[]>([])
+  const persistedSummaryRef = useRef<ApiVerificationHistorySummary | null>(null)
+  const loadTokenRef = useRef(0)
+  const modalityRef = useRef(modelModality)
+  modalityRef.current = modelModality
+
+  const applyProbes = useCallback(
+    (next: ProbeItemState[], invalidatePendingLoad = true) => {
+      if (invalidatePendingLoad) {
+        loadTokenRef.current += 1
+      }
+
+      probesRef.current = next
+      setProbeState(next)
+    },
+    [],
+  )
+
+  const setProbes = useCallback(
+    (next: ProbeItemState[], invalidatePendingLoad = true) => {
+      applyProbes(next, invalidatePendingLoad)
+    },
+    [applyProbes],
+  )
+
+  const applyPersistedSummary = useCallback(
+    (
+      next: ApiVerificationHistorySummary | null,
+      invalidatePendingLoad = true,
+    ) => {
+      if (invalidatePendingLoad) {
+        loadTokenRef.current += 1
+      }
+
+      persistedSummaryRef.current = next
+      setPersistedSummaryState(next)
+    },
+    [],
+  )
+
+  const setPersistedSummary = useCallback(
+    (
+      next: ApiVerificationHistorySummary | null,
+      invalidatePendingLoad = true,
+    ) => {
+      applyPersistedSummary(next, invalidatePendingLoad)
+    },
+    [applyPersistedSummary],
+  )
+
+  const previousContextRef = useRef({
+    apiType: context?.apiType,
+    modelModality,
+  })
+  const contextApiType = context?.apiType
+  const isOpen = context?.isOpen
+  useEffect(() => {
+    const previous = previousContextRef.current
+    previousContextRef.current = { apiType: contextApiType, modelModality }
+    if (!isOpen || !contextApiType) return
+    if (
+      previous.apiType === contextApiType &&
+      previous.modelModality === modelModality
+    )
+      return
+
+    const protocolChanged = previous.apiType !== contextApiType
+    const summary = persistedSummaryRef.current
+    const next = buildProbeState(
+      contextApiType,
+      protocolChanged && summary?.apiType === contextApiType ? summary : null,
+      modelModality,
+    )
+    const existing = new Map(
+      probesRef.current.map((probe) => [probe.definition.id, probe]),
+    )
+    applyProbes(
+      next.map((probe) => {
+        const retained = !protocolChanged
+          ? existing.get(probe.definition.id)
+          : undefined
+        return retained ? { ...retained, definition: probe.definition } : probe
+      }),
+    )
+  }, [contextApiType, isOpen, modelModality, applyProbes])
+
+  const persistCurrentResults = useCallback(
+    async (
+      nextApiType: ApiVerificationApiType,
+      nextProbes: ProbeItemState[],
+      preferredModelId?: string,
+      nextHistoryTarget: ApiVerificationHistoryTarget | null = historyTarget,
+    ) => {
+      if (!nextHistoryTarget) return null
+
+      const requestToken = ++loadTokenRef.current
+      const nextSummary = createVerificationHistorySummary({
+        target: nextHistoryTarget,
+        apiType: nextApiType,
+        results: extractProbeResults(nextProbes),
+        preferredModelId,
+      })
+      if (!nextSummary) return null
+
+      let persisted: ApiVerificationHistorySummary
+      try {
+        persisted =
+          await verificationResultHistoryStorage.upsertLatestSummary(
+            nextSummary,
+          )
+      } catch (error) {
+        // History is optional; a storage failure must not replace live probe results.
+        logger.error("Failed to persist verification history", { error })
+        return null
+      }
+      if (loadTokenRef.current !== requestToken) {
+        return persisted
+      }
+
+      applyPersistedSummary(persisted, false)
+      return persisted
+    },
+    [applyPersistedSummary, historyTarget],
+  )
+
+  const clearVerificationHistory = useCallback(
+    async (
+      apiType: ApiVerificationApiType,
+      target: ApiVerificationHistoryTarget | null = historyTarget,
+    ) => {
+      if (!target) return
+      const requestToken = ++loadTokenRef.current
+      await verificationResultHistoryStorage.clearTarget(target)
+      if (loadTokenRef.current !== requestToken) return
+      applyPersistedSummary(null, false)
+      applyProbes(buildProbeState(apiType, null, modalityRef.current), false)
+    },
+    [applyPersistedSummary, applyProbes, historyTarget],
+  )
+
+  const loadVerificationHistory = useCallback(
+    async ({
+      apiType,
+      isCancelled,
+      onResolvedModelId,
+      shouldApplySummaryToProbes,
+    }: LoadVerificationHistoryParams) => {
+      if (!historyTarget) return null
+
+      const requestToken = ++loadTokenRef.current
+
+      try {
+        const summary =
+          await verificationResultHistoryStorage.getLatestSummary(historyTarget)
+        if (isCancelled?.() || loadTokenRef.current !== requestToken) {
+          return summary
+        }
+
+        const shouldApplySummary =
+          summary && (shouldApplySummaryToProbes?.(summary) ?? true)
+
+        applyPersistedSummary(summary, false)
+        applyProbes(
+          buildProbeState(
+            apiType,
+            shouldApplySummary ? summary : null,
+            modalityRef.current,
+          ),
+          false,
+        )
+
+        if (shouldApplySummary && summary?.resolvedModelId) {
+          onResolvedModelId?.(summary.resolvedModelId)
+        }
+
+        return summary
+      } catch {
+        if (isCancelled?.() || loadTokenRef.current !== requestToken)
+          return null
+
+        applyPersistedSummary(null, false)
+        applyProbes(buildProbeState(apiType, null, modalityRef.current), false)
+        return null
+      }
+    },
+    [applyPersistedSummary, applyProbes, historyTarget],
+  )
+
+  return {
+    probes,
+    setProbes,
+    probesRef,
+    persistedSummary,
+    setPersistedSummary,
+    persistedSummaryRef,
+    persistCurrentResults,
+    clearVerificationHistory,
+    loadVerificationHistory,
+  }
+}

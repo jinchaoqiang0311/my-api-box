@@ -1,0 +1,128 @@
+import { useTranslation } from "react-i18next"
+
+import {
+  ActionGroup,
+  BodySmall,
+  Button,
+  Checkbox,
+  FormField,
+  Heading4,
+  Input,
+  Modal,
+} from "~/components/ui"
+
+/**
+ * Props for {@link WebDAVDecryptPasswordModal}.
+ */
+export type WebDAVDecryptPasswordModalProps = {
+  /** Whether the modal is visible. */
+  isOpen: boolean
+  /** Whether a decrypt/import attempt is currently in progress. */
+  decrypting: boolean
+  /** Current password value shown in the input. */
+  password: string
+  /** Called when the password input changes. */
+  onPasswordChange: (password: string) => void
+  /** Whether to persist the successfully-entered password into WebDAV settings. */
+  savePassword: boolean
+  /** Called when the "save password" checkbox changes. */
+  onSavePasswordChange: (save: boolean) => void
+  /** Called when the modal should close (cancel). */
+  onClose: () => void
+  /** Called when the user confirms and wants to decrypt and import. */
+  onDecryptAndImport: () => void
+}
+
+/**
+ * Decrypt password retry dialog used during WebDAV restore.
+ *
+ * This modal is shown when the downloaded backup is encrypted and decrypting
+ * with the stored password fails or no password is available.
+ *
+ * Notes:
+ * - Provides an in-field show/hide password toggle.
+ * - Close actions are disabled while `decrypting` is true.
+ */
+export function WebDAVDecryptPasswordModal({
+  isOpen,
+  decrypting,
+  password,
+  onPasswordChange,
+  savePassword,
+  onSavePasswordChange,
+  onClose,
+  onDecryptAndImport,
+}: WebDAVDecryptPasswordModalProps) {
+  const { t } = useTranslation("importExport")
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={() => {
+        if (decrypting) return
+        onClose()
+      }}
+      size="md"
+      header={
+        <div className="space-y-density-1">
+          <Heading4 className="m-0">
+            {t("webdav.encryption.decryptDialogTitle")}
+          </Heading4>
+          <BodySmall className="m-0">
+            {t("webdav.encryption.decryptDialogDesc")}
+          </BodySmall>
+        </div>
+      }
+      footer={
+        <ActionGroup>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+            disabled={decrypting}
+          >
+            {t("common:actions.cancel")}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onDecryptAndImport}
+            loading={decrypting}
+          >
+            {decrypting
+              ? t("common:status.processing")
+              : t("webdav.encryption.decryptAction")}
+          </Button>
+        </ActionGroup>
+      }
+    >
+      <div className="space-y-density-3">
+        <FormField label={t("webdav.encryption.decryptPassword")}>
+          <Input
+            id="decryptPassword"
+            title={t("webdav.encryption.decryptPassword")}
+            type="password"
+            revealable
+            revealLabels={{
+              show: t("webdav.showPassword"),
+              hide: t("webdav.hidePassword"),
+            }}
+            placeholder={t("webdav.encryption.passwordPlaceholder")}
+            value={password}
+            onChange={(e) => onPasswordChange(e.target.value)}
+          />
+        </FormField>
+
+        <label className="gap-y-density-2 flex items-center gap-x-2">
+          <Checkbox
+            checked={savePassword}
+            onCheckedChange={(v) => onSavePasswordChange(Boolean(v))}
+          />
+          <span className="text-secondary-foreground text-sm">
+            {t("webdav.encryption.savePassword")}
+          </span>
+        </label>
+      </div>
+    </Modal>
+  )
+}

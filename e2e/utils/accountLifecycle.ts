@@ -1,0 +1,652 @@
+import type { ElementHandle, Locator, Page } from "@playwright/test"
+
+import { OPTIONS_PAGE_PATH } from "~/constants/extensionPages"
+import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
+import type { AccountSiteType } from "~/constants/siteType"
+import { ACCOUNT_MANAGEMENT_TEST_IDS } from "~/features/AccountManagement/testIds"
+import { KEY_MANAGEMENT_TEST_IDS } from "~/features/KeyManagement/testIds"
+import { TOKEN_PROVISIONING_TEST_IDS } from "~/features/TokenProvisioning/testIds"
+import { STORAGE_KEYS } from "~/services/core/storageKeys"
+import {
+  API_CREDENTIAL_PROFILES_CONFIG_VERSION,
+  type ApiCredentialProfile,
+} from "~/types/apiCredentialProfiles"
+import { expect } from "~~/e2e/fixtures/extensionTest"
+import {
+  expectPermissionOnboardingHidden,
+  getPlasmoStorageRawValue,
+  setPlasmoStorageValue,
+  type getServiceWorker,
+} from "~~/e2e/utils/extensionState"
+import { waitForExtensionRoot } from "~~/e2e/utils/lazyLoading"
+import {
+  autoDetectAccountFromAddDialog,
+  expectAccountListItemVisible,
+  expectAccountListItemVisibleBySite,
+  openAccountManagementPage,
+  waitForSavedAccount,
+  type AccountAddDialog,
+} from "~~/e2e/utils/realSite/accountAdd"
+
+type ServiceWorker = Awaited<ReturnType<typeof getServiceWorker>>
+
+type AccountTokenIdentity = {
+  id: string | number
+  name: string
+}
+
+type TokenCreationOutcome =
+  | { status: "created" }
+  | { status: "failed"; message: string }
+
+type TokenDeletionOutcome =
+  | { status: "deleted" }
+  | { status: "failed"; message: string }
+
+export type SavedApiCredentialProfileExpectation = Partial<
+  Pick<ApiCredentialProfile, "name" | "baseUrl" | "apiKey" | "tagIds">
+>
+
+export type SavedAccountUiResult = {
+  accountId?: string
+  siteType: AccountSiteType
+  baseUrl: string
+}
+
+async function readStoredApiCredentialProfiles(
+  serviceWorker: ServiceWorker,
+): Promise<ApiCredentialProfile[]> {
+  const raw = await getPlasmoStorageRawValue<unknown>(
+    serviceWorker,
+    STORAGE_KEYS.API_CREDENTIAL_PROFILES,
+  )
+
+  if (typeof raw !== "string") return []
+
+  try {
+    const parsed = JSON.parse(raw) as { profiles?: ApiCredentialProfile[] }
+    return Array.isArray(parsed.profiles) ? parsed.profiles : []
+  } catch {
+    return []
+  }
+}
+
+function matchesExpectedProfile(
+  profile: ApiCredentialProfile,
+  expectation: SavedApiCredentialProfileExpectation = {},
+) {
+  return (
+    (expectation.name === undefined || profile.name === expectation.name) &&
+    (expectation.baseUrl === undefined ||
+      profile.baseUrl === expectation.baseUrl) &&
+    (expectation.apiKey === undefined ||
+      profile.apiKey === expectation.apiKey) &&
+    (expectation.tagIds === undefined ||
+      JSON.stringify(profile.tagIds) === JSON.stringify(expectation.tagIds))
+  )
+}
+
+async function findSavedApiCredentialProfile(params: {
+  serviceWorker: ServiceWorker
+  existingProfileIds: Set<string>
+  expectedProfile?: SavedApiCredentialProfileExpectation
+}) {
+  const profiles = await readStoredApiCredentialProfiles(params.serviceWorker)
+  return (
+    profiles.find(
+      (profile) =>
+        !params.existingProfileIds.has(profile.id) &&
+        matchesExpectedProfile(profile, params.expectedProfile),
+    ) ?? null
+  )
+}
+
+export async function deleteApiCredentialProfileFromStorage(params: {
+  serviceWorker: ServiceWorker
+  profileId: string
+}) {
+  const profiles = await readStoredApiCredentialProfiles(params.serviceWorker)
+  const filtered = profiles.filter((profile) => profile.id !== params.profileId)
+
+  if (filtered.length === profiles.length) {
+    return
+  }
+
+  await setPlasmoStorageValue(
+    params.serviceWorker,
+    STORAGE_KEYS.API_CREDENTIAL_PROFILES,
+    {
+      version: API_CREDENTIAL_PROFILES_CONFIG_VERSION,
+      profiles: filtered,
+      lastUpdated: Date.now(),
+    },
+  )
+}
+
+export async function saveAutoDetectedAccountFromApp(params: {
+  page: Page
+  extensionId: string
+  serviceWorker?: ServiceWorker
+  baseUrl: string
+  siteType: AccountSiteType
+  expectedSiteType?: AccountSiteType
+  prepareDetectedDialog?: (dialog: AccountAddDialog) => Promise<void>
+}): Promise<SavedAccountUiResult> {
+  await openAccountManagementPage({
+    page: params.page,
+    extensionId: params.extensionId,
+  })
+
+  const dialog = await autoDetectAccountFromAddDialog(
+    params.page,
+    params.baseUrl,
+  )
+
+  if (params.expectedSiteType) {
+    await expect(dialog.siteTypeTrigger).toHaveAttribute(
+      "data-site-type",
+      params.expectedSiteType,
+      { timeout: 30_000 },
+    )
+  }
+
+  await params.prepareDetectedDialog?.(dialog)
+
+  await expect(dialog.confirmAddButton).toBeEnabled({ timeout: 30_000 })
+  await dialog.confirmAddButton.click()
+  await expect(dialog.dialog).toBeHidden({ timeout: 30_000 })
+
+  await expectAccountListItemVisibleBySite(params.page, {
+    siteType: params.siteType,
+    baseUrl: params.baseUrl,
+  })
+
+  if (!params.serviceWorker) {
+    return {
+      siteType: params.siteType,
+      baseUrl: params.baseUrl,
+    }
+  }
+
+  const savedAccount = await waitForSavedAccount({
+    serviceWorker: params.serviceWorker,
+    siteType: params.siteType,
+    baseUrl: params.baseUrl,
+  })
+
+  expect(savedAccount.site_type).toBe(params.siteType)
+  expect(savedAccount.site_url).toBe(params.baseUrl)
+  expect(String(savedAccount.account_info.id)).not.toBe("")
+  expect(savedAccount.account_info.username.trim()).not.toBe("")
+
+  await expectAccountListItemVisible(params.page, savedAccount.id)
+
+  return {
+    accountId: savedAccount.id,
+    siteType: savedAccount.site_type,
+    baseUrl: savedAccount.site_url,
+  }
+}
+
+async function openKeyManagementPage(params: {
+  page: Page
+  extensionId: string
+  accountId: string
+}): Promise<Page> {
+  const url = new URL(
+    `chrome-extension://${params.extensionId}/${OPTIONS_PAGE_PATH}`,
+  )
+  url.searchParams.set("accountId", params.accountId)
+  url.hash = MENU_ITEM_IDS.KEYS
+
+  await params.page.goto(url.toString())
+  await waitForExtensionRoot(params.page)
+  await expectPermissionOnboardingHidden(params.page)
+  return params.page
+}
+
+async function openKeyManagementPageFromAccountRow(params: {
+  page: Page
+  accountId?: string
+  siteType?: AccountSiteType
+  baseUrl?: string
+}): Promise<Page> {
+  const row =
+    params.accountId !== undefined
+      ? await expectAccountListItemVisible(params.page, params.accountId)
+      : await expectAccountListItemVisibleBySite(params.page, {
+          siteType: requireAccountSiteType(params.siteType),
+          baseUrl: requireAccountBaseUrl(params.baseUrl),
+        })
+
+  const openActionsMenu = async () => {
+    await row.hover()
+    await row
+      .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.rowMoreActionsButton)
+      .click({ timeout: 10_000 })
+  }
+
+  await openActionsMenu()
+  // Radix can replace the animated menu subtree under CI contention. Bound
+  // each click attempt so a detached item cannot consume the whole test, then
+  // reopen the idempotent navigation menu once with a fresh locator.
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await params.page
+        .getByTestId(ACCOUNT_MANAGEMENT_TEST_IDS.rowKeyManagementMenuItem)
+        .click({ timeout: 10_000 })
+      break
+    } catch (error) {
+      if (attempt === 2 || params.page.isClosed()) {
+        throw error
+      }
+
+      await params.page.keyboard.press("Escape").catch(() => undefined)
+      await openActionsMenu()
+    }
+  }
+
+  await expect(params.page).toHaveURL((url) => {
+    return (
+      url.pathname === `/${OPTIONS_PAGE_PATH}` &&
+      url.hash === `#${MENU_ITEM_IDS.KEYS}` &&
+      (params.accountId === undefined ||
+        url.searchParams.get("accountId") === params.accountId)
+    )
+  })
+  await waitForExtensionRoot(params.page)
+  await expectPermissionOnboardingHidden(params.page)
+  return params.page
+}
+
+async function submitCreateTokenForm(params: {
+  page: Page
+  tokenName: string
+  prepareEditor?: (editor: Locator) => Promise<void>
+}) {
+  await params.page.getByRole("button", { name: "Add API Key" }).click()
+  const editor = params.page.getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeEditor)
+  const nameInput = editor.getByRole("textbox", { name: "Token Name" })
+  await expect(nameInput).toBeVisible({
+    timeout: 30_000,
+  })
+  await nameInput.fill(params.tokenName)
+  await params.prepareEditor?.(editor)
+  await params.page
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeEditorSubmitButton)
+    .click()
+
+  const outcomeHandle = await params.page.waitForFunction(
+    ({ editorTestId, submitButtonTestId, oneTimeCloseTestId }) => {
+      const editor = document.querySelector(`[data-testid="${editorTestId}"]`)
+      const oneTimeCloseButton = document.querySelector(
+        `[data-testid="${oneTimeCloseTestId}"]`,
+      )
+
+      if (!editor || oneTimeCloseButton) {
+        return { status: "created" } satisfies TokenCreationOutcome
+      }
+
+      const submitButton = document.querySelector(
+        `[data-testid="${submitButtonTestId}"]`,
+      )
+      if (
+        !(submitButton instanceof HTMLButtonElement) ||
+        submitButton.disabled
+      ) {
+        return null
+      }
+
+      const visibleErrors = Array.from(
+        editor.querySelectorAll<HTMLElement>('[role="alert"]'),
+      ).filter((element) => element.getClientRects().length > 0)
+      const message = visibleErrors.at(-1)?.textContent?.trim()
+
+      return message
+        ? ({ status: "failed", message } satisfies TokenCreationOutcome)
+        : null
+    },
+    {
+      editorTestId: KEY_MANAGEMENT_TEST_IDS.nativeEditor,
+      submitButtonTestId: KEY_MANAGEMENT_TEST_IDS.nativeEditorSubmitButton,
+      oneTimeCloseTestId: TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyCloseButton,
+    },
+    { timeout: 30_000 },
+  )
+  const outcome = (await outcomeHandle.jsonValue()) as TokenCreationOutcome
+
+  if (outcome.status === "failed") {
+    throw new Error(`API key creation failed: ${outcome.message}`)
+  }
+}
+
+async function waitForTokenDeletionOutcome(params: {
+  page: Page
+  row: ElementHandle<HTMLElement | SVGElement>
+}) {
+  const outcomeHandle = await params.page.waitForFunction(
+    ({ row, confirmButtonTestId }) => {
+      if (!row.isConnected) {
+        return { status: "deleted" } satisfies TokenDeletionOutcome
+      }
+      const confirm = document.querySelector<HTMLButtonElement>(
+        `[data-testid="${confirmButtonTestId}"]`,
+      )
+      if (!confirm || confirm.disabled) return null
+      const dialog = confirm.closest('[data-slot="modal-panel"]')
+      const message = dialog
+        ?.querySelector('[role="alert"]')
+        ?.textContent?.trim()
+
+      return message
+        ? ({ status: "failed", message } satisfies TokenDeletionOutcome)
+        : null
+    },
+    {
+      row: params.row,
+      confirmButtonTestId: KEY_MANAGEMENT_TEST_IDS.nativeDeleteConfirmButton,
+    },
+    { timeout: 30_000 },
+  )
+  return (await outcomeHandle.jsonValue()) as TokenDeletionOutcome
+}
+
+async function closeOneTimeKeyDialogIfPresent(page: Page) {
+  const closeButton = page.getByTestId(
+    TOKEN_PROVISIONING_TEST_IDS.oneTimeKeyCloseButton,
+  )
+  const isVisible = await closeButton
+    .waitFor({ state: "visible", timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false)
+
+  if (!isVisible) {
+    return false
+  }
+
+  await closeButton.click()
+  await expect(closeButton).toBeHidden({ timeout: 30_000 })
+  return true
+}
+
+async function closeAddTokenDialogIfPresent(page: Page) {
+  const dialog = page.getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeEditor)
+
+  if (!(await dialog.isVisible().catch(() => false))) {
+    return
+  }
+
+  await dialog.getByRole("button", { name: "Cancel" }).click()
+  const discard = dialog.getByRole("button", { name: "Discard changes" })
+  if (await discard.isVisible()) await discard.click()
+  await expect(dialog).toBeHidden({ timeout: 30_000 })
+}
+
+async function closeTokenCreationDialogsIfPresent(page: Page) {
+  const closedOneTimeKeyDialog = await closeOneTimeKeyDialogIfPresent(page)
+  if (closedOneTimeKeyDialog) {
+    await expect(
+      page.getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeEditor),
+    ).toBeHidden({ timeout: 30_000 })
+  }
+  await closeAddTokenDialogIfPresent(page)
+}
+
+/** Finds a native key card by its visible name within the selected account. */
+export function getAccountKeyResourceRow(page: Page, name: string): Locator {
+  return page.getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeKeyRow).filter({
+    has: page.getByRole("heading", { name, exact: true }),
+  })
+}
+
+async function expectTokenVisibleInKeyManagementPage(params: {
+  page: Page
+  tokenName: string
+}): Promise<Locator> {
+  const row = getAccountKeyResourceRow(params.page, params.tokenName)
+  await expect(row).toBeVisible({ timeout: 30_000 })
+  return row
+}
+
+export async function deleteTokensMatchingNameFromKeyManagementPage(params: {
+  page: Page
+  nameMatcher: (tokenName: string) => boolean
+}) {
+  await closeTokenCreationDialogsIfPresent(params.page)
+  await expectKeyListReady(params.page)
+
+  const tokenHeadings = params.page.getByRole("heading")
+  let ownedTokenName = (await tokenHeadings.allTextContents()).find(
+    params.nameMatcher,
+  )
+
+  while (ownedTokenName) {
+    const row = getAccountKeyResourceRow(params.page, ownedTokenName).first()
+    await deleteTokenRowFromKeyManagementPage({
+      page: params.page,
+      row,
+    })
+    ownedTokenName = (await tokenHeadings.allTextContents()).find(
+      params.nameMatcher,
+    )
+  }
+}
+
+/**
+ * Waits for the key-list toolbar to be usable. The empty state for a failed
+ * key-list load also renders a "Refresh Key List" action, so the toolbar
+ * lookup stays scoped to its action group and the site-side load error is
+ * reported directly instead of an ambiguous-locator or timeout failure.
+ */
+async function expectKeyListReady(page: Page) {
+  const headerRefreshButton = page
+    .getByRole("group")
+    .getByRole("button", { name: "Refresh Key List" })
+  const loadErrorAlert = page
+    .getByRole("alert")
+    .filter({ hasText: "Failed to load keys" })
+
+  await expect
+    .poll(
+      async () =>
+        (await headerRefreshButton.isEnabled()) ||
+        (await loadErrorAlert.isVisible()),
+      { timeout: 30_000 },
+    )
+    .toBe(true)
+
+  if (!(await loadErrorAlert.isVisible())) return
+
+  const detail = (await loadErrorAlert.innerText())
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 300)
+  throw new Error(`API key list failed to load: ${detail}`)
+}
+
+async function deleteTokenRowFromKeyManagementPage(params: {
+  page: Page
+  row: Locator
+  cleanupLinkedChannels?: boolean
+}) {
+  await expect(params.row).toBeVisible({ timeout: 30_000 })
+  const row = await params.row.elementHandle()
+  if (!row) {
+    throw new Error("Unable to identify a token row for deletion.")
+  }
+
+  await params.row
+    .getByRole("button", { name: "Delete Key", exact: true })
+    .click()
+  if (params.cleanupLinkedChannels !== undefined) {
+    await params.page
+      .getByRole("checkbox", {
+        name: "Also clean up matching channels on the current managed site",
+        exact: true,
+      })
+      .setChecked(params.cleanupLinkedChannels)
+  }
+  await params.page
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeDeleteConfirmButton)
+    .click()
+  const outcome = await waitForTokenDeletionOutcome({
+    page: params.page,
+    row,
+  })
+  await row.dispose()
+
+  if (outcome.status === "failed") {
+    throw new Error(`API key deletion failed: ${outcome.message}`)
+  }
+}
+
+export async function deleteTokenFromKeyManagementPage(params: {
+  page: Page
+  token: AccountTokenIdentity | string
+  cleanupLinkedChannels?: boolean
+}) {
+  await closeTokenCreationDialogsIfPresent(params.page)
+
+  const row =
+    typeof params.token === "string"
+      ? await expectTokenVisibleInKeyManagementPage({
+          page: params.page,
+          tokenName: params.token,
+        })
+      : params.page.locator(
+          `[data-testid="${KEY_MANAGEMENT_TEST_IDS.nativeKeyRow}"][data-resource-id=${JSON.stringify(String(params.token.id))}]`,
+        )
+  await deleteTokenRowFromKeyManagementPage({
+    page: params.page,
+    row,
+    cleanupLinkedChannels: params.cleanupLinkedChannels,
+  })
+}
+
+export async function openKeyManagementForAccount(params: {
+  page: Page
+  extensionId: string
+  accountId?: string
+  siteType?: AccountSiteType
+  baseUrl?: string
+  openFromAccountRow?: boolean
+}): Promise<Page> {
+  if (params.openFromAccountRow) {
+    return await openKeyManagementPageFromAccountRow({
+      page: params.page,
+      accountId: params.accountId,
+      siteType: params.siteType,
+      baseUrl: params.baseUrl,
+    })
+  } else {
+    if (!params.accountId) {
+      throw new Error(
+        "accountId is required when opening Key Management by URL.",
+      )
+    }
+
+    return await openKeyManagementPage({
+      page: params.page,
+      extensionId: params.extensionId,
+      accountId: params.accountId,
+    })
+  }
+}
+
+export async function submitTokenCreationFromKeyManagementPage(params: {
+  page: Page
+  tokenName: string
+  prepareEditor?: (editor: Locator) => Promise<void>
+}) {
+  await submitCreateTokenForm({
+    page: params.page,
+    tokenName: params.tokenName,
+    prepareEditor: params.prepareEditor,
+  })
+}
+
+export async function expectTokenCreatedInKeyManagementPage(params: {
+  page: Page
+  tokenName: string
+}) {
+  await closeTokenCreationDialogsIfPresent(params.page)
+  const row = await expectTokenVisibleInKeyManagementPage({
+    page: params.page,
+    tokenName: params.tokenName,
+  })
+
+  return {
+    page: params.page,
+    row,
+  }
+}
+
+export async function saveTokenToApiCredentialProfilesFromKeyManagementPage(params: {
+  serviceWorker: ServiceWorker
+  page: Page
+  row: Locator
+  expectedProfile?: SavedApiCredentialProfileExpectation
+  openProfilesPage?: boolean
+}): Promise<ApiCredentialProfile> {
+  const existingProfileIds = new Set(
+    (await readStoredApiCredentialProfiles(params.serviceWorker)).map(
+      (profile) => profile.id,
+    ),
+  )
+
+  await params.row
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.apiCredentialAssociationButton)
+    .click()
+  await params.page
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.saveToApiProfilesButton)
+    .click()
+
+  await expect
+    .poll(async () => {
+      return await findSavedApiCredentialProfile({
+        serviceWorker: params.serviceWorker,
+        existingProfileIds,
+        expectedProfile: params.expectedProfile,
+      })
+    })
+    .toMatchObject(params.expectedProfile ?? {})
+
+  const savedProfile = await findSavedApiCredentialProfile({
+    serviceWorker: params.serviceWorker,
+    existingProfileIds,
+    expectedProfile: params.expectedProfile,
+  })
+
+  if (!savedProfile) {
+    throw new Error("Saving key to API profiles did not create a profile")
+  }
+
+  if (params.openProfilesPage !== false) {
+    await params.page
+      .getByTestId(TOKEN_PROVISIONING_TEST_IDS.openApiProfilesToastButton)
+      .click()
+    await expect(
+      params.page.getByRole("heading", { name: savedProfile.name }),
+    ).toBeVisible()
+  }
+
+  return savedProfile
+}
+
+function requireAccountSiteType(siteType: AccountSiteType | undefined) {
+  if (!siteType) {
+    throw new Error(
+      "siteType is required when opening Key Management from row.",
+    )
+  }
+
+  return siteType
+}
+
+function requireAccountBaseUrl(baseUrl: string | undefined) {
+  if (!baseUrl) {
+    throw new Error("baseUrl is required when opening Key Management from row.")
+  }
+
+  return baseUrl
+}

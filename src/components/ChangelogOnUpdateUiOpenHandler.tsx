@@ -1,0 +1,57 @@
+import { useEffect, useRef } from "react"
+
+import { useUpdateLogDialogContext } from "~/features/UpdateLog"
+import { DEFAULT_PREFERENCES } from "~/services/preferences/preferencesDefaults"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { changelogOnUpdateState } from "~/services/updates/changelogOnUpdateState"
+import { isExtensionOptions } from "~/utils/browser"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+
+const LOGGER = createLogger("ChangelogOnUpdateUiOpenHandler")
+
+/**
+ * Options-open handler that consumes the pending changelog marker (written on
+ * update). Compact surfaces leave it pending for the next options-page visit.
+ */
+export function ChangelogOnUpdateUiOpenHandler() {
+  const hasHandledRef = useRef(false)
+  const { openDialog } = useUpdateLogDialogContext()
+
+  useEffect(() => {
+    if (!isExtensionOptions() || hasHandledRef.current) {
+      return
+    }
+    hasHandledRef.current = true
+
+    void (async () => {
+      try {
+        const pendingVersion =
+          await changelogOnUpdateState.consumePendingVersion()
+
+        if (!pendingVersion) {
+          return
+        }
+
+        const prefs = await userPreferences.getPreferences()
+        if (
+          !(
+            prefs.openChangelogOnUpdate ??
+            DEFAULT_PREFERENCES.openChangelogOnUpdate
+          )
+        ) {
+          return
+        }
+
+        openDialog(pendingVersion)
+      } catch (error) {
+        LOGGER.error(
+          "Failed to consume pending changelog state",
+          getErrorMessage(error),
+        )
+      }
+    })()
+  }, [openDialog])
+
+  return null
+}

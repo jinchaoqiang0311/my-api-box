@@ -1,0 +1,476 @@
+import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import HeaderSection from "~/entrypoints/popup/components/HeaderSection"
+import { POPUP_VIEW_TYPES } from "~/entrypoints/popup/viewTypes"
+import { useUpdateLogDialogContext } from "~/features/UpdateLog"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FAILURE_REASONS,
+  PRODUCT_ANALYTICS_FAILURE_STAGES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_MODE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SOURCE_KINDS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+  type ProductAnalyticsActionId,
+  type ProductAnalyticsFeatureId,
+} from "~/services/productAnalytics/contracts"
+import { isExtensionSidePanel } from "~/utils/browser"
+import { getSidePanelSupport } from "~/utils/browser/sidePanel"
+import {
+  openApiCredentialProfilesPage,
+  openFullAccountManagerPage,
+  openFullBookmarkManagerPage,
+  openSettingsPage,
+} from "~/utils/navigation"
+import { openSidePanelPage } from "~/utils/navigation/sidepanel"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "~~/tests/test-utils/render"
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+
+  return { promise, reject, resolve }
+}
+
+vi.mock("~/contexts/UserPreferencesContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/contexts/UserPreferencesContext")>()
+  return {
+    ...actual,
+    UserPreferencesProvider: ({ children }: { children: ReactNode }) =>
+      children,
+    useUserPreferencesContext: () => ({
+      themeMode: "system",
+      updateThemeMode: vi.fn().mockResolvedValue(true),
+    }),
+  }
+})
+
+vi.mock("~/assets/icon.png", () => ({
+  default: "icon.png",
+}))
+
+vi.mock("~/features/UpdateLog", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/features/UpdateLog")>()
+
+  return {
+    ...actual,
+    useUpdateLogDialogContext: vi.fn(),
+  }
+})
+
+vi.mock("~/utils/browser", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/utils/browser")>()
+  return {
+    ...actual,
+    isExtensionSidePanel: vi.fn().mockReturnValue(false),
+  }
+})
+
+vi.mock("~/utils/browser/sidePanel", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("~/utils/browser/sidePanel")>()
+  return { ...actual, getSidePanelSupport: vi.fn() }
+})
+
+vi.mock("~/contexts/ReleaseUpdateStatusContext", () => ({
+  useReleaseUpdateStatus: () => ({
+    status: null,
+    isLoading: false,
+    isChecking: false,
+    error: null,
+    refresh: vi.fn(),
+    checkNow: vi.fn(),
+  }),
+}))
+
+vi.mock("~/utils/navigation", () => ({
+  openApiCredentialProfilesPage: vi.fn(),
+  openFullAccountManagerPage: vi.fn(),
+  openFullBookmarkManagerPage: vi.fn(),
+  openPermissionsOnboardingPage: vi.fn(),
+  openSettingsPage: vi.fn(),
+}))
+vi.mock("~/utils/navigation/sidepanel", () => ({ openSidePanelPage: vi.fn() }))
+
+const {
+  accountDataScenario,
+  handleRefreshMock,
+  startProductAnalyticsActionMock,
+  trackerCompleteMock,
+  trackProductAnalyticsActionStartedMock,
+} = vi.hoisted(() => ({
+  accountDataScenario: { isRefreshing: false },
+  handleRefreshMock: vi.fn(),
+  startProductAnalyticsActionMock: vi.fn(),
+  trackerCompleteMock: vi.fn(),
+  trackProductAnalyticsActionStartedMock: vi.fn(),
+}))
+
+vi.mock("~/features/AccountManagement/data/AccountDataContext", () => ({
+  useAccountDataContext: () => ({
+    isRefreshing: accountDataScenario.isRefreshing,
+    handleRefresh: handleRefreshMock,
+  }),
+}))
+
+vi.mock("~/features/ProductAnnouncements/ProductAnnouncementButton", () => ({
+  ProductAnnouncementButton: () => null,
+}))
+
+vi.mock("~/services/productAnalytics/actions", () => ({
+  startProductAnalyticsAction: (...args: unknown[]) =>
+    startProductAnalyticsActionMock(...args),
+  trackProductAnalyticsActionStarted: (...args: any[]) =>
+    trackProductAnalyticsActionStartedMock(...args),
+}))
+
+const mockedIsExtensionSidePanel = vi.mocked(isExtensionSidePanel)
+const mockedGetSidePanelSupport = vi.mocked(getSidePanelSupport)
+const mockedOpenApiCredentialProfilesPage = vi.mocked(
+  openApiCredentialProfilesPage,
+)
+const mockedOpenFullAccountManagerPage = vi.mocked(openFullAccountManagerPage)
+const mockedOpenFullBookmarkManagerPage = vi.mocked(openFullBookmarkManagerPage)
+const mockedOpenSettingsPage = vi.mocked(openSettingsPage)
+const mockedOpenSidePanelPage = vi.mocked(openSidePanelPage)
+const mockedUseUpdateLogDialogContext = vi.mocked(useUpdateLogDialogContext)
+
+const expectPopupHeaderAction = ({
+  featureId,
+  actionId,
+}: {
+  featureId: ProductAnalyticsFeatureId
+  actionId: ProductAnalyticsActionId
+}) => {
+  expect(trackProductAnalyticsActionStartedMock).toHaveBeenCalledWith({
+    featureId,
+    actionId,
+    surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.PopupHeader,
+    entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Popup,
+  })
+}
+
+describe("popup HeaderSection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubEnv("MODE", "development")
+    trackProductAnalyticsActionStartedMock.mockReset()
+    trackerCompleteMock.mockReset()
+    trackerCompleteMock.mockResolvedValue(undefined)
+    startProductAnalyticsActionMock.mockReset()
+    startProductAnalyticsActionMock.mockReturnValue({
+      complete: trackerCompleteMock,
+    })
+    handleRefreshMock.mockReset()
+    handleRefreshMock.mockResolvedValue({ success: 0, failed: 0 })
+    accountDataScenario.isRefreshing = false
+    mockedIsExtensionSidePanel.mockReturnValue(false)
+    mockedGetSidePanelSupport.mockReturnValue({
+      supported: true,
+      kind: "chromium-side-panel",
+    })
+    mockedUseUpdateLogDialogContext.mockReturnValue({
+      state: { isOpen: false, version: null },
+      openDialog: vi.fn(),
+      closeDialog: vi.fn(),
+    })
+  })
+
+  it("offers explicit theme choices in popup and side panel", async () => {
+    const user = userEvent.setup()
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+    await user.click(
+      screen.getByRole("button", { name: "settings:theme.current" }),
+    )
+    expect(screen.getAllByRole("menuitemradio")).toHaveLength(3)
+    expect(
+      screen.getByRole("menuitemradio", {
+        name: "settings:theme.followSystem",
+      }),
+    ).toHaveAttribute("aria-checked", "true")
+  })
+
+  it("shows open side panel button in popup", async () => {
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    expect(
+      await screen.findByRole("button", {
+        name: "common:actions.openSidePanel",
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it("hides open side panel button inside side panel", async () => {
+    mockedIsExtensionSidePanel.mockReturnValue(true)
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    expect(
+      screen.queryByRole("button", { name: "common:actions.openSidePanel" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("hides open side panel button when side panel is unsupported", async () => {
+    mockedGetSidePanelSupport.mockReturnValue({
+      supported: false,
+      kind: "unsupported",
+      reason: "missing",
+    })
+
+    await act(async () => {
+      render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+    })
+
+    expect(
+      screen.queryByRole("button", { name: "common:actions.openSidePanel" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("routes the open side panel button through the shared navigation helper", async () => {
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "common:actions.openSidePanel",
+      }),
+    )
+
+    expect(mockedOpenSidePanelPage).toHaveBeenCalledTimes(1)
+    expectPopupHeaderAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenSidepanelFromPopup,
+    })
+  })
+
+  it("routes open full page to account manager for accounts view", async () => {
+    render(<HeaderSection activeView={POPUP_VIEW_TYPES.Accounts} />, {
+      withReleaseUpdateStatusProvider: false,
+    })
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "ui:navigation.account" }),
+    )
+
+    expect(mockedOpenFullAccountManagerPage).toHaveBeenCalledTimes(1)
+    expectPopupHeaderAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupAccountManagementPage,
+    })
+  })
+
+  it("routes open full page to bookmark manager for bookmarks view", async () => {
+    render(<HeaderSection activeView={POPUP_VIEW_TYPES.Bookmarks} />, {
+      withReleaseUpdateStatusProvider: false,
+    })
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "ui:navigation.bookmark" }),
+    )
+
+    expect(mockedOpenFullBookmarkManagerPage).toHaveBeenCalledTimes(1)
+    expectPopupHeaderAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.BookmarkManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupBookmarkManagementPage,
+    })
+  })
+
+  it("routes open full page to API credential profiles for API credentials view", async () => {
+    render(
+      <HeaderSection activeView={POPUP_VIEW_TYPES.ApiCredentialProfiles} />,
+      {
+        withReleaseUpdateStatusProvider: false,
+      },
+    )
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "ui:navigation.apiCredentialProfiles",
+      }),
+    )
+
+    expect(mockedOpenApiCredentialProfilesPage).toHaveBeenCalledTimes(1)
+    expectPopupHeaderAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ApiCredentialProfiles,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupApiCredentialProfilesPage,
+    })
+  })
+
+  it("completes popup header refresh analytics with the default success result", async () => {
+    handleRefreshMock.mockResolvedValueOnce({
+      success: 4,
+      failed: 0,
+      refreshedCount: 3,
+    })
+
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "common:actions.refresh" }),
+    )
+    expect(startProductAnalyticsActionMock).toHaveBeenCalledWith({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.RefreshPopupAccounts,
+      surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.PopupHeader,
+      entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Popup,
+    })
+    await waitFor(() => {
+      expect(trackerCompleteMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Success,
+        {
+          insights: {
+            itemCount: 4,
+            successCount: 4,
+            failureCount: 0,
+          },
+          diagnostics: {
+            context: {
+              sourceKind: PRODUCT_ANALYTICS_SOURCE_KINDS.Manual,
+              mode: PRODUCT_ANALYTICS_MODE_IDS.All,
+            },
+            outcome: {
+              itemCount: 4,
+              successCount: 4,
+              failureCount: 0,
+              skippedCount: 1,
+            },
+          },
+        },
+      )
+    })
+  })
+
+  it("completes popup header refresh analytics failure with an unknown error category", async () => {
+    handleRefreshMock.mockRejectedValue(new Error("refresh failed"))
+
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "common:actions.refresh" }),
+    )
+
+    await waitFor(() => {
+      expect(trackerCompleteMock).toHaveBeenCalledWith(
+        PRODUCT_ANALYTICS_RESULTS.Failure,
+        {
+          errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+          diagnostics: {
+            context: {
+              sourceKind: PRODUCT_ANALYTICS_SOURCE_KINDS.Manual,
+              mode: PRODUCT_ANALYTICS_MODE_IDS.All,
+            },
+            failure: {
+              category: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+              stage: PRODUCT_ANALYTICS_FAILURE_STAGES.Request,
+              reason: PRODUCT_ANALYTICS_FAILURE_REASONS.Unknown,
+            },
+          },
+        },
+      )
+    })
+    expect(
+      screen.getByRole("button", { name: "common:actions.refresh" }),
+    ).toBeEnabled()
+    expect(
+      screen.getByRole("button", { name: "common:actions.refresh" }),
+    ).not.toHaveAttribute("aria-busy")
+  })
+
+  it("disables the refresh action without marking it busy during an external refresh", async () => {
+    const { rerender } = render(<HeaderSection />, {
+      withReleaseUpdateStatusProvider: false,
+    })
+
+    const refreshButton = await screen.findByRole("button", {
+      name: "common:actions.refresh",
+    })
+    expect(refreshButton).toBeEnabled()
+    expect(refreshButton).not.toHaveAttribute("aria-busy")
+
+    accountDataScenario.isRefreshing = true
+    rerender(<HeaderSection />)
+
+    const externallyLockedRefreshButton = screen.getByRole("button", {
+      name: "common:actions.refresh",
+    })
+    expect(externallyLockedRefreshButton).not.toHaveAttribute("aria-busy")
+    expect(externallyLockedRefreshButton).toBeDisabled()
+
+    fireEvent.click(externallyLockedRefreshButton)
+    expect(handleRefreshMock).not.toHaveBeenCalled()
+
+    accountDataScenario.isRefreshing = false
+    rerender(<HeaderSection />)
+
+    expect(
+      screen.getByRole("button", { name: "common:actions.refresh" }),
+    ).toBeEnabled()
+    expect(
+      screen.getByRole("button", { name: "common:actions.refresh" }),
+    ).not.toHaveAttribute("aria-busy")
+  })
+
+  it("marks only a locally initiated refresh busy and restores it after settlement", async () => {
+    const deferredRefresh = createDeferred<{
+      success: number
+      failed: number
+      refreshedCount: number
+    }>()
+    handleRefreshMock.mockReturnValueOnce(deferredRefresh.promise)
+
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    const refreshButton = await screen.findByRole("button", {
+      name: "common:actions.refresh",
+    })
+    fireEvent.click(refreshButton)
+
+    expect(refreshButton).toHaveAttribute("aria-busy", "true")
+    expect(refreshButton).toBeDisabled()
+
+    fireEvent.click(refreshButton)
+    expect(handleRefreshMock).toHaveBeenCalledTimes(1)
+
+    deferredRefresh.resolve({ success: 1, failed: 0, refreshedCount: 1 })
+
+    await waitFor(() => {
+      expect(refreshButton).toBeEnabled()
+    })
+    expect(refreshButton).not.toHaveAttribute("aria-busy")
+  })
+
+  it("tracks popup header settings shortcut as started-only analytics", async () => {
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "common:labels.settings" }),
+    )
+    expect(mockedOpenSettingsPage).toHaveBeenCalledTimes(1)
+    expectPopupHeaderAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ProductAnalyticsSettings,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupSettingsPage,
+    })
+  })
+
+  it("exposes shared utility menus from the header", async () => {
+    render(<HeaderSection />, { withReleaseUpdateStatusProvider: false })
+
+    expect(
+      await screen.findByRole("button", { name: "ui:feedback.trigger" }),
+    ).toBeInTheDocument()
+  })
+})

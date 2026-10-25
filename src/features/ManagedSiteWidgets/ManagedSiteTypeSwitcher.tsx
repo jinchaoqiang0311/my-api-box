@@ -1,0 +1,123 @@
+import type { ReactNode } from "react"
+import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui"
+import { MANAGED_SITE_TYPES, type ManagedSiteType } from "~/constants/siteType"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { cn } from "~/lib/utils"
+import { resolveManagedSiteRuntimeConfigForType } from "~/services/managedSites/configuration/runtimeConfig"
+import { getManagedSiteLabel } from "~/services/managedSites/utils/managedSite"
+import { showUpdateToast } from "~/utils/feedback/preferenceFeedback"
+
+interface ManagedSiteTypeSwitcherProps {
+  ariaLabel?: string
+  configuredOnly?: boolean
+  disabled?: boolean
+  hideWhenSingleOption?: boolean
+  label?: ReactNode
+  labelClassName?: string
+  size?: "sm" | "default"
+  triggerClassName?: string
+  triggerTestId?: string
+  wrapperClassName?: string
+}
+
+/**
+ * Shared managed-site switcher that can be reused in settings, popup, and
+ * managed-site pages without duplicating update and filtering logic.
+ */
+export default function ManagedSiteTypeSwitcher({
+  ariaLabel,
+  configuredOnly = false,
+  disabled = false,
+  hideWhenSingleOption = false,
+  label,
+  labelClassName,
+  size = "default",
+  triggerClassName,
+  triggerTestId,
+  wrapperClassName,
+}: ManagedSiteTypeSwitcherProps) {
+  const { t } = useTranslation("settings")
+  const { managedSiteType, preferences, updateManagedSiteType } =
+    useUserPreferencesContext()
+
+  const options = useMemo(() => {
+    const allOptions = MANAGED_SITE_TYPES.map((siteType) => ({
+      siteType,
+      isConfigured: Boolean(
+        preferences &&
+          (resolveManagedSiteRuntimeConfigForType(preferences, siteType)
+            ?.config ??
+            null),
+      ),
+    }))
+
+    if (!configuredOnly) {
+      return allOptions
+    }
+
+    const configuredOptions = allOptions.filter(
+      ({ isConfigured, siteType }) =>
+        isConfigured || siteType === managedSiteType,
+    )
+
+    return configuredOptions.length ? configuredOptions : allOptions
+  }, [configuredOnly, managedSiteType, preferences])
+
+  if (hideWhenSingleOption && options.length < 2) {
+    return null
+  }
+
+  const handleManagedSiteTypeChange = async (value: string) => {
+    const siteType = value as ManagedSiteType
+    if (siteType === managedSiteType) return
+
+    const writeResult = await updateManagedSiteType(siteType)
+    showUpdateToast(writeResult, t("managedSite.siteTypeLabel"))
+  }
+
+  return (
+    <div className={wrapperClassName}>
+      {label ? (
+        <div
+          className={cn(
+            "text-muted-foreground mb-density-1 text-xs font-medium",
+            labelClassName,
+          )}
+        >
+          {label}
+        </div>
+      ) : null}
+
+      <Select
+        value={managedSiteType}
+        onValueChange={handleManagedSiteTypeChange}
+        disabled={disabled || options.length < 2}
+      >
+        <SelectTrigger
+          className={cn("w-full", triggerClassName)}
+          size={size}
+          aria-label={ariaLabel ?? t("managedSite.siteTypeLabel")}
+          data-testid={triggerTestId}
+        >
+          <SelectValue placeholder={t("managedSite.siteTypeLabel")} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(({ siteType }) => (
+            <SelectItem key={siteType} value={siteType}>
+              {getManagedSiteLabel(t, siteType)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}

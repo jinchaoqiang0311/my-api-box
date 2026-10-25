@@ -1,0 +1,90 @@
+import { describe, expect, it } from "vitest"
+
+import {
+  createProfileCredentialExportData,
+  createProfileCredentialExportSource,
+} from "~/services/apiCredentialProfiles/credentialExport"
+import { resolveCredentialExport } from "~/services/integrations/credentialExport"
+import { buildApiCredentialProfile } from "~~/tests/test-utils/factories"
+
+describe("profile credential exports", () => {
+  it("preserves published export identities while projecting only the stored credential", async () => {
+    const profile = buildApiCredentialProfile({ notes: "Profile notes" })
+    const source = createProfileCredentialExportSource(profile)
+    const expected = {
+      providerId: "api-credential-profile:profile-1",
+      providerName: profile.name,
+      baseUrl: profile.baseUrl,
+      apiKey: profile.apiKey,
+    }
+
+    expect(source.id).toBe(
+      "account_token:api-credential-profile:profile-1:1005401843",
+    )
+    expect(source.notes).toBe("Profile notes")
+    expect(createProfileCredentialExportData(profile)).toEqual(expected)
+    await expect(resolveCredentialExport(source)).resolves.toEqual(expected)
+  })
+
+  it.each([
+    { apiKey: "rotated-profile-key" },
+    { baseUrl: "https://other-api.example.invalid" },
+  ])("invalidates discovery after a credential edit: %j", async (change) => {
+    const profile = buildApiCredentialProfile()
+    const source = createProfileCredentialExportSource(profile)
+    const updatedProfile = { ...profile, ...change }
+    const updated = createProfileCredentialExportSource(updatedProfile)
+
+    expect(updated.id).toBe(source.id)
+    expect(updated.cacheKey).not.toBe(source.cacheKey)
+    await expect(updated.resolveApiKey()).resolves.toBe(updatedProfile.apiKey)
+  })
+
+  it("keeps discovery valid after cosmetic profile edits", () => {
+    const profile = buildApiCredentialProfile()
+    const source = createProfileCredentialExportSource(profile)
+    const renamed = createProfileCredentialExportSource({
+      ...profile,
+      name: "Renamed profile",
+      notes: "Updated notes",
+    })
+
+    expect(renamed.id).toBe(source.id)
+    expect(renamed.cacheKey).toBe(source.cacheKey)
+    expect(renamed.providerName).toBe("Renamed profile")
+  })
+
+  it("attaches declared multi-protocol inference endpoints for matching OpenAI base URL", () => {
+    const profile = buildApiCredentialProfile({
+      baseUrl: "https://api.moonshot.cn/v1",
+      apiType: "openai-compatible",
+    })
+    const source = createProfileCredentialExportSource(profile)
+    expect(source.baseUrl).toBe("https://api.moonshot.cn")
+    expect(source.anthropicBaseUrl).toBe("https://api.moonshot.cn/anthropic")
+  })
+
+  it("attaches Anthropic compatible endpoint when exporting Volcengine Ark OpenAI profile", () => {
+    const profile = buildApiCredentialProfile({
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+      apiType: "openai-compatible",
+    })
+    const source = createProfileCredentialExportSource(profile)
+    expect(source.baseUrl).toBe("https://ark.cn-beijing.volces.com/api/v3")
+    expect(source.anthropicBaseUrl).toBe(
+      "https://ark.cn-beijing.volces.com/api/compatible",
+    )
+  })
+  it("preserves the selected FreeModel HQ endpoint for Anthropic exports", async () => {
+    const profile = buildApiCredentialProfile({
+      apiType: "anthropic",
+      baseUrl: "https://cc-hq.freemodel.dev",
+    })
+    const source = createProfileCredentialExportSource(profile)
+    expect(source.baseUrl).toBe("https://cc-hq.freemodel.dev")
+    expect(source.anthropicBaseUrl).toBeUndefined()
+    await expect(resolveCredentialExport(source)).resolves.toMatchObject({
+      baseUrl: "https://cc-hq.freemodel.dev",
+    })
+  })
+})

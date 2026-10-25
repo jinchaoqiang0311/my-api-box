@@ -1,0 +1,163 @@
+{
+  "actions": {
+    "applySettings": "应用设置",
+    "prune": "立即清理",
+    "refreshNow": "立即刷新"
+  },
+  "breakdown": {
+    "chartTypes": {
+      "histogram": "直方图",
+      "pie": "饼图"
+    },
+    "controls": {
+      "chartType": "图表类型",
+      "reference": "参考"
+    },
+    "coverage": "{{covered}}/{{total}} 个账户有数据",
+    "empty": "该分布暂无可展示的数据。",
+    "hints": {
+      "pieDisabledForNegative": "存在负值时无法使用饼图。"
+    },
+    "title": "账户分布"
+  },
+  "description": "查看每日余额与收支趋势，了解账号资金变化。",
+  "empty": {
+    "description": "启用余额历史并刷新任意账户，即可记录第一条快照。",
+    "title": "暂无快照"
+  },
+  "emptyRange": {
+    "description": "已有快照数据，但当前选择的时间范围内没有记录。请扩大时间范围或刷新任意账户以生成快照。",
+    "title": "该范围内暂无快照"
+  },
+  "filters": {
+    "accounts": "账户",
+    "accountsHint": "选择要纳入图表的账户。",
+    "allAccounts": "全部账户",
+    "allTags": "全部标签",
+    "endDay": "结束时间",
+    "noDataInRange": "该范围内无快照",
+    "quickRanges": {
+      "180d": "近180天",
+      "30d": "近30天",
+      "365d": "近1年",
+      "7d": "近7天",
+      "90d": "近90天"
+    },
+    "range": "时间范围",
+    "rangeHint": "受保留窗口限制（{{days}} 天）。",
+    "startDay": "开始时间",
+    "tags": "标签",
+    "tagsHint": "按标签过滤账户。"
+  },
+  "hints": {
+    "disabled": {
+      "actions": {
+        "openSettings": "打开设置"
+      },
+      "description": "请在设置中启用“余额历史”，以开始记录快照。",
+      "title": "余额历史已禁用"
+    },
+    "incompleteSelection": {
+      "description": "汇总曲线会尽力按当日有数据的账户求和；覆盖不足时（{{minCovered}}–{{maxCovered}}/{{totalAccounts}} 个账户）可能低估。",
+      "title": "汇总可能不完整"
+    }
+  },
+  "messages": {
+    "error": {
+      "pruneFailed": "清理失败：{{error}}",
+      "refreshFailed": "刷新失败：{{error}}",
+      "settingsSaveFailed": "保存设置失败：{{error}}"
+    },
+    "loading": {
+      "loadingData": "加载中…",
+      "pruning": "清理中…",
+      "refreshing": "刷新中…",
+      "savingSettings": "保存设置中…"
+    },
+    "success": {
+      "pruneCompleted": "清理完成",
+      "refreshCompleted": "刷新完成",
+      "settingsSaved": "设置已保存"
+    }
+  },
+  "metrics": {
+    "balance": "余额",
+    "estimatedIncome": "估算收入",
+    "income": "收入",
+    "net": "净变化",
+    "outcome": "支出"
+  },
+  "overview": {
+    "kpis": {
+      "coverageAccounts": "{{covered}}/{{total}} 个账户",
+      "endBalance": {
+        "label": "结束余额"
+      },
+      "incomeTotal": {
+        "label": "区间收入"
+      },
+      "outcomeTotal": {
+        "label": "区间支出"
+      },
+      "rangeNet": {
+        "label": "区间净变化"
+      }
+    },
+    "title": "概览"
+  },
+  "settings": {
+    "alarmUnsupported": "当前浏览器不支持 Alarms API，无法启用日终抓取。",
+    "enabled": "启用余额历史",
+    "enabledHint": "关闭后不会记录快照，也不会安排日终抓取。",
+    "endOfDayCapture": "日终抓取",
+    "endOfDayCaptureHint": "在每天 {{time}} 左右尽力抓取一次（需要浏览器支持 Alarms API）。",
+    "estimatedTodayIncome": "显示估算今日收入",
+    "estimatedTodayIncomeHint": "基于余额历史估算未进入站点收入日志的奖励；缺少前一日基准快照时不可用。",
+    "retentionDays": "保留天数"
+  },
+  "summary": {
+    "coverage": "有数据天数：余额 {{snapshotAvailableDays}}/{{totalDays}}（完整 {{snapshotCompleteDays}}/{{totalDays}}），收支 {{cashflowAvailableDays}}/{{totalDays}}（完整 {{cashflowCompleteDays}}/{{totalDays}}）。"
+  },
+  "table": {
+    "columns": {
+      "account": "账户",
+      "cashflowCoverage": "收支覆盖",
+      "endBalance": "结束余额",
+      "estimatedIncomeTotal": "估算收入合计",
+      "incomeTotal": "区间收入",
+      "outcomeTotal": "区间支出",
+      "rangeNet": "区间净变化",
+      "snapshotCoverage": "快照覆盖",
+      "startBalance": "开始余额"
+    },
+    "coverageFormat": "{{covered}}/{{total}}",
+    "empty": "暂无可展示的账户汇总。",
+    "loading": "加载中…",
+    "title": "账户汇总"
+  },
+  "title": "余额历史",
+  "trend": {
+    "chartTypes": {
+      "bar": "柱状",
+      "line": "折线"
+    },
+    "controls": {
+      "chartType": "图表类型",
+      "scope": "视图"
+    },
+    "emptyMetric": "该时间范围内暂无{{metric}}数据。",
+    "scopes": {
+      "accounts": "按账户",
+      "total": "汇总"
+    },
+    "subtitle": "按账户展示，缺失日期以空白断点表示。",
+    "subtitleTotal": "所选账户汇总（求和）展示；覆盖不足的日期可能低估。",
+    "title": "趋势"
+  },
+  "warnings": {
+    "cashflowDisabled": {
+      "description": "已关闭“显示今日收支”，且未启用“日终抓取”。请启用其中任意一项以记录收入/支出。",
+      "title": "收入/支出历史将为空"
+    }
+  }
+}

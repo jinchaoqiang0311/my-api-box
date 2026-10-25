@@ -1,0 +1,1717 @@
+import { OPTIONS_PAGE_PATH } from "~/constants/extensionPages"
+import { SITE_TYPES } from "~/constants/siteType"
+import { API_CREDENTIAL_PROFILES_TEST_IDS } from "~/features/ApiCredentialProfiles/testIds"
+import {
+  getManagedSiteBatchExportRowSelectTestId,
+  getRepairAccountResultTestId,
+  KEY_MANAGEMENT_TEST_IDS,
+} from "~/features/KeyManagement/testIds"
+import { TOKEN_PROVISIONING_TEST_IDS } from "~/features/TokenProvisioning/testIds"
+import { ACCOUNT_KEY_RECONCILIATION_OUTCOMES } from "~/services/accounts/keys/accountKeyInventoryReconciliation"
+import { buildAccountKeyResourceRuntimeKeyId } from "~/services/accounts/keys/accountRuntimeKeys"
+import {
+  ACCOUNT_KEY_REQUIREMENT_PROVISIONING_KINDS,
+  type AccountKeyResourceRef,
+} from "~/services/apiAdapters/contracts/accountKeyResource"
+import type { NewApiToken } from "~/services/apiService/newApiFamily/tokenTypes"
+import {
+  ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS,
+  STORAGE_KEYS,
+} from "~/services/core/storageKeys"
+import { AuthTypeEnum } from "~/types"
+import {
+  ACCOUNT_KEY_REPAIR_JOB_STATES,
+  ACCOUNT_KEY_REPAIR_MANAGED_SITE_IMPORT_STATUSES,
+  ACCOUNT_KEY_REPAIR_OUTCOMES,
+  ACCOUNT_KEY_REPAIR_PROGRESS_SCHEMA_VERSION,
+  type AccountKeyRepairProgress,
+} from "~/types/accountKeyAutoProvisioning"
+import type { ApiCredentialProfilesConfig } from "~/types/apiCredentialProfiles"
+import { expect, test } from "~~/e2e/fixtures/extensionTest"
+import {
+  verifyAccountKeyLifecycleUsage,
+  verifyAccountTokenCcSwitchModelPickerUsage,
+} from "~~/e2e/scenarios/accountUsage"
+import { verifyCcSwitchModelExportDeepLink } from "~~/e2e/scenarios/ccSwitchExport"
+import { runManagedSiteTokenChannelStatusScenario } from "~~/e2e/scenarios/managedSiteChannels"
+import {
+  deleteTokenFromKeyManagementPage,
+  getAccountKeyResourceRow,
+  openKeyManagementForAccount,
+  saveTokenToApiCredentialProfilesFromKeyManagementPage,
+} from "~~/e2e/utils/accountLifecycle"
+import {
+  createStoredAccount,
+  createStoredApiCredentialProfile,
+  forceExtensionLanguage,
+  installExtensionPageGuards,
+  seedApiCredentialProfiles,
+  seedStoredAccounts,
+  seedUserPreferences,
+  stubLlmMetadataIndex,
+  stubNewApiSiteRoutes,
+} from "~~/e2e/utils/commonUserFlows"
+import {
+  expectPermissionOnboardingHidden,
+  expectPlasmoStorageJsonValueToBecome,
+  getPlasmoStorageJsonValue,
+  getServiceWorker,
+} from "~~/e2e/utils/extensionState"
+import { waitForExtensionRoot } from "~~/e2e/utils/lazyLoading"
+import { seedMockAccountFixture } from "~~/e2e/utils/mockedSite/accountFixtures"
+import { parallelizeShardableSpec } from "~~/e2e/utils/parallelizeShardableSpec"
+import { isRealSiteTestTokenName } from "~~/e2e/utils/realSite/keyManagement"
+import { atIndex } from "~~/tests/test-utils/indexedAccess"
+
+parallelizeShardableSpec()
+
+function createStubApiToken(overrides: Partial<NewApiToken> = {}): NewApiToken {
+  const nowSeconds = Math.floor(Date.now() / 1000)
+
+  return {
+    id: 1,
+    user_id: 1,
+    key: "sk-existing-token",
+    status: 1,
+    name: "Existing Key",
+    created_time: nowSeconds,
+    accessed_time: nowSeconds,
+    expired_time: -1,
+    remain_quota: -1,
+    unlimited_quota: true,
+    model_limits_enabled: false,
+    model_limits: "",
+    allow_ips: "",
+    used_quota: 0,
+    group: "default",
+    ...overrides,
+  }
+}
+
+const MANAGED_SITE_IMPORT_TARGET_ORIGIN =
+  "https://managed-target.example.invalid"
+
+async function stubManagedSiteImportTargetRoutes(
+  context: Parameters<typeof stubNewApiSiteRoutes>[0],
+) {
+  const createPayloads: unknown[] = []
+  let createdChannel: Record<string, unknown> | null = null
+
+  await context.route(
+    `${MANAGED_SITE_IMPORT_TARGET_ORIGIN}/**`,
+    async (route) => {
+      const request = route.request()
+      const url = new URL(request.url())
+      const method = request.method()
+
+      if (
+        method === "DELETE" &&
+        createdChannel &&
+        url.pathname === `/api/channel/${createdChannel.id}`
+      ) {
+        createdChannel = null
+        await route.fulfill({ json: { success: true, message: "deleted" } })
+        return
+      }
+
+      if (
+        method === "GET" &&
+        createdChannel &&
+        url.pathname === `/api/channel/${createdChannel.id}`
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            message: "ok",
+            data: createdChannel,
+          }),
+        })
+        return
+      }
+
+      if (
+        method === "GET" &&
+        (url.pathname === "/api/channel/" ||
+          url.pathname === "/api/channel/search")
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            message: "ok",
+            data: {
+              items: createdChannel ? [createdChannel] : [],
+              total: createdChannel ? 1 : 0,
+              type_counts: {},
+            },
+          }),
+        })
+        return
+      }
+
+      if (method === "GET" && url.pathname === "/api/group") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            message: "ok",
+            data: ["default"],
+          }),
+        })
+        return
+      }
+
+      if (method === "GET" && url.pathname === "/api/user/self/groups") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            message: "ok",
+            data: { default: { desc: "Default", ratio: 1 } },
+          }),
+        })
+        return
+      }
+
+      if (method === "GET" && url.pathname === "/api/user/models") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            message: "ok",
+            data: ["gpt-4o-mini", "gpt-4.1-mini"],
+          }),
+        })
+        return
+      }
+
+      if (method === "POST" && url.pathname === "/api/channel/") {
+        const payload = request.postDataJSON() as {
+          channel?: Record<string, unknown>
+        }
+        createPayloads.push(payload)
+        createdChannel = {
+          id: 91,
+          status: 1,
+          priority: 0,
+          weight: 0,
+          group: "default",
+          models: "gpt-4o-mini,gpt-4.1-mini",
+          ...payload.channel,
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, message: "created" }),
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: false,
+          message: `Unhandled managed-site import route: ${method} ${url.pathname}`,
+        }),
+      })
+    },
+  )
+
+  return {
+    createPayloads,
+    getRemainingChannelCount: () => (createdChannel ? 1 : 0),
+  }
+}
+
+test("imports a New API key with no upstream models using a custom channel model", async ({
+  context,
+  page,
+  extensionId,
+}) => {
+  test.setTimeout(120_000)
+  await forceExtensionLanguage(page, "en")
+  await stubLlmMetadataIndex(context)
+  await stubNewApiSiteRoutes(context, { models: [] })
+  const fixture = await stubManagedSiteImportTargetRoutes(context)
+  const serviceWorker = await getServiceWorker(context)
+  await seedUserPreferences(serviceWorker, {
+    managedSiteType: SITE_TYPES.NEW_API,
+    newApi: {
+      baseUrl: MANAGED_SITE_IMPORT_TARGET_ORIGIN,
+      adminToken: "fixture-admin-token",
+      userId: "1",
+      username: "",
+      password: "",
+      totpSecret: "",
+    },
+    autoCheckin: { globalEnabled: false, pretriggerDailyOnUiOpen: false },
+    openChangelogOnUpdate: false,
+  })
+  const sourceAccount = await seedMockAccountFixture({ serviceWorker })
+  try {
+    const result = await runManagedSiteTokenChannelStatusScenario({
+      page,
+      extensionId,
+      siteType: SITE_TYPES.NEW_API,
+      label: "New API",
+      runPrefix: "AAH E2E New API empty catalog",
+      tokenName: "AAH E2E empty catalog source",
+      sourceAccount,
+    })
+    expect(result.skipped).toBe(false)
+    expect(fixture.createPayloads).toHaveLength(1)
+    expect(fixture.createPayloads[0]).toMatchObject({
+      channel: { models: "aah-e2e-custom-model" },
+    })
+    expect(fixture.getRemainingChannelCount()).toBe(0)
+  } finally {
+    await sourceAccount.cleanup()
+  }
+})
+
+async function stubSharedChatServiceCredentialRoutes(
+  context: Parameters<typeof stubNewApiSiteRoutes>[0],
+) {
+  await context.route("https://new.sharedchat.cc/**", async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/frontend-api/vibe-code/quota"
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: 1,
+          msg: "ok",
+          data: {
+            codex: {
+              isAuth: true,
+              apiKey: "sk-sharedchat-service-e2e",
+              subscriptions: {
+                remainingAmount: 12.5,
+              },
+              currentUsage: {
+                totalRequests: 3,
+                totalTokens: 456,
+                totalCost: 0.42,
+              },
+              recentRecords: [],
+            },
+          },
+        }),
+      })
+      return
+    }
+
+    if (request.method() === "GET" && url.pathname === "/codex/v1/models") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          object: "list",
+          data: [
+            {
+              id: "gpt-sharedchat-service",
+              object: "model",
+              owned_by: "e2e",
+            },
+          ],
+        }),
+      })
+      return
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Unhandled SharedChat E2E route" }),
+    })
+  })
+}
+
+test.beforeEach(async ({ context, page }, testInfo) => {
+  installExtensionPageGuards(page, {
+    ignoreConsoleError: (message) =>
+      testInfo.title ===
+        "cleans linked channels and retries persisted multi-key cleanup after reloading" &&
+      message.location().url ===
+        "https://managed-cleanup.example.invalid/v0/management/openai-compatibility" &&
+      message.text().includes("503 (Service Unavailable)"),
+  })
+  await forceExtensionLanguage(page, "en")
+  await stubLlmMetadataIndex(context)
+})
+
+test("creates a token from key management and reloads it into the visible list", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+
+  const accountFixture = await seedMockAccountFixture({
+    serviceWorker,
+    account: createStoredAccount({
+      id: "e2e-key-create-account",
+      site_url: "https://example.com",
+    }),
+  })
+  await stubNewApiSiteRoutes(context)
+
+  await verifyAccountKeyLifecycleUsage({
+    extensionId,
+    page,
+    serviceWorker,
+    account: accountFixture,
+    openFromAccountRow: false,
+    buildTokenName: () => "E2E Created Key",
+  })
+})
+
+test("cleans stale test-owned tokens before creating a new token", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const tokenMutationResponses: string[] = []
+  context.on("response", (response) => {
+    const request = response.request()
+    if (
+      response
+        .url()
+        .startsWith("https://stale-key-cleanup.example.invalid/api/token/") &&
+      ["DELETE", "POST"].includes(request.method())
+    ) {
+      tokenMutationResponses.push(request.method())
+    }
+  })
+  const serviceWorker = await getServiceWorker(context)
+  const accountFixture = await seedMockAccountFixture({
+    serviceWorker,
+    account: createStoredAccount({
+      id: "e2e-stale-key-cleanup-account",
+      site_url: "https://stale-key-cleanup.example.invalid",
+    }),
+  })
+  await stubNewApiSiteRoutes(context, {
+    baseUrl: "https://stale-key-cleanup.example.invalid",
+    initialTokens: [
+      createStubApiToken({ id: 1, name: "Personal Key" }),
+      createStubApiToken({ id: 2, name: "AAH E2E Personal" }),
+      createStubApiToken({ id: 3, name: "AAH E2E NewAPI abc123def4" }),
+      createStubApiToken({ id: 4, name: "AAH E2E NewAPI zyx987wvu6" }),
+    ],
+  })
+
+  await verifyAccountKeyLifecycleUsage({
+    extensionId,
+    page,
+    serviceWorker,
+    account: accountFixture,
+    openFromAccountRow: false,
+    cleanupAccountFixture: false,
+    cleanupTokenNameMatcher: (tokenName) =>
+      isRealSiteTestTokenName({ tokenName, label: "New API" }),
+    buildTokenName: () => "AAH E2E NewAPI run123abcd",
+  })
+
+  await expect(
+    page.getByRole("heading", { name: "Personal Key" }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "AAH E2E Personal", exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("heading", {
+      name: "AAH E2E NewAPI abc123def4",
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole("heading", {
+      name: "AAH E2E NewAPI zyx987wvu6",
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  expect(tokenMutationResponses).toEqual(["DELETE", "DELETE", "POST", "DELETE"])
+})
+
+test("reports the create response instead of timing out on a missing token row", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  const accountFixture = await seedMockAccountFixture({
+    serviceWorker,
+    account: createStoredAccount({
+      id: "e2e-key-create-error-account",
+      site_url: "https://key-create-error.example.invalid",
+    }),
+  })
+  await stubNewApiSiteRoutes(context, {
+    baseUrl: "https://key-create-error.example.invalid",
+    createTokenError: {
+      status: 200,
+      message: "Fixture token quota reached",
+    },
+  })
+
+  await expect(
+    verifyAccountKeyLifecycleUsage({
+      extensionId,
+      page,
+      serviceWorker,
+      account: accountFixture,
+      openFromAccountRow: false,
+      buildTokenName: () => "E2E Rejected Key",
+    }),
+  ).rejects.toThrow(/API key creation failed:.*Fixture token quota reached/s)
+})
+
+test("reports the delete response instead of timing out on a retained token row", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  const accountFixture = await seedMockAccountFixture({
+    serviceWorker,
+    account: createStoredAccount({
+      id: "e2e-key-delete-error-account",
+      site_url: "https://key-delete-error.example.invalid",
+    }),
+  })
+  await stubNewApiSiteRoutes(context, {
+    baseUrl: "https://key-delete-error.example.invalid",
+    deleteTokenError: {
+      status: 200,
+      message: "Fixture delete temporarily unavailable",
+    },
+  })
+
+  await expect(
+    verifyAccountKeyLifecycleUsage({
+      extensionId,
+      page,
+      serviceWorker,
+      account: accountFixture,
+      openFromAccountRow: false,
+      buildTokenName: () => "E2E Rejected Token",
+    }),
+  ).rejects.toThrow(
+    /API key deletion failed:.*Fixture delete temporarily unavailable/s,
+  )
+  await expect(
+    page.getByRole("heading", {
+      name: "E2E Rejected Token",
+      exact: true,
+    }),
+  ).toBeVisible()
+})
+
+test("ignores an unrelated success notification while deleting a token", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const baseUrl = "https://unrelated-delete-status.example.invalid"
+  const token = createStubApiToken({
+    id: 81,
+    name: "E2E Deletion Target",
+  })
+  const serviceWorker = await getServiceWorker(context)
+  const accountFixture = await seedMockAccountFixture({
+    serviceWorker,
+    account: createStoredAccount({
+      id: "e2e-unrelated-delete-status-account",
+      site_url: baseUrl,
+    }),
+  })
+  await stubNewApiSiteRoutes(context, {
+    baseUrl,
+    initialTokens: [token],
+  })
+  await page.route(`${baseUrl}/api/token/${token.id}`, async (route) => {
+    if (route.request().method() === "DELETE") {
+      await page.evaluate((openProfilesButtonTestId) => {
+        const status = document.createElement("div")
+        status.setAttribute("role", "status")
+        status.textContent = "Saved fixture key to API credential library"
+        const action = document.createElement("button")
+        action.dataset.testid = openProfilesButtonTestId
+        action.textContent = "Open API credential library"
+        status.append(action)
+        document.body.append(status)
+      }, TOKEN_PROVISIONING_TEST_IDS.openApiProfilesToastButton)
+    }
+    await route.fallback()
+  })
+
+  const keyManagementPage = await openKeyManagementForAccount({
+    page,
+    extensionId,
+    accountId: accountFixture.accountId,
+    siteType: accountFixture.siteType,
+    baseUrl: accountFixture.baseUrl,
+    openFromAccountRow: false,
+  })
+  await deleteTokenFromKeyManagementPage({
+    page: keyManagementPage,
+    token: { id: token.id, name: token.name },
+  })
+
+  await expect(
+    getAccountKeyResourceRow(keyManagementPage, token.name),
+  ).toHaveCount(0)
+})
+
+test("opens the CC Switch model picker for an account API key", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+
+  const accountFixture = await seedMockAccountFixture({
+    serviceWorker,
+    account: createStoredAccount({
+      id: "e2e-cc-switch-account",
+      site_name: "CC Switch Source",
+      site_url: "https://cc-switch-source.example.com",
+    }),
+  })
+  await stubNewApiSiteRoutes(context, {
+    baseUrl: "https://cc-switch-source.example.com",
+    models: ["gpt-cc-switch-smoke"],
+  })
+
+  await verifyAccountTokenCcSwitchModelPickerUsage({
+    extensionId,
+    page,
+    serviceWorker,
+    account: accountFixture,
+    openFromAccountRow: false,
+    buildTokenName: () => "E2E CC Switch Key",
+    modelName: "gpt-cc-switch-smoke",
+    expectedCcSwitchDeepLink: {
+      app: "claude",
+      name: "CC Switch Source",
+      homepage: "https://cc-switch-source.example.com",
+      endpoint: "https://cc-switch-source.example.com",
+      apiKey: "sk-created-1",
+    },
+  })
+})
+
+test("exports a SharedChat service credential to CC Switch", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [
+    createStoredAccount({
+      id: "e2e-sharedchat-service-account",
+      site_name: "SharedChat Service",
+      site_type: SITE_TYPES.SHAREDCHAT,
+      site_url: "https://new.sharedchat.cc",
+      authType: AuthTypeEnum.Cookie,
+      account_info: {
+        id: "sharedchat-user",
+        access_token: "sharedchat-session",
+        username: "sharedchat-user",
+      },
+    }),
+  ])
+  await stubSharedChatServiceCredentialRoutes(context)
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-sharedchat-service-account`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  const serviceCredentialCard = page.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.serviceCredentialCard,
+  )
+  await expect(serviceCredentialCard).toBeVisible()
+  await expect(
+    serviceCredentialCard.getByRole("heading", { name: "Codex" }),
+  ).toBeVisible()
+
+  await serviceCredentialCard
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.serviceCredentialExportMenuButton)
+    .click()
+  await page
+    .getByTestId(
+      KEY_MANAGEMENT_TEST_IDS.serviceCredentialExportToCCSwitchButton,
+    )
+    .click()
+
+  await verifyCcSwitchModelExportDeepLink({
+    page,
+    modelName: "gpt-sharedchat-service",
+    expected: {
+      app: "claude",
+      name: "SharedChat Service - Codex",
+      homepage: "https://new.sharedchat.cc/codex",
+      endpoint: "https://new.sharedchat.cc/codex",
+      apiKey: "sk-sharedchat-service-e2e",
+    },
+  })
+})
+
+test("updates an existing token from key management and reloads the visible list", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [createStoredAccount()])
+  await stubNewApiSiteRoutes(context, {
+    initialTokens: [createStubApiToken()],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-account-1`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await expect(
+    page.getByRole("heading", { name: "Existing Key" }),
+  ).toBeVisible()
+
+  await page.getByRole("button", { name: "Edit Key" }).click()
+  const editor = page.getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeEditor)
+  await editor.getByRole("textbox", { name: "Token Name" }).fill("Updated Key")
+  await editor
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeEditorSubmitButton)
+    .click()
+
+  await expect(page.getByRole("heading", { name: "Updated Key" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Existing Key" })).toHaveCount(
+    0,
+  )
+})
+
+test("deletes an existing token from key management and shows the empty state", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [createStoredAccount()])
+  await stubNewApiSiteRoutes(context, {
+    initialTokens: [createStubApiToken()],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-account-1`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await expect(
+    page.getByRole("heading", { name: "Existing Key" }),
+  ).toBeVisible()
+
+  await page.getByRole("button", { name: "Delete Key" }).click()
+  await page
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeDeleteConfirmButton)
+    .click()
+
+  await expect(page.getByRole("heading", { name: "Existing Key" })).toHaveCount(
+    0,
+  )
+  await expect(page.getByText("No key data yet")).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Create first key" }),
+  ).toBeVisible()
+})
+
+test("filters keys by search query and shows the no-results state", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [createStoredAccount()])
+  await stubNewApiSiteRoutes(context, {
+    initialTokens: [
+      createStubApiToken({
+        id: 1,
+        name: "Alpha Key",
+        key: "sk-alpha-token",
+      }),
+      createStubApiToken({
+        id: 2,
+        name: "Beta Key",
+        key: "sk-beta-token",
+      }),
+    ],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-account-1`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  const searchInput = page.getByPlaceholder("Search key name...")
+  await expect(searchInput).toBeVisible()
+
+  await searchInput.fill("Alpha")
+  await expect(page.getByRole("heading", { name: "Alpha Key" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Beta Key" })).toHaveCount(0)
+
+  await searchInput.fill("Missing key")
+  await expect(page.getByText("No matching keys")).toBeVisible()
+
+  await searchInput.fill("")
+  await expect(page.getByRole("heading", { name: "Alpha Key" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Beta Key" })).toBeVisible()
+})
+
+test("repairs missing account keys, deletes invalid resources, and records managed imports", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  const accountId = "e2e-key-repair-account"
+  const baseUrl = "https://key-repair.example.com"
+  const createResourceRef = (resourceId: string): AccountKeyResourceRef => ({
+    accountId,
+    siteType: SITE_TYPES.NEW_API,
+    scopeKey: "account",
+    resourceId,
+  })
+  const invalidResourceRef = createResourceRef("2")
+  const alphaResourceRef = createResourceRef("3")
+  const vipResourceRef = createResourceRef("4")
+  const { createPayloads } = await stubManagedSiteImportTargetRoutes(context)
+
+  await seedStoredAccounts(serviceWorker, [
+    createStoredAccount({
+      id: accountId,
+      site_name: "Key Repair Source",
+      site_url: baseUrl,
+      account_info: {
+        id: "1",
+        access_token: "repair-token",
+        username: "repair-user",
+      },
+    }),
+  ])
+  await seedUserPreferences(serviceWorker, {
+    managedSiteType: SITE_TYPES.NEW_API,
+    newApi: {
+      baseUrl: MANAGED_SITE_IMPORT_TARGET_ORIGIN,
+      adminToken: "managed-target-admin-token",
+      userId: "1",
+      username: "",
+      password: "",
+      totpSecret: "",
+    },
+  })
+  await stubNewApiSiteRoutes(context, {
+    baseUrl,
+    accessToken: "repair-token",
+    username: "repair-user",
+    groups: {
+      default: { desc: "Default", ratio: 1 },
+      vip: { desc: "VIP", ratio: 1.5 },
+      alpha: { desc: "Alpha", ratio: 2 },
+    },
+    initialTokens: [
+      createStubApiToken({
+        id: 1,
+        name: "Default Key",
+        key: "sk-default-token",
+        group: "default",
+      }),
+      createStubApiToken({
+        id: 2,
+        name: "Legacy Group Key",
+        key: "sk-legacy-token",
+        group: "legacy",
+      }),
+    ],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=${accountId}`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+  await expect(page.getByRole("heading", { name: "Default Key" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Legacy Group Key" }),
+  ).toBeVisible()
+
+  await page.getByRole("button", { name: "Key tools", exact: true }).click()
+  await page
+    .getByRole("menuitem", { name: "Check and repair", exact: true })
+    .click()
+  await expect(
+    page.getByRole("heading", { name: "Check account keys" }),
+  ).toBeVisible()
+  await page.getByRole("button", { name: "Start check and fill gaps" }).click()
+
+  await expectPlasmoStorageJsonValueToBecome<
+    AccountKeyRepairProgress,
+    string | undefined
+  >(
+    serviceWorker,
+    ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS.REPAIR_PROGRESS,
+    (progress) => progress?.state,
+    ACCOUNT_KEY_REPAIR_JOB_STATES.Completed,
+  )
+
+  const completedProgress =
+    await getPlasmoStorageJsonValue<AccountKeyRepairProgress>(
+      serviceWorker,
+      ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS.REPAIR_PROGRESS,
+    )
+
+  expect(completedProgress?.schemaVersion).toBe(
+    ACCOUNT_KEY_REPAIR_PROGRESS_SCHEMA_VERSION,
+  )
+  expect(completedProgress?.summary).toEqual({
+    complete: 1,
+    partial: 0,
+    blocked: 0,
+    skipped: 0,
+    failed: 0,
+    requirements: 3,
+    coveredRequirements: 1,
+    createdRequirements: 2,
+    blockedRequirements: 0,
+    rejectedRequirements: 0,
+    uncertainRequirements: 0,
+    invalidResources: 1,
+    renameApplied: 0,
+    renameRejected: 0,
+    renameUncertain: 0,
+    deleteApplied: 0,
+    deleteRejected: 0,
+    deleteUncertain: 0,
+  })
+  const completionMessage = page.getByText(
+    "Check complete, but some results need attention. See the details below.",
+    { exact: true },
+  )
+  await expect(completionMessage).toBeVisible()
+  await expect(page.getByRole("progressbar", { name: "Progress" })).toHaveCount(
+    0,
+  )
+  await expect(page.getByText("Result summary", { exact: true })).toHaveCount(0)
+
+  expect(completedProgress?.results[0]).toMatchObject({
+    accountId,
+    accountName: "Key Repair Source",
+    siteType: SITE_TYPES.NEW_API,
+    siteUrlOrigin: baseUrl,
+    outcome: ACCOUNT_KEY_REPAIR_OUTCOMES.Repaired,
+    inventoryStatus: "complete",
+    requirementResults: [
+      {
+        requirement: {
+          requirementKey: "new-api-family:group:alpha",
+          displayName: "alpha",
+          provisioning: {
+            kind: ACCOUNT_KEY_REQUIREMENT_PROVISIONING_KINDS.Automatic,
+          },
+        },
+        outcome: ACCOUNT_KEY_RECONCILIATION_OUTCOMES.Created,
+        created: { ref: alphaResourceRef },
+      },
+      {
+        requirement: {
+          requirementKey: "new-api-family:group:default",
+          displayName: "default",
+          provisioning: {
+            kind: ACCOUNT_KEY_REQUIREMENT_PROVISIONING_KINDS.Automatic,
+          },
+        },
+        outcome: ACCOUNT_KEY_RECONCILIATION_OUTCOMES.Covered,
+      },
+      {
+        requirement: {
+          requirementKey: "new-api-family:group:vip",
+          displayName: "vip",
+          provisioning: {
+            kind: ACCOUNT_KEY_REQUIREMENT_PROVISIONING_KINDS.Automatic,
+          },
+        },
+        outcome: ACCOUNT_KEY_RECONCILIATION_OUTCOMES.Created,
+        created: { ref: vipResourceRef },
+      },
+    ],
+    createdRefs: [alphaResourceRef, vipResourceRef],
+    invalidResources: [
+      {
+        accountId,
+        accountName: "Key Repair Source",
+        siteType: SITE_TYPES.NEW_API,
+        siteUrlOrigin: baseUrl,
+        displayLabel: "Legacy Group Key",
+        reason: "orphaned-placement",
+        ref: invalidResourceRef,
+      },
+    ],
+    renameResults: [],
+  })
+
+  const repairAccountResult = page.getByTestId(
+    getRepairAccountResultTestId(accountId),
+  )
+  await repairAccountResult
+    .getByRole("button", { name: "Details for Key Repair Source" })
+    .press("Enter")
+  await expect(
+    repairAccountResult.getByText("alpha", { exact: true }),
+  ).toBeVisible()
+  await expect(
+    repairAccountResult.getByText("default", { exact: true }),
+  ).toBeVisible()
+  await expect(
+    repairAccountResult.getByText("vip", { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByTestId("repair-missing-keys-result-count")).toHaveText(
+    "1/1",
+  )
+
+  await page.getByRole("button", { name: /Invalid keys/ }).click()
+  await expect(page.getByTestId("repair-missing-keys-result-count")).toHaveText(
+    "1/1",
+  )
+  await expect(
+    page.getByRole("checkbox", { name: "Legacy Group Key", exact: true }),
+  ).toBeVisible()
+
+  await page
+    .getByRole("checkbox", { name: "Legacy Group Key", exact: true })
+    .click()
+  await page.getByRole("button", { name: "Delete selected" }).click()
+  const confirmDeleteButton = page.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.repairInvalidKeysConfirmDeleteButton,
+  )
+  await expect(confirmDeleteButton).toBeEnabled()
+  await confirmDeleteButton.click()
+
+  await expect(page.getByText("Deleted 1 invalid key")).toBeVisible()
+  await expect(page.getByText("No invalid keys")).toBeVisible()
+  await expect(
+    page.getByRole("checkbox", { name: "Legacy Group Key", exact: true }),
+  ).toHaveCount(0)
+  await expect(page.getByTestId("repair-missing-keys-result-count")).toHaveText(
+    "0/0",
+  )
+  await expectPlasmoStorageJsonValueToBecome<
+    AccountKeyRepairProgress,
+    number | undefined
+  >(
+    serviceWorker,
+    ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS.REPAIR_PROGRESS,
+    (progress) => progress?.summary.invalidResources,
+    0,
+    10_000,
+  )
+  const progressAfterDelete =
+    await getPlasmoStorageJsonValue<AccountKeyRepairProgress>(
+      serviceWorker,
+      ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS.REPAIR_PROGRESS,
+    )
+  expect(progressAfterDelete?.summary).toMatchObject({
+    invalidResources: 0,
+    deleteApplied: 1,
+    deleteRejected: 0,
+    deleteUncertain: 0,
+  })
+  expect(atIndex(progressAfterDelete?.results, 0).invalidResources).toEqual([])
+
+  await page
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.repairCreatedManagedSiteImportButton)
+    .click()
+
+  const batchImportDialog = page.getByRole("dialog").filter({
+    has: page.getByText("Batch import to self-hosted AI gateway", {
+      exact: true,
+    }),
+  })
+
+  await expect(batchImportDialog).toBeVisible()
+  await expect(
+    batchImportDialog.getByTestId(
+      KEY_MANAGEMENT_TEST_IDS.managedSiteBatchExportUseCompleteChecksButton,
+    ),
+  ).toBeVisible()
+  await expect(
+    batchImportDialog.getByTestId(
+      getManagedSiteBatchExportRowSelectTestId(
+        buildAccountKeyResourceRuntimeKeyId(alphaResourceRef),
+      ),
+    ),
+  ).toBeVisible()
+  await expect(
+    batchImportDialog.getByTestId(
+      getManagedSiteBatchExportRowSelectTestId(
+        buildAccountKeyResourceRuntimeKeyId(vipResourceRef),
+      ),
+    ),
+  ).toBeVisible()
+
+  const alphaRowCheckbox = batchImportDialog.getByTestId(
+    getManagedSiteBatchExportRowSelectTestId(
+      buildAccountKeyResourceRuntimeKeyId(alphaResourceRef),
+    ),
+  )
+  await expect(alphaRowCheckbox).toBeChecked()
+  await alphaRowCheckbox.click()
+  await expect(alphaRowCheckbox).not.toBeChecked()
+
+  const startImportButton = batchImportDialog.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.managedSiteBatchExportStartButton,
+  )
+  await expect(startImportButton).toBeEnabled()
+  await startImportButton.click()
+
+  await expect(
+    page.getByRole("dialog", { name: "Import selected keys" }),
+  ).toHaveCount(0)
+  await expect.poll(() => createPayloads.length).toBe(1)
+  await expect(
+    batchImportDialog.getByText("Imported", { exact: true }),
+  ).toBeVisible()
+  await expect(
+    batchImportDialog.getByText("Not selected", { exact: true }),
+  ).toBeVisible()
+  expect(createPayloads[0]).toMatchObject({
+    mode: "single",
+    channel: {
+      name: "Key Repair Source | vip (auto)",
+      base_url: baseUrl,
+      key: "sk-created-4",
+    },
+  })
+
+  await expectPlasmoStorageJsonValueToBecome<AccountKeyRepairProgress, number>(
+    serviceWorker,
+    ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS.REPAIR_PROGRESS,
+    (progress) => progress?.managedSiteImportReceipts?.length ?? 0,
+    1,
+    10_000,
+  )
+  const progressAfterManagedImport =
+    await getPlasmoStorageJsonValue<AccountKeyRepairProgress>(
+      serviceWorker,
+      ACCOUNT_KEY_AUTO_PROVISIONING_STORAGE_KEYS.REPAIR_PROGRESS,
+    )
+  expect(progressAfterManagedImport?.managedSiteImportReceipts).toEqual([
+    {
+      targetFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      resourceRef: vipResourceRef,
+      status: ACCOUNT_KEY_REPAIR_MANAGED_SITE_IMPORT_STATUSES.Created,
+      updatedAt: expect.any(Number),
+    },
+  ])
+})
+
+test("saves a key to API credential profiles and opens the profiles page", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [
+    createStoredAccount({
+      id: "e2e-account-1",
+      site_name: "Profile Source",
+      site_url: "https://profile-source.example.com",
+      tagIds: ["team-shared"],
+      account_info: {
+        id: "31",
+        username: "profile-user",
+        access_token: "profile-token",
+      },
+    }),
+  ])
+  await stubNewApiSiteRoutes(context, {
+    baseUrl: "https://profile-source.example.com",
+    initialTokens: [
+      createStubApiToken({
+        id: 1,
+        name: "Profile Export Key",
+        key: "sk-profile-export",
+      }),
+    ],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-account-1`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  await expect(
+    page.getByRole("heading", { name: "Profile Export Key" }),
+  ).toBeVisible()
+
+  await saveTokenToApiCredentialProfilesFromKeyManagementPage({
+    serviceWorker,
+    page,
+    row: getAccountKeyResourceRow(page, "Profile Export Key"),
+    expectedProfile: {
+      name: "Profile Source - Profile Export Key",
+      baseUrl: "https://profile-source.example.com",
+      apiKey: "sk-profile-export",
+      tagIds: ["team-shared"],
+    },
+  })
+
+  await expect(page).toHaveURL(/options\.html.*#apiCredentialProfiles$/)
+  await expect(
+    page.getByRole("heading", { name: "Profile Source - Profile Export Key" }),
+  ).toBeVisible()
+
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.associationButton)
+    .click()
+  await page.getByRole("menuitem", { name: "View corresponding key" }).click()
+
+  const linkedKeyRow = getAccountKeyResourceRow(page, "Profile Export Key")
+  await expect(linkedKeyRow).toHaveAttribute("data-navigation-target", "true")
+  const associationButton = linkedKeyRow.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.apiCredentialAssociationButton,
+  )
+  await expect(associationButton).toHaveCount(1)
+  await expect(associationButton).toBeVisible()
+  await expect(
+    linkedKeyRow.getByTestId(KEY_MANAGEMENT_TEST_IDS.saveToApiProfilesButton),
+  ).toHaveCount(0)
+
+  await associationButton.click()
+  await page
+    .getByRole("menuitem", { name: "View linked API credential" })
+    .click()
+  await expect(
+    page.getByRole("heading", { name: "Profile Source - Profile Export Key" }),
+  ).toBeVisible()
+})
+
+test("links an existing API credential to an existing key and preserves the association", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  const baseUrl = "https://manual-association.example.invalid"
+  const profile = createStoredApiCredentialProfile({
+    id: "manual-association-profile",
+    name: "Manual Association Profile",
+    baseUrl,
+    apiKey: "sk-manual-association",
+  })
+
+  await seedStoredAccounts(serviceWorker, [
+    createStoredAccount({
+      id: "e2e-manual-association-account",
+      site_name: "Manual Association Source",
+      site_url: baseUrl,
+      account_info: {
+        id: "41",
+        username: "manual-association-user",
+        access_token: "manual-association-token",
+      },
+    }),
+  ])
+  await seedApiCredentialProfiles(serviceWorker, [profile])
+  await stubNewApiSiteRoutes(context, {
+    baseUrl,
+    initialTokens: [
+      createStubApiToken({
+        id: 9,
+        name: "Manual Association Key",
+        key: profile.apiKey,
+      }),
+    ],
+  })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-manual-association-account`,
+  )
+  await waitForExtensionRoot(page)
+  await expectPermissionOnboardingHidden(page)
+
+  const keyRow = getAccountKeyResourceRow(page, "Manual Association Key")
+  await expect(keyRow).toBeVisible()
+  await keyRow
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.apiCredentialAssociationButton)
+    .click()
+  await page
+    .getByRole("menuitem", {
+      name: "Associate a saved API credential with this key",
+    })
+    .click()
+
+  const associationDialog = page.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.associateCredentialDialog,
+  )
+  await expect(associationDialog).toBeVisible()
+  const profileSelect = associationDialog.getByTestId(
+    KEY_MANAGEMENT_TEST_IDS.associateCredentialProfileSelect,
+  )
+  await profileSelect.click()
+  const profileOption = page.getByRole("option", {
+    name: /Manual Association Profile/,
+  })
+  await expect(profileOption).toBeVisible()
+  await profileOption.click({ force: true })
+  await associationDialog
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.associateCredentialConfirmButton)
+    .click()
+  await expect(associationDialog).toHaveCount(0)
+
+  await keyRow
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.apiCredentialAssociationButton)
+    .click()
+  await expect(
+    page.getByRole("menuitem", { name: "View linked API credential" }),
+  ).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect
+    .poll(async () => {
+      const config =
+        await getPlasmoStorageJsonValue<ApiCredentialProfilesConfig>(
+          serviceWorker,
+          STORAGE_KEYS.API_CREDENTIAL_PROFILES,
+        )
+      return config?.links.find((link) => link.profileId === profile.id)
+    })
+    .toMatchObject({
+      profileId: profile.id,
+      state: "active",
+      linkedBy: "user",
+      locator: {
+        source: "account_key_resource",
+        ref: {
+          accountId: "e2e-manual-association-account",
+          siteType: SITE_TYPES.NEW_API,
+          scopeKey: "account",
+          resourceId: "9",
+        },
+      },
+    })
+
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#apiCredentialProfiles`,
+  )
+  await waitForExtensionRoot(page)
+  await expect(page.getByRole("heading", { name: profile.name })).toBeVisible()
+  await page
+    .getByTestId(API_CREDENTIAL_PROFILES_TEST_IDS.associationButton)
+    .click()
+  await page.getByRole("menuitem", { name: "View corresponding key" }).click()
+
+  await expect(page).toHaveURL((url) => {
+    return (
+      url.pathname === `/${OPTIONS_PAGE_PATH}` &&
+      url.hash === "#keys" &&
+      url.searchParams.get("accountId") === "e2e-manual-association-account" &&
+      Boolean(url.searchParams.get("associationId"))
+    )
+  })
+  await expect(
+    getAccountKeyResourceRow(page, "Manual Association Key"),
+  ).toBeVisible()
+})
+
+test("checks listed keys without reloading the source inventory per key", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const worker = await getServiceWorker(context)
+  await seedStoredAccounts(worker, [createStoredAccount()])
+  await stubNewApiSiteRoutes(context, {
+    initialTokens: [
+      createStubApiToken(),
+      createStubApiToken({ id: 2, name: "Second Key", key: "sk-second-token" }),
+    ],
+  })
+  await seedUserPreferences(worker, {
+    managedSiteType: SITE_TYPES.CLI_PROXY_API,
+    cliProxyApi: {
+      baseUrl: "https://managed-lookup.example.invalid",
+      adminToken: "test-management-key",
+    },
+  })
+  await context.route(
+    "https://managed-lookup.example.invalid/**",
+    async (route) => {
+      const kind = new URL(route.request().url()).pathname.split("/").at(-1)!
+      await route.fulfill({ json: { [kind]: [] } })
+    },
+  )
+  const inventoryPages: string[] = []
+  context.on("request", (request) => {
+    const url = new URL(request.url())
+    if (
+      url.origin === "https://example.com" &&
+      url.pathname === "/api/token/"
+    ) {
+      inventoryPages.push(url.searchParams.get("p")!)
+    }
+  })
+  await openKeyManagementForAccount({
+    page,
+    extensionId,
+    accountId: "e2e-account-1",
+    openFromAccountRow: false,
+  })
+  for (const name of ["Existing Key", "Second Key"]) {
+    await expect(
+      getAccountKeyResourceRow(page, name).getByTestId(
+        KEY_MANAGEMENT_TEST_IDS.managedSiteStatusBadge,
+      ),
+    ).toContainText("Not added")
+  }
+  // This legacy array-shaped fixture uses a second, empty page to prove completion.
+  expect(inventoryPages).toEqual(["1", "2"])
+})
+
+test("lets scenario cleanup delete only the source key", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const worker = await getServiceWorker(context)
+  await seedStoredAccounts(worker, [createStoredAccount()])
+  await stubNewApiSiteRoutes(context, { initialTokens: [createStubApiToken()] })
+  await seedUserPreferences(worker, {
+    managedSiteType: SITE_TYPES.CLI_PROXY_API,
+    cliProxyApi: {
+      baseUrl: "https://managed-cleanup.example.invalid",
+      adminToken: "test-management-key",
+    },
+  })
+  const matchingProvider = {
+    name: "Matching provider",
+    "base-url": "https://example.com/v1",
+    "api-key-entries": [{ "api-key": "sk-existing-token" }],
+    models: [{ name: "model-a" }],
+  }
+  const providers = [matchingProvider]
+  const mutations: string[] = []
+  await context.route(
+    "https://managed-cleanup.example.invalid/**",
+    async (route) => {
+      const request = route.request()
+      const url = new URL(request.url())
+      const kind = url.pathname.split("/").at(-1)!
+      if (request.method() === "GET") {
+        await route.fulfill({
+          json: { [kind]: kind === "openai-compatibility" ? providers : [] },
+        })
+        return
+      }
+      mutations.push(request.method())
+      if (request.method() === "DELETE") {
+        providers.splice(Number(url.searchParams.get("index")), 1)
+      }
+      await route.fulfill({ json: { status: "ok" } })
+    },
+  )
+  await openKeyManagementForAccount({
+    page,
+    extensionId,
+    accountId: "e2e-account-1",
+  })
+  await deleteTokenFromKeyManagementPage({
+    page,
+    token: "Existing Key",
+    cleanupLinkedChannels: false,
+  })
+  await expect(page.getByRole("heading", { name: "Existing Key" })).toHaveCount(
+    0,
+  )
+  expect(mutations).toEqual([])
+  expect(providers).toEqual([matchingProvider])
+})
+
+test("cleans linked channels and retries persisted multi-key cleanup after reloading", async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  const serviceWorker = await getServiceWorker(context)
+  await seedStoredAccounts(serviceWorker, [createStoredAccount()])
+  await stubNewApiSiteRoutes(context, { initialTokens: [createStubApiToken()] })
+  await seedUserPreferences(serviceWorker, {
+    managedSiteType: SITE_TYPES.CLI_PROXY_API,
+    cliProxyApi: {
+      baseUrl: "https://managed-cleanup.example.invalid",
+      adminToken: "test-management-key",
+    },
+  })
+  const retained = {
+    "api-key": "retained-key",
+    "proxy-url": "http://proxy.example.invalid",
+    weight: 5,
+  }
+  const providers = [
+    {
+      name: "Single",
+      "base-url": "https://example.com/v1",
+      "api-key-entries": [{ "api-key": "sk-existing-token" }],
+      models: [{ name: "model-a" }],
+    },
+    {
+      name: "Multiple",
+      "base-url": "https://example.com/v1",
+      "api-key-entries": [{ "api-key": "sk-existing-token" }, retained],
+      models: [{ name: "model-a" }],
+    },
+  ]
+  let releaseDelete!: () => void
+  let deleteStarted = false
+  const deleteGate = new Promise<void>((resolve) => {
+    releaseDelete = resolve
+  })
+  let failUpdate = true
+  await context.route(
+    "https://managed-cleanup.example.invalid/**",
+    async (route) => {
+      const request = route.request()
+      const url = new URL(request.url())
+      const kind = url.pathname.split("/").at(-1)!
+      if (request.method() === "GET") {
+        await route.fulfill({
+          json: { [kind]: kind === "openai-compatibility" ? providers : [] },
+        })
+        return
+      }
+      if (request.method() === "DELETE") {
+        deleteStarted = true
+        await deleteGate
+        providers.splice(Number(url.searchParams.get("index")), 1)
+      }
+      if (request.method() === "PATCH") {
+        if (failUpdate) {
+          await route.fulfill({ status: 503, json: { error: "retry later" } })
+          return
+        }
+        const body = request.postDataJSON()
+        providers[body.index] = { ...providers[body.index], ...body.value }
+      }
+      await route.fulfill({ json: { status: "ok" } })
+    },
+  )
+  await page.goto(
+    `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-account-1`,
+  )
+  await waitForExtensionRoot(page)
+  await expect(
+    page.getByRole("heading", { name: "Existing Key" }),
+  ).toBeVisible()
+  const statusDetails = page.getByTestId("managed-site-status-details")
+  await expect(statusDetails).toContainText("Managed site")
+  await expect(page.getByRole("dialog", { name: "Managed site" })).toHaveCount(
+    0,
+  )
+  await statusDetails.focus()
+  await page.keyboard.press("Enter")
+  await expect(page.getByRole("dialog", { name: "Managed site" })).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect(statusDetails).toBeFocused()
+  await page.screenshot({
+    path: ".scratch/status-ui-desktop.png",
+    animations: "disabled",
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await statusDetails.click()
+  const detailsBounds = await page
+    .getByRole("dialog", { name: "Managed site" })
+    .boundingBox()
+  expect(detailsBounds!.x).toBeGreaterThanOrEqual(0)
+  expect(detailsBounds!.x + detailsBounds!.width).toBeLessThanOrEqual(390)
+  await page.screenshot({
+    path: ".scratch/status-ui-mobile.png",
+    animations: "disabled",
+  })
+  await page.keyboard.press("Escape")
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.getByRole("button", { name: "Delete Key", exact: true }).click()
+  await expect(
+    page.getByRole("checkbox", {
+      name: "Also clean up matching channels on the current managed site",
+    }),
+  ).toBeChecked()
+  await page
+    .getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeDeleteConfirmButton)
+    .click()
+  await expect.poll(() => deleteStarted).toBe(true)
+  await expect(
+    page.getByRole("button", { name: "Retry cleanup", exact: true }),
+  ).toHaveCount(0)
+  releaseDelete()
+  await expect(page.getByRole("heading", { name: "Existing Key" })).toHaveCount(
+    0,
+  )
+  await expect(
+    page.getByRole("button", { name: "Retry cleanup", exact: true }),
+  ).toBeVisible()
+  expect(providers.map((provider) => provider.name)).toEqual(["Multiple"])
+  await page.reload()
+  await waitForExtensionRoot(page)
+  failUpdate = false
+  await page.getByRole("button", { name: "Retry cleanup", exact: true }).click()
+  await expect(
+    page.getByRole("button", { name: "Retry cleanup", exact: true }),
+  ).toHaveCount(0)
+  await expect
+    .poll(() => atIndex(providers, 0)["api-key-entries"])
+    .toEqual([retained])
+  expect(atIndex(providers, 0).models).toEqual([{ name: "model-a" }])
+})
+
+for (const siteType of [SITE_TYPES.DONE_HUB, SITE_TYPES.VELOERA]) {
+  test(`validates ${siteType} cleanup replacements without redundant secret reads`, async ({
+    context,
+    extensionId,
+    page,
+  }) => {
+    const worker = await getServiceWorker(context)
+    await seedStoredAccounts(worker, [createStoredAccount()])
+    await stubNewApiSiteRoutes(context, {
+      initialTokens: [createStubApiToken()],
+    })
+    const origin = "https://cleanup-read-count.example.invalid"
+    const config = { baseUrl: origin, adminToken: "test-admin", userId: "1" }
+    await seedUserPreferences(worker, {
+      managedSiteType: siteType,
+      ...(siteType === SITE_TYPES.DONE_HUB
+        ? { doneHub: config }
+        : { veloera: config }),
+    })
+    const channels = [1, 2].map((id) => ({
+      id,
+      name: `Channel ${id}`,
+      type: 1,
+      status: 1,
+      base_url: "https://example.com/v1",
+      models: "model-a",
+      group: "default",
+      priority: 0,
+      weight: 1,
+      key: id === 1 ? "sk-existing-token" : "sk-existing-token\nretained-key",
+    }))
+    let recording = false
+    const requests: string[] = []
+    await context.route("https://example.com/api/token/*", async (route) => {
+      if (recording && route.request().method() === "DELETE")
+        requests.push("delete-source")
+      await route.fallback()
+    })
+    await context.route(`${origin}/**`, async (route) => {
+      const request = route.request()
+      const path = new URL(request.url()).pathname
+      const id = Number(path.match(/^\/api\/channel\/(\d+)$/)?.[1])
+      if (request.method() === "GET" && id) {
+        if (recording) requests.push(`read-${id}`)
+        await route.fulfill({
+          json: {
+            success: true,
+            data: channels.find((channel) => channel.id === id),
+          },
+        })
+      } else if (request.method() === "DELETE" && id) {
+        requests.push(`delete-${id}`)
+        channels.splice(
+          channels.findIndex((channel) => channel.id === id),
+          1,
+        )
+        await route.fulfill({ json: { success: true } })
+      } else if (
+        request.method() === "PUT" &&
+        /^\/api\/channel\/?$/.test(path)
+      ) {
+        const body = request.postDataJSON()
+        requests.push(`update-${body.id}`)
+        Object.assign(channels.find((channel) => channel.id === body.id)!, body)
+        await route.fulfill({ json: { success: true } })
+      } else if (
+        request.method() === "GET" &&
+        path.startsWith("/api/channel")
+      ) {
+        await route.fulfill({
+          json: {
+            success: true,
+            data:
+              siteType === SITE_TYPES.DONE_HUB
+                ? {
+                    data: channels,
+                    total_count: channels.length,
+                    page: 1,
+                    size: 100,
+                  }
+                : channels,
+          },
+        })
+      } else {
+        await route.fulfill({ json: { success: true, data: [] } })
+      }
+    })
+    await page.goto(
+      `chrome-extension://${extensionId}/${OPTIONS_PAGE_PATH}#keys?accountId=e2e-account-1`,
+    )
+    await waitForExtensionRoot(page)
+    await expect(
+      page.getByRole("heading", { name: "Existing Key" }),
+    ).toBeVisible()
+    await page.getByRole("button", { name: "Delete Key", exact: true }).click()
+    await expect(
+      page.getByRole("checkbox", {
+        name: "Also clean up matching channels on the current managed site",
+      }),
+    ).toBeChecked()
+    recording = true
+    await page
+      .getByTestId(KEY_MANAGEMENT_TEST_IDS.nativeDeleteConfirmButton)
+      .click()
+    await expect(
+      page.getByRole("heading", { name: "Existing Key" }),
+    ).toHaveCount(0)
+    // The source deletion separates discovery from the fresh pre-mutation read.
+    // Multi-key replacement needs one additional snapshot check; secret loading reuses each detail.
+    expect(requests).toEqual([
+      "read-1",
+      "read-2",
+      "delete-source",
+      "read-1",
+      "delete-1",
+      "read-2",
+      "read-2", // Whole-list replacement validates the captured credentials before writing.
+      "update-2",
+    ])
+    expect(channels).toMatchObject([
+      { id: 2, key: "retained-key", models: "model-a" },
+    ])
+    await expect(
+      page.getByRole("button", { name: "Retry cleanup", exact: true }),
+    ).toHaveCount(0)
+  })
+}

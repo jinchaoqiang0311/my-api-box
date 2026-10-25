@@ -1,0 +1,245 @@
+import userEvent from "@testing-library/user-event"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import Header from "~/entrypoints/options/components/Header"
+import {
+  PRODUCT_TOUR_TARGET_ATTRIBUTE,
+  PRODUCT_TOUR_TARGETS,
+} from "~/features/ProductTour/constants"
+import { useUpdateLogDialogContext } from "~/features/UpdateLog"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "~~/tests/test-utils/render"
+
+vi.mock("~/contexts/ReleaseUpdateStatusContext", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("~/contexts/ReleaseUpdateStatusContext")
+    >()
+
+  return {
+    ...actual,
+    useReleaseUpdateStatus: () => ({
+      status: null,
+      isLoading: false,
+      isChecking: false,
+      error: null,
+      refresh: vi.fn(),
+      checkNow: vi.fn(),
+    }),
+  }
+})
+
+vi.mock("~/assets/icon.png", () => ({
+  default: "icon.png",
+}))
+
+vi.mock("~/features/UpdateLog", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("~/features/UpdateLog")>()
+
+  return {
+    ...actual,
+    useUpdateLogDialogContext: vi.fn(),
+  }
+})
+
+vi.mock("~/components/LanguageSwitcher", () => ({
+  LanguageSwitcher: () => <div data-testid="language-switcher" />,
+}))
+
+vi.mock("~/features/Appearance/HeaderThemeSwitcher", () => ({
+  default: () => <div data-testid="theme-switcher" />,
+}))
+
+const mockedUseUpdateLogDialogContext = vi.mocked(useUpdateLogDialogContext)
+
+describe("options Header", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubEnv("MODE", "development")
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      writable: true,
+      value: 0,
+    })
+    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+      matches: query === "(max-width: 767px)",
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+    mockedUseUpdateLogDialogContext.mockReturnValue({
+      state: { isOpen: false, version: null },
+      openDialog: vi.fn(),
+      closeDialog: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("opens feedback directly and keeps language available in the header", async () => {
+    const user = userEvent.setup()
+    render(
+      <Header
+        onSearchOpen={vi.fn()}
+        onTitleClick={vi.fn()}
+        onMenuToggle={vi.fn()}
+        isMobileSidebarOpen={false}
+      />,
+    )
+
+    await screen.findByRole("link", { name: "ui:app.name" })
+    expect(screen.getByTestId("language-switcher")).toBeVisible()
+    const feedback = screen.getByRole("button", { name: "ui:feedback.trigger" })
+    await user.click(feedback)
+    expect(
+      await screen.findByRole("menuitem", { name: "ui:feedback.bugReport" }),
+    ).toBeVisible()
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(feedback).toHaveFocus())
+    expect(
+      screen.queryByRole("button", { name: "common:actions.more" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("opens appearance directly and restores focus to its independent button", async () => {
+    const user = userEvent.setup()
+    render(<Header onSearchOpen={vi.fn()} onTitleClick={vi.fn()} />)
+    const trigger = await screen.findByRole("button", {
+      name: "settings:appearance.title",
+    })
+    await user.click(trigger)
+    expect(
+      await screen.findByRole("dialog", { name: "settings:appearance.title" }),
+    ).toBeVisible()
+    await user.keyboard("{Escape}")
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    )
+    expect(trigger).toHaveFocus()
+  })
+
+  it("attaches the workspace tour target to the search control", async () => {
+    const { container } = render(
+      <Header
+        onSearchOpen={vi.fn()}
+        onTitleClick={vi.fn()}
+        onMenuToggle={vi.fn()}
+        isMobileSidebarOpen={false}
+      />,
+    )
+
+    await screen.findByRole("link", { name: "ui:app.name" })
+
+    const target = container.querySelector(
+      `[${PRODUCT_TOUR_TARGET_ATTRIBUTE}="${PRODUCT_TOUR_TARGETS.Workspace}"]`,
+    )
+
+    expect(target).toBeInstanceOf(HTMLButtonElement)
+    expect(target).toHaveAccessibleName("ui:optionsSearch.open")
+  })
+
+  it("attaches the compact tour target to the mobile menu control", async () => {
+    render(
+      <Header
+        onSearchOpen={vi.fn()}
+        onTitleClick={vi.fn()}
+        onMenuToggle={vi.fn()}
+        isMobileSidebarOpen={false}
+      />,
+    )
+
+    const target = await screen.findByRole("button", {
+      name: "ui:navigation.toggleMenu",
+    })
+
+    expect(target).toHaveAttribute(
+      PRODUCT_TOUR_TARGET_ATTRIBUTE,
+      PRODUCT_TOUR_TARGETS.MobileMenu,
+    )
+  })
+
+  it("keeps the logo title visible before scrolling on mobile", async () => {
+    const { container } = render(
+      <Header
+        onSearchOpen={vi.fn()}
+        onTitleClick={vi.fn()}
+        onMenuToggle={vi.fn()}
+        isMobileSidebarOpen={false}
+      />,
+    )
+
+    expect(
+      await screen.findByRole("link", { name: "ui:app.name" }),
+    ).toBeInTheDocument()
+    expect(
+      container.textContent?.match(/ui:optionsSearch\.placeholder/g)?.length ??
+        0,
+    ).toBe(1)
+  })
+
+  it("keeps the mobile menu toggle operable while the sidebar is open", async () => {
+    const onMenuToggle = vi.fn()
+
+    render(
+      <Header
+        onSearchOpen={vi.fn()}
+        onTitleClick={vi.fn()}
+        onMenuToggle={onMenuToggle}
+        isMobileSidebarOpen={true}
+      />,
+    )
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "ui:navigation.toggleMenu" }),
+    )
+
+    expect(onMenuToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it("switches to the expanded mobile search trigger after scrolling", async () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener")
+
+    const { container } = render(
+      <Header
+        onSearchOpen={vi.fn()}
+        onTitleClick={vi.fn()}
+        onMenuToggle={vi.fn()}
+        isMobileSidebarOpen={false}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        "scroll",
+        expect.any(Function),
+        { passive: true },
+      )
+    })
+
+    act(() => {
+      window.scrollY = 48
+      window.dispatchEvent(new Event("scroll"))
+    })
+
+    await waitFor(() => {
+      expect(
+        container.textContent?.match(/ui:optionsSearch\.placeholder/g)
+          ?.length ?? 0,
+      ).toBe(2)
+      expect(
+        screen.queryByRole("link", { name: "ui:app.name" }),
+      ).not.toBeInTheDocument()
+    })
+  })
+})

@@ -1,0 +1,177 @@
+import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+
+import { useFeatureGuidanceContext } from "~/contexts/FeatureGuidanceContext"
+import { useUserPreferencesContext } from "~/contexts/UserPreferencesContext"
+import { useChannelDialog } from "~/features/ManagedSiteChannels/editor/ChannelDialog"
+import {
+  createProfileCredentialExportData,
+  createProfileCredentialExportSource,
+} from "~/services/apiCredentialProfiles/credentialExport"
+import { OpenInCherryStudio } from "~/services/integrations/cherryStudio"
+import { getManagedSiteLabel } from "~/services/managedSites/utils/managedSite"
+import { startProductAnalyticsAction } from "~/services/productAnalytics/actions"
+import {
+  PRODUCT_ANALYTICS_ACTION_IDS,
+  PRODUCT_ANALYTICS_ENTRYPOINTS,
+  PRODUCT_ANALYTICS_ERROR_CATEGORIES,
+  PRODUCT_ANALYTICS_FEATURE_IDS,
+  PRODUCT_ANALYTICS_RESULTS,
+  PRODUCT_ANALYTICS_SURFACE_IDS,
+  type ProductAnalyticsSurfaceId,
+} from "~/services/productAnalytics/contracts"
+import type { ApiCredentialProfile } from "~/types/apiCredentialProfiles"
+import { getErrorMessage } from "~/utils/core/error"
+import { createLogger } from "~/utils/core/logger"
+import { showResultToast } from "~/utils/feedback/operationFeedback"
+
+type ActiveDialog =
+  | "cc-switch"
+  | "ai-toolbox"
+  | "cursor-plus"
+  | "kilo-code"
+  | "kelivo"
+  | "claude-code-router"
+  | "verify-api"
+  | "verify-cli"
+  | null
+
+const LINKED_CREDENTIAL_PROFILE_ANALYTICS_CONTEXT = {
+  featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ApiCredentialProfiles,
+  surfaceId: PRODUCT_ANALYTICS_SURFACE_IDS.OptionsKeyManagementRowActions,
+  entrypoint: PRODUCT_ANALYTICS_ENTRYPOINTS.Options,
+} as const
+
+const logger = createLogger("LinkedCredentialProfileActions")
+
+/** Owns complete-key integration state and side effects for a linked profile. */
+export function useLinkedCredentialProfileActions(
+  profile: ApiCredentialProfile,
+  surfaceId: ProductAnalyticsSurfaceId = PRODUCT_ANALYTICS_SURFACE_IDS.OptionsKeyManagementRowActions,
+) {
+  const analyticsContext = {
+    ...LINKED_CREDENTIAL_PROFILE_ANALYTICS_CONTEXT,
+    surfaceId,
+  }
+  const { t } = useTranslation(["keyManagement", "messages"])
+  const {
+    claudeCodeRouterApiKey,
+    claudeCodeRouterBaseUrl,
+
+    managedSiteType,
+  } = useUserPreferencesContext()
+  const { markGatewayGuidanceOnboardingCompleted } = useFeatureGuidanceContext()
+  const { openWithCredentials } = useChannelDialog()
+  const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null)
+  const exportSource = useMemo(
+    () => createProfileCredentialExportSource(profile),
+    [profile],
+  )
+
+  const openDialog = (dialog: Exclude<ActiveDialog, null>) => {
+    setActiveDialog(dialog)
+  }
+  const closeDialog = () => setActiveDialog(null)
+
+  const handleCherryStudio = () => {
+    const tracker = startProductAnalyticsAction({
+      ...analyticsContext,
+      actionId:
+        PRODUCT_ANALYTICS_ACTION_IDS.ExportApiCredentialProfileToCherryStudio,
+    })
+    try {
+      OpenInCherryStudio(createProfileCredentialExportData(profile))
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Success)
+    } catch (error) {
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      })
+      showResultToast({
+        success: false,
+        message: t("messages:errors.operation.failed", {
+          error: getErrorMessage(error, t("messages:errors.unknown")),
+        }),
+      })
+    }
+  }
+
+  const handleClaudeCodeRouter = () => {
+    if (!claudeCodeRouterBaseUrl?.trim()) {
+      showResultToast({
+        success: false,
+        message: t("messages:claudeCodeRouter.configMissing"),
+      })
+      return
+    }
+    openDialog("claude-code-router")
+  }
+
+  const handleManagedSiteImport = async () => {
+    const tracker = startProductAnalyticsAction({
+      featureId: PRODUCT_ANALYTICS_FEATURE_IDS.ManagedSiteChannels,
+      actionId: PRODUCT_ANALYTICS_ACTION_IDS.ImportManagedSiteSingleToken,
+      surfaceId: analyticsContext.surfaceId,
+      entrypoint: analyticsContext.entrypoint,
+    })
+
+    try {
+      const result = await openWithCredentials(
+        {
+          name: profile.name,
+          baseUrl: profile.baseUrl,
+          apiKey: profile.apiKey,
+          apiType: profile.apiType,
+        },
+        (importResult) => {
+          showResultToast(importResult)
+          if (importResult?.success) {
+            void Promise.resolve(
+              markGatewayGuidanceOnboardingCompleted(),
+            ).catch((error) =>
+              logger.warn(
+                "Failed to mark gateway guidance onboarding complete",
+                error,
+              ),
+            )
+          }
+        },
+      )
+      tracker.complete(
+        result.opened || result.deferred
+          ? PRODUCT_ANALYTICS_RESULTS.Success
+          : PRODUCT_ANALYTICS_RESULTS.Skipped,
+      )
+    } catch (error) {
+      tracker.complete(PRODUCT_ANALYTICS_RESULTS.Failure, {
+        errorCategory: PRODUCT_ANALYTICS_ERROR_CATEGORIES.Unknown,
+      })
+      showResultToast({
+        success: false,
+        message: t("messages:errors.operation.failed", {
+          error: getErrorMessage(error, t("messages:errors.unknown")),
+        }),
+      })
+    }
+  }
+
+  return {
+    analyticsContext,
+    activeDialog,
+    claudeCodeRouterApiKey,
+    claudeCodeRouterBaseUrl,
+
+    closeDialog,
+    exportSource,
+    handleCherryStudio,
+    handleClaudeCodeRouter,
+
+    handleManagedSiteImport,
+    managedSiteLabel: getManagedSiteLabel(t, managedSiteType),
+    managedSiteType,
+    openDialog,
+  }
+}
+
+export type LinkedCredentialProfileActionsController = ReturnType<
+  typeof useLinkedCredentialProfileActions
+>

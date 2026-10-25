@@ -1,0 +1,89 @@
+import { RuntimeActionIds } from "~/constants/runtimeActions"
+import { ensureRedemptionToastUi } from "~/entrypoints/content/shared/uiRoot"
+import toast from "~/lib/notify/content"
+import { sendRuntimeMessage } from "~/utils/browser/runtimeMessages"
+import { createLogger } from "~/utils/core/logger"
+
+const logger = createLogger("ApiCheckToasts")
+
+let apiCheckToastModulesPromise: Promise<{
+  createElement: typeof import("react").createElement
+  ApiCheckConfirmToast: typeof import("~/features/WebAiApiCheck/content/notifications/ApiCheckConfirmToast").ApiCheckConfirmToast
+}> | null = null
+
+/**
+ * Load the API-check toast component tree only when auto-detect needs to prompt.
+ */
+async function loadApiCheckToastModules() {
+  if (!apiCheckToastModulesPromise) {
+    apiCheckToastModulesPromise = Promise.all([
+      import("react"),
+      import(
+        "~/features/WebAiApiCheck/content/notifications/ApiCheckConfirmToast"
+      ),
+    ]).then(([reactModule, confirmToastModule]) => ({
+      createElement: reactModule.createElement,
+      ApiCheckConfirmToast: confirmToastModule.ApiCheckConfirmToast,
+    }))
+  }
+
+  return apiCheckToastModulesPromise
+}
+
+/**
+ * Show the top-right confirmation toast used by auto-detect.
+ * @returns Resolves `true` when confirmed, `false` when cancelled/dismissed.
+ */
+export async function showApiCheckConfirmToast(options?: {
+  usesEnhancedResult?: boolean
+}): Promise<boolean> {
+  await ensureRedemptionToastUi()
+  const { createElement, ApiCheckConfirmToast } =
+    await loadApiCheckToastModules()
+
+  return new Promise((resolve) => {
+    let resolved = false
+
+    const finish = (value: boolean, toastId: string) => {
+      if (resolved) return
+      resolved = true
+      toast.dismiss(toastId)
+      resolve(value)
+    }
+
+    toast.custom(
+      (toastInstance) =>
+        createElement(ApiCheckConfirmToast, {
+          onAction: (action) => {
+            if (action === "settings") {
+              void sendRuntimeMessage({
+                action: RuntimeActionIds.OpenSettingsWebAiApiCheck,
+              }).catch((error) => {
+                logger.error(
+                  "Failed to open Web AI API Check settings page",
+                  error,
+                )
+              })
+              return
+            }
+            if (action === "feedback") {
+              void sendRuntimeMessage({
+                action: RuntimeActionIds.OpenFeedbackBugReport,
+              }).catch((error) => {
+                logger.error(
+                  "Failed to open Web AI API Check feedback page",
+                  error,
+                )
+              })
+              return
+            }
+            finish(action === "confirm", toastInstance.id)
+          },
+          usesEnhancedResult: !!options?.usesEnhancedResult,
+        }),
+      {
+        duration: Infinity,
+      },
+    )
+  })
+}

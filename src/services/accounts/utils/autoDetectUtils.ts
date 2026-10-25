@@ -1,0 +1,286 @@
+/**
+ * 自动识别错误处理工具模块
+ *
+ * 作用：
+ * 1. 定义自动识别过程中可能出现的错误类型枚举
+ * 2. 提供智能错误分析功能，将通用错误信息转换为结构化的错误对象
+ * 3. 包含错误处理的辅助函数，如打开登录页面等
+ *
+ * 主要功能：
+ * - analyzeAutoDetectError: 分析错误消息并返回结构化错误信息
+ * - openLoginTab: 在新标签页中打开登录页面
+ *
+ * 使用场景：
+ * - AddAccountDialog 和 EditAccountDialog 中的自动识别错误处理
+ * - AutoDetectErrorAlert 组件中的错误展示和操作
+ */
+import {
+  AUTO_DETECT_ERROR_CODES,
+  AUTO_DETECT_FAILURE_REASONS,
+  type AutoDetectAnalyticsContext,
+  type AutoDetectErrorCode,
+  type AutoDetectFailureReason,
+} from "~/constants/autoDetect"
+import { type AccountSiteType } from "~/constants/siteType"
+import { resolveAccountSiteLoginUrl } from "~/services/accounts/utils/siteRouteResolver"
+import { createTab, queryTabs, reloadTab } from "~/utils/browser/tabs"
+import { getErrorMessage } from "~/utils/core/error"
+import { t } from "~/utils/i18n/core"
+import { getDocsAutoDetectUrl } from "~/utils/navigation/docsLinks"
+
+// 自动识别错误类型
+export enum AutoDetectErrorType {
+  TIMEOUT = "timeout",
+  UNAUTHORIZED = "unauthorized",
+  ACCESS_TOKEN_VERIFICATION_REQUIRED = "access_token_verification_required",
+  CURRENT_TAB_RELOAD_REQUIRED = "current_tab_reload_required",
+  INVALID_RESPONSE = "invalid_response",
+  NETWORK_ERROR = "network_error",
+  UNKNOWN = "unknown",
+  FORBIDDEN = "forbidden",
+  NOT_FOUND = "notFound",
+  SERVER_ERROR = "serverError",
+}
+
+export {
+  AUTO_DETECT_FAILURE_REASONS,
+  type AutoDetectAnalyticsContext,
+  type AutoDetectFailureReason,
+}
+
+/**
+ * Failure reasons raised only after the account identity (userId) was resolved.
+ * These come from the completion/credential stage, so a failure carrying one of
+ * them means the user was identified but the access token could not be
+ * provisioned automatically — a guided detour, not a detection miss.
+ */
+const IDENTITY_KNOWN_AUTO_DETECT_FAILURE_REASONS =
+  new Set<AutoDetectFailureReason>([
+    AUTO_DETECT_FAILURE_REASONS.AccessTokenVerificationRequired,
+    AUTO_DETECT_FAILURE_REASONS.AccountIdentityMismatch,
+    AUTO_DETECT_FAILURE_REASONS.TokenFetchFailed,
+  ])
+
+/**
+ * Whether an auto-detect failure reason implies the account identity was
+ * already resolved. Unknown/missing reasons stay false so analysis never
+ * over-counts identity detection.
+ */
+export function isIdentityKnownAutoDetectFailureReason(
+  reason: AutoDetectFailureReason | null | undefined,
+): boolean {
+  return (
+    reason != null && IDENTITY_KNOWN_AUTO_DETECT_FAILURE_REASONS.has(reason)
+  )
+}
+
+// 自动识别错误信息
+export interface AutoDetectError {
+  type: AutoDetectErrorType
+  message: string
+  actionText?: string
+  actionUrl?: string
+  helpDocUrl?: string
+}
+
+const ERROR_KEYWORDS: Record<string, string[]> = {
+  TIMEOUT: ["超时", "timeout", "请求超时", "request timeout", "timed out"],
+  UNAUTHORIZED: ["401", "未授权", "Unauthorized", "未登录", "login required"],
+  CURRENT_TAB_RELOAD_REQUIRED: [
+    "receiving end does not exist",
+    "could not establish connection",
+    "content script",
+    "刷新当前页面",
+    "refresh the current page",
+    "reload the current page",
+  ],
+  INVALID_RESPONSE: [
+    "格式",
+    "解析",
+    "JSON",
+    "数据不符合",
+    "无法获取",
+    "invalid response",
+    "parse error",
+    "malformed",
+  ],
+  NETWORK_ERROR: [
+    "网络",
+    "连接",
+    "Network",
+    "网络中断",
+    "connection lost",
+    "offline",
+  ],
+  FORBIDDEN: ["403", "禁止访问", "Forbidden"],
+  NOT_FOUND: ["404", "未找到", "Not Found"],
+  SERVER_ERROR: ["500", "服务器错误", "Internal Server Error", "server crash"],
+}
+
+/**
+ * Builds the structured UI error shown when the active tab likely needs a
+ * manual reload so the content script can attach.
+ */
+function createCurrentTabReloadRequiredError(): AutoDetectError {
+  return {
+    type: AutoDetectErrorType.CURRENT_TAB_RELOAD_REQUIRED,
+    message: t("messages:autodetect.currentTabNeedsReload"),
+    actionText: t("accountDialog:actions.reloadCurrentPage"),
+    helpDocUrl: getDocsAutoDetectUrl(),
+  }
+}
+
+/**
+ * Maps a machine-readable auto-detect error code to a structured UI error when
+ * the caller already knows the exact failure category.
+ * @param errorCode Optional service-layer auto-detect error code.
+ * @returns Structured UI error when the code is recognized; otherwise null.
+ */
+export function getAutoDetectErrorByCode(
+  errorCode?: AutoDetectErrorCode,
+): AutoDetectError | null {
+  switch (errorCode) {
+    case AUTO_DETECT_ERROR_CODES.CURRENT_TAB_CONTENT_SCRIPT_UNAVAILABLE:
+      return createCurrentTabReloadRequiredError()
+    case AUTO_DETECT_ERROR_CODES.SITE_TYPE_DETECTION_FAILED:
+      return {
+        type: AutoDetectErrorType.NOT_FOUND,
+        message: t("messages:autodetect.notFound"),
+        helpDocUrl: getDocsAutoDetectUrl(),
+      }
+    default:
+      return null
+  }
+}
+
+/**
+ * Convert a raw error into a structured {@link AutoDetectError}.
+ *
+ * Scans known keyword buckets to infer the most likely failure type and
+ * returns localized UI copy plus optional next-action metadata.
+ * @param error Unknown error object thrown during auto-detection.
+ * @returns Structured error info for UI display and guidance.
+ */
+export function analyzeAutoDetectError(error: any): AutoDetectError {
+  const errorMessage = getErrorMessage(error) || ""
+
+  const msg = errorMessage.toLowerCase()
+  const docsUrl = getDocsAutoDetectUrl()
+  const currentTabReloadMessage = t("messages:autodetect.currentTabNeedsReload")
+
+  if (errorMessage === currentTabReloadMessage) {
+    return createCurrentTabReloadRequiredError()
+  }
+
+  // Recognize our localized identity failure before broad keyword buckets;
+  // the guidance may mention login or connectivity without proving either.
+  if (
+    errorMessage === t("messages:operations.detection.getUserIdFailed") ||
+    errorMessage === t("messages:operations.detection.getUserIdFailedDetailed")
+  ) {
+    return {
+      type: AutoDetectErrorType.INVALID_RESPONSE,
+      message: t("messages:operations.detection.getUserIdFailedDetailed"),
+      helpDocUrl: docsUrl,
+    }
+  }
+
+  // Iterate known keyword buckets and return the first matching structured error
+  for (const [type, keywords] of Object.entries(ERROR_KEYWORDS)) {
+    if (keywords.some((k) => msg.includes(k.toLowerCase()))) {
+      switch (type) {
+        case "TIMEOUT":
+          return {
+            type: AutoDetectErrorType.TIMEOUT,
+            message: t("messages:autodetect.timeout"),
+            helpDocUrl: docsUrl,
+          }
+        case "UNAUTHORIZED":
+          return {
+            type: AutoDetectErrorType.UNAUTHORIZED,
+            message: t("messages:autodetect.notLoggedIn"),
+            actionText: t("messages:autodetect.loginThisSite"),
+            helpDocUrl: docsUrl,
+          }
+        case "CURRENT_TAB_RELOAD_REQUIRED":
+          return createCurrentTabReloadRequiredError()
+        case "INVALID_RESPONSE":
+          return {
+            type: AutoDetectErrorType.INVALID_RESPONSE,
+            message: t("messages:autodetect.unexpectedData"),
+            helpDocUrl: docsUrl,
+          }
+        case "NETWORK_ERROR":
+          return {
+            type: AutoDetectErrorType.NETWORK_ERROR,
+            message: t("messages:autodetect.networkError"),
+            helpDocUrl: docsUrl,
+          }
+        case "FORBIDDEN":
+          return {
+            type: AutoDetectErrorType.FORBIDDEN,
+            message: t("messages:autodetect.forbidden"),
+            helpDocUrl: docsUrl,
+          }
+        case "NOT_FOUND":
+          return {
+            type: AutoDetectErrorType.NOT_FOUND,
+            message: t("messages:autodetect.notFound"),
+            helpDocUrl: docsUrl,
+          }
+        case "SERVER_ERROR":
+          return {
+            type: AutoDetectErrorType.SERVER_ERROR,
+            message: t("messages:autodetect.serverError"),
+            helpDocUrl: docsUrl,
+          }
+      }
+    }
+  }
+
+  // 默认未知错误
+  return {
+    type: AutoDetectErrorType.UNKNOWN,
+    message: t("messages:autodetect.failed", { error: errorMessage }),
+    helpDocUrl: docsUrl,
+  }
+}
+
+// 创建错误消息组件的props
+export interface AutoDetectErrorProps {
+  error: AutoDetectError
+  siteUrl?: string
+  siteType?: AccountSiteType
+  onHelpClick?: () => void
+  onActionClick?: () => void
+  onApiCredentialProfilesClick?: () => void
+}
+
+/**
+ * Open a new browser tab pointing to the site's login page.
+ * @param siteUrl Base site URL used to derive the login page.
+ * @param siteTypeHint Optional already-known site type from the caller.
+ */
+export async function openLoginTab(
+  siteUrl: string,
+  siteTypeHint?: AccountSiteType,
+): Promise<void> {
+  const loginUrl = await resolveAccountSiteLoginUrl(siteUrl, siteTypeHint)
+  await createTab(loginUrl, true)
+}
+
+/**
+ * Reload the currently active page so a freshly installed or updated content
+ * script can attach before the next auto-detect attempt.
+ */
+export async function reloadCurrentTab(): Promise<void> {
+  const tabs = await queryTabs({
+    active: true,
+    currentWindow: true,
+  })
+
+  const activeTab = tabs[0]
+  if (typeof activeTab?.id === "number") {
+    await reloadTab(activeTab.id)
+  }
+}

@@ -1,0 +1,308 @@
+import dayjs from "dayjs"
+import relativeTime from "dayjs/plugin/relativeTime.js"
+
+import { CURRENCY_SYMBOLS } from "~/constants/money"
+import {
+  collectAccountMetricContributors,
+  isAccountTodayMetricAvailable,
+  isAccountTodayMetricLegacyUnclassified,
+} from "~/services/accounts/metrics/accountTodayStats"
+import { supportsMonetaryBalance } from "~/services/accounts/metrics/monetaryBalancePolicy"
+import type {
+  AccountMetricCoverage,
+  AccountTodayMetricAvailability,
+  AccountTodayMetricStatus,
+  CurrencyMetricTotal,
+  CurrencyType,
+  DisplaySiteData,
+} from "~/types"
+import { t } from "~/utils/i18n/core"
+
+// 初始化 dayjs
+dayjs.extend(relativeTime)
+
+interface TodayMetricPresentation {
+  status: AccountTodayMetricStatus
+  value: number | null
+  requiresRefresh: boolean
+}
+
+/**
+ * Converts compatibility numeric fields into UI-safe today-metric data.
+ * Unavailable values are deliberately discarded so consumers cannot render or
+ * animate stale compatibility zeroes or nonzero placeholders.
+ */
+export const getTodayMetricPresentation = (
+  value: number,
+  availability: AccountTodayMetricAvailability | AccountMetricCoverage,
+): TodayMetricPresentation => ({
+  status: availability.status,
+  value: isAccountTodayMetricAvailable(availability) ? value : null,
+  requiresRefresh:
+    "legacyUnclassifiedCount" in availability
+      ? availability.legacyUnclassifiedCount > 0
+      : isAccountTodayMetricLegacyUnclassified(availability),
+})
+
+/**
+ * 格式化 Token 数量
+ */
+export const formatTokenCount = (count: number): string => {
+  if (count >= 1_000_000) {
+    return (count / 1_000_000).toFixed(1) + "M"
+  } else if (count >= 1_000) {
+    return (count / 1_000).toFixed(1) + "K"
+  }
+  return count.toString()
+}
+
+/** Shared display marker; protocol detection and log redaction keep their own rules. */
+export const SECRET_MASK = "••••••"
+
+/** Masks a secret consistently while retaining enough context to identify it. */
+export const maskSecretForDisplay = (secret: string): string => {
+  if (secret.length <= 12) return SECRET_MASK
+
+  return `${secret.slice(0, 4)}${SECRET_MASK}${secret.slice(-4)}`
+}
+
+/** Normalize only a display copy of an already masked value; never infer missing characters. */
+export const normalizeSecretMaskForDisplay = (masked: string): string => {
+  const fragments = masked.split(/(?:[*•●]+|\.{3,}|…)/)
+  if (fragments.length < 2) return SECRET_MASK
+  return `${fragments[0]?.slice(0, 4) ?? ""}${SECRET_MASK}${fragments.at(-1)?.slice(-4) ?? ""}`
+}
+
+export function normalizeToMs(input: number | string | Date): number | null
+export function normalizeToMs(input: null | undefined): null
+export function normalizeToMs(
+  input: number | string | Date | null | undefined,
+): number | null
+/**
+ * 自动修正时间输入为毫秒级时间戳
+ * 支持输入秒级/毫秒级时间戳、Date 对象、字符串
+ * @param input - 时间输入，可以是 number | string | Date | null | undefined
+ * @returns number | null  返回标准毫秒时间戳，无法识别时返回 null
+ */
+export function normalizeToMs(
+  input: string | number | Date | null | undefined,
+) {
+  if (input == null) return null
+
+  if (input instanceof Date) {
+    const time = input.getTime()
+    return Number.isNaN(time) ? null : time
+  }
+
+  if (typeof input === "string") {
+    const trimmed = input.trim()
+    if (!trimmed) return null
+
+    const ts = Number(trimmed)
+    if (Number.isFinite(ts)) {
+      if (ts < 1e12) {
+        return ts * 1000
+      }
+
+      return Math.round(ts)
+    }
+
+    const date = new Date(trimmed)
+    const time = date.getTime()
+    return Number.isNaN(time) ? null : time
+  }
+
+  if (!Number.isFinite(input)) return null
+
+  // 判断是否为秒级时间戳（1e12 毫秒 ≈ 2001 年）
+  if (input < 1e12) {
+    return input * 1000
+  }
+
+  return Math.round(input)
+}
+
+export function normalizeToDate(input: number | string | Date): Date | null
+export function normalizeToDate(input: null | undefined): null
+export function normalizeToDate(
+  input: number | string | Date | null | undefined,
+): Date | null
+
+/**
+ * 将任意输入标准化为 Date 对象
+ * @param input - 时间输入（支持多种类型）
+ * @returns Date | null
+ */
+export function normalizeToDate(
+  input: number | string | Date | null | undefined,
+): Date | null {
+  const ms = normalizeToMs(input)
+  return ms == null ? null : new Date(ms)
+}
+
+/**
+ * Best-effort locale datetime formatter for timestamps (seconds/ms), Date
+ * objects, and ISO/date strings.
+ */
+export const formatLocaleDateTime = (
+  input: number | string | Date | null | undefined,
+  fallback: string = t("common:labels.notAvailable"),
+  options?: Intl.DateTimeFormatOptions,
+): string => {
+  const date = normalizeToDate(input)
+  if (!date || Number.isNaN(date.getTime()) || date.getTime() <= 0) {
+    return fallback
+  }
+
+  try {
+    return date.toLocaleString(undefined, options)
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * Format a numeric timestamp for key expiration fields.
+ * Falls back to localized "never expires" copy when timestamp is <= 0.
+ */
+export const formatKeyTime = (timestamp: number) => {
+  if (timestamp <= 0) return t("keyManagement:keyDetails.neverExpires")
+
+  const date = normalizeToDate(timestamp)
+  if (!date) return t("common:labels.notAvailable")
+
+  return date.toLocaleDateString()
+}
+
+/**
+ * 格式化相对时间
+ */
+export const formatRelativeTime = (date: Date | undefined): string => {
+  if (!date) {
+    return ""
+  }
+  return dayjs(date).fromNow()
+}
+
+/**
+ * 格式化具体时间
+ */
+export const formatFullTime = (date: Date | undefined): string => {
+  if (!date) {
+    return ""
+  }
+  return dayjs(date).format("YYYY/MM/DD HH:mm:ss")
+}
+
+/**
+ * 计算总消耗
+ */
+export const calculateTotalConsumption = (
+  sites: DisplaySiteData[],
+): CurrencyMetricTotal =>
+  collectCurrencyMetric(
+    sites.filter((site) => !site.disabled),
+    "consumption",
+    (site) => site.todayConsumption,
+  )
+
+/**
+ * 计算总余额
+ *
+ * Total Balance excludes:
+ * - disabled accounts ({@link DisplaySiteData.disabled})
+ * - enabled but explicitly excluded accounts ({@link DisplaySiteData.excludeFromTotalBalance})
+ */
+export const calculateTotalBalance = (displayData: DisplaySiteData[]) => {
+  const enabledSites = displayData.filter(
+    (site) =>
+      !site.disabled &&
+      site.excludeFromTotalBalance !== true &&
+      supportsMonetaryBalance(site.nativeBalance),
+  )
+  return {
+    USD: enabledSites.reduce((sum, site) => sum + site.balance.USD, 0),
+    CNY: enabledSites.reduce((sum, site) => sum + site.balance.CNY, 0),
+  }
+}
+
+/**
+ * Convenience wrapper to derive aggregate balances from a subset of sites.
+ * Delegates to {@link calculateTotalBalance} for the actual sum logic.
+ */
+export const calculateTotalBalanceForSites = (sites: DisplaySiteData[]) =>
+  calculateTotalBalance(sites)
+
+/**
+ * Sum per-site income metrics into global USD/CNY totals.
+ *
+ * Today Income excludes:
+ * - disabled accounts ({@link DisplaySiteData.disabled})
+ * - enabled but explicitly excluded accounts ({@link DisplaySiteData.excludeFromTodayIncome})
+ */
+export const calculateTotalIncomeForSites = (
+  sites: DisplaySiteData[],
+): CurrencyMetricTotal => {
+  const enabledSites = sites.filter(
+    (site) => !site.disabled && site.excludeFromTodayIncome !== true,
+  )
+  return collectCurrencyMetric(
+    enabledSites,
+    "income",
+    (site) => site.todayIncome,
+  )
+}
+
+const collectCurrencyMetric = (
+  sites: DisplaySiteData[],
+  metric: "consumption" | "income",
+  getAmount: (site: DisplaySiteData) => { USD: number; CNY: number },
+): CurrencyMetricTotal => {
+  const getAvailability = (site: DisplaySiteData) =>
+    site.todayStatsAvailability[metric]
+  const usd = collectAccountMetricContributors(
+    sites,
+    (site) => getAmount(site).USD,
+    getAvailability,
+  )
+  const cny = collectAccountMetricContributors(
+    sites,
+    (site) => getAmount(site).CNY,
+    getAvailability,
+  )
+
+  return {
+    amount: { USD: usd.value, CNY: cny.value },
+    coverage: usd.coverage,
+  }
+}
+
+/**
+ * 获取货币符号
+ */
+export const getCurrencySymbol = (currencyType: CurrencyType): string => {
+  return CURRENCY_SYMBOLS[currencyType]
+}
+
+/**
+ * 获取切换后的货币类型
+ */
+export const getOppositeCurrency = (
+  currencyType: CurrencyType,
+): CurrencyType => {
+  return currencyType === "USD" ? "CNY" : "USD"
+}
+
+/**
+ * 格式化时间戳
+ */
+export const formatTimestamp = (timestamp: number) => {
+  if (timestamp <= 0) {
+    return t("common:time.neverExpires")
+  }
+
+  const date = normalizeToDate(timestamp)
+  if (!date) return t("common:labels.notAvailable")
+
+  return date.toLocaleDateString()
+}

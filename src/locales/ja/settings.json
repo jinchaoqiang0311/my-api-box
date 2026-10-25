@@ -1,0 +1,1018 @@
+{
+  "accountManagement": {
+    "description": "専用の管理コンソールで、アカウント、残高、API キー、並び順の優先度を管理します。",
+    "openPage": "アカウント管理ページを開く",
+    "title": "アカウント管理"
+  },
+  "actionClick": {
+    "actionIconClickDesc": "ツールバーアイコンのクリックで、ポップアップ、サイドパネル、または完全なオプションページのどれを開くか選択します。",
+    "actionIconClickTitle": "既定の表示先",
+    "description": "ブラウザーのツールバーにある拡張機能アイコンをクリックしたときの開き方を設定します。",
+    "optionsLabel": "オプションページ",
+    "optionsTitle": "完全なオプションページを開く",
+    "popupLabel": "ポップアップ",
+    "popupTitle": "ポップアップを開く",
+    "sidepanelFallbackToast": "サイドパネル設定を保存しました。このブラウザーではサイドパネルを利用できないため、クリック時はポップアップ表示にフォールバックします。",
+    "sidepanelLabel": "サイドパネル",
+    "sidepanelTitle": "サイドパネルを開く",
+    "sidepanelUnsupportedHelper": "このブラウザーではサイドパネルを利用できません。サイドパネルを選択するとポップアップ表示にフォールバックします。",
+    "title": "拡張機能アイコンのクリック"
+  },
+  "appearance": {
+    "color": "テーマカラー",
+    "colors": {
+      "blue": "青",
+      "green": "緑",
+      "orange": "オレンジ",
+      "rose": "ローズ",
+      "slate": "スレート",
+      "violet": "紫"
+    },
+    "contentWidth": "コンテンツ幅",
+    "contentWidthDescription": "管理ページ全体にのみ適用されます。",
+    "contentWidths": {
+      "centered": "中央揃え",
+      "full": "全幅"
+    },
+    "densities": {
+      "comfortable": "ゆったり",
+      "compact": "コンパクト",
+      "default": "標準"
+    },
+    "density": "表示密度",
+    "densityDescription": "文字サイズを変えずに、行の間隔とコントロールの高さを調整します。",
+    "description": "変更は自動保存され、設定画面、ポップアップ、サイドパネルに適用されます。",
+    "font": "フォント",
+    "fontDescription": "画面のフォントを選択します。テーマに合わせる場合、標準テーマはサンセリフ、Anthropic はセリフを使用します。",
+    "fonts": {
+      "default": "テーマに合わせる",
+      "sans": "サンセリフ",
+      "serif": "セリフ"
+    },
+    "preset": "テーマプリセット",
+    "presetColorsHint": "このテーマは専用の配色を使用します。アクセントカラーを個別に選ぶには標準テーマに切り替えてください。",
+    "presetDescriptions": {
+      "anthropic": "温かなクリームとテラコッタ。ダークモードはチャコール調。",
+      "default": "落ち着いた無彩色に、お好みのアクセントカラーを。"
+    },
+    "presets": {
+      "anthropic": "Anthropic",
+      "default": "標準テーマ"
+    },
+    "radii": {
+      "default": "標準",
+      "large": "大",
+      "none": "四角",
+      "small": "小"
+    },
+    "radius": "角の丸み",
+    "reset": "外観をリセット",
+    "resetDensity": "表示密度をリセット",
+    "resetFont": "フォントをリセット",
+    "resetTextSize": "文字サイズをリセット",
+    "saveFailed": "保存できませんでした。もう一度お試しください。",
+    "textSize": "文字サイズ",
+    "textSizeDescription": "文字サイズと行の高さを調整します。表示密度の設定を変えずに、内容に合わせて操作部品の高さが変わります。",
+    "textSizes": {
+      "default": "標準",
+      "extraLarge": "特大",
+      "large": "大"
+    },
+    "title": "外観設定"
+  },
+  "appearanceLanguage": {
+    "language": "言語",
+    "languageDesc": "表示に使用する言語を選択します",
+    "onboardingHelper": "案内と以後の設定ページには、選択した言語が使われます。",
+    "onboardingLabel": "言語を選択",
+    "onboardingLanguageRequest": "使いたい言語がありませんか？言語対応をリクエスト",
+    "switcher": {
+      "currentLanguage": "現在の表示言語: {{language}}",
+      "groupLabel": "表示言語セレクター",
+      "options": {
+        "de": {
+          "label": "DE",
+          "name": "ドイツ語"
+        },
+        "en": {
+          "label": "EN",
+          "name": "英語"
+        },
+        "es-419": {
+          "label": "ES",
+          "name": "ラテンアメリカのスペイン語"
+        },
+        "ja": {
+          "label": "JA",
+          "name": "日本語"
+        },
+        "pt-BR": {
+          "label": "PT-BR",
+          "name": "ポルトガル語（ブラジル）"
+        },
+        "vi": {
+          "label": "VI",
+          "name": "ベトナム語"
+        },
+        "zh-CN": {
+          "label": "SC",
+          "name": "簡体字中国語"
+        },
+        "zh-TW": {
+          "label": "TC",
+          "name": "繁体字中国語"
+        }
+      },
+      "switchToLanguage": "表示言語を {{language}} に切り替える"
+    }
+  },
+  "autoFillCurrentSiteUrlOnAccountAdd": {
+    "description": "アカウント追加時に、現在のサイト URL をあらかじめ入力するかどうかを制御します。",
+    "title": "アカウント",
+    "toggleDesc": "有効にすると、アカウント追加ダイアログを開いたときに現在のブラウザタブのサイト origin を URL 欄へ事前入力します。検出は既存の次の操作で続けます。",
+    "toggleLabel": "アカウント追加時に現在サイトの URL を事前入力"
+  },
+  "autoProvisionKeyOnAccountAdd": {
+    "description": "アカウント追加後に、既定の API キーまたは利用可能なすべてのグループのキーを自動で作成します。",
+    "manualHint": "保存済みアカウントは「キー管理 → {{actionLabel}}」で、利用可能なすべてのグループの不足しているキーを補えます。",
+    "modeDescription": "既定モードは有効なキーがない場合に1つ準備します。すべてのグループでは不足する各グループを補い、グループ要件のないサイトでは既定キーを1つ準備します。どちらも必要な入力や一度だけ表示されるキーの処理のためにダイアログを開く場合があります。",
+    "modeLabel": "自動作成の範囲",
+    "modes": {
+      "allGroups": "利用可能なすべてのグループ",
+      "default": "既定のキーのみ"
+    },
+    "title": "API キー",
+    "toggleDesc": "アカウントの保存後、選択した範囲で不足しているキーを確認して作成します。",
+    "toggleLabel": "アカウント追加後にキーを自動作成"
+  },
+  "axonHub": {
+    "cors": {
+      "description": "新しい AxonHub インスタンスでは通常、サーバー側の CORS 設定を調整しないと My API Box 拡張機能がブラウザーから AxonHub にアクセスできません。AXONHUB_SERVER_CORS_ALLOWED_ORIGINS を \"*\" に設定するか、信頼するブラウザー / 拡張機能の origin に制限してください。",
+      "title": "必須の CORS 設定"
+    },
+    "description": "AxonHub 管理サイトへ接続するための統合設定を行います。",
+    "fields": {
+      "baseUrlDesc": "AxonHub サイトの Base URL を設定します",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://axonhub.example.com",
+      "emailDesc": "/admin/auth/signin に使用する AxonHub 管理者メールアドレス",
+      "emailLabel": "管理者メール",
+      "emailPlaceholder": "admin@example.com",
+      "hidePassword": "パスワードを隠す",
+      "passwordDesc": "AxonHub 管理 GraphQL セッショントークンの取得に使用する管理者パスワード",
+      "passwordLabel": "管理者パスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "showPassword": "パスワードを表示"
+    },
+    "title": "AxonHub 統合設定",
+    "validation": {
+      "corsFailed": "AxonHub 検証に失敗しました: {{error}}。通常、新しい AxonHub インスタンスで拡張機能のブラウザー origin が許可されていない場合に発生します。AxonHub サーバーの CORS 設定を調整し、AXONHUB_SERVER_CORS_ALLOWED_ORIGINS を \"*\" に設定するか、拡張機能 / ブラウザー origin を許可してから再試行してください。",
+      "description": "現在の設定でサイトに接続し、管理できるかを確認します。",
+      "failed": "AxonHub 検証に失敗しました: {{error}}",
+      "missingFields": "必須項目をすべて入力してください",
+      "title": "接続を確認"
+    }
+  },
+  "changelogOnUpdate": {
+    "description": "更新後に設定ページを初めて開いた際、「What's New」ダイアログを表示するかどうかを制御します。",
+    "title": "更新ログ",
+    "toggleDesc": "有効にすると、更新後に設定ページを初めて開いた際に更新ログをインライン表示します（各バージョン 1 回のみ）。完全版の更新ログは手動でも開けます。",
+    "toggleLabel": "更新後に What's New を表示"
+  },
+  "claudeCodeHub": {
+    "description": "Claude Code Hub 管理サイトへの接続を設定します。",
+    "fields": {
+      "adminTokenDesc": "Claude Code Hub の action API が受け付ける管理者トークンまたは API キー",
+      "adminTokenLabel": "管理者トークン",
+      "adminTokenPlaceholder": "管理者トークンを入力",
+      "baseUrlDesc": "Claude Code Hub サイトの Base URL を設定します",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://claude-code-hub.example.com",
+      "hideAdminToken": "管理者トークンを隠す",
+      "showAdminToken": "管理者トークンを表示"
+    },
+    "title": "Claude Code Hub 統合設定",
+    "unsupported": {
+      "description": "このバージョンでは、Claude Code Hub のモデル同期とモデルリダイレクトは利用できません。",
+      "title": "未対応のチャネル操作"
+    },
+    "validation": {
+      "description": "現在の設定でサイトに接続し、管理できるかを確認します。",
+      "failed": "Claude Code Hub 検証に失敗しました: {{error}}",
+      "missingFields": "必須項目をすべて入力してください",
+      "title": "接続を確認"
+    }
+  },
+  "claudeCodeRouter": {
+    "apiKeyLabel": "API キー",
+    "apiKeyPlaceholder": "sk-123456",
+    "baseUrlLabel": "Base URL",
+    "baseUrlPlaceholder": "http://localhost:3000",
+    "description": "Claude Code Router 管理 API への接続を設定します",
+    "keyDesc": "/api/config (APIKEY) 用の任意 API キー",
+    "title": "Claude Code Router",
+    "urlDesc": "Claude Code Router サーバーの Base URL。例: http://localhost:3000"
+  },
+  "cliProxyApi": {
+    "baseUrlLabel": "Management API Base URL",
+    "checkConnectionDesc": "現在の設定でサイトに接続し、管理できるかを確認します。",
+    "checkConnectionLabel": "接続を確認",
+    "description": "CLIProxyAPI Management API への接続を設定します",
+    "hideKey": "管理キーを隠す",
+    "keyDesc": "インターフェースアクセス認証用の管理キー",
+    "managementDocsLinkLabel": "Management API ドキュメントを開く",
+    "managementKeyLabel": "管理キー",
+    "showKey": "管理キーを表示",
+    "title": "CLIProxyAPI 設定",
+    "urlDesc": "Management API の Base URL を設定します。例: http://localhost:8317/v0/management"
+  },
+  "danger": {
+    "resetAllSettings": "すべての設定をリセット",
+    "resetDesc": "すべての設定を初期値に戻します。この操作は元に戻せません。",
+    "resetFailed": "設定のリセットに失敗しました",
+    "resetSettings": "設定をリセット",
+    "title": "危険な操作"
+  },
+  "dataBackup": {
+    "importExport": {
+      "description": "データのインポートとエクスポート専用ページを開きます。",
+      "info": "インポート / エクスポートページでは、データの取り込み、各種形式への書き出し、バックアップ管理をまとめて行えます。",
+      "openPage": "インポート / エクスポートページを開く",
+      "title": "インポートとエクスポート"
+    }
+  },
+  "description": "外観、アカウント管理、自動タスク、データのバックアップなどを設定します。",
+  "display": {
+    "cny": "CNY (¥)",
+    "currencyDesc": "残高とキャッシュフロー表示の既定通貨を設定します",
+    "currencyUnit": "通貨単位",
+    "defaultTab": "既定タブ",
+    "defaultTabDesc": "拡張機能起動時に表示するタブを設定します",
+    "description": "拡張機能の表示言語と表示設定をカスタマイズします",
+    "title": "表示設定",
+    "todayCashflow": "本日のキャッシュフロー",
+    "todayCashflowEnabled": "本日のキャッシュフローを表示",
+    "todayCashflowEnabledDesc": "本日の支出・収入統計を表示し、取得するかどうかを制御します。無効にすると本日の統計は非表示になり、更新時に関連リクエストを行いません。",
+    "totalBalance": "総残高",
+    "usd": "USD ($)"
+  },
+  "doneHub": {
+    "adminCredentialsLink": {
+      "description": "プロフィールページを開いてシステムアクセストークンとユーザー ID を確認します。",
+      "open": "ページを開く",
+      "title": "クイックアクセス"
+    },
+    "description": "Done Hub 互換サービスへ接続するための統合設定を行います。",
+    "fields": {
+      "adminTokenLabel": "管理者のシステムアクセストークン",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "システムアクセストークンを隠す",
+      "showToken": "システムアクセストークンを表示",
+      "userIdLabel": "管理者ユーザー ID"
+    },
+    "title": "Done Hub 統合設定",
+    "tokenDesc": "管理者ユーザー用のシステムアクセストークンです。Done Hub ダッシュボード → 個人設定 → Token で確認できます。",
+    "urlDesc": "Done Hub 統合用の Base URL を設定します",
+    "userIdDesc": "管理者ユーザー ID（数値のみ）。通常 root admin は 1 です。"
+  },
+  "duplicateAccountWarningOnAdd": {
+    "description": "追加前に保存済みアカウントを確認し、重複追加を防ぎます。",
+    "title": "アカウント",
+    "toggleDesc": "同じサイトの同じユーザー ID が保存済みの場合に確認します。OpenRouter では同一の Management Key を確認します。",
+    "toggleLabel": "重複追加前に警告する"
+  },
+  "gptLoad": {
+    "description": "自己ホストの gpt-load インスタンスを管理します。軽量な Go 製 AI ゲートウェイで、リクエストをプロバイダのチャンネル間で負荷分散します。",
+    "fields": {
+      "baseUrlDesc": "gpt-load ダッシュボードのベース URL（例：https://gateway.example.com）。",
+      "baseUrlLabel": "ゲートウェイアドレス",
+      "baseUrlPlaceholder": "https://gateway.example.com",
+      "hideManagementKey": "管理キーを非表示",
+      "managementKeyDesc": "ゲートウェイのルート AUTH_KEY。管理 API へのベアラートークンとして使われ、ワークスペースのチャンネルキーと同等の権限を持ちます。",
+      "managementKeyLabel": "管理キー",
+      "managementKeyPlaceholder": "ゲートウェイ設定の AUTH_KEY",
+      "showManagementKey": "管理キーを表示"
+    },
+    "title": "gpt-load",
+    "validation": {
+      "description": "上記のキーで 1 回リクエストを送り、ゲートウェイに到達でき、キーが受け入れられることを確認します。",
+      "failed": "ゲートウェイに接続できませんでした: {{error}}",
+      "insufficientPrivilege": "管理キーの権限が不足しています: {{error}}",
+      "invalidCredential": "管理キーが拒否されました: {{error}}",
+      "missingFields": "先にゲートウェイアドレスと管理キーを入力してください",
+      "title": "接続を確認"
+    }
+  },
+  "logging": {
+    "consoleEnabled": "ログを有効にする",
+    "consoleEnabledDesc": "無効にすると、コンソール出力と新しいローカルログの記録が停止します。",
+    "description": "ログ出力と端末内の診断履歴を設定します。",
+    "history": {
+      "allContexts": "全発生元",
+      "allLevels": "全レベル",
+      "allTime": "保持されている全ログ",
+      "clearDescription": "この端末に保持されている全ログを削除します。",
+      "clearError": "ログの削除に失敗しました",
+      "clearTitle": "端末のログを削除",
+      "context": "発生元",
+      "copied": "ログをコピーしました",
+      "copy": "絞り込み結果をコピー",
+      "copyError": "ログのコピーに失敗しました",
+      "description": "過去 {{hours}} 時間のローカルログを最大 {{limit}} 件表示します。期限切れのログの整理は、ログの記録時または表示時に行われます。ログを有効にするとイベントが記録されます。詳細を記録するには、最低ログレベルをデバッグに設定してください。",
+      "details": "詳細",
+      "empty": "該当するログがありません。ログを有効にして問題を再現し、ここに戻ってください。",
+      "entryDescription": "拡張機能の各ページのログをリアルタイムで確認し、最近の履歴も表示します。",
+      "lastHour": "直近 1 時間",
+      "lastMinutes": "直近 5 分間",
+      "level": "ログレベル",
+      "loadError": "ログを読み込めませんでした。表示済みのログは保持されます。再試行してください。",
+      "more": "以前のログを読み込む",
+      "open": "ログを表示",
+      "pause": "更新を一時停止",
+      "period": "期間",
+      "resume": "リアルタイム更新を再開",
+      "search": "メッセージ、モジュール、リクエスト ID を検索",
+      "showing": "表示 {{visible}} / {{total}} 件",
+      "title": "最近のログ"
+    },
+    "levels": {
+      "debug": "デバッグ",
+      "error": "エラー",
+      "info": "情報",
+      "warn": "警告"
+    },
+    "minLevel": "最小ログレベル",
+    "minLevelDesc": "選択したレベル未満のログは出力も保存もされません。",
+    "title": "ログ"
+  },
+  "magpie": {
+    "description": "セルフホストした Magpie Web サーバーのプロバイダーを管理します。",
+    "fields": {
+      "baseUrlDesc": "magpie web（既定ポート 3430）を起動し、Web URL を入力してください。ポート 3425 の推論 URL とは異なります。",
+      "baseUrlLabel": "Web 管理 URL",
+      "baseUrlPlaceholder": "http://localhost:3430",
+      "hideWebKey": "管理キーを非表示",
+      "showWebKey": "管理キーを表示",
+      "webKeyDesc": "MAGPIE_WEB_KEY または起動リンクの k 値を使います。固定の MAGPIE_WEB_KEY は再起動後も使えます。それ以外は再起動後に更新してください。推論 API キーは管理には使えません。",
+      "webKeyLabel": "Web 管理キー",
+      "webKeyPlaceholder": "Web 管理キーを入力"
+    },
+    "title": "Magpie",
+    "validation": {
+      "description": "上記のキーで接続を確認し、プロバイダー一覧を取得できるか検証します。",
+      "failed": "Magpie に接続できません。Web URL とサーバーの起動状態を確認してください。",
+      "invalidCredential": "Web キーが拒否されました。MAGPIE_WEB_KEY または最新の起動キーを確認してください。",
+      "missingFields": "先にゲートウェイアドレスと管理キーを入力してください",
+      "title": "接続を確認"
+    }
+  },
+  "managedSite": {
+    "axonHub": "AxonHub",
+    "claudeCodeHub": "Claude Code Hub",
+    "cliProxyApi": "CLIProxyAPI",
+    "deploymentDocs": "公式デプロイドキュメント",
+    "deploymentDocsLink": "{{site}} の公式デプロイドキュメント",
+    "description": "管理したい API 中継プラットフォームを選択します。この設定により、チャネル管理やモデル同期で使われる構成が決まります。",
+    "doneHub": "Done Hub",
+    "gatewayGuidance": {
+      "actions": {
+        "importAccountKeys": "アカウントキーでチャネルを追加",
+        "importApiKeys": "API キーでチャネルを追加",
+        "viewChannels": "取り込み済みチャネルを表示"
+      },
+      "configComplete": {
+        "description": "ゲートウェイ設定を保存しました。アカウントキーや API 認証情報をチャネルとしてインポートできます。接続状態は検証またはインポート時に確認されます。",
+        "title": "次のステップ：チャネルをインポート"
+      },
+      "unconfigured": {
+        "description": "セルフホスト AI ゲートウェイを設定すると、アカウントキーや API キーをチャネルとして取り込み、複数のキーを 1 つの AI API から利用できます。",
+        "title": "セルフホスト AI ゲートウェイを設定"
+      }
+    },
+    "gptLoad": "gpt-load",
+    "magpie": "Magpie",
+    "newApi": "New API",
+    "octopus": "Octopus",
+    "omniroute": "OmniRoute",
+    "popularityHint": "GitHub スター数のスナップショット順。",
+    "siteTypeDesc": "チャネル管理とモデル同期に使用するプラットフォームを選択します",
+    "siteTypeLabel": "ゲートウェイ種別",
+    "sub2api": "Sub2API",
+    "title": "セルフホスト AI ゲートウェイ設定",
+    "veloera": "Veloera"
+  },
+  "managedSiteConnection": {
+    "check": "接続を確認",
+    "checkError": "設定を保存しましたが、接続確認に失敗しました。再試行してください。",
+    "checking": "確認中…",
+    "conflict": "別のページで設定が変更されました。入力は保持されています。最新の設定を確認して再試行するか、保存済み設定を再読み込みして入力を置き換えてください。",
+    "failed": "設定を保存しましたが、接続確認に失敗しました：{{reason}}",
+    "invalidField": "保存する前に{{field}}を確認してください",
+    "reload": "保存済み設定を再読み込み",
+    "saveError": "設定を保存できませんでした。入力は保持されています。再試行してください。",
+    "saveFailed": "設定を保存できませんでした：{{reason}}。入力は保持されています。再試行してください。",
+    "saving": "保存中…",
+    "success": "設定を保存しました。接続を確認しました。",
+    "unreachable": "サイトに接続できませんでした"
+  },
+  "messages": {
+    "alreadyDefault": "すでに初期値です",
+    "confirmReset": "リセットの確認",
+    "preferencesChangedExternally": "設定が他の場所で変更されました。更新してからもう一度お試しください。",
+    "resetAllConfirmDesc": "すべての設定を初期値に戻し、接続先と認証情報を消去しますか？保存済みアカウントは残ります。履歴の保持設定も初期値に戻ります。",
+    "resetConfirmDesc": "{{name}} を既定設定に戻しますか？ この操作は元に戻せません。",
+    "resetConnectionConfirmDesc": "このグループの接続先、認証情報、関連設定を消去します。再設定が必要になります。初期値に戻しますか？",
+    "resetFailed": "{{name}} のリセットに失敗しました",
+    "resetHistoryConfirmDesc": "初期値に戻すと履歴の保持期間が短くなります。古い記録が完全に削除される可能性があります。続行しますか？",
+    "resetSuccess": "{{name}} を既定設定にリセットしました",
+    "retentionSaveHint": "他の項目は自動保存されます。保持日数は適用操作が必要です。期間を短くすると履歴が削除される場合があります。",
+    "runtimeRequestFailed": "ランタイムリクエストに失敗しました。後でもう一度お試しください。",
+    "saveSettingsFailed": "設定の保存に失敗しました",
+    "updateFailed": "{{name}} の更新に失敗しました",
+    "updateSuccess": "{{name}} を更新しました"
+  },
+  "newApi": {
+    "adminCredentialsLink": {
+      "description": "管理者の個人設定ページを開いてシステムアクセストークンとユーザー ID を確認します。",
+      "open": "ページを開く",
+      "title": "クイックアクセス"
+    },
+    "description": "New API 互換サービスへ接続するための統合設定を行います。",
+    "fields": {
+      "adminTokenLabel": "管理者のシステムアクセストークン",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hidePassword": "ログインパスワードを隠す",
+      "hideToken": "システムアクセストークンを隠す",
+      "hideTotpSecret": "TOTP シークレットを隠す",
+      "passwordDesc": "任意です。ログインユーザー名と組み合わせて New API 管理コンソールへサインインし、チャネルキーの表示や完全なキー比較時にログインセッションを確立するために使います。",
+      "passwordLabel": "ログインパスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "showPassword": "ログインパスワードを表示",
+      "showToken": "システムアクセストークンを表示",
+      "showTotpSecret": "TOTP シークレットを表示",
+      "totpSecretDesc": "任意です。指定すると、ログイン 2FA やチャネルキー表示に必要な保護認証のための TOTP コードを My API Box が自動生成できます。",
+      "totpSecretLabel": "TOTP シークレット",
+      "totpSecretPlaceholder": "Base32 の TOTP シークレットを貼り付け",
+      "userIdLabel": "管理者ユーザー ID",
+      "usernameDesc": "任意です。New API 管理コンソールへサインインし、必要に応じて 2FA を完了するために使います。主にチャネル管理で実際のチャネルキーを表示したり、キー管理でそのキーが既にチャネルに使われているか確認したりする用途です。",
+      "usernameLabel": "ログインユーザー名",
+      "usernamePlaceholder": "admin"
+    },
+    "sessionTest": {
+      "description": "入力したログインユーザー名、パスワード、TOTP シークレットが正しく利用可能かテストします。成功後はログインや 2FA を必要とする操作を続行できます。",
+      "testing": "設定をテスト中...",
+      "title": "ログインと 2FA 設定をテスト"
+    },
+    "title": "New API 統合設定",
+    "tokenDesc": "管理者ユーザー用のシステムアクセストークン",
+    "urlDesc": "New API 統合用の Base URL を設定します",
+    "userIdDesc": "管理者ユーザー ID（数値のみ）"
+  },
+  "octopus": {
+    "description": "Octopus セルフホストサイトへ接続するための統合設定を行います。システムは認証情報を使って自動ログインし、JWT Token を管理します。",
+    "fields": {
+      "baseUrlDesc": "Octopus サイトの Base URL を設定します",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://octopus.example.com",
+      "hidePassword": "パスワードを隠す",
+      "passwordDesc": "自動ログイン用の Octopus 管理者パスワード",
+      "passwordLabel": "パスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "showPassword": "パスワードを表示",
+      "usernameDesc": "自動ログイン用の Octopus 管理者ユーザー名",
+      "usernameLabel": "ユーザー名",
+      "usernamePlaceholder": "admin"
+    },
+    "title": "Octopus 統合設定",
+    "validation": {
+      "description": "現在の設定でサイトに接続し、管理できるかを確認します。",
+      "error": "検証中にエラーが発生しました",
+      "failed": "設定検証に失敗しました。ユーザー名とパスワードを確認してください",
+      "missingFields": "必須項目をすべて入力してください",
+      "title": "接続を確認"
+    }
+  },
+  "omniroute": {
+    "accessTokens": {
+      "description": "ゲートウェイのダッシュボードでアクセストークンを管理し、この拡張機能が使うトークンはいつでも失効できます。",
+      "missingBaseUrl": "先にデプロイ先アドレスを入力すると、ゲートウェイのアクセストークン画面を開けます。",
+      "open": "アクセストークン画面を開く",
+      "title": "ゲートウェイのアクセストークン管理"
+    },
+    "description": "セルフホストの OmniRoute ゲートウェイへの接続情報を設定します。",
+    "fields": {
+      "baseUrlDesc": "ブラウザで OmniRoute のダッシュボードを開くときのアドレスを入力します。",
+      "baseUrlLabel": "デプロイ先アドレス",
+      "baseUrlPlaceholder": "http://localhost:20128",
+      "credentialDesc": "ゲートウェイの Settings → Access Tokens で admin スコープのアクセストークンを作成し、ここに貼り付けてください。",
+      "credentialLabel": "アクセストークン",
+      "credentialPlaceholder": "oma_…",
+      "hideCredential": "アクセストークンを非表示",
+      "showCredential": "アクセストークンを表示"
+    },
+    "title": "OmniRoute 統合設定",
+    "validation": {
+      "description": "現在の設定でサイトに接続して管理できるかを確認します。",
+      "failed": "OmniRoute の設定検証に失敗しました：{{error}}",
+      "insufficientScope": "トークンのスコープが不足しています：現在は {{have}}、必要は {{need}} です。ゲートウェイの Settings → Access Tokens で admin スコープのトークンを作り直してください。",
+      "invalidCredential": "アクセストークンが無効か、有効期限が切れています：{{error}}",
+      "missingFields": "デプロイ先アドレスとアクセストークンを入力してください",
+      "title": "接続を検証",
+      "unknownScope": "不明"
+    }
+  },
+  "permissions": {
+    "actions": {
+      "allow": "許可（推奨）",
+      "refresh": "状態を更新",
+      "remove": "取り消し"
+    },
+    "description": "アカウントデータの更新、補助ツール、タスク通知、サイトのインポートに必要な任意権限を選んで許可できます。",
+    "helper": "各権限は対応する機能でのみ使用され、いつでも取り消せます。許可していない機能は制限される場合がありますが、ほかの機能は引き続き利用できます。",
+    "incognito": {
+      "checking": "プライベートブラウジングの許可を確認中…",
+      "chromeInstructions": "Chrome の拡張機能の詳細で「シークレット モードでの実行を許可する」を有効にしてください。",
+      "denied": "プライベートブラウジングでの実行は許可されていません",
+      "details": "設定を開く",
+      "edgeInstructions": "Edge の拡張機能の詳細で「InPrivate での実行を許可する」を有効にしてください。",
+      "enabled": "プライベートブラウジングでの実行が許可されています",
+      "firefoxInstructions": "Firefox の「アドオンとテーマ」でこの拡張機能を選択し、プライベートウィンドウでの実行を許可してください。",
+      "firefoxMobileInstructions": "Firefox: ブラウザーのメニューから拡張機能管理を開き、この拡張機能のプライベートブラウジング設定を確認してください。メニューと対応状況はバージョンによって異なります。",
+      "genericInstructions": "ブラウザーの拡張機能管理でプライベートブラウジングの許可を確認してください。",
+      "manualSteps": "設定手順を見る",
+      "mobileInstructions": "ブラウザーのメニューから拡張機能管理を開き、この拡張機能のプライベートブラウジング設定を確認してください。メニューと対応状況はバージョンによって異なります。",
+      "openChromeSettings": "Chrome の設定へ",
+      "openEdgeSettings": "Edge の設定へ",
+      "recommended": "拡張機能のプライベートウィンドウでの実行を推奨します",
+      "reloadWarning": "この権限の変更により、拡張機能の再読み込み、拡張機能ページの終了、タスクの中断が起きる場合があります。編集中の内容を先に保存してください。",
+      "safariInstructions": "Safari の拡張機能設定でこの拡張機能を選び、プライベートブラウズでの実行を許可してください。選択肢は Safari のバージョンによって異なります。",
+      "settingsFailed": "設定を開けませんでした。ブラウザーの拡張機能管理画面からプライベートウィンドウでの実行を許可してください。",
+      "summary": "通常ウィンドウのログイン状態と分離し、アカウントの混同や既存のセッションへの影響を防ぎます。",
+      "title": "シークレット／プライベートウィンドウへのアクセス",
+      "unknown": "プライベートブラウジングの許可を確認できません"
+    },
+    "items": {
+      "bookmarks": {
+        "description": "ブラウザのブックマークからサイトをインポートするときだけ、保存済み URL を読み取ります。",
+        "title": "ブラウザのブックマーク"
+      },
+      "clipboardRead": {
+        "description": "関連する内容をコピーした後、引き換えアシスタントや AI API テストが引き換えコードや API 情報を認識するために使用します。",
+        "title": "クリップボード読み取り"
+      },
+      "cookies": {
+        "description": "ログイン状態の確認やアカウントデータの更新時に、対象サイトで必要な Cookie だけを読み取ります。",
+        "title": "Cookie へのアクセス"
+      },
+      "declarativeNetRequestWithHostAccess": {
+        "description": "一時ウィンドウで現在のアカウントに必要なリクエスト情報を適用し、複数アカウントのデータが混ざるのを防ぎます。",
+        "title": "ネットワークリクエストルール"
+      },
+      "notifications": {
+        "description": "バックグラウンドのスケジュールタスク完了後にシステム通知を送信できるようにします。",
+        "title": "システム通知"
+      },
+      "webRequest": {
+        "description": "一時ウィンドウでの確認または自動更新時に、アカウント情報が必要なリクエストだけを識別します。",
+        "title": "ネットワークリクエストへのアクセス"
+      },
+      "webRequestBlocking": {
+        "description": "リクエスト送信前に現在のアカウントで必要な Cookie を追加し、一時ウィンドウでの確認を完了できるようにします。",
+        "title": "ネットワークリクエストの変更"
+      }
+    },
+    "messages": {
+      "granted": "{{name}} を有効化しました。関連ワークフローが正常に動作します。",
+      "grantFailed": "{{name}} を有効化できませんでした。必要であれば後でもう一度お試しください。",
+      "revoked": "{{name}} の権限を取り消しました",
+      "revokeFailed": "{{name}} の権限取り消しに失敗しました"
+    },
+    "status": {
+      "checking": "確認中…",
+      "denied": "未許可",
+      "granted": "許可済み",
+      "unavailable": "確認できません"
+    },
+    "statusCaption": "権限状態はブラウザと同期されています。このページ以外で変更した場合は更新を押してください。",
+    "title": "権限"
+  },
+  "permissionsOnboarding": {
+    "actions": {
+      "allowAll": "推奨権限をすべて許可",
+      "maybeLater": "今は許可しない"
+    },
+    "analyticsDisclosure": "匿名統計は、問題の発見と使いやすさの改善にのみ役立てます。いつでも無効にでき、アカウント情報、認証情報、送信または入力した内容は含まれません。",
+    "intro": "ソースコードは誰でも確認できます。権限や匿名統計を有効にするかどうかは自分で選べます。",
+    "openSourceBadge": "オープンソース・透明性・コミュニティ",
+    "permissionListDescription": "一部の機能には追加の権限が必要です。各権限の用途を確認し、必要なものだけを許可してください。権限はいつでも取り消せます。",
+    "permissionListTitle": "必要な任意権限を選択",
+    "project": {
+      "cta": "GitHub でソースコードや最新の進捗を確認できます。問題の報告やアイデアの共有も歓迎します。",
+      "getStartedCta": "はじめにを開く",
+      "label": "ソースコード",
+      "starCta": "My API Box が役に立ったら、GitHub で Star を付けてプロジェクトを応援"
+    },
+    "reason": {
+      "newPermissions": "新しい機能には追加の任意権限が必要です。各権限の用途を確認し、必要なものだけを許可してください。"
+    },
+    "subtitle": "言語を選び、必要な任意権限だけを有効にしてください。これらの設定は後から変更できます。",
+    "title": "My API Box へようこそ",
+    "toasts": {
+      "error": "一部の推奨権限を許可できませんでした",
+      "success": "推奨権限をすべて許可しました"
+    }
+  },
+  "productAnalytics": {
+    "description": "よく起きる問題を早く見つけ、日常的なワークフローと互換性を改善するための匿名統計です。API キー、Cookie、アカウント URL、残高、リクエスト内容、ユーザー入力は収集しません。",
+    "enableDescription": "機能利用状況、エラー分類、大まかなサイト種別の限定的な統計送信を許可し、体験への影響が大きい部分から優先して改善します。",
+    "enableLabel": "匿名プロダクト分析を有効にする",
+    "title": "匿名プロダクト分析"
+  },
+  "refresh": {
+    "autoRefresh": "自動更新",
+    "autoRefreshDesc": "アカウントデータを定期的に自動更新します（拡張機能画面を閉じた後もバックグラウンドで動作します）",
+    "description": "更新間隔や起動時の挙動など、自動更新に関する設定を行います",
+    "minRefreshInterval": "最小更新間隔",
+    "minRefreshIntervalDesc": "リクエストの過剰発生を防ぐための最小更新間隔です（{{minSeconds}} 秒以上）",
+    "minRefreshIntervalInvalid": "有効な最小更新間隔を入力してください（{{minSeconds}} 秒以上）。",
+    "refreshInterval": "更新間隔",
+    "refreshIntervalDesc": "自動更新の間隔を設定します（既定値 {{defaultInterval}} 秒。過剰なリクエストを避けるため短くしすぎないことを推奨します）",
+    "refreshIntervalHint": "アカウントが多い場合、頻繁な更新によりサイトのレート制限に達する可能性があります。{{minutes}} 分以上の間隔をおすすめします。",
+    "refreshIntervalInvalid": "有効な更新間隔を入力してください（{{minSeconds}} 秒以上）。",
+    "refreshOnOpen": "拡張機能を開いたときに自動更新",
+    "refreshOnOpenDesc": "拡張機能のポップアップを開いたときにアカウントデータを自動更新します",
+    "shieldAutomaticFeatureAccountRefresh": "アカウント更新",
+    "shieldAutomaticFeatureBalanceHistory": "残高履歴",
+    "shieldAutomaticFeatureCheckin": "チェックイン",
+    "shieldAutomaticFeatureKeyManagement": "キー管理",
+    "shieldAutomaticFeatureLdohSiteLookup": "サイト検索",
+    "shieldAutomaticFeatureManagedSiteChannels": "管理サイトのチャンネル",
+    "shieldAutomaticFeatureManagedSiteModelSync": "管理サイトのモデル同期",
+    "shieldAutomaticFeatureRedemptionAssist": "引き換え支援",
+    "shieldAutomaticFeaturesDesc": "一時的な認証ページを開ける自動機能を選択します。この選択は製品機能の有効/無効を変更せず、自分で開始した操作にも影響しません。",
+    "shieldAutomaticFeaturesTitle": "自動機能",
+    "shieldDescriptionTempWindowOnly": "サイトで認証を求められた場合、拡張機能は一時的にタブまたはウィンドウを開くことができます。認証が完了すると操作を続行します。",
+    "shieldDescriptionWithCookieInterceptor": "Firefox では、サイト認証用の一時ページを開き、認証後のログイン状態を使って操作を続行できます。この機能には Cookies、Web Request、Web Request Blocking の各権限が必要です。",
+    "shieldDevFocusDuring": "実行中：{{transition}}",
+    "shieldDevFocusEnd": "終了：{{state}}",
+    "shieldDevFocusStart": "開始：{{state}}",
+    "shieldDevFocusStateFocused": "ブラウザーはフォアグラウンド",
+    "shieldDevFocusStateUnfocused": "ブラウザーはバックグラウンド",
+    "shieldDevFocusStateUnknown": "判定できません",
+    "shieldDevFocusTitle": "今回の検出",
+    "shieldDevFocusTransitionBackgrounded": "ブラウザーがバックグラウンドに移りました",
+    "shieldDevFocusTransitionForegrounded": "ブラウザーがフォアグラウンドに戻りました",
+    "shieldDevFocusTransitionMixed": "ブラウザーがフォアグラウンドとバックグラウンドの間を移動しました",
+    "shieldDevFocusTransitionRemainedFocused": "ブラウザーはフォアグラウンドのまま",
+    "shieldDevFocusTransitionRemainedUnfocused": "ブラウザーはバックグラウンドのまま",
+    "shieldDevFocusTransitionUnknown": "判定できません",
+    "shieldDevTriggerCancel": "キャンセル",
+    "shieldDevTriggerCountdown_other": "{{count}} 秒後に実行します",
+    "shieldDevTriggerDelayLabel": "遅延（秒）",
+    "shieldDevTriggerDescription": "指定した時間の後、既存の自動動作を再現し、ウェブサイト検証支援を通じて指定 URL にリクエストします。開発モードでのみ利用できます。",
+    "shieldDevTriggerFailureFallback": "リクエストに失敗しました。詳細は拡張機能のログを確認してください。",
+    "shieldDevTriggerInvalidDelay": "0 から {{maxSeconds}} までの整数秒を入力してください。",
+    "shieldDevTriggerInvalidUrl": "有効な HTTP または HTTPS URL を入力してください。",
+    "shieldDevTriggerPresetAccountRefreshScheduled": "アカウントの定期更新",
+    "shieldDevTriggerPresetBalanceHistoryScheduled": "残高履歴の定期記録",
+    "shieldDevTriggerPresetCheckinScheduled": "定期チェックイン",
+    "shieldDevTriggerPresetKeyManagementRecovery": "キー管理の復旧",
+    "shieldDevTriggerPresetLabel": "再現する動作",
+    "shieldDevTriggerPresetLdohSiteLookupRecovery": "サイト検索の復旧",
+    "shieldDevTriggerPresetRedemptionAssistRecovery": "引き換え後の復旧",
+    "shieldDevTriggerPresetTurnstileAutomatic": "Turnstile：自動成功",
+    "shieldDevTriggerPresetTurnstileFailure": "Turnstile：認証失敗",
+    "shieldDevTriggerPresetTurnstileInteractive": "Turnstile：手動認証",
+    "shieldDevTriggerPresetTurnstileQueue": "Turnstile：3サイトの待機列",
+    "shieldDevTriggerRunning": "実行中...",
+    "shieldDevTriggerStart": "遅延後に実行",
+    "shieldDevTriggerSuccess": "リクエストが完了しました（HTTP {{status}}）",
+    "shieldDevTriggerTitle": "開発テスト",
+    "shieldDevTriggerTurnstileHint": "最初に pnpm dev:turnstile を実行してください。ローカルの公式テストコンポーネントを使い、実際のアカウントにはチェックインしません。画面内の通知を有効にし、各通知をクリックして認証を開きます。",
+    "shieldDevTriggerUrlLabel": "対象 URL",
+    "shieldEnabled": "自動タスクによる一時ページの表示を許可",
+    "shieldEnabledDescTempWindowOnly": "有効にすると、自動更新やチェックインなどのタスクは、サイト認証が必要なときに一時ページを開けます。無効にしても、手動で開始した操作は以下の設定に従ってこの機能を利用できます。",
+    "shieldEnabledDescWithCookieInterceptor": "有効にすると、自動更新やチェックインなどのタスクは、サイト認証が必要なときに一時ページを開けます。無効にしても、手動で開始した操作は以下の設定に従ってこの機能を利用できます。",
+    "shieldMethodAuto": "自動選択",
+    "shieldMethodComposite": "単一の共有ウィンドウ",
+    "shieldMethodDesc": "ウェブサイトの確認が必要なときに、一時ページを開く方法を設定します。",
+    "shieldMethodHintAuto": "ブラウザーの状態に応じて自動で切り替えます。使用中は確認ページを共有ウィンドウにまとめ、普段のタブに混在させません。ブラウザーがバックグラウンドにあるときは非アクティブなタブを使用し、ウィンドウを前面に出さないようにします。",
+    "shieldMethodHintComposite": "認証ページを普段のブラウジングと分けたい場合に適しています。認証ページは 1 つの専用ウィンドウにまとめられます。このウィンドウを最初に開くとき、ブラウザーが前面に出る場合があります。",
+    "shieldMethodHintTab": "作業を中断されたくない場合に適しています。認証ページは現在のブラウザーウィンドウに非アクティブなタブとして追加され、別のウィンドウを開いたり、ブラウザーを前面に出したりしません。",
+    "shieldMethodHintWindow": "認証ごとに独立したウィンドウを使いたい場合に適しています。毎回別のウィンドウが開くため、連続して処理すると複数のウィンドウが表示され、ブラウザーが繰り返し前面に出る場合があります。",
+    "shieldMethodRecommended": "推奨",
+    "shieldMethodTab": "現在のウィンドウのタブ",
+    "shieldMethodTitle": "開き方",
+    "shieldMethodWindow": "毎回新しいウィンドウ",
+    "shieldPermissionAction": "権限タブを開く",
+    "shieldPermissionWarningDesc": "Firefox では、サイト認証で作成された Cookie を読み取り、後続のリクエストでログイン状態を維持するために、これら 3 つの権限が必要です。",
+    "shieldPermissionWarningTitle": "Cookies、Web Request、Web Request Blocking の権限が必要です",
+    "shieldPopupFirefoxNote": "Firefox では、拡張機能のポップアップからこの機能を開始するとポップアップが閉じるため、この入口は利用できません。サイドパネルまたは設定ページを使用してください。",
+    "shieldTitle": "サイト認証の補助",
+    "shieldTurnstileAssistDesc": "Turnstile を自分で完了する必要があるときの知らせ方です。確認ウィンドウは完了するか時間切れになるまで開いたままです。",
+    "shieldTurnstileAssistNotify": "ブラウザー通知",
+    "shieldTurnstileAssistNotifyHint": "ローカルのブラウザー通知を送信します。クリックすると認証画面が開きます。通知の権限が必要です。",
+    "shieldTurnstileAssistPage": "画面内の通知",
+    "shieldTurnstileAssistPageHint": "現在のウェブページや拡張機能の画面に通知を表示します。クリックすると認証画面が開きます。",
+    "shieldTurnstileAssistQuietNotice": "すべてのリマインダーが無効です。検証はバックグラウンドウィンドウで続行されますが、通知は表示されません。",
+    "shieldTurnstileAssistTitle": "手動確認が必要なとき",
+    "shieldWindowHeight": "高さ（px）",
+    "shieldWindowSizeDesc": "幅と高さをピクセル単位で設定して保存します。次に開く認証ウィンドウに適用されます。既存のウィンドウとタブのサイズは変わりません。",
+    "shieldWindowSizeReset": "既定値に戻す",
+    "shieldWindowSizeTitle": "認証ウィンドウのサイズ",
+    "shieldWindowWidth": "幅（px）",
+    "title": "更新設定",
+    "turnstileNotificationEnable": "システム通知を許可",
+    "turnstileNotificationManage": "通知権限を管理",
+    "turnstileNotificationPermissionTitle": "My API Box のブラウザー通知を許可",
+    "turnstileNotificationStatus": {
+      "available": "システム通知：許可済みです。OS の集中モードやブラウザー設定により非表示になる場合があります。",
+      "blocked": "ブラウザーが通知をブロックしています。ブラウザーの通知設定を確認してから、ここに戻って再試行してください。",
+      "loading": "システム通知の権限を確認中…",
+      "permission_required": "システム通知：権限が必要です。ページ内の通知には不要です。",
+      "unavailable": "このブラウザーは通知に対応していません。画面内の通知は個別に有効にできます。",
+      "unknown": "通知が利用可能か確認できませんでした。権限を確認して再試行してください。"
+    }
+  },
+  "releaseUpdate": {
+    "changelog": "変更履歴",
+    "checkNow": "更新を確認",
+    "downloadUpdate": "更新をダウンロード",
+    "helpers": {
+      "amoUpdate": "Firefox Add-ons に新しいバージョンがあります。ストアで更新するか、Firefox の自動更新をお待ちください。",
+      "checkFailed": "もう一度更新を確認してください。",
+      "manualUpdate": "現在のインストールは手動更新です。リリースページから新しいバージョンを取得してください。",
+      "manualUpdateGeneric": "現在のインストール経路で更新してください。必要ならリリースページから手動更新してください。",
+      "storeUpdate": "ストア版はブラウザーが自動更新します。ストアでの配信をお待ちください。",
+      "storeUpdateReady": "ブラウザがストア更新を検出しました。拡張機能を再読み込みすると新しいバージョンを使用できます。",
+      "unavailable": "もう一度更新を確認してください。"
+    },
+    "latestAmoVersion": "Firefox Add-ons：v{{version}}",
+    "latestNightlyVersion": "最新 Nightly：{{version}}",
+    "reloadToUpdate": "再読み込みして更新",
+    "states": {
+      "checkFailed": "更新を確認できませんでした",
+      "notChecked": "最新安定版はまだ確認していません。手動チェックで比較できます",
+      "storeUpdatePending": "ストアでの更新を待っています",
+      "storeUpdateReady": "更新の準備ができました",
+      "unavailable": "更新状況を取得できません",
+      "updateAvailable": "更新があります",
+      "upToDate": "最新バージョンです"
+    },
+    "versionBadge": {
+      "changelogAriaLabel": "バージョン {{version}} の更新履歴",
+      "updateAvailableAriaLabel": "バージョン {{version}} に更新があります"
+    }
+  },
+  "siteAnnouncementNotifications": {
+    "description": "有効なアカウントのサイト公告をバックグラウンドで定期取得するかどうかを制御します。",
+    "page": {
+      "description": "{{intervalMinutes}} 分ごとにバックグラウンドで確認します。手動確認もできます。",
+      "open": "公告を表示",
+      "title": "公告ページ"
+    },
+    "polling": {
+      "enable": "サイト公告の取得を有効化",
+      "enableDesc": "無効にするとバックグラウンドの定期取得を停止します。保存済みのローカル公告記録は残り、公告ページから手動確認できます。",
+      "interval": "取得間隔",
+      "intervalDesc": "サイト公告をバックグラウンドで取得する間隔を分単位で設定します。15 から 1440 分まで指定できます。",
+      "intervalInvalid": "{{min}}～{{max}} 分の整数を入力してください。",
+      "maxAge": "通知の対象期間",
+      "maxAgeDesc": "この期間より前に公開された公告は既読として保存され、通知されません。",
+      "maxAgeInvalid": "{{min}}～{{max}} 日の整数を入力してください。",
+      "upstreamRead": "通知後にサイト側で既読にする",
+      "upstreamReadDesc": "有効にすると、通知の送信成功時に取得した公告をサイト側でも既読にします。無効の場合、上流の既読状態は公告ページで既読にしたときだけ同期されます。通知されたことは既読と同じではありません。既読同期に対応したサイトにのみ適用されます。"
+    },
+    "title": "サイト公告"
+  },
+  "sorting": {
+    "contextBoostDescription": "現在のサイトのアカウント、関連ページが開いているアカウントの順で、他の固定アカウントより先に表示します。各優先段階では固定を優先し、その後は選択した項目で並べます。無効なアカウントは常に末尾です。検索と手動並べ替えでは適用されません。",
+    "contextBoostTitle": "閲覧中のサイトを優先",
+    "currentSiteDesc": "現在のサイトでログイン中のユーザーに一致するアカウントを優先します。",
+    "currentSitePriority": "現在のサイトのアカウントを優先",
+    "customCheckInUrl": "外部チェックイン URL",
+    "customRedeemUrl": "カスタム引き換え URL",
+    "description": "閲覧中のサイトに基づく優先表示は固定より優先されます。その他は固定、通常、無効の順に並びます。",
+    "matchedOpenTabs": "その他の開いているタブに一致するアカウントを優先",
+    "matchedOpenTabsDesc": "サイト、または設定済みのチェックイン・引き換えページが開かれているアカウントを優先し、「関連ページを表示中」と示します。",
+    "title": "並び順の優先設定",
+    "unknownSortRule": "不明な並び替えルール"
+  },
+  "sub2apiManagedSite": {
+    "adminCredentialsLink": {
+      "description": "管理者としてログインし、「システム設定 → セキュリティと認証」でキーを作成してコピーしてください。キー全体は一度だけ表示されます。再生成すると以前のキーは無効になります。",
+      "missingBaseUrl": "有効なサイト URL を入力すると、管理画面を開いて管理者 API キーを取得できます。",
+      "open": "システム設定を開く",
+      "title": "管理者 API キーを取得"
+    },
+    "defaultScope": {
+      "description": "サイトが機密操作に追加認証を要求する場合、拡張機能ではチャネルのキーを表示・エクスポートできません。Sub2API の管理画面で操作してください。移行元のキーを読み取る必要がある移行も制限されます。",
+      "title": "キーの表示・エクスポートの制限"
+    },
+    "description": "サイトを接続すると、既存の API キーを Sub2API にインポートし、My API Box でチャネルの表示・編集・移行ができます。",
+    "fields": {
+      "adminApiKeyDesc": "チャネル管理には、管理画面で作成した管理者 API キーを使用してください。モデル呼び出し用の通常の API キーは使用できません。",
+      "adminApiKeyLabel": "管理者 API Key",
+      "adminApiKeyPlaceholder": "管理画面で取得した管理者 API キーを貼り付け",
+      "baseUrlDesc": "http:// または https:// を含む Sub2API 管理画面の URL を入力してください。",
+      "baseUrlLabel": "サイト URL",
+      "baseUrlPlaceholder": "https://sub2api.example.com",
+      "hideAdminApiKey": "管理者 API Key を非表示",
+      "showAdminApiKey": "管理者 API Key を表示"
+    },
+    "title": "Sub2API の接続設定",
+    "validation": {
+      "description": "現在の設定でサイトに接続し、管理できるかを確認します。",
+      "failed": "Sub2API の接続確認に失敗しました：{{error}}",
+      "missingFields": "先にサイト URL と管理者 API キーを入力してください",
+      "title": "接続を確認"
+    }
+  },
+  "tabs": {
+    "accountManagement": "アカウント管理",
+    "accountUsage": "アカウント利用状況",
+    "balanceHistory": "残高履歴",
+    "checkinRedeem": "チェックインと引き換え",
+    "claudeCodeRouter": "Claude Code Router",
+    "dataBackup": "データとバックアップ",
+    "general": "一般",
+    "managedSite": "セルフホスト AI ゲートウェイ",
+    "notifications": "通知",
+    "permissions": "権限",
+    "refresh": "データ更新",
+    "select": "タブを選択",
+    "siteAnnouncements": "サイト公告",
+    "webAiApiCheck": "AI API テスト"
+  },
+  "taskNotifications": {
+    "channels": {
+      "browser": {
+        "description": "ブラウザのシステム通知で送信します。notifications 権限が必要です。",
+        "title": "ブラウザシステム通知"
+      },
+      "dingtalk": {
+        "description": "DingTalk グループのカスタムボットでタスク通知を送信します。DingTalk が提供する Webhook URL 全体を貼り付ける方法を推奨します。access_token だけの入力にも対応しています。",
+        "docsLink": "設定ドキュメントを見る",
+        "secret": "署名 Secret（任意）",
+        "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "DingTalk Bot",
+        "webhookKey": "Webhook URL または access_token",
+        "webhookKeyDescription": "DingTalk カスタムボットの設定ページで Webhook URL をコピーしてここに貼り付けます。`access_token=` の後ろの値だけを入力した場合も、My API Box が URL を自動補完します。署名セキュリティを有効にしている場合は Secret も入力してください。",
+        "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "feishu": {
+        "description": "Feishu のカスタムボットでタスク通知を送信します。Feishu が提供する Webhook URL 全体を貼り付ける方法を推奨します。最後の key 部分だけの入力にも対応しています。",
+        "docsLink": "設定ドキュメントを見る",
+        "title": "Feishu Bot",
+        "webhookKey": "Webhook URL または key",
+        "webhookKeyDescription": "Feishu カスタムボットの設定ページで Webhook URL をコピーしてここに貼り付けます。`/hook/` の後ろにある key だけを入力した場合も、My API Box が URL を自動補完します。",
+        "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      "ntfy": {
+        "accessToken": "アクセストークン（任意）",
+        "accessTokenPlaceholder": "tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "description": "ntfy トピックでタスク通知を送信します。ntfy.sh または自ホスト ntfy サーバーを利用できます。",
+        "docsLink": "設定ドキュメントを見る",
+        "title": "ntfy",
+        "topicUrl": "Topic URL またはトピック名",
+        "topicUrlDescription": "`https://ntfy.sh/mytopic` のような完全なトピック URL、または ntfy.sh のトピック名だけを入力できます。自ホストサーバーや非公開トピックで必要な場合はアクセストークンを入力してください。",
+        "topicUrlPlaceholder": "https://ntfy.sh/mytopic"
+      },
+      "telegram": {
+        "botToken": "Bot Token",
+        "botTokenPlaceholder": "123456:ABC-DEF...",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "123456789 または -1001234567890",
+        "description": "Telegram Bot でタスク通知を送信します。",
+        "title": "Telegram Bot"
+      },
+      "webhook": {
+        "description": "カスタム HTTP(S) Webhook へ JSON 通知を送信します。URL ではテンプレート変数を利用でき、通知本文をパスに含める Bark などのサービスに使えます。",
+        "title": "汎用 Webhook",
+        "url": "Webhook URL",
+        "urlDescription": "URL では {title}、{message}、{task}、{status}、{total}、{success}、{failed}、{skipped} を使用できます。値は送信前に URL エンコードされます。Bark では https://api.day.app/your-key/{title}/{message} を指定できます。",
+        "urlPlaceholder": "https://api.day.app/your-key/{title}/{message}"
+      },
+      "wecom": {
+        "description": "WeCom グループのメッセージプッシュでタスク通知を送信します。WeCom が提供する Webhook URL 全体を貼り付ける方法を推奨します。key だけの入力にも対応しています。",
+        "docsLink": "設定ドキュメントを見る",
+        "title": "WeCom Bot",
+        "webhookKey": "Webhook URL または key",
+        "webhookKeyDescription": "WeCom グループのメッセージプッシュ設定で Webhook URL をコピーしてここに貼り付けます。`key=` の後ろにある key だけを入力した場合も、My API Box が URL を自動補完します。",
+        "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    "enable": "タスク通知を有効化",
+    "enableDesc": "有効にすると、選択したタスクがスケジュール実行を終えた後に成功、部分成功、失敗の通知を送ります。",
+    "groups": {
+      "channels": {
+        "description": "通知の送信先を選択します。ブラウザ通知には権限が必要です。Telegram、Feishu、DingTalk、WeCom、ntfy、Webhook は個別に設定してテストできます。",
+        "title": "通知チャネル"
+      },
+      "setup": {
+        "description": "チャネルと通知対象イベントを選ぶ前に、スケジュールタスク通知全体をオンまたはオフにします。",
+        "title": "設定"
+      },
+      "tasks": {
+        "description": "通知するスケジュールタスクの完了イベントまたはサイト公告の更新を選択します。",
+        "title": "通知イベント"
+      }
+    },
+    "notification": {
+      "body": {
+        "failure": "{{task}} が失敗しました。",
+        "partialSuccess": "{{task}} が一部完了しました。",
+        "success": "{{task}} が正常に完了しました。"
+      },
+      "counts": "合計 {{total}}、成功 {{success}}、失敗 {{failed}}、スキップ {{skipped}}。",
+      "countsWithAutoCheckinCategories": "合計 {{total}}、今回チェックイン成功 {{success}}、チェックイン済み {{alreadyChecked}}、失敗 {{failed}}、確認待ち {{uncertain}}、未実行 {{skipped}}。",
+      "title": {
+        "failure": "{{task}} が失敗しました",
+        "partialSuccess": "{{task}} が一部成功しました",
+        "success": "{{task}} が完了しました"
+      }
+    },
+    "permission": {
+      "description": "システム通知にはブラウザの任意 notifications 権限が必要です。権限ページから取り消すこともできます。",
+      "request": "通知権限を許可",
+      "requestFailed": "通知権限は許可されませんでした",
+      "requestSuccess": "通知権限を許可しました",
+      "title": "通知権限"
+    },
+    "siteAnnouncements": {
+      "enable": "サイト公告通知",
+      "enableDesc": "有効にすると、サイト公告の取得で新しい公告が見つかったときにタスク通知を送信します。無効でもローカル公告記録は保存されます。"
+    },
+    "taskDescriptions": {
+      "autoCheckin": "毎日の自動チェックインと自動リトライの完了後に通知します。",
+      "balanceHistoryCapture": "日末の残高履歴自動キャプチャ完了後に通知します。",
+      "managedSiteModelSync": "管理サイトのモデル定期同期完了後に通知します。",
+      "usageHistorySync": "利用履歴の定期同期完了後に通知します。",
+      "webdavAutoSync": "WebDAV の定期自動同期完了後に通知します。"
+    },
+    "tasks": {
+      "autoCheckin": "自動チェックイン",
+      "balanceHistoryCapture": "日末残高キャプチャ",
+      "managedSiteModelSync": "モデル同期",
+      "usageHistorySync": "利用履歴同期",
+      "webdavAutoSync": "WebDAV 自動同期"
+    },
+    "tasksLabel": "タスク通知",
+    "test": {
+      "action": "テスト通知を送信",
+      "browserFailed": "ブラウザ通知のテストに失敗しました。ブラウザ通知チャネルが有効で、通知権限が許可されていることを確認してください。",
+      "channelDisabled": "テスト通知を送信できませんでした。この通知チャネルを有効化して設定してください。",
+      "dingtalkMissingConfig": "DingTalk Bot の Webhook URL または access_token が設定されていません。",
+      "failed": "テスト通知を送信できませんでした。この通知チャネル設定を確認してください。",
+      "feishuMissingConfig": "Feishu Bot の Webhook URL または key が設定されていません。",
+      "httpError": "{{label}} が HTTP {{status}} を返しました。",
+      "httpErrorWithDetail": "{{label}} が HTTP {{status}} を返しました: {{detail}}",
+      "message": "これは My API Box のタスク通知テストです。",
+      "ntfyInvalidUrl": "ntfy トピックは http:// または https:// の URL、または有効な ntfy.sh トピック名である必要があります。",
+      "ntfyMissingConfig": "ntfy の Topic URL またはトピック名が設定されていません。",
+      "sent": "テスト通知を送信しました",
+      "telegramMissingConfig": "Telegram Bot Token または Chat ID が設定されていません。",
+      "title": "My API Box テスト通知",
+      "webhookInvalidUrl": "Webhook URL は http:// または https:// を使用する必要があります。",
+      "webhookMissingConfig": "Webhook URL が設定されていません。",
+      "wecomMissingConfig": "WeCom Bot の Webhook URL または key が設定されていません。"
+    }
+  },
+  "theme": {
+    "appearance": "外観",
+    "current": "現在: {{theme}}（{{resolvedTheme}}）",
+    "currentTheme": "現在: システムに従う（{{theme}}）",
+    "dark": "ダーク",
+    "followSystem": "システムに従う",
+    "followSystemTheme": "システムのテーマ設定に従う",
+    "light": "ライト",
+    "mode": "表示モード",
+    "selectTheme": "ライト、ダーク、またはシステム設定に従う",
+    "switchTo": "{{theme}} テーマへ切り替え: {{description}}",
+    "useDarkTheme": "ダークテーマを使用",
+    "useLightTheme": "ライトテーマを使用"
+  },
+  "title": "設定",
+  "veloera": {
+    "adminCredentialsLink": {
+      "description": "管理者の個人設定ページを開いてシステムアクセストークンとユーザー ID を確認します。",
+      "open": "ページを開く",
+      "title": "クイックアクセス"
+    },
+    "description": "Veloera 互換サービスへ接続するための統合設定を行います。",
+    "fields": {
+      "adminTokenLabel": "管理者のシステムアクセストークン",
+      "baseUrlLabel": "Base URL",
+      "baseUrlPlaceholder": "https://api.example.com",
+      "hideToken": "システムアクセストークンを隠す",
+      "showToken": "システムアクセストークンを表示",
+      "userIdLabel": "管理者ユーザー ID"
+    },
+    "title": "Veloera 統合設定",
+    "tokenDesc": "管理者ユーザー用のシステムアクセストークン",
+    "urlDesc": "Veloera 統合用の Base URL を設定します",
+    "userIdDesc": "管理者ユーザー ID（数値のみ）"
+  }
+}

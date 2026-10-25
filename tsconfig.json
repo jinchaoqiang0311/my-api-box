@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "paths": {
+      "~": ["./src"],
+      "~/*": ["./src/*"],
+      "~~": ["."],
+      "~~/*": ["./*"],
+    },
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    // Indexed reads are checked for src, tests, and e2e.
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+  },
+  "exclude": [
+    "tools/product-video",
+    "node_modules",
+    ".output",
+    "coverage",
+    "diagnostics-results",
+    "playwright-report",
+    "test-results",
+  ],
+  "extends": "./.wxt/tsconfig.json",
+}
