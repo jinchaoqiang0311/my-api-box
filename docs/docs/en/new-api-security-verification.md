@@ -2,7 +2,7 @@
 
 > For site owners or administrators of systems based on the New API series (New API, DoneHub, Veloera, etc.). When you perform sensitive operations in the extension (e.g., viewing hidden channel keys, modifying critical settings, batch synchronization, etc.), you may need to complete a security verification.
 
-## Why is Verification Needed?
+## Why is Verification Needed
 
 To ensure account security, New API systems usually audit administrator operations. If the following features are enabled in your backend, the extension will guide you through the corresponding verification process:
 

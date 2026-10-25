@@ -167,7 +167,7 @@ Enable `Developer mode` on the extension management page.
 
 ### 4. Common Troubleshooting
 
-- **If the browser prompts "Change this page is your intention?":** Prioritize selecting "Keep current settings" to prevent the browser from altering your homepage or tab settings.
+- **If the browser prompts "Change this page is your intention":** Prioritize selecting "Keep current settings" to prevent the browser from altering your homepage or tab settings.
 - **If the extension is installed but not working:** Refresh the target website pages that were open before installation.
 - **If Developer Mode or the loading option is not found in the current version:** Consider upgrading your Cheetah Browser desktop version or switching to Chrome/Edge.
 
@@ -216,7 +216,7 @@ Do not place the extension directory in system temporary folders, download cache
 
 ## Frequently Asked Questions
 
-### Should I download the Chrome package or the Firefox/Safari package?
+### Should I download the Chrome package or the Firefox/Safari package
 
 For Chromium browsers that need manual loading, download:
 
@@ -226,11 +226,11 @@ all-api-hub-<version>-chrome.zip
 
 Do not download Firefox's `.xpi` / Firefox package or Safari's Xcode bundle.
 
-### Can I install the `.zip` file directly?
+### Can I install the `.zip` file directly
 
 Generally not recommended. Please extract the file first, then use `Load unpacked extension` to select the directory containing `manifest.json`.
 
-### Why does automatic recognition fail after successful installation?
+### Why does automatic recognition fail after successful installation
 
 Common reasons include:
 
@@ -239,7 +239,7 @@ Common reasons include:
 - The browser is in compatibility mode or security mode, preventing the Chromium extension from injecting into the page.
 - The current browser has incomplete support for extension APIs. Try reproducing the issue in Chrome/Edge for confirmation.
 
-### What if the sidebar entry is unavailable?
+### What if the sidebar entry is unavailable
 
 Some browsers do not support the sidebar capabilities of Chrome/Edge. In such cases, you can use the extension popup or settings page for account management. Core functionalities do not rely on the sidebar.
 

@@ -88,7 +88,7 @@ Once the above conditions are met, in most cases, clicking "Auto Redeem" will le
 
 ## Frequently Asked Questions
 
-### Q1: There's clearly a redemption code on the page, but no prompt appears?
+### Q1: There's clearly a redemption code on the page, but no prompt appears
 
 Possible reasons:
 
@@ -104,7 +104,7 @@ Suggested troubleshooting steps:
 3. Retry in a common desktop browser (Chrome / Edge / Firefox);
 4. If still ineffective, you can provide feedback in the repository Issues with a site screenshot and debugging information.
 
-### Q2: Does auto-redemption affect account security?
+### Q2: Does auto-redemption affect account security
 
 - The Redemption Assist logic is executed only within the local browser and does not upload account information or redemption codes to third-party servers;
 - All API requests are sent directly to the corresponding aggregate site;

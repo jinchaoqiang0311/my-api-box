@@ -151,11 +151,11 @@ Click **`Refresh Data`** to request the current source again and invalidate rela
 
 | Question | Answer |
 |------|------|
-| Why is a model price 0, or why can't it participate in comparison? | A model may genuinely be free when the site explicitly reports a zero price. Incomplete price data is marked not comparable and is not treated as free. |
-| How is cross-site price comparison calculated? | It is a local calculation over currently loaded data with valid, comparable prices. Use the source and precision shown on the page; actual charges follow each site's published prices. |
-| Why does a quote show "Not Included in Current Comparison"? | A price required by the current conditions, such as cache-read price, is missing. Choose another scenario, adjust the proportions, or expand the quote to see available prices. |
-| Why does verification show failed or unknown? | Verification is one probe and can be affected by permissions, model restrictions, rate limits, and other conditions. Use the target tool's actual behavior as the final reference. |
-| Why does my account have no price or multiplier? | The source may not provide price, multiplier, or group data. For example, API Credentials generally support model discovery and verification only. |
+| Why is a model price 0, or why can't it participate in comparison | A model may genuinely be free when the site explicitly reports a zero price. Incomplete price data is marked not comparable and is not treated as free. |
+| How is cross-site price comparison calculated | It is a local calculation over currently loaded data with valid, comparable prices. Use the source and precision shown on the page; actual charges follow each site's published prices. |
+| Why does a quote show "Not Included in Current Comparison" | A price required by the current conditions, such as cache-read price, is missing. Choose another scenario, adjust the proportions, or expand the quote to see available prices. |
+| Why does verification show failed or unknown | Verification is one probe and can be affected by permissions, model restrictions, rate limits, and other conditions. Use the target tool's actual behavior as the final reference. |
+| Why does my account have no price or multiplier | The source may not provide price, multiplier, or group data. For example, API Credentials generally support model discovery and verification only. |
 
 ## Related Documentation
 

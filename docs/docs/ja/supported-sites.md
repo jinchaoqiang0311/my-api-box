@@ -32,9 +32,9 @@
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | OpenRouter                    | 複数のモデル提供元を統一 API で利用できる独立した AI モデル集約プラットフォーム。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | [公式サイト](https://openrouter.ai/) / [ドキュメント](https://openrouter.ai/docs) / [設定ガイド](./service-guides/openrouter.md)                             |
 | Kimi オープンプラットフォーム | Kimi（Moonshot）公式オープンプラットフォーム。国際版と中国版はそれぞれ独立したアカウント体系を使用します。                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [国際版](https://platform.kimi.ai/) / [中国版](https://platform.kimi.com/)                                                                                   |
-| AnyRouter                     | Claude Code プロキシ · ゼロしきい値 · 無料 $50                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | [ドキュメント](https://docs.anyrouter.top/) / [公式サイト](https://anyrouter.top/register?aff=tDKX)                                                          |
-| AgentRouter                   | AI API ルーティングおよびプロキシサービスプラットフォーム。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [公式サイト](https://agentrouter.org/register?aff=TUX6)                                                                                                      |
-| AIHubMix                      | モデル API と専用アカウントコンソールを提供する独立した AI API 集約プラットフォーム。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | [公式サイト](https://aihubmix.com/?aff=W3DN) / [API ドキュメント](https://docs.aihubmix.com/cn/api/Cli) / [設定ガイド](./sponsor-guides/aihubmix.md)         |
+| AnyRouter                     | Claude Code プロキシ · ゼロしきい値 · 無料 $50                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | [ドキュメント](https://docs.anyrouter.top/) / [公式サイト](https://anyrouter.top/register)                                                          |
+| AgentRouter                   | AI API ルーティングおよびプロキシサービスプラットフォーム。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [公式サイト](https://agentrouter.org/register)                                                                                                      |
+| AIHubMix                      | モデル API と専用アカウントコンソールを提供する独立した AI API 集約プラットフォーム。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | [公式サイト](https://aihubmix.com/) / [API ドキュメント](https://docs.aihubmix.com/cn/api/Cli) / [設定ガイド](./sponsor-guides/aihubmix.md)         |
 | 老张 API                      | 商用 AI モデル API 中継サービス。標準、国内・予備、海外直通、CF-CDN の各入口は同じアカウント体系を使用します。                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | —                                                                                                                                                            |
 | Dahl                          | トークン残高を利用する AI 推論サービス。モデル API とアカウントコンソールを提供します。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | —                                                                                                                                                            |
 | FoxCode                       | 開発者向けの AI コーディングモデル中継およびサブスクリプションプラットフォーム。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | —                                                                                                                                                            |
@@ -78,11 +78,11 @@
   <hr>
 
   <section class="sponsor-item">
-    <a class="sponsor-logo" href="https://www.packyapi.ai/register?aff=all-api-hub">
+    <a class="sponsor-logo" href="https://www.packyapi.ai/register">
       <img src="../../../resources/partners/packycode.png" alt="PackyCode">
     </a>
     <p>
-      <strong>PackyCode</strong> は、Claude Code、Codex、Gemini などの多様なプロキシサービスを提供しています。<a href="https://www.packyapi.ai/register?aff=all-api-hub">こちらのリンク</a>から登録し、初回チャージ時に "all-api-hub" クーポンコードを入力すると、<strong>10% オフ</strong>になります（<a href="./sponsor-guides/packycode.md">設定ガイド</a>）。
+      <strong>PackyCode</strong> は、Claude Code、Codex、Gemini などの多様なプロキシサービスを提供しています。<a href="https://www.packyapi.ai/register">こちらのリンク</a>から登録し、初回チャージ時に "all-api-hub" クーポンコードを入力すると、<strong>10% オフ</strong>になります（<a href="./sponsor-guides/packycode.md">設定ガイド</a>）。
     </p>
   </section>
 
@@ -100,11 +100,11 @@
   <hr>
 
   <section class="sponsor-item">
-    <a class="sponsor-logo" href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">
+    <a class="sponsor-logo" href="https://www.aicodemirror.ai/register">
       <img src="../../../resources/partners/aicodemirror.png" alt="AICodeMirror">
     </a>
     <p>
-      <strong>AICodeMirror</strong> は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。<a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">こちらのリンク</a>から登録すると<strong>初回チャージが 20% オフ</strong>になり、エンタープライズ顧客は最大 25% オフを受けられます。
+      <strong>AICodeMirror</strong> は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。<a href="https://www.aicodemirror.ai/register">こちらのリンク</a>から登録すると<strong>初回チャージが 20% オフ</strong>になり、エンタープライズ顧客は最大 25% オフを受けられます。
     </p>
   </section>
 
@@ -133,22 +133,22 @@
   <hr>
 
   <section class="sponsor-item">
-    <a class="sponsor-logo" href="https://88api.ai/register?aff=XcTj">
+    <a class="sponsor-logo" href="https://88api.ai/register">
       <img src="../../../resources/partners/88api.jpg" alt="88API Token集約プラットフォーム">
     </a>
     <p>
-      <strong>88API Token集約プラットフォーム</strong> 香港企業が運営する、開発者・クリエイター・AI アプリユーザー向けのマルチモデル API プラットフォームです。統一 API でテキスト・画像・音声・動画モデルに接続し、AI コーディング、翻訳、コンテンツ制作、ナレーション、画像生成、動画生成に対応します。CC Switch で直接 Provider を追加・切り替えでき、主要な国際決済、請求書発行、安定した企業向けサービスにも対応します。 <a href="https://88api.ai/register?aff=XcTj">専用リンクから登録すると、特典クレジットを受け取れます！</a>
+      <strong>88API Token集約プラットフォーム</strong> 香港企業が運営する、開発者・クリエイター・AI アプリユーザー向けのマルチモデル API プラットフォームです。統一 API でテキスト・画像・音声・動画モデルに接続し、AI コーディング、翻訳、コンテンツ制作、ナレーション、画像生成、動画生成に対応します。CC Switch で直接 Provider を追加・切り替えでき、主要な国際決済、請求書発行、安定した企業向けサービスにも対応します。 <a href="https://88api.ai/register">専用リンクから登録すると、特典クレジットを受け取れます！</a>
     </p>
   </section>
 
   <hr>
 
   <section class="sponsor-item sponsor-item-featured">
-    <a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">
+    <a href="https://www.byteplus.com/en/product/modelark">
       <img src="../../../resources/partners/volcengine_en.jpg" alt="Dola Seed on BytePlus ModelArk">
     </a>
     <p>
-      <strong>Dola Seed on BytePlus ModelArk</strong> は ByteDance がグローバル市場向けに開発したフルモーダル汎用大規模モデルです。BytePlus ModelArk から、マルチモーダル理解と生成、エージェント協調、推論、ツール連携、コーディング機能を利用できます。<a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">BytePlus ModelArk のリンク</a>から登録すると、各モデルにつき 500,000 トークン分の無料推論枠を受け取れます。
+      <strong>Dola Seed on BytePlus ModelArk</strong> は ByteDance がグローバル市場向けに開発したフルモーダル汎用大規模モデルです。BytePlus ModelArk から、マルチモーダル理解と生成、エージェント協調、推論、ツール連携、コーディング機能を利用できます。<a href="https://www.byteplus.com/en/product/modelark">BytePlus ModelArk のリンク</a>から登録すると、各モデルにつき 500,000 トークン分の無料推論枠を受け取れます。
     </p>
   </section>
 

@@ -58,10 +58,10 @@ export type ReleaseUpdateStatus = {
 }
 
 export const LATEST_STABLE_RELEASE_URL =
-  "https://github.com/qixing-jk/all-api-hub/releases/latest"
+  "https://github.com/jinchaoqiang0311/my-api-box/releases/latest"
 
 export const LATEST_NIGHTLY_RELEASE_URL =
-  "https://github.com/qixing-jk/all-api-hub/releases/tag/nightly"
+  "https://github.com/jinchaoqiang0311/my-api-box/releases/tag/nightly"
 
 export const createDefaultBrowserStoreUpdateState =
   (): BrowserStoreUpdateState => ({

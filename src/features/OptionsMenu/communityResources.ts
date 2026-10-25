@@ -9,7 +9,7 @@ import {
 } from "./communityResourceCache"
 
 const COMMUNITY_RESOURCES_URL =
-  "https://raw.githubusercontent.com/qixing-jk/all-api-hub/main/public/community-resources.v1.json"
+  "https://raw.githubusercontent.com/jinchaoqiang0311/my-api-box/main/public/community-resources.v1.json"
 
 const httpsUrl = z.url().refine((value) => {
   const url = new URL(value)

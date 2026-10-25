@@ -83,7 +83,7 @@ The **`Site Announcements`** page supports:
 
 ## FAQ
 
-### Why are there no announcement records?
+### Why are there no announcement records
 
 Possible causes include:
 
@@ -92,19 +92,19 @@ Possible causes include:
 - The account is disabled, so it is skipped by background checks.
 - The browser background task has not run yet. Open **`Site Announcements`** and click **`Check now`**.
 
-### Why does it show “unsupported announcement endpoint”?
+### Why does it show “unsupported announcement endpoint”
 
 This means the latest check did not find a usable announcement endpoint, or the target site's API behavior does not match the format currently supported by My API Box. This is common on privately modified deployments, sites that disabled the announcement endpoint, or sites that changed the response shape.
 
-### Why can I still see new announcements after disabling notifications?
+### Why can I still see new announcements after disabling notifications
 
 **`Site announcement notifications`** only controls whether new announcements are sent through browser system notifications or third-party channels. As long as **`Enable site announcement polling`** remains enabled, new announcements are still saved locally.
 
-### Why can I run a manual check after disabling background polling?
+### Why can I run a manual check after disabling background polling
 
 The background polling switch only controls scheduled tasks. Manual checks are user-initiated refreshes for temporary updates or troubleshooting, so they are not blocked by that switch.
 
-### Does Sub2API read state sync back to the site?
+### Does Sub2API read state sync back to the site
 
 In two different cases. When you mark an announcement read on the page, or expand an unread Sub2API announcement, My API Box tries to sync the upstream read state. To also sync right after a successful notification, enable **`Mark announcements read on the site after notifying`** in settings; it will not do that on its own, because it clears your unread state on the site. If the site API fails, the local read state still follows your local action.
 

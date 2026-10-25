@@ -6,7 +6,7 @@ My API Box has two common installation channels: the **browser store version** a
 Chrome, Edge, and Firefox users should install the matching store version first. Store versions are updated automatically by the browser and are the easiest to maintain. Only consider manual installation from GitHub when the store has not received an update yet, your browser cannot install a store or Chrome Web Store compatible version, or you need to temporarily verify a fix.
 :::
 
-## Which Version Should I Install?
+## Which Version Should I Install
 
 | Your Situation | Recommended Version | Update Method |
 |---|---|---|
@@ -20,7 +20,7 @@ Chrome, Edge, and Firefox users should install the matching store version first.
 
 If you use QQ Browser, 360 Browser, Cheetah Browser, Brave, Vivaldi, Opera, or a similar browser, see the [Other Browser Installation Guide](./other-browser-install.md). Brave, Vivaldi, and Opera can usually try Chrome Web Store first; download the GitHub Chrome package only when manual loading is needed.
 
-## Why Does GitHub Have a Newer Version Before the Store?
+## Why Does GitHub Have a Newer Version Before the Store
 
 This is normal. The project usually publishes a new version to GitHub first, then submits it to each browser store. Stores still need to review and roll out the update, so they may be behind for a while.
 
@@ -75,7 +75,7 @@ This method can only update to a version that the store already provides. If the
 
 Firefox usually updates extensions automatically. You can also open `about:addons`, go to the extensions management page, and check whether updates are available. The button position may vary slightly between Firefox versions.
 
-## When Should I Install Manually from GitHub?
+## When Should I Install Manually from GitHub
 
 Manual installation from GitHub is best used temporarily:
 
@@ -94,23 +94,23 @@ For manual installation and update steps, see the [Other Browser Installation Gu
 
 ## Frequently Asked Questions
 
-### Do I Need to Keep Clicking "Check for updates"?
+### Do I Need to Keep Clicking "Check for updates"
 
 No. Store versions are updated automatically by the browser. Only check manually when you see that GitHub has published a newer version, or when you want to confirm whether the store version can already be updated.
 
-### Does "Check for updates" Automatically Download the GitHub Package?
+### Does "Check for updates" Automatically Download the GitHub Package
 
 No. It only shows the version status and asks the browser to check whether the store version can be updated. GitHub packages still need to be downloaded manually from the Releases page.
 
-### Will "Reload to update" Delete My Data?
+### Will "Reload to update" Delete My Data
 
 No. It only applies a store update that has already been downloaded. Accounts, keys, settings, and other data remain in the browser extension storage.
 
-### GitHub Has a New Version, but the Extension Still Says the Store Has No Update. What Should I Do?
+### GitHub Has a New Version, but the Extension Still Says the Store Has No Update. What Should I Do
 
 If you use the store version, wait for store review and rollout first. If you urgently need the fix, you can temporarily install GitHub Stable manually. It is recommended to export a backup before doing so.
 
-### How Do I Update a Manually Installed Version?
+### How Do I Update a Manually Installed Version
 
 Download the new package and load the new extension directory again. For details, see the [Other Browser Installation Guide](./other-browser-install.md#update-extension).
 

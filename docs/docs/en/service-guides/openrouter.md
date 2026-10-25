@@ -27,7 +27,7 @@ A practical workflow is to add OpenRouter automatically, use My API Box for bala
 | 2 | Add the account manually | Automatic setup does not finish |
 | 3 | Save only an API Key | You do not need account management and only want to save, check, or export an existing API Key |
 
-::: tip What is the difference between a Management Key and an API Key?
+::: tip What is the difference between a Management Key and an API Key
 A Management Key adds the account and manages API Keys in OpenRouter. An API Key is the key you configure in AI clients. With automatic setup, My API Box creates the Management Key for you, so you usually do not need to prepare one first.
 :::
 
@@ -140,23 +140,23 @@ OpenRouter provides the models and API service. My API Box organizes the account
 
 ## Troubleshooting
 
-### Why does My API Box say my Management Key cannot be used?
+### Why does My API Box say my Management Key cannot be used
 
 Open OpenRouter's Management Keys page and check that the key still exists. If you can no longer find or copy the full key, create a new one and update or re-add the account.
 
-### Why can I view a workspace but not manage its keys?
+### Why can I view a workspace but not manage its keys
 
 The current account may not be allowed to manage that workspace. Check that you selected the correct workspace and that the Management Key has access to it.
 
-### Why can I not select a workspace member?
+### Why can I not select a workspace member
 
 Personal or default workspaces may not provide a member list. The creator is optional; if the page lets you continue, leave it unselected.
 
-### Why can I not copy or export an existing API Key?
+### Why can I not copy or export an existing API Key
 
 OpenRouter does not show the full value of an existing key again. You can copy, check, or export it later only if you copied it or saved it to the API Credential Library when it was created.
 
-### Why does OpenRouter not appear in Account Management after I save an API Key?
+### Why does OpenRouter not appear in Account Management after I save an API Key
 
 The API Credential Library only stores `Base URL + API Key`; it does not add an OpenRouter account. Follow the account setup steps above to view the balance or manage keys in OpenRouter.
 

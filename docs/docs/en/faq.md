@@ -4,7 +4,7 @@ A collection of common issues encountered when using the plugin.
 
 ## 🔐 Authentication Related
 
-### What is the difference between Cookie mode and Access Token mode?
+### What is the difference between Cookie mode and Access Token mode
 
 The plugin supports two authentication methods:
 
@@ -18,7 +18,7 @@ The plugin supports two authentication methods:
 - Using a modified version of the proxy site.
 - Token functionality is disabled.
 
-### How to switch authentication methods?
+### How to switch authentication methods
 
 When adding an account, select the corresponding authentication method in the account dialog:
 1. Click "Add Account".
@@ -29,7 +29,7 @@ When adding an account, select the corresponding authentication method in the ac
 ## 🔧 Special Site Issues
 
 <a id="anyrouter-error"></a>
-### What to do if AnyRouter website reports an error?
+### What to do if AnyRouter website reports an error
 
 AnyRouter is a modified proxy site and does not support the standard Access Token method.
 
@@ -42,7 +42,7 @@ AnyRouter is a modified proxy site and does not support the standard Access Toke
 Because AnyRouter has modified the API, some features may not work correctly. If you encounter problems, it is recommended to contact the site administrator.
 :::
 
-### How to add Sub2API sites?
+### How to add Sub2API sites
 
 Common characteristics of Sub2API sites: the console interface is at `/api/v1/*`, and uses **short-term JWT** (`auth_token`) + **refresh token (rotates)** for login status. The console writes login information to localStorage:
 
@@ -88,7 +88,7 @@ When enabled, the plugin saves the `refresh_token` as an **account-private** cre
 - Does not currently support built-in automatic check-in. You can still configure an external check-in URL for the account.
 - The current version primarily synchronizes **balance/quota**; statistics like "Today's Usage/Income" may be 0.
 
-### What to do if auto-detection fails?
+### What to do if auto-detection fails
 
 If auto-detection fails, you can try the following methods:
 
@@ -101,7 +101,7 @@ If auto-detection fails, you can try the following methods:
 3. **Check Login Status**: Ensure you are logged into the target site in your browser.
 4. **Check Site Compatibility**: Confirm if the site is based on a supported project (see below).
 
-### Which sites might be incompatible?
+### Which sites might be incompatible
 
 If a site has undergone deep secondary development and modified critical interfaces (e.g., `/api/user`), the plugin may not work correctly.
 
@@ -113,7 +113,7 @@ Common incompatibility scenarios:
 
 ## 🐛 Feature and Bug Related
 
-### What to do if I encounter functional issues or bugs?
+### What to do if I encounter functional issues or bugs
 
 1. **Check Issues**: Go to [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) to search for similar problems.
 2. **Use the Latest Version**:
@@ -121,7 +121,7 @@ Common incompatibility scenarios:
    - If a fix has not reached the store yet, or you cannot install the store build, you can temporarily install it from GitHub Releases.
    - GitHub Stable, Nightly, and main-branch builds are for temporary verification and testing. Manual installations do not auto-update. You can Star / Watch the repository to receive new version notifications. For the differences between these channels, see [Installation Channels and Updates](./extension-update-install.md).
 
-### How to get the latest version?
+### How to get the latest version
 
 The plugin is released on multiple platforms. Prefer the official store that matches your browser:
 
@@ -139,7 +139,7 @@ Chrome, Edge, and Firefox users should prioritize the matching store build. Brav
 
 ## ⚙️ Feature Usage Issues
 
-### How to use WebDAV backup?
+### How to use WebDAV backup
 
 WebDAV backup can help you synchronize data across multiple devices:
 
@@ -163,7 +163,7 @@ WebDAV backup can help you synchronize data across multiple devices:
 - Synology NAS (Synology)
 :::
 
-### How to export to CherryStudio / New API?
+### How to export to CherryStudio / New API
 
 The quick export feature allows you to import site configurations into other platforms with one click:
 
@@ -192,7 +192,7 @@ When exporting to New API, the plugin will automatically detect if a similar cha
 
 For more comprehensive export and integration instructions, please refer to [Quick Export Site Configuration](./quick-export.md); for integrating with the CLIProxyAPI management interface, please refer to [CLIProxyAPI Management](./cliproxyapi-integration.md).
 
-### How to use the site check-in feature?
+### How to use the site check-in feature
 
 Some relay sites offer daily check-in rewards. See [Automatic Check-in](./auto-checkin.md) for the complete behavior. The shortest setup is:
 
@@ -207,7 +207,7 @@ Notes:
 - "Manual Check-in" and "External Check-in" only open a page. You must finish check-in on that page, and opening it does not mean check-in succeeded.
 - The account form has no "check-in detection" switch. Check-in status is read automatically during account refresh or detection.
 
-### How to customize account sorting?
+### How to customize account sorting
 
 The plugin supports priority settings for multiple sorting methods:
 
@@ -227,7 +227,7 @@ The plugin supports priority settings for multiple sorting methods:
 
 For detailed explanations and example configurations of each sorting rule, please refer to [Sorting Priority Settings](./sorting-priority.md).
 
-### How to set up automatic refresh?
+### How to set up automatic refresh
 
 Automatic refresh keeps your account data up-to-date:
 
@@ -248,7 +248,7 @@ Automatic refresh keeps your account data up-to-date:
 An excessively short refresh interval may lead to frequent requests. It is recommended to set it to no less than 60 seconds.
 :::
 
-### How to use Balance History?
+### How to use Balance History
 
 Balance History is used to view account balance changes and daily income/expenditure trends over the long term. When enabled, it records **daily aggregated snapshots** locally and displays them in a chart.
 
@@ -283,7 +283,7 @@ Balance History is used to view account balance changes and daily income/expendi
 
 <a id="mobile-browser-support"></a>
 
-### How to use it on a mobile phone?
+### How to use it on a mobile phone
 
 The plugin supports use in mobile browsers such as mobile `Edge`, `Firefox for Android`, `Kiwi`, etc. Actual usability depends on the browser's support for extension capabilities.
 
@@ -297,7 +297,7 @@ If you are using QQ Browser, 360 Series Browsers, Cheetah Browser, Brave, Vivald
 
 ## 🛠️ Advanced & Developer Tools
 
-### What is the Mesh Gradient Debugging Tool?
+### What is the Mesh Gradient Debugging Tool
 
 The **Mesh Gradient Debugging Tool** is a built-in developer tool primarily used for debugging and previewing the dynamic backgrounds used in the [Share Snapshot](./share-snapshot.md) feature.
 
@@ -310,13 +310,13 @@ This tool is primarily intended for developers or advanced users interested in v
 
 ## 🔒 Data Security
 
-### Where is the data stored?
+### Where is the data stored
 
 - **Local by default**: Accounts, keys, and site configuration are stored in the browser by default.
 - **Network access when needed**: Network requests are made only for the relevant feature, such as refreshing balances, calling site APIs, using WebDAV backup or sync, or sending enabled anonymous product analytics.
 - **Sensitive data protection**: Unless you enable WebDAV backup or sync, account data and keys are not uploaded to external storage. Anonymous product analytics do not collect API keys, cookies, account URLs, balances, request content, or user input.
 
-### Will the data be lost?
+### Will the data be lost
 
 It is recommended to back up your data regularly:
 
@@ -331,14 +331,14 @@ It is recommended to back up your data regularly:
 
 ## 🆘 Other Issues
 
-### What is site duplicate detection?
+### What is site duplicate detection
 
 When adding a site, the plugin automatically detects if the same site already exists:
 - Determined based on the site URL.
 - If it already exists, a prompt will appear, allowing for quick modification.
 - Prevents duplicate additions of the same site.
 
-### What does health status mean?
+### What does health status mean
 
 Health status indicates the availability of an account:
 
@@ -349,13 +349,13 @@ Health status indicates the availability of an account:
 | 🔴 Error  | Error | API call failed or account is abnormal.      |
 | ⚪ Unknown | Unknown | Not yet detected or status cannot be obtained. |
 
-### Does the plugin consume traffic?
+### Does the plugin consume traffic
 
 - It only accesses site APIs when refreshing account data.
 - The request volume is very small (about a few KB per site).
 - It is recommended to use automatic refresh in a WiFi environment.
 
-### How to contribute code?
+### How to contribute code
 
 Pull Requests are welcome:
 1. Fork the project repository.
@@ -375,6 +375,6 @@ See details: [CONTRIBUTING.md](https://github.com/qixing-jk/all-api-hub/blob/mai
 - [Feedback](https://github.com/qixing-jk/all-api-hub/issues)
 - [Changelog](./changelog.md)
 
-::: tip Can't find an answer?
+::: tip Can't find an answer
 If the above content does not resolve your issue, please feel free to ask on [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues).
 :::

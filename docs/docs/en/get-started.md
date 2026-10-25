@@ -13,7 +13,7 @@ For the best experience (including automatic updates), we **strongly recommend i
 | Firefox Store | [Firefox Store](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Firefox version](https://img.shields.io/amo/v/YOUR-AMO-SLUG?label=Firefox&logo=firefoxbrowser&style=flat)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Mozilla Add-on Users](https://img.shields.io/amo/users/YOUR-AMO-SLUG?label=Firefox%20Users)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
 
 <details>
-<summary>📦 Manual Installation, Safari, or Mobile? (Click to expand)</summary>
+<summary>📦 Manual Installation, Safari, or Mobile (Click to expand)</summary>
 
 - **GitHub Stable**: Use [GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases) when you cannot install a store build or Chrome Web Store compatible build, or need to temporarily install a published fix manually. Manual installations do not auto-update like the store build. You can Star / Watch the repository to receive new version notifications.
 - **Nightly pre-release**: For early access and testing. It may be less stable than the store build. Nightly is also a manual installation channel and does not auto-update.
@@ -40,18 +40,18 @@ Open and log in to your AI proxy station website in your browser first.
 4. Click **`Auto-Recognize`**.
 5. After confirming the information is correct, click **`Confirm Addition`**.
 
-::: tip Don't have an account yet?
+::: tip Don't have an account yet
 If you are looking for stable, efficient, and highly compatible AI relay services, try our partners:
 
 - [Qiniu Cloud AI](https://s.qiniu.com/qE3eai): An enterprise MaaS platform with one-stop access to 150+ mainstream global models. Enterprise users can claim 12 million free tokens.
 - [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. My API Box users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
-- [PackyCode](https://www.packyapi.ai/register?aff=all-api-hub): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
+- [PackyCode](https://www.packyapi.ai/register): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
 - [Xingchen AI](https://ai.centos.hk): 1:1 top-up ratio, invoicing support, and Claude pricing as low as 40% of the standard price. [Setup guide](./sponsor-guides/xingchen.md)
-- [AICodeMirror](https://www.aicodemirror.ai/register?invitecode=7IQNR8): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.
+- [AICodeMirror](https://www.aicodemirror.ai/register): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.
 - [Suixiang AI Relay](https://sui-xiang.com/): API relay services for Claude, Codex, Gemini, and more, with pay-as-you-go billing, daily check-in test credits, redundant routes, and automatic failover. [Setup guide](./service-guides/suixiang.md)
 - [APIMart](https://go.apimart.ai/gh-all-api-hub): A low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee.
-- [88API Token Aggregation Platform](https://88api.ai/register?aff=XcTj): A one-stop multi-model API platform operated by a Hong Kong company, with a unified API for text, image, speech, and video models. Supports adding and switching providers in CC Switch, major international payment methods, and invoicing. Register through the dedicated link for bonus credits.
-- [Dola Seed on BytePlus ModelArk](https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub): Register through BytePlus ModelArk to get 500,000 free inference tokens per model.
+- [88API Token Aggregation Platform](https://88api.ai/register): A one-stop multi-model API platform operated by a Hong Kong company, with a unified API for text, image, speech, and video models. Supports adding and switching providers in CC Switch, major international payment methods, and invoicing. Register through the dedicated link for bonus credits.
+- [Dola Seed on BytePlus ModelArk](https://www.byteplus.com/en/product/modelark): Register through BytePlus ModelArk to get 500,000 free inference tokens per model.
 :::
 
 > **Shield Bypass Tip**: If the site has Cloudflare verification (5-second shield), the plugin will automatically pop up a window to assist with bypassing it. Once verified, it will continue the recognition process automatically.
@@ -67,7 +67,7 @@ If auto-detection fails, click **"Manual Add"**, select the site type, and enter
 
 No matter which architecture you use, there is a good chance we support it:
 - **Account-site compatible architectures**: New API, One API, Sub2API, One-Hub, Veloera, Done-Hub, and more.
-- **Specialized account platforms and compatible implementations**: [OpenRouter](https://openrouter.ai/), [AnyRouter](https://anyrouter.top/register?aff=tDKX), [AgentRouter](https://agentrouter.org/register?aff=TUX6), [AIHubMix](https://aihubmix.com/?aff=W3DN), Super-API, v-api, Neo-API, and more.
+- **Specialized account platforms and compatible implementations**: [OpenRouter](https://openrouter.ai/), [AnyRouter](https://anyrouter.top/register), [AgentRouter](https://agentrouter.org/register), [AIHubMix](https://aihubmix.com/), Super-API, v-api, Neo-API, and more.
 - **Self-hosted admin backends**: New API, Sub2API, AxonHub, Claude Code Hub, [Octopus](https://github.com/bestruirui/octopus), Veloera, Done-Hub, and more, for backend management, migration, and partial model sync.
 
 ::: tip Compatibility Tip

@@ -95,10 +95,10 @@ Compared to ordinary browser bookmarks, `Bookmark Management` is more oriented t
 
 | Question | Description |
 |------|------|
-| What is the difference between a bookmark and an account? | An account includes authentication information and data refresh capabilities; a bookmark is just a quick link and does not refresh balances, models, or check-in status. |
-| Are bookmarks included in backups? | Yes. Bookmarks are shared data and can be migrated along with import/export and WebDAV synchronization. |
-| Why can't I drag and drop to sort during search? | Search / tag filtering only displays a subset of results. Directly dragging could mistakenly alter the global order, so drag-and-drop is disabled in this mode. |
-| Can I save site entry points without an account? | Yes, this is one of the most suitable uses for bookmark management. |
+| What is the difference between a bookmark and an account | An account includes authentication information and data refresh capabilities; a bookmark is just a quick link and does not refresh balances, models, or check-in status. |
+| Are bookmarks included in backups | Yes. Bookmarks are shared data and can be migrated along with import/export and WebDAV synchronization. |
+| Why can't I drag and drop to sort during search | Search / tag filtering only displays a subset of results. Directly dragging could mistakenly alter the global order, so drag-and-drop is disabled in this mode. |
+| Can I save site entry points without an account | Yes, this is one of the most suitable uses for bookmark management. |
 
 ## Related Documents
 

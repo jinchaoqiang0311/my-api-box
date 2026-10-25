@@ -2,7 +2,7 @@
 
 > LDOH Site Lookup is an enhancement tool based on [Linux.do](https://linux.do) community data. It automatically matches your added site addresses with corresponding discussion, promotion, or instruction posts in the community, helping you gain deeper insights into the background, reputation, and feedback of a site.
 
-## Why This Feature?
+## Why This Feature
 
 In the AI relay station ecosystem, many sites are operated by community members. By jumping directly to relevant discussions on Linux.do, you can:
 - **Check User Reviews**: Understand the stability, response speed, and after-sales support of the site.

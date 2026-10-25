@@ -32,9 +32,9 @@
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | OpenRouter    | 独立 AI 模型聚合平台，通过统一 API 接入多家模型供应商。 | [官网](https://openrouter.ai/) / [文档](https://openrouter.ai/docs) / [使用教程](./service-guides/openrouter.md)                                                 |
 | Kimi 开放平台 | Kimi（Moonshot）官方开放平台；国际站与中国站使用各自独立的账号体系。 | [国际站](https://platform.kimi.ai/) / [中国站](https://platform.kimi.com/) |
-| AnyRouter     | Claude Code 中转站 · 零门槛 · 免费 $50                                                                                                                                                                                                                                                                                                                                                                    | [文档](https://docs.anyrouter.top/) / [官网](https://anyrouter.top/register?aff=tDKX)                                                                            |
-| AgentRouter   | AI API 路由与中转服务平台。                                                                                                                                                                                                                                                                                                                                                                               | [官网](https://agentrouter.org/register?aff=TUX6)                                                                                                                |
-| AIHubMix      | 独立 AI API 聚合平台，提供模型 API 和独立的账户控制台。 | [官网](https://aihubmix.com/?aff=W3DN) / [API 文档](https://docs.aihubmix.com/cn/api/Cli) / [使用教程](./sponsor-guides/aihubmix.md) |
+| AnyRouter     | Claude Code 中转站 · 零门槛 · 免费 $50                                                                                                                                                                                                                                                                                                                                                                    | [文档](https://docs.anyrouter.top/) / [官网](https://anyrouter.top/register)                                                                            |
+| AgentRouter   | AI API 路由与中转服务平台。                                                                                                                                                                                                                                                                                                                                                                               | [官网](https://agentrouter.org/register)                                                                                                                |
+| AIHubMix      | 独立 AI API 聚合平台，提供模型 API 和独立的账户控制台。 | [官网](https://aihubmix.com/) / [API 文档](https://docs.aihubmix.com/cn/api/Cli) / [使用教程](./sponsor-guides/aihubmix.md) |
 | 老张 API      | 商业 AI 模型 API 中转服务，提供默认、国内/备用、欧美直连和 CF-CDN 四个入口，使用同一套账号。 | — |
 | Dahl          | 按 Token 额度使用的 AI 推理服务，提供模型 API 与账户控制台。 | — |
 | FoxCode       | 面向开发者的 AI 编程模型中转与订阅服务平台。 | — |
@@ -78,11 +78,11 @@
   <hr>
 
   <section class="sponsor-item">
-    <a class="sponsor-logo" href="https://www.packyapi.ai/register?aff=all-api-hub">
+    <a class="sponsor-logo" href="https://www.packyapi.ai/register">
       <img src="../../resources/partners/packycode.png" alt="PackyCode">
     </a>
     <p>
-      <strong>PackyCode</strong> 提供 Claude Code、Codex、Gemini 等多种中转服务。使用<a href="https://www.packyapi.ai/register?aff=all-api-hub">此链接</a>注册并在充值时填写 "all-api-hub" 优惠码，首次充值可享 <strong>9 折优惠</strong>（<a href="./sponsor-guides/packycode.md">使用教程</a>）。
+      <strong>PackyCode</strong> 提供 Claude Code、Codex、Gemini 等多种中转服务。使用<a href="https://www.packyapi.ai/register">此链接</a>注册并在充值时填写 "all-api-hub" 优惠码，首次充值可享 <strong>9 折优惠</strong>（<a href="./sponsor-guides/packycode.md">使用教程</a>）。
     </p>
   </section>
 
@@ -100,11 +100,11 @@
   <hr>
 
   <section class="sponsor-item">
-    <a class="sponsor-logo" href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">
+    <a class="sponsor-logo" href="https://www.aicodemirror.ai/register">
       <img src="../../resources/partners/aicodemirror.png" alt="AICodeMirror">
     </a>
     <p>
-      <strong>AICodeMirror</strong> 提供 Claude Code / Codex / Gemini CLI 官方高稳定中转服务，支持企业级高并发、极速开票、7×24 专属技术支持。Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更有折上折。通过<a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">此链接</a>注册，可享受首充 <strong>8 折优惠</strong>，企业客户最高可享 7.5 折。
+      <strong>AICodeMirror</strong> 提供 Claude Code / Codex / Gemini CLI 官方高稳定中转服务，支持企业级高并发、极速开票、7×24 专属技术支持。Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更有折上折。通过<a href="https://www.aicodemirror.ai/register">此链接</a>注册，可享受首充 <strong>8 折优惠</strong>，企业客户最高可享 7.5 折。
     </p>
   </section>
 
@@ -133,11 +133,11 @@
   <hr>
 
   <section class="sponsor-item">
-    <a class="sponsor-logo" href="https://88api.ai/register?aff=XcTj">
+    <a class="sponsor-logo" href="https://88api.ai/register">
       <img src="../../resources/partners/88api.jpg" alt="88API Token聚合平台">
     </a>
     <p>
-      <strong>88API Token聚合平台</strong> 由香港企业运营的一站式多模型 API 平台，面向开发者、创作者与 AI 应用用户，通过统一接口接入文本、图片、语音和视频模型，覆盖 AI 编程、智能翻译、内容创作、配音、图像生成、视频生成等常见工作流。可直接在 CC Switch 中添加并切换 Provider，支持国际主流付款方式、发票与企业级稳定服务。 <a href="https://88api.ai/register?aff=XcTj">通过专属链接注册可获取赠送额度！</a>
+      <strong>88API Token聚合平台</strong> 由香港企业运营的一站式多模型 API 平台，面向开发者、创作者与 AI 应用用户，通过统一接口接入文本、图片、语音和视频模型，覆盖 AI 编程、智能翻译、内容创作、配音、图像生成、视频生成等常见工作流。可直接在 CC Switch 中添加并切换 Provider，支持国际主流付款方式、发票与企业级稳定服务。 <a href="https://88api.ai/register">通过专属链接注册可获取赠送额度！</a>
     </p>
   </section>
 

@@ -10,12 +10,7 @@ If you have not installed My API Box yet, start with [Getting Started](./get-sta
 
 | Service | Use Case | Guide |
 | --- | --- | --- |
-| FennoAI | Add a FennoAI account, view model pricing, and save or export API credentials. | [View guide](./service-guides/fenno.md) |
-| PackyCode | Add a PackyCode account, view model pricing, and save or export API credentials. | [View guide](./service-guides/packycode.md) |
-| Xingchen AI | Add a Xingchen AI account, view model pricing, and save or export API credentials. | [View guide](./service-guides/xingchen.md) |
-| Suixiang AI Relay | Add a Suixiang account, view model pricing, and save or export API credentials. | [View guide](./service-guides/suixiang.md) |
 | OpenRouter | Add an OpenRouter account, manage API Keys, and view model pricing. | [View guide](./service-guides/openrouter.md) |
-| AIHubMix | Add an AIHubMix account, save one-time full API keys, and view model pricing. | [View guide](./service-guides/aihubmix.md) |
 
 ## Related Documentation
 

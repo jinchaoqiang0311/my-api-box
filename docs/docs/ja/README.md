@@ -79,7 +79,7 @@ AI の時代には、節約したり別のモデルを試したりするため�
 どのアーキテクチャを使っていても、高い確率で対応しています：
 
 - **アカウントサイト互換アーキテクチャ**：New API, One API, Sub2API, One-Hub, Veloera, Done-Hub など。
-- **特色あるアカウントプラットフォームと互換実装**：[OpenRouter](https://openrouter.ai/)、[AnyRouter](https://anyrouter.top/register?aff=tDKX)、[AgentRouter](https://agentrouter.org/register?aff=TUX6)、[AIHubMix](https://aihubmix.com/?aff=W3DN)、Super-API、v-api、Neo-API など。
+- **特色あるアカウントプラットフォームと互換実装**：[OpenRouter](https://openrouter.ai/)、[AnyRouter](https://anyrouter.top/register)、[AgentRouter](https://agentrouter.org/register)、[AIHubMix](https://aihubmix.com/)、Super-API、v-api、Neo-API など。
 - **セルフホスト型管理バックエンド**：CLIProxyAPI、New API、Sub2API、AxonHub、Claude Code Hub、Octopus、Veloera、DoneHub など。バックエンド管理に利用でき、対応サイトでは移行とモデル同期も行えます。
 
 > macOS で Safari を使う場合は、先に [Safari インストールガイド](./safari-install.md) を確認してください。
@@ -136,13 +136,13 @@ AI の時代には、節約したり別のモデルを試したりするため�
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
-    <a href="https://www.packyapi.ai/register?aff=all-api-hub">
+    <a href="https://www.packyapi.ai/register">
       <img src="../../../resources/partners/packycode.png" alt="PackyCode">
     </a>
   </div>
   <p class="readme-sponsor-copy">
     PackyCode は、Claude Code、Codex、Gemini など、多数の中継サービスを提供する、信頼性と効率性に優れた API 中継サービスプロバイダーです。PackyCode
-    は、当ソフトウェアのユーザーに特別割引を提供しています。<a href="https://www.packyapi.ai/register?aff=all-api-hub">こちらのリンク</a>から登録し、初回チャージ時に "all-api-hub" プロモコードを入力すると、10% オフになります（<a href="./sponsor-guides/packycode.md">設定ガイド</a>）。
+    は、当ソフトウェアのユーザーに特別割引を提供しています。<a href="https://www.packyapi.ai/register">こちらのリンク</a>から登録し、初回チャージ時に "all-api-hub" プロモコードを入力すると、10% オフになります（<a href="./sponsor-guides/packycode.md">設定ガイド</a>）。
   </p>
 </div>
 
@@ -163,12 +163,12 @@ AI の時代には、節約したり別のモデルを試したりするため�
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
-    <a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">
+    <a href="https://www.aicodemirror.ai/register">
       <img src="../../../resources/partners/aicodemirror.png" alt="AICodeMirror">
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    AICodeMirror は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。My API Box ユーザー向け特典として、<a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">こちらのリンク</a>から登録すると初回チャージが 20% オフになり、エンタープライズ顧客は最大 25% オフを受けられます。
+    AICodeMirror は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。My API Box ユーザー向け特典として、<a href="https://www.aicodemirror.ai/register">こちらのリンク</a>から登録すると初回チャージが 20% オフになり、エンタープライズ顧客は最大 25% オフを受けられます。
   </p>
 </div>
 
@@ -205,12 +205,12 @@ AI の時代には、節約したり別のモデルを試したりするため�
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
-    <a href="https://88api.ai/register?aff=XcTj">
+    <a href="https://88api.ai/register">
       <img src="../../../resources/partners/88api.jpg" alt="88API Token集約プラットフォーム">
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    <strong>88API Token集約プラットフォーム</strong> 香港企業が運営する、開発者・クリエイター・AI アプリユーザー向けのマルチモデル API プラットフォームです。統一 API でテキスト・画像・音声・動画モデルに接続し、AI コーディング、翻訳、コンテンツ制作、ナレーション、画像生成、動画生成に対応します。CC Switch で直接 Provider を追加・切り替えでき、主要な国際決済、請求書発行、安定した企業向けサービスにも対応します。 <a href="https://88api.ai/register?aff=XcTj">専用リンクから登録すると、特典クレジットを受け取れます！</a>
+    <strong>88API Token集約プラットフォーム</strong> 香港企業が運営する、開発者・クリエイター・AI アプリユーザー向けのマルチモデル API プラットフォームです。統一 API でテキスト・画像・音声・動画モデルに接続し、AI コーディング、翻訳、コンテンツ制作、ナレーション、画像生成、動画生成に対応します。CC Switch で直接 Provider を追加・切り替えでき、主要な国際決済、請求書発行、安定した企業向けサービスにも対応します。 <a href="https://88api.ai/register">専用リンクから登録すると、特典クレジットを受け取れます！</a>
   </p>
 </div>
 
@@ -218,12 +218,12 @@ AI の時代には、節約したり別のモデルを試したりするため�
 
 <div class="readme-sponsor readme-sponsor-featured">
   <p class="readme-sponsor-banner">
-    <a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">
+    <a href="https://www.byteplus.com/en/product/modelark">
       <img src="../../../resources/partners/volcengine_en.jpg" alt="Dola Seed on BytePlus ModelArk">
     </a>
   </p>
   <p class="readme-sponsor-copy">
-    Dola Seed 2.0 は ByteDance がグローバル市場向けに独自開発したフルモーダル汎用大規模モデルです。統一されたマルチモーダルアーキテクチャを基盤に、テキスト、画像、音声、動画の理解と生成を横断的にサポートします。エージェント協調をネイティブに実現し、推論、長時間タスク実行、ツール連携、コーディング能力に優れています。スマートコックピット、パーソナルアシスタント、教育、カスタマーサポート、マーケティング、小売など幅広いシナリオに適用できます。マルチモーダル認識、エンドツーエンドの複雑タスク実行、安定した対話、データセキュリティに強みがあり、ModelArk プラットフォームからすぐにアクセス、デプロイできます。<a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">こちらのリンク</a>から登録すると、各モデルにつき 500,000 トークン分の無料推論枠を受け取れます。<a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html"> >>中国大陆地区的开发者请点击这里</a>
+    Dola Seed 2.0 は ByteDance がグローバル市場向けに独自開発したフルモーダル汎用大規模モデルです。統一されたマルチモーダルアーキテクチャを基盤に、テキスト、画像、音声、動画の理解と生成を横断的にサポートします。エージェント協調をネイティブに実現し、推論、長時間タスク実行、ツール連携、コーディング能力に優れています。スマートコックピット、パーソナルアシスタント、教育、カスタマーサポート、マーケティング、小売など幅広いシナリオに適用できます。マルチモーダル認識、エンドツーエンドの複雑タスク実行、安定した対話、データセキュリティに強みがあり、ModelArk プラットフォームからすぐにアクセス、デプロイできます。<a href="https://www.byteplus.com/en/product/modelark">こちらのリンク</a>から登録すると、各モデルにつき 500,000 トークン分の無料推論枠を受け取れます。<a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html"> >>中国大陆地区的开发者请点击这里</a>
   </p>
 </div>
 

@@ -35,18 +35,18 @@ The complete API key is stored in the extension's local storage. Masking in the 
 
 The **`API Key`** entry in the extension popup also provides quick access to credentials. If you have already obtained a key for an upstream site in `Key Management`, you can verify or organize it there before saving it to the `API Credential Library` for easier later use.
 
-::: tip Looking for High-Quality API Interfaces?
+::: tip Looking for High-Quality API Interfaces
 If you need stable and CLI-friendly API interfaces to fill your credential library, try our partners:
 
 - [Qiniu Cloud AI](https://s.qiniu.com/qE3eai): An enterprise MaaS platform with one-stop access to 150+ mainstream global models. Enterprise users can claim 12 million free tokens.
 - [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. My API Box users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
-- [PackyCode](https://www.packyapi.ai/register?aff=all-api-hub): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
+- [PackyCode](https://www.packyapi.ai/register): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
 - [Xingchen AI](https://ai.centos.hk): 1:1 top-up ratio, invoicing support, and Claude pricing as low as 40% of the standard price. [Setup guide](./sponsor-guides/xingchen.md)
-- [AICodeMirror](https://www.aicodemirror.ai/register?invitecode=7IQNR8): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.
+- [AICodeMirror](https://www.aicodemirror.ai/register): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.
 - [Suixiang AI Relay](https://sui-xiang.com/): API relay services for Claude, Codex, Gemini, and more, with pay-as-you-go billing, daily check-in test credits, redundant routes, and automatic failover. [Setup guide](./service-guides/suixiang.md)
 - [APIMart](https://go.apimart.ai/gh-all-api-hub): A low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee.
-- [88API Token Aggregation Platform](https://88api.ai/register?aff=XcTj): A one-stop multi-model API platform operated by a Hong Kong company, with a unified API for text, image, speech, and video models. Supports adding and switching providers in CC Switch, major international payment methods, and invoicing. Register through the dedicated link for bonus credits.
-- [Dola Seed on BytePlus ModelArk](https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub): Register through BytePlus ModelArk to get 500,000 free inference tokens per model.
+- [88API Token Aggregation Platform](https://88api.ai/register): A one-stop multi-model API platform operated by a Hong Kong company, with a unified API for text, image, speech, and video models. Supports adding and switching providers in CC Switch, major international payment methods, and invoicing. Register through the dedicated link for bonus credits.
+- [Dola Seed on BytePlus ModelArk](https://www.byteplus.com/en/product/modelark): Register through BytePlus ModelArk to get 500,000 free inference tokens per model.
 :::
 
 ## How to Add Credentials
@@ -222,12 +222,12 @@ Copying an API key places the complete secret on the system clipboard. When expo
 
 | Question | Description |
 |------|------|
-| I only saved the credential, why is there no balance data? | The current query method may not be compatible with the site, or the site does not provide a corresponding read-only interface. Missing balance data does not necessarily mean the key is invalid; try switching the query method or using a custom read-only query. |
-| Why does the model-related verification require a model ID? | Some CLI compatibility checks and model call verifications require a specific model. The interface will try to automatically suggest a model, or you can manually enter one. |
-| Can it replace account management? | Not entirely. The `API Credential Library` is better for saving and using standalone API keys for API verification, model lookup, and export; account management is still responsible for site identification, balance refresh, check-ins, usage synchronization, and other account-level capabilities. |
-| Will the API Credential Library be included in backups? | Yes. It is part of the shared data and can be migrated along with data import/export and selective synchronization via WebDAV. Importing profile data may show Merge, Replace, or Skip options. |
-| Does successful verification guarantee that every tool will work? | No. Verification represents one API probe. A target tool may use a different protocol, model, or configuration, so test again in that tool. |
-| Does deleting a profile revoke the remote API key? | No. Deletion only removes the local record; revoke the remote key separately in the provider console. |
+| I only saved the credential, why is there no balance data | The current query method may not be compatible with the site, or the site does not provide a corresponding read-only interface. Missing balance data does not necessarily mean the key is invalid; try switching the query method or using a custom read-only query. |
+| Why does the model-related verification require a model ID | Some CLI compatibility checks and model call verifications require a specific model. The interface will try to automatically suggest a model, or you can manually enter one. |
+| Can it replace account management | Not entirely. The `API Credential Library` is better for saving and using standalone API keys for API verification, model lookup, and export; account management is still responsible for site identification, balance refresh, check-ins, usage synchronization, and other account-level capabilities. |
+| Will the API Credential Library be included in backups | Yes. It is part of the shared data and can be migrated along with data import/export and selective synchronization via WebDAV. Importing profile data may show Merge, Replace, or Skip options. |
+| Does successful verification guarantee that every tool will work | No. Verification represents one API probe. A target tool may use a different protocol, model, or configuration, so test again in that tool. |
+| Does deleting a profile revoke the remote API key | No. Deletion only removes the local record; revoke the remote key separately in the provider console. |
 
 ## Related Documents
 

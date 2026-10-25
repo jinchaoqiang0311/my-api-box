@@ -79,7 +79,7 @@ In the AI era, many of us keep multiple relay-site accounts to save money or try
 No matter which architecture you use, there is a good chance we support it:
 
 - **Account-site compatible architectures**: New API, One API, Sub2API, One-Hub, Veloera, Done-Hub, and more.
-- **Specialized account platforms and compatible implementations**: [OpenRouter](https://openrouter.ai/), [AnyRouter](https://anyrouter.top/register?aff=tDKX), [AgentRouter](https://agentrouter.org/register?aff=TUX6), [AIHubMix](https://aihubmix.com/?aff=W3DN), Super-API, v-api, Neo-API, and more.
+- **Specialized account platforms and compatible implementations**: [OpenRouter](https://openrouter.ai/), [AnyRouter](https://anyrouter.top/register), [AgentRouter](https://agentrouter.org/register), [AIHubMix](https://aihubmix.com/), Super-API, v-api, Neo-API, and more.
 - **Self-hosted admin backends**: CLIProxyAPI, New API, Sub2API, AxonHub, Claude Code Hub, Octopus, Veloera, DoneHub, and more, for backend management, with migration and model sync where supported.
 
 > If you use Safari on macOS, read the [Safari Installation Guide](./safari-install.md) first.
@@ -89,7 +89,7 @@ No matter which architecture you use, there is a good chance we support it:
 <a id="community"></a>
 ## 💬 Community
 
-Have questions or want to share useful sites? Join the community:
+Have questions or want to share useful sites Join the community:
 
 - [GitHub Discussions](https://github.com/qixing-jk/all-api-hub/discussions)
 - [Discord Community](https://discord.gg/RmFXZ577ZQ)
@@ -136,14 +136,14 @@ Thank you to all our sponsors for supporting the project's long-term feature dev
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
-    <a href="https://www.packyapi.ai/register?aff=all-api-hub">
+    <a href="https://www.packyapi.ai/register">
       <img src="../../../resources/partners/packycode.png" alt="PackyCode">
     </a>
   </div>
   <p class="readme-sponsor-copy">
     PackyCode is a reliable and efficient API relay service provider, offering relay services for Claude Code, Codex,
     Gemini, and more. PackyCode provides special discounts for our software users: register using
-    <a href="https://www.packyapi.ai/register?aff=all-api-hub">this link</a> and enter the "all-api-hub" promo code during first recharge to get 10% off (<a href="./sponsor-guides/packycode.md">setup guide</a>).
+    <a href="https://www.packyapi.ai/register">this link</a> and enter the "all-api-hub" promo code during first recharge to get 10% off (<a href="./sponsor-guides/packycode.md">setup guide</a>).
   </p>
 </div>
 
@@ -164,12 +164,12 @@ Thank you to all our sponsors for supporting the project's long-term feature dev
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
-    <a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">
+    <a href="https://www.aicodemirror.ai/register">
       <img src="../../../resources/partners/aicodemirror.png" alt="AICodeMirror">
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    AICodeMirror provides official high-stability relay services for Claude Code / Codex / Gemini CLI, with enterprise-grade concurrency, fast invoicing, and 24/7 dedicated technical support. Claude Code / Codex / Gemini official channels are available from 38% / 2% / 9% of the original price, with extra discounts on top-ups. AICodeMirror offers special benefits for My API Box users: register via <a href="https://www.aicodemirror.ai/register?invitecode=7IQNR8">this link</a> to enjoy 20% off your first top-up, and enterprise customers can get up to 25% off.
+    AICodeMirror provides official high-stability relay services for Claude Code / Codex / Gemini CLI, with enterprise-grade concurrency, fast invoicing, and 24/7 dedicated technical support. Claude Code / Codex / Gemini official channels are available from 38% / 2% / 9% of the original price, with extra discounts on top-ups. AICodeMirror offers special benefits for My API Box users: register via <a href="https://www.aicodemirror.ai/register">this link</a> to enjoy 20% off your first top-up, and enterprise customers can get up to 25% off.
   </p>
 </div>
 
@@ -206,12 +206,12 @@ Thank you to all our sponsors for supporting the project's long-term feature dev
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
-    <a href="https://88api.ai/register?aff=XcTj">
+    <a href="https://88api.ai/register">
       <img src="../../../resources/partners/88api.jpg" alt="88API Token Aggregation Platform">
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    <strong>88API Token Aggregation Platform</strong> A one-stop multi-model API platform operated by a Hong Kong company for developers, creators, and AI application users. Its unified API connects text, image, speech, and video models for AI coding, translation, content creation, voiceovers, image generation, and video generation. Add and switch providers directly in CC Switch, with major international payment methods, invoicing, and stable enterprise services. <a href="https://88api.ai/register?aff=XcTj">Register through the dedicated link to receive bonus credits!</a>
+    <strong>88API Token Aggregation Platform</strong> A one-stop multi-model API platform operated by a Hong Kong company for developers, creators, and AI application users. Its unified API connects text, image, speech, and video models for AI coding, translation, content creation, voiceovers, image generation, and video generation. Add and switch providers directly in CC Switch, with major international payment methods, invoicing, and stable enterprise services. <a href="https://88api.ai/register">Register through the dedicated link to receive bonus credits!</a>
   </p>
 </div>
 
@@ -219,12 +219,12 @@ Thank you to all our sponsors for supporting the project's long-term feature dev
 
 <div class="readme-sponsor readme-sponsor-featured">
   <p class="readme-sponsor-banner">
-    <a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">
+    <a href="https://www.byteplus.com/en/product/modelark">
       <img src="../../../resources/partners/volcengine_en.jpg" alt="Dola Seed on BytePlus ModelArk">
     </a>
   </p>
   <p class="readme-sponsor-copy">
-    Dola Seed 2.0 is a full-modal general large model independently developed by ByteDance for the global market. Built on a unified multimodal architecture, it supports joint understanding and generation of text, images, audio, and video. It natively enables agent collaboration, with strong reasoning, long-task execution, tool integration, and coding capabilities. It is widely applicable to smart cockpits, personal assistants, education, customer support, marketing, retail, and other scenarios. It excels in multimodal perception, end-to-end complex task delivery, stable interaction, and data security, and is readily accessible and deployable via the ModelArk platform. Register via <a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=all-api-hub&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=all-api-hub">this link</a> to get 500,000 tokens of free inference quota per model.<a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html"> >>中国大陆地区的开发者请点击这里</a>
+    Dola Seed 2.0 is a full-modal general large model independently developed by ByteDance for the global market. Built on a unified multimodal architecture, it supports joint understanding and generation of text, images, audio, and video. It natively enables agent collaboration, with strong reasoning, long-task execution, tool integration, and coding capabilities. It is widely applicable to smart cockpits, personal assistants, education, customer support, marketing, retail, and other scenarios. It excels in multimodal perception, end-to-end complex task delivery, stable interaction, and data security, and is readily accessible and deployable via the ModelArk platform. Register via <a href="https://www.byteplus.com/en/product/modelark">this link</a> to get 500,000 tokens of free inference quota per model.<a href="https://dis.chatdesks.cn/chatdesk/hsyqallapihub.html"> >>中国大陆地区的开发者请点击这里</a>
   </p>
 </div>
 

@@ -7,10 +7,10 @@ export const SPONSOR_WORKFLOW_KINDS = {
 export const SPONSOR_CATALOG_SCHEMA_VERSION = 5
 
 export const SPONSOR_REMOTE_CATALOG_V5_URL =
-  "https://raw.githubusercontent.com/qixing-jk/all-api-hub/main/public/sponsor-catalog.v5.json"
+  "https://raw.githubusercontent.com/jinchaoqiang0311/my-api-box/main/public/sponsor-catalog.v5.json"
 
 export const SPONSOR_REMOTE_ICON_BASE_URL =
-  "https://raw.githubusercontent.com/qixing-jk/all-api-hub/main/resources/partners/icons"
+  "https://raw.githubusercontent.com/jinchaoqiang0311/my-api-box/main/resources/partners/icons"
 
 export const SPONSOR_LOCALE_FALLBACKS = ["zh-CN", "en"] as const
 

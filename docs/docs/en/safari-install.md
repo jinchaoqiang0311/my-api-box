@@ -45,15 +45,15 @@ Individual sites may have their own limitations; installing the extension does n
 
 ## FAQ
 
-### Why do I need to open an Xcode project?
+### Why do I need to open an Xcode project
 
 Safari installs the extension inside a companion macOS app. The downloaded archive includes the project and required files; run it once with Xcode, then enable the extension in Safari settings.
 
-### The extension stopped working after Safari restarted. Was my data lost?
+### The extension stopped working after Safari restarted. Was my data lost
 
 Usually not. Safari resets “Allow Unsigned Extensions” when it quits, so enable it again. If Safari cannot find the extension, launch the companion app. Accounts and settings are stored in Safari’s local extension storage and are not deleted when this switch resets.
 
-### How do I restore accounts on a new device?
+### How do I restore accounts on a new device
 
 Export the data from the original device or configure WebDAV backup. Then install the extension on the new device and import the data or restore the backup. Browsers do not sync extension data automatically.
 

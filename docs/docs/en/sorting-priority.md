@@ -45,7 +45,7 @@ In the full settings page's account list, click **Reorder**, drag accounts, then
 
 Search and manual ordering do not apply browsing-context boosts. Search results remain grouped as pinned, normal, and disabled, retaining search-match order within each group. Field sorting and dragging are unavailable during search. Normal sorting resumes when you leave search or manual ordering.
 
-## Do upgrades require reconfiguration?
+## Do upgrades require reconfiguration
 
 Existing choices for the current-site and open-tab switches, the selected sort field, and its direction are preserved. Settings no longer offer draggable rules or switches for every criterion: the list handles pins, disabled accounts, and manual order, while check-in requirement, health status, and custom links are selected from the sort menu.
 

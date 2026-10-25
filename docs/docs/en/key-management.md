@@ -147,10 +147,10 @@ See [Supported Export Tools and Integration Targets](./supported-export-tools.md
 
 | Question | Answer |
 |----------|--------|
-| Why can't I see the full key? | The site may disable key reveal, or the key may be shown only once at creation. Historical OpenRouter entries without a linked local API credential cannot recover the full value, and Key Check cannot guarantee recovery. |
-| How secure are my keys? | Keys are masked by default, but masking protects only the display. When a full key exists, copy, verification, export, and remote submission use it. Encryption at rest varies by source; do not assume default encryption. |
-| Why can't search find a key? | Search matches key names only, not key values. |
-| Why do different accounts show different buttons? | Key Management displays actions by account capability. Sites differ in support for Tokens, native keys, and service keys. |
+| Why can't I see the full key | The site may disable key reveal, or the key may be shown only once at creation. Historical OpenRouter entries without a linked local API credential cannot recover the full value, and Key Check cannot guarantee recovery. |
+| How secure are my keys | Keys are masked by default, but masking protects only the display. When a full key exists, copy, verification, export, and remote submission use it. Encryption at rest varies by source; do not assume default encryption. |
+| Why can't search find a key | Search matches key names only, not key values. |
+| Why do different accounts show different buttons | Key Management displays actions by account capability. Sites differ in support for Tokens, native keys, and service keys. |
 
 ## Related Documentation
 

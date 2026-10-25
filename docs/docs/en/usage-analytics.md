@@ -141,7 +141,7 @@ Displays daily:
 - Maximum Latency
 - Number of Slow Requests
 
-Suitable for troubleshooting "Why does it feel sluggish recently?" or "Did it significantly degrade on certain days?"
+Suitable for troubleshooting "Why does it feel sluggish recently" or "Did it significantly degrade on certain days"
 
 #### Slow Model Ranking / Slow Token Ranking
 
@@ -152,7 +152,7 @@ Helps you quickly identify:
 
 This is particularly useful in environments with multiple upstream providers, multiple groups, and multiple accounts.
 
-### What is the Export Function For?
+### What is the Export Function For
 
 Clicking **`Export`** will export the aggregated results within the current filter range, suitable for:
 

@@ -146,23 +146,30 @@ describe("community resource fallbacks", () => {
     expect(await cached.blob.text()).toBe("qr-image-bytes")
   })
 
-  it("uses a bundled image on the first offline preview", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")))
-    expect(
-      await loadCommunityWechatImage(
-        {
-          url: "https://example.com/qr.png",
-          expiresAt: "2099-01-01T00:00:00Z",
-        },
-        signal(),
-      ),
-    ).toEqual({
-      source: "bundled",
-      url: bundledImage,
-      expiresAt: bundledCatalog.channels.find(({ id }) => id === "wechat")
-        ?.qrCode?.expiresAt,
-    })
-  })
+  it.skipIf(bundledCatalog.channels.length === 0)(
+    "uses a bundled image on the first offline preview",
+    async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")))
+      expect(
+        await loadCommunityWechatImage(
+          {
+            url: "https://example.com/qr.png",
+            expiresAt: "2099-01-01T00:00:00Z",
+          },
+          signal(),
+        ),
+      ).toEqual({
+        source: "bundled",
+        url: bundledImage,
+        expiresAt: (
+          bundledCatalog.channels as Array<{
+            id: string
+            qrCode?: { expiresAt?: string }
+          }>
+        ).find(({ id }) => id === "wechat")?.qrCode?.expiresAt,
+      })
+    },
+  )
 
   it.each(["http", "mime", "decode", "size"])(
     "does not replace usable image bytes after a remote %s failure",

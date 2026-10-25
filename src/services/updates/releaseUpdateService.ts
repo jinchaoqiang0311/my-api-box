@@ -48,7 +48,7 @@ import { parseReleaseUpdateStatus } from "./statusCodec"
 
 const logger = createLogger("ReleaseUpdateService")
 const GITHUB_LATEST_RELEASE_API_URL =
-  "https://api.github.com/repos/qixing-jk/all-api-hub/releases/latest"
+  "https://api.github.com/repos/jinchaoqiang0311/my-api-box/releases/latest"
 const DAILY_CHECK_PERIOD_MINUTES = 24 * 60
 
 type DetectInstallEligibilityResult = {
@@ -310,7 +310,7 @@ class ReleaseUpdateService {
 /** Nightly can change without a package-version bump, so compare baked commit IDs. */
 async function fetchLatestNightlyRelease(): Promise<LatestReleaseInfo> {
   const response = await fetch(
-    "https://api.github.com/repos/qixing-jk/all-api-hub/git/ref/tags/nightly",
+    "https://api.github.com/repos/jinchaoqiang0311/my-api-box/git/ref/tags/nightly",
     {
       headers: { Accept: "application/vnd.github+json" },
     },
