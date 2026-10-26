@@ -4,7 +4,7 @@
 
 <div align="center">
 
-# My API Box – 你的全能 AI 资产管家
+# My API Box – 你的中转站管家
 
 > 基于 [all-api-hub](https://github.com/qixing-jk/all-api-hub)(AGPL-3.0)修改而成,品牌为 **My API Box**;源码依同许可证开放,见 LICENSE 与 THIRD_PARTY_NOTICES.md。
 
@@ -28,7 +28,7 @@
 - ✅ **福利易漏**：每日签到送额度，但手动处理容易忘。
 - 🔌 **配置繁琐**：API 信息要反复复制到 cc-switch、Cherry Studio 等工具里。
 
-**My API Box 就是你的 AI 资产管家**：填入站点地址，剩下的交给插件处理。
+**My API Box 就是你的中转站管家**：填入站点地址，剩下的交给插件处理。
 
 <a id="features"></a>
 

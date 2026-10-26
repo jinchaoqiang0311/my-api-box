@@ -2,7 +2,7 @@
 home: true
 title: "ホーム"
 heroImage: "/512.png"
-heroText: "My API Box - あなたの万能 AI 資産マネージャー"
+heroText: "My API Box - あなたの中継ステーション管理"
 tagline: "AI 中継サイトのアカウントと API 認証情報をまとめて管理するオープンソースのブラウザー拡張機能。CLIProxyAPI、New API、Sub2API などのセルフホスト型ゲートウェイの管理、残高確認、モデル価格比較、API 検証、暗号化 WebDAV バックアップに対応しています。"
 actions:
   - text: "利用開始"

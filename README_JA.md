@@ -4,7 +4,7 @@
 
 <div align="center">
 
-# My API Box - あなたの万能 AI 資産マネージャー
+# My API Box - あなたの中継ステーション管理
 
 > [all-api-hub](https://github.com/qixing-jk/all-api-hub)(AGPL-3.0)をベースに改変した **My API Box** です。ソースコードは同一ライセンスで公開しています(LICENSE / THIRD_PARTY_NOTICES.md 参照)。
 

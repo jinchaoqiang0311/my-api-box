@@ -2,7 +2,7 @@
 home: true
 title: "首页"
 heroImage: "/512.png"
-heroText: "My API Box - 你的全能 AI 资产管家"
+heroText: "My API Box - 你的中转站管家"
 tagline: "开源浏览器插件，集中管理 AI 中转站账号与 API 凭据，接入 CLIProxyAPI、New API、Sub2API 等自建网关，提供余额查询、模型比价、API 验证与加密 WebDAV 备份。"
 actions:
   - text: "🚀 开始使用"

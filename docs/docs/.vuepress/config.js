@@ -18,7 +18,7 @@ export default defineUserConfig({
   locales: {
     '/': {
       lang: 'zh-CN',
-      title: 'My API Box - 你的全能 AI 资产管家',
+      title: 'My API Box - 你的中转站管家',
       description: '一个开源的浏览器插件，旨在优化管理New API等AI中转站账号的体验。用户可以轻松集中管理和查看账户余额、模型及密钥，并自动添加新站点',
     },
     '/en/': {

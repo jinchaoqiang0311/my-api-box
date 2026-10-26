@@ -7,7 +7,7 @@
 
 <div align="center">
 
-# My API Box – Your All-in-One AI Asset Manager
+# My API Box – Your Relay Station Manager
 
 > Based on [all-api-hub](https://github.com/qixing-jk/all-api-hub) (AGPL-3.0), rebranded and modified as **My API Box**. Source is open under the same license; see LICENSE and THIRD_PARTY_NOTICES.md.
 

@@ -2,7 +2,7 @@
 home: true
 title: "Homepage"
 heroImage: "/512.png"
-heroText: "My API Box - Your All-in-One AI Asset Manager"
+heroText: "My API Box - Your Relay Station Manager"
 tagline: "An open-source browser extension for AI relay accounts and API credentials, with management for self-hosted gateways such as CLIProxyAPI, New API, and Sub2API. Check balances, compare model prices, verify APIs, and back up with encrypted WebDAV."
 actions:
   - text: "Get Started"
