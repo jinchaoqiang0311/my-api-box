@@ -2,126 +2,71 @@
 <a href="./README_CN.md">简体中文</a> | English | <a href="./README_JA.md">日本語</a>
 </h4>
 
-> [!IMPORTANT]
-> English is now the default GitHub README. This page is kept for existing links; you can also read the same content at [README.md](./README.md).
-
 <div align="center">
 
 # My API Box – Your Relay Station Manager
 
-> Based on [all-api-hub](https://github.com/qixing-jk/all-api-hub) (AGPL-3.0), rebranded and modified as **My API Box**. Source is open under the same license; see LICENSE and THIRD_PARTY_NOTICES.md.
+> AGPL-3.0 · Browser extension that aggregates AI relay accounts, API keys, and model pricing — and probes whether stations deliver what they promise.
 
-**One-stop management for New API-compatible relay accounts: balances, usage, model prices, check-ins, API credentials, in-page testing, and channel/model sync & redirects**
-
-
-
+**One-click access to balances, model prices, auto check-ins, self-hosted gateway management, and seven-integrity-probe site verification.**
 
 </div>
 
-<a id="introduction"></a>
+---
 
-## ❓ Why My API Box?
+## 🎯 The Site Probing Suite
 
-**In simple terms**: AI relay sites are like a marketplace for AI credits, giving you low-cost or even free access to models such as ChatGPT, Claude, and GPT Image.
+Every relay says it gives you GPT-4o for half price — but does it really? **My API Box ships with seven standardised probes** that run against any station you add. A run takes a few tokens; the report exports as JSON for your records.
 
-But once you have multiple accounts, management quickly becomes painful:
+| Probe          | What it checks                                                                    | Catches                                    |
+| -------------- | --------------------------------------------------------------------------------- | ------------------------------------------ |
+| **Reach**      | HTTP round‑trip and latency                                                       | Dead stations, timeouts                    |
+| **Identity**   | Cross-check what the station *claims* to be serving vs. what you *asked* for      | Model swapping                            |
+| **Injection**  | Looks for hidden system prompts or capability‑dumbing modifications               | Silent prompt injection                    |
+| **Stream**     | First‑token latency and chunk count                                               | Fake streaming that pretends to be real    |
+| **Cache**      | Echo a random string twice — did the server replay the first answer from cache?   | Cache‑replay bait‑and‑switch              |
+| **Consistency**| Compare against your own historical baseline                                      | Silent model drift between runs            |
+| **Billing**    | Deducts before‑balance vs. after‑balance; requires user token & ID                | Over‑billing, incorrect cost calculation   |
 
-- 📂 **Scattered assets**: Balances and usage are spread across separate sites.
-- 💲 **Messy pricing**: Different billing ratios make the best deal hard to spot.
-- ✅ **Missed daily perks**: Manual daily check-ins are easy to forget.
-- 🔌 **Annoying setup work**: API details must be copied into tools such as cc-switch and Cherry Studio again and again.
+Results surface as **Pass / Suspect / Fail / Skip** verdicts per probe, plus a per‑station summary card. Probes run from both the popup account kebab menu and the dedicated Site Probing page.
 
-**My API Box is your AI asset manager**: add your site URLs and let the extension handle the rest.
+---
 
-<a id="features"></a>
+## 📦 What Else It Does
 
-## ✨ What Can It Do for You?
+### Accounts, Keys & Pricing
 
-### 📊 All Your AI Assets in One View
+- **Unified relay dashboard** — all balances, usage, and status without signing into each site
+- **API Credential Library** — Base URLs + Keys you collected or were shared; check, test, export anytime
+- **Cross‑site model price comparison** — same model across stations, sorted by effective cost
+- **Account‑level usage & trend analytics** — charts by site, account, and model
 
-- **Unified Relay Account Dashboard**: Manage multiple AI relay accounts in one place and review balances, usage, and account status without signing in to each site.
-- **API Credential Library**: No site account required—bring Base URLs and API Keys shared by others or collected over time together, then check balances, view models, test connections, or export whenever needed.
-- **Usage & Trend Analytics**: Track balance changes and view charts by site, account, and model to understand where your credits go.
+### Self‑Hosted Gateway Management
 
-### 💰 Price Comparison & Auto Check-In
+Manage OmniRoute, CLIProxyAPI, New API, Sub2API, Magpie, gpt‑load, AxonHub, Claude Code Hub, Octopus, Veloera, DoneHub — **without opening each admin panel**.
 
-- **Cross-Site Model Price Comparison**: Compare the effective price of the same model across sites and quickly find a better-value endpoint.
-- **Multi-Site Auto Check-In**: Check in to supported sites with one click or on a schedule, collect rewards automatically, and skip daily logins.
+- **Create gateway channels** from saved accounts or credentials
+- **Model sync & redirects** — manual or scheduled upstream‑model sync; custom redirects for model names your clients expect
+- **Batch import** — merge same‑site keys on Magpie, New API, Octopus, gpt‑load, and more
 
-### 🚀 Quick Capture & Client Integration
+### Automation & Export
 
-- **Quick Web Capture**: Find Base URLs and API Keys on a page, test them immediately, and save them to your credential library with less copying and tab switching.
-- **One-Click Client Export**: Send credentials to CherryStudio, CC Switch, Claude Code Router, Kilo Code, and other supported tools.
+- **One‑click / scheduled auto check‑in** across supported stations
+- **Announcements from all sites** collected and surfaced in one place
+- **One‑click client export** to CC Switch, Cherry Studio, Claude Code Router, Kilo Code, Roo Code, Kelivo, AI Toolbox, Cursor++…
+- **Local‑first storage** with encrypted WebDAV sync & backup
 
-### 🧪 API Verification & Troubleshooting
+---
 
-- **API & Model Verification**: Check API connectivity and model availability in one click to see whether a Key works and a model can be called.
-- **CLI Integration Testing**: Confirm that common command-line tools can use the target API before you spend time troubleshooting a full setup.
+## 🧩 Supported Architecture
 
-### 🔔 Announcements & Task Alerts
+**Account‑site compatible**: New API · Sub2API · One API · one‑hub · Veloera · VoAPI / VoAPI v2 · DoneHub · Super‑API · APIyi · ModelFlare · v‑api · Neo‑API · RIX_API
 
-- **Announcements in One Place**: Automatically collect and display announcements from added sites in one place, with timely alerts for maintenance, model, pricing, and other updates—no need to check sites one by one.
-- **Task Result Alerts**: After automated check-ins, WebDAV auto-sync, or model sync completes, receive the result through your browser or a configured notification method so failures and exceptions can be handled promptly.
+**Self‑hosted admin backends & gateways**: OmniRoute · CLIProxyAPI · Magpie · gpt‑load · AxonHub · Claude Code Hub · Octopus (+ channel/provider management, where supported)
 
-### 🛠️ Self-Hosted AI Gateway Management
+**Client & dev‑tool exports**: CC Switch · Cherry Studio · Claude Code Router · Kilo Code · Roo Code · Kelivo · AI Toolbox · Cursor++ … see docs for the full list
 
-- **Manage Popular AI Gateways in One Place**: Manage New API, Sub2API, CLIProxyAPI, AxonHub, Claude Code Hub, Octopus, Veloera, and DoneHub directly in the extension without opening each admin panel.
-- **Quickly Create Gateway Channels**: Turn saved site accounts or credentials from the API Credential Library into self-hosted AI gateway channels, then call models through the gateway and switch between channels as needed.
-- **Model Sync & Redirects**: Sync channel model lists manually or automatically on a schedule as upstream models change, and define custom redirects so clients can use the model names they prefer.
-
-### 🔐 Data Security & Cloud Sync
-
-- **Local-First Storage**: API Keys, accounts, and settings stay in your browser by default and are written to WebDAV only when you enable backup or sync.
-- **Encrypted WebDAV Auto-Sync**: Enable encryption and scheduled auto-sync to keep data safely synchronized across devices and pick up where you left off after switching computers.
-
-<a id="installation"></a>
-
-## 🚀 Quick Installation
-
-> [!IMPORTANT] > **For most users, the store build is recommended.** It is easy to install and supports automatic updates.
-
-| Channel          | Install Link                                                                                       | Current Version                                                                                                                                                                                                                                                                                                                           | Users                                                                                                                                                                                                                                                                                                         |
-| ---------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Store listings | To be added after store publication | — |
-
-<details>
-<summary>📦 Need manual installation or Nightly builds? (Click to expand)</summary>
-
-| Channel             | Download Link                                                                     | Best For                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| GitHub Stable       | [Download Stable](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)       | When you cannot install the store build or need to temporarily install a published fix manually     |
-| Nightly pre-release | [Download Nightly](https://github.com/jinchaoqiang0311/my-api-box/releases/tag/nightly) | When you want early access and are willing to help test; it may be less stable than the store build |
-
-GitHub Stable and Nightly are manual installation channels and do not auto-update. Star / Watch the repository to receive new version notifications. See the installation and update guide for more details.
-
-**Other environments:**
-
-- **Mobile browsers**: Supports mobile Edge, Firefox for Android, Kiwi, and more. See the mobile browser guide.
-- **QQ Browser / 360 Browser / similar**: See the manual loading guide.
-- **Safari (Mac)**: Requires Xcode for compilation. See the Safari installation guide.
-
-</details>
-
-## 🧑‍🚀 30-Second Quick Start
-
-1. **Install the extension**: Use one of the store links above.
-2. **Sign in to your site**: Open your usual AI relay site in the browser and log in.
-3. **Run auto detection**: Click the extension icon -> `Add Account` -> enter the site URL -> click `Auto Detect`.
-4. **Start using it**: Check balances, configure auto check-in, or export the account to your AI client.
-
-👉 **Click here for the full illustrated beginner guide**
-
-<a id="introduction-tech"></a>
-
-### 🧩 Strong Compatibility
-
-No matter which architecture you use, there is a good chance we support it:
-
-- **Account-site compatible architectures**: [new-api](https://github.com/QuantumNous/new-api), [one-api](https://github.com/songquanpeng/one-api), [Sub2API](https://github.com/Wei-Shaw/sub2api), [one-hub](https://github.com/MartialBE/one-hub), [Veloera](https://github.com/Veloera/Veloera), [done-hub](https://github.com/deanxv/done-hub), and more
-- **Self-hosted admin backends**: [new-api](https://github.com/QuantumNous/new-api), [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), [Sub2API](https://github.com/Wei-Shaw/sub2api), [AxonHub](https://github.com/looplj/axonhub), [Claude Code Hub](https://github.com/ding113/claude-code-hub), [Octopus](https://github.com/bestruirui/octopus), [Veloera](https://github.com/Veloera/Veloera), [done-hub](https://github.com/deanxv/done-hub), and more, for gateway management, migration, and partial model sync
-- **Full list**: 👉 Supported Sites
-
-<a id="ui-preview"></a>
+---
 
 ## 🖼️ UI Preview
 
@@ -129,92 +74,102 @@ No matter which architecture you use, there is a good chance we support it:
   <tr>
     <td align="center">
       <img src="docs/docs/static/image/en/account-manage.png" alt="account-manage" style="width:100%; height:auto;"/>
-      <div>Account Management Overview</div>
+      <div>Account Management</div>
     </td>
     <td align="center">
       <img src="docs/docs/static/image/en/model-list.png" alt="model-list" style="width:100%; height:auto;"/>
-      <div>Model List & Pricing</div>
+      <div>Model List &amp; Pricing</div>
     </td>
   </tr>
   <tr>
-    <td align="center">
-      <img src="docs/docs/static/image/en/api-key-list.png" alt="api-key-list" style="width:100%; height:auto;"/>
-      <div>Key List & Export</div>
-    </td>
     <td align="center">
       <img src="docs/docs/static/image/en/auto-check-in.png" alt="auto-check-in" style="width:100%; height:auto;"/>
-      <div>Auto Check-in</div>
+      <div>Auto Check‑in</div>
+    </td>
+    <td align="center">
+      <img src="docs/docs/static/image/en/account-model-usage-overview.png" alt="usage" style="width:100%; height:auto;"/>
+      <div>Usage Overview</div>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="docs/docs/static/image/en/account-model-usage-overview.png" alt="account-model-usage-overview" style="width:100%; height:auto;"/>
-      <div>Account Model Usage Overview</div>
+      <img src="docs/docs/static/image/en/new-api-channel-sync.png" alt="model-sync" style="width:100%; height:auto;"/>
+      <div>Model Sync</div>
     </td>
     <td align="center">
-      <img src="docs/docs/static/image/en/account-model-latency-overview.png" alt="account-model-latency-overview" style="width:100%; height:auto;"/>
-      <div>Account Model Latency Overview</div>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="docs/docs/static/image/en/new-api-channel-sync.png" alt="new-api-channel-sync" style="width:100%; height:auto;"/>
-      <div>New API Model Sync</div>
-    </td>
-    <td align="center">
-      <img src="docs/docs/static/image/en/new-api-channel-manage.png" alt="new-api-channel-manage" style="width:100%; height:auto;"/>
-      <div>New API Channel Management</div>
+      <img src="docs/docs/static/image/en/new-api-channel-manage.png" alt="channel-manage" style="width:100%; height:auto;"/>
+      <div>Channel Management</div>
     </td>
   </tr>
 </table>
 
-<a id="development-guide"></a>
+---
 
-## 🛠️ Development Guide
+## 🚀 Installation
 
-Please refer to the [CONTRIBUTING](CONTRIBUTING.md) for more information.
+> **Store build coming soon.** For now, install from GitHub releases.
 
-<a id="license"></a>
+| Channel             | Download                                                                             | Best For                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| GitHub Stable       | [Download](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)          | Manual install on Chrome, Edge, Firefox, or any Chromium browser                                    |
+| Nightly pre‑release | [Download](https://github.com/jinchaoqiang0311/my-api-box/releases/tag/nightly)      | Early access — may be less stable                                                                   |
 
-## 📜 License and Commercial Licensing
+Both channels require manual loading; **Star / Watch the repo** for release notifications.
 
-My API Box is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+<details>
+<summary>📦 How to load an unpacked extension (click to expand)</summary>
 
+1. Download and unzip the latest build.
+2. Open `chrome://extensions` (or `edge://extensions`, `about:debugging#/runtime/this-firefox`).
+3. Enable **Developer mode**.
+4. Click **Load unpacked** and select the extracted folder.
+5. Pin My API Box to your toolbar.
 
-For commercial licensing beyond AGPL-3.0 (closed-source or white-label use of upstream code), contact the upstream author of all-api-hub.
+For QQ Browser, 360 Browser, Safari, or mobile browsers, see [the docs](https://all‑api‑hub.qixing1217.top/en/get‑started.html) for platform‑specific steps.
+</details>
 
-Commercial licenses apply only to code and assets for which the My API Box maintainers have the right to grant commercial terms. Third-party dependencies and historical MIT-licensed portions derived from [One API Hub](https://github.com/fxaxg/one-api-hub) remain subject to their own copyright and license notices. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+**30‑second quick start**
 
-<a id="tech-stack"></a>
+1. Install the extension.
+2. Log in to your usual AI relay in the browser.
+3. Click the extension icon → **Add Account** → enter the site URL → **Auto Detect**.
+4. Done — balances, models, check‑ins are all ready.
+
+---
 
 ## 🏗️ Tech Stack
 
-- **Framework**: [WXT](https://wxt.dev) powers the multi-browser extension tooling and build pipeline
-- **UI Layer**: [React](https://react.dev) drives the options UI and popup experiences
-- **Language**: [TypeScript](https://www.typescriptlang.org) keeps the entire codebase type-safe
-- **Styling**: [Tailwind CSS](https://tailwindcss.com) supplies utility-first theming primitives
-- **Components**: [Radix UI](https://www.radix-ui.com/) provides accessible primitives for our design system
+- **Build pipeline** — [WXT](https://wxt.dev) (multi‑browser extensions)
+- **UI** — [React](https://react.dev) + [Radix UI](https://www.radix-ui.com/) primitives + [Tailwind CSS](https://tailwindcss.com)
+- **Language** — [TypeScript](https://www.typescriptlang.org) end‑to‑end
 
-<a id="community-ecosystem"></a>
+---
 
-## 🔗 Ecosystem Projects
+## 📜 License
 
-Community extensions and integrations around My API Box:
+My API Box is AGPL‑3.0, derived from [all‑api‑hub](https://github.com/qixing‑jk/all‑api‑hub) (also AGPL‑3.0). See [LICENSE](./LICENSE) and [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
-| Project                                                     | Description                             | Features                                                                                    |
-| ----------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| [Metapi](https://github.com/cita-777/metapi)                | Self-hosted meta-aggregation gateway    | Combine multiple relay accounts behind one API entry; originally inspired by My API Box.   |
-| [Fl API Hub](https://github.com/RebornQ/fl_api_hub)         | Cross-platform native management client | Manage accounts, balances, and keys with quick check-in support; inspired by My API Box.   |
-| [APIManager](https://github.com/zhalice2011/api-manager)    | Local AI API aggregation proxy          | Sync accounts from My API Box and provide unified proxying, routing, and usage dashboards. |
+For commercial licensing beyond AGPL‑3.0, contact the upstream all‑api‑hub author. Third‑party dependencies and historical MIT‑licensed portions retain their own notices.
 
-> If you have developed a project based on, integrated with, or inspired by My API Box, please open a PR to add it to this list.
+---
 
-<a id="acknowledgements"></a>
+## 🔗 Ecosystem & Acknowledgements
 
-## 🙏 Acknowledgements
+**Built on**
 
-- [WXT](https://wxt.dev) - The modern browser extension development framework
+- [all‑api‑hub](https://github.com/qixing‑jk/all‑api‑hub) — the upstream project My API Box is forked from
+- [WXT](https://wxt.dev) — modern browser extension framework
+
+**Community projects inspired by or integrating with My API Box**
+
+| Project                                                     | Description                             |
+| ----------------------------------------------------------- | --------------------------------------- |
+| [Metapi](https://github.com/cita‑777/metapi)                | Self‑hosted meta‑aggregation gateway    |
+| [Fl API Hub](https://github.com/RebornQ/fl_api_hub)         | Cross‑platform native management client |
+| [APIManager](https://github.com/zhalice2011/api‑manager)    | Local AI API aggregation proxy          |
+
+> PRs welcome if you have a project to add.
 
 <div align="center">
-  <strong>⭐ If you find this project helpful, please consider giving it a star!</strong>
+  <strong>⭐ If this helps you, consider giving the repo a star!</strong>
 </div>
