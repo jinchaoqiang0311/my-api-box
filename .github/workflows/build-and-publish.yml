@@ -334,9 +334,9 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ needs.build.outputs.package_version }}
           SAFARI_RELEASE_ASSETS_DIR: .output/release-assets
-          SAFARI_PROJECT_DIR: ${{ runner.temp }}/all-api-hub-safari-project
+          SAFARI_PROJECT_DIR: ${{ runner.temp }}/my-api-box-safari-project
           SAFARI_APP_NAME: ${{ vars.SAFARI_APP_NAME || 'My API Box' }}
-          SAFARI_BUNDLE_IDENTIFIER: ${{ vars.SAFARI_BUNDLE_IDENTIFIER || 'io.github.qixingjk.allapihub' }}
+          SAFARI_BUNDLE_IDENTIFIER: ${{ vars.SAFARI_BUNDLE_IDENTIFIER || 'io.github.jinchaoqiang0311.myapibox' }}
 
       - name: Upload Safari release assets
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}

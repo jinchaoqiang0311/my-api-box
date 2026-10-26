@@ -36,12 +36,6 @@ const release = JSON.parse(process.env.RELEASE_JSON ?? "{}")
 const releaseTag = process.env.RELEASE_TAG ?? ""
 const docsBaseUrl = (process.env.DOCS_BASE_URL ?? "").replace(/\/+$/, "")
 const isNightly = releaseTag === "nightly"
-const chromeStoreUrl =
-  "https://chromewebstore.google.com/detail/lapnciffpekdengooeolaienkeoilfeo"
-const edgeStoreUrl =
-  "https://microsoftedge.microsoft.com/addons/detail/pcokpjaffghgipcgjhapgdpeddlhblaa"
-const firefoxStoreUrl =
-  "https://addons.mozilla.org/firefox/addon/{bc73541a-133d-4b50-b261-36ea20df0d24}"
 
 const assetNames = Array.isArray(release.assets)
   ? release.assets
@@ -60,49 +54,42 @@ const assetOrder = (name) => {
 
 const describeAsset = (name) => {
   if (/chrome\.zip$/i.test(name)) {
-    return "Chromium 内核浏览器手动安装包。普通用户请优先安装 Chrome 商店或 Edge 商店版本；仅在无法使用商店版、需要临时验证修复或调试时下载此文件。"
+    return "Chromium 内核浏览器手动安装包。解压后在扩展管理页开启开发者模式 → 加载已解压的扩展程序。"
   }
-
   if (/firefox\.zip$/i.test(name)) {
-    return "Firefox 构建包。普通用户优先使用 Firefox Add-ons 商店；这个附件更适合高级用户自行验证、调试或配合发布流程使用。"
+    return "Firefox 构建包。解压后在 about:debugging 页面临时加载。"
   }
-
   if (/sources\.zip$/i.test(name)) {
     return "Firefox 发布/审核用源码包，通常不是普通用户直接安装的附件。"
   }
-
   if (/safari-xcode-bundle\.zip$/i.test(name)) {
-    return "Safari 手动运行推荐包。Safari 暂无通用商店版入口；需要 Safari 版本时，请下载此文件并打开其中的 Xcode 工程运行。"
+    return "Safari 手动运行推荐包。解压后打开其中的 Xcode 工程运行。"
   }
-
   if (/safari\.zip$/i.test(name)) {
-    return "Safari 原始构建包，通常作为 Xcode 工程生成输入使用；普通用户不要单独下载这个文件。"
+    return "Safari 原始构建包，通常作为 Xcode 工程生成输入使用。"
   }
-
   return "发布附件。"
 }
 
 const lines = [
-  "<!-- all-api-hub-release-extra:start -->",
+  "<!-- my-api-box-release-extra:start -->",
   "## 附加说明",
   "",
   isNightly
-    ? "> 当前为 Nightly 预发布，基于 `main` 最新提交自动生成。大多数用户仍建议优先使用商店版；Nightly 仅适合提前验证修复或协助测试。"
-    : "> 当前为正式版 Stable。大多数用户建议优先使用商店版，以获得更简单的安装流程和自动更新；GitHub 附件主要作为无法使用商店版时的备选。",
+    ? "> 当前为 Nightly 预发布，基于 `main` 最新提交自动生成。适合提前验证修复或协助测试；稳定性可能略差于正式版。"
+    : "> 当前为正式版 Stable。",
   "",
-  "### 优先安装方式",
-  `- Chrome：优先使用 Chrome 商店，${chromeStoreUrl}`,
-  `- Edge：优先使用 Edge 商店，${edgeStoreUrl}`,
-  `- Firefox：优先使用 Firefox Add-ons，${firefoxStoreUrl}`,
-  `- Safari：暂无通用商店版，请按 Safari 安装指南手动安装，${docsBaseUrl}/safari-install.html`,
+  "### 安装方式",
+  "商店版即将上架。在此之前请手动加载：",
+  "1. 下载下方对应浏览器的 ZIP 附件。",
+  "2. 解压。",
+  "3. 在扩展管理页开启 **开发者模式** → 点击 **加载已解压的扩展程序** → 选择解压后的文件夹。",
   "",
   "### 使用说明",
-  "- 大多数用户：Chrome / Edge / Firefox 优先从上方商店链接安装；商店版安装更直接，并会跟随浏览器自动更新。",
-  "- GitHub 附件：适合无法使用商店版、需要临时验证已发布修复、调试问题，或使用商店暂未覆盖的浏览器环境。",
-  "- 手动安装版通常不会自动更新；如果你通过 GitHub 附件安装，建议 Star / Watch 仓库，以便及时看到新版本发布通知。",
-  "- Chrome / Edge / Kiwi 等 Chromium 浏览器：如确需手动安装，下载 `*-chrome.zip`，先解压，再在扩展管理页选择“加载已解压的扩展程序”。",
-  "- Firefox：优先使用 Firefox Add-ons 商店；`*-firefox.zip` 与 `*-sources.zip` 更适合高级用户、自行验证或发布流程使用。",
-  "- Safari：请下载 `*-safari-xcode-bundle.zip`，解压后直接打开其中的 Xcode 工程；不要只下载 `*-safari.zip`。",
+  "- 手动安装不会自动更新，建议 Star / Watch 仓库以接收新版本通知。",
+  "- Chrome / Edge / Kiwi 等 Chromium 浏览器：下载 `*-chrome.zip`，解压后加载已解压的扩展程序。",
+  "- Firefox：下载 `*-firefox.zip`；`*-sources.zip` 为发布审核用源码包。",
+  "- Safari：下载 `*-safari-xcode-bundle.zip`，解压后打开 Xcode 工程运行。",
   "",
   "### 文档链接",
   `- 快速上手：${docsBaseUrl}/get-started.html`,
@@ -126,14 +113,14 @@ if (assetNames.length === 0) {
     })
 }
 
-lines.push("<!-- all-api-hub-release-extra:end -->")
+lines.push("<!-- my-api-box-release-extra:end -->")
 
 process.stdout.write(`${lines.join("\n")}\n`)
 EOF
 
 gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json body --jq ".body" > "$current_body_file"
 
-perl -0pi -e 's/\n?<!-- all-api-hub-release-extra:start -->.*?<!-- all-api-hub-release-extra:end -->\n?//s' "$current_body_file"
+perl -0pi -e 's/\n?<!-- my-api-box-release-extra:start -->.*?<!-- my-api-box-release-extra:end -->\n?//s' "$current_body_file"
 
 cp "$current_body_file" "$combined_file"
 

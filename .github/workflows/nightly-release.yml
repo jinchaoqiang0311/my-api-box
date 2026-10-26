@@ -171,9 +171,9 @@ jobs:
           mkdir -p source/.output/nightly
           rm -f source/.output/nightly/*
 
-          cp "${{ steps.package.outputs.chrome-zip }}" "source/.output/nightly/all-api-hub-nightly-chrome.zip"
-          cp "${{ steps.package.outputs.firefox-zip }}" "source/.output/nightly/all-api-hub-nightly-firefox.zip"
-          cp "${{ steps.package.outputs.sources-zip }}" "source/.output/nightly/all-api-hub-nightly-sources.zip"
+          cp "${{ steps.package.outputs.chrome-zip }}" "source/.output/nightly/my-api-box-nightly-chrome.zip"
+          cp "${{ steps.package.outputs.firefox-zip }}" "source/.output/nightly/my-api-box-nightly-firefox.zip"
+          cp "${{ steps.package.outputs.sources-zip }}" "source/.output/nightly/my-api-box-nightly-sources.zip"
 
       - name: Validate Safari build inputs
         working-directory: source
@@ -298,12 +298,12 @@ jobs:
         run: bash scripts/prepare-safari-release-assets.sh
         env:
           PACKAGE_VERSION: ${{ needs.nightly.outputs.package_version }}
-          SAFARI_RELEASE_BASENAME: all-api-hub-nightly
+          SAFARI_RELEASE_BASENAME: my-api-box-nightly
           SAFARI_RELEASE_ASSETS_DIR: .output/nightly
-          SAFARI_PROJECT_DIR: ${{ runner.temp }}/all-api-hub-nightly-safari-project
-          SAFARI_ZIP_TARGET_NAME: all-api-hub-nightly-safari.zip
+          SAFARI_PROJECT_DIR: ${{ runner.temp }}/my-api-box-nightly-safari-project
+          SAFARI_ZIP_TARGET_NAME: my-api-box-nightly-safari.zip
           SAFARI_APP_NAME: ${{ vars.SAFARI_APP_NAME || 'My API Box' }}
-          SAFARI_BUNDLE_IDENTIFIER: ${{ vars.SAFARI_BUNDLE_IDENTIFIER || 'io.github.qixingjk.allapihub' }}
+          SAFARI_BUNDLE_IDENTIFIER: ${{ vars.SAFARI_BUNDLE_IDENTIFIER || 'io.github.jinchaoqiang0311.myapibox' }}
 
       - name: Upload Safari nightly assets
         working-directory: source
