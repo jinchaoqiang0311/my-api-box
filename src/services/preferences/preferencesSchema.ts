@@ -1,4 +1,5 @@
 import { type ManagedSiteType } from "~/constants/siteType"
+import { type CommunitySubmissionSettings } from "~/services/communitySubmission"
 import { type TempWindowFallbackPreferences } from "~/services/preferences/tempWindowFallbackPreferences"
 import {
   type ActiveSortField,
@@ -356,6 +357,14 @@ export interface UserPreferences {
    * permission is missing.
    */
   siteAnnouncementNotifications?: SiteAnnouncementPreferences
+
+  /**
+   * Opt‑in community contribution: anonymous probe results and model price
+   * snapshots, submitted to a user‑configured backend for the relay‑station
+   * rating website. Privacy redacted — no API keys, balances, or personal
+   * data leave the browser.
+   */
+  communitySubmission?: CommunitySubmissionSettings
 
   /**
    * 最后更新时间

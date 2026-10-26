@@ -1,5 +1,12 @@
 /** Suite runner: executes the selected probes sequentially for one account. */
 
+import {
+  communitySubmissionService,
+  sanitizeProbeReport,
+} from "~/services/communitySubmission"
+import { userPreferences } from "~/services/preferences/userPreferences"
+import { getExtensionVersion } from "~/utils/browser/runtime"
+
 import { computeBaselineKey, consistencyProbe } from "./consistency"
 import {
   billingProbe,
@@ -109,5 +116,31 @@ export async function runProbeSuite(
     results,
   }
   await saveProbeReport(report)
+
+  // -----------------------------------------------------------------------
+  // Opt‑in community submission (fire‑and‑forget — must NOT block the report)
+  // -----------------------------------------------------------------------
+  void (async () => {
+    try {
+      const prefs = await userPreferences.getPreferences()
+      const cs = prefs.communitySubmission
+      if (!cs?.enabled || !cs.endpoint?.trim() || !cs.autoSubmitAfterProbe) {
+        return
+      }
+
+      const payload = await sanitizeProbeReport(report, {
+        extensionVersion: getExtensionVersion("unknown"),
+        siteType: "unknown",
+        hashStationUrl: !!cs.hashStationUrl,
+      })
+
+      await communitySubmissionService.submitProbe(cs.endpoint.trim(), payload)
+    } catch {
+      // Intentionally silent — community contribution is best‑effort.
+      // Probe results were already persisted above; submission failure
+      // must never surface as a probe error to the user.
+    }
+  })()
+
   return report
 }

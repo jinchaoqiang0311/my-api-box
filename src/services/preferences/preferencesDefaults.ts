@@ -2,6 +2,7 @@ import { DATA_TYPE_BALANCE, DATA_TYPE_CASHFLOW } from "~/constants"
 import { SITE_TYPES } from "~/constants/siteType"
 import { DEFAULT_THEME_MODE } from "~/constants/theme"
 import { DEFAULT_TURNSTILE_ASSIST_PRESENTATION } from "~/services/checkin/turnstile/assistPresentation"
+import { DEFAULT_COMMUNITY_SUBMISSION_SETTINGS } from "~/services/communitySubmission"
 import {
   DEFAULT_REDEMPTION_ASSIST_PREFERENCES,
   DEFAULT_WEB_AI_API_CHECK_PREFERENCES,
@@ -125,6 +126,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   },
   taskNotifications: DEFAULT_TASK_NOTIFICATION_PREFERENCES,
   siteAnnouncementNotifications: DEFAULT_SITE_ANNOUNCEMENT_PREFERENCES,
+  communitySubmission: DEFAULT_COMMUNITY_SUBMISSION_SETTINGS,
 }
 
 /**
