@@ -3,12 +3,19 @@ import { useTranslation } from "react-i18next"
 
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
 import { FormField } from "~/components/ui/FormField"
 import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
 import { accountReadModels } from "~/services/accounts/accountStorage/accountReadModels"
 import {
-  findDefaultSelectableAccountRuntimeKey,
   sortAccountRuntimeKeysActiveFirst,
+  type AccountRuntimeKey,
 } from "~/services/accounts/keys/accountRuntimeKeys"
 import {
   fetchDisplayAccountRuntimeKeys,
@@ -50,6 +57,13 @@ const VERDICT_BADGE_VARIANT: Record<
   skip: "info",
 }
 
+/** Keeps just enough of a key for the user to recognise it in a picker. */
+const maskRuntimeKeySecret = (secret: string) => {
+  const trimmed = secret.trim()
+  if (trimmed.length <= 8) return "••••••••"
+  return `${trimmed.slice(0, 4)}••••${trimmed.slice(-4)}`
+}
+
 /**
  * Site Probing options page: run the seven integrity probes against one
  * account+model and review the verdict report.
@@ -68,6 +82,9 @@ export default function SiteProbing() {
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [credentialsLoading, setCredentialsLoading] = useState(false)
   const [apiKeyLoading, setApiKeyLoading] = useState(false)
+  const [apiKeyChoices, setApiKeyChoices] = useState<AccountRuntimeKey[]>([])
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false)
+  const [apiKeyChoiceId, setApiKeyChoiceId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<ProbeId>>(new Set(ALL_PROBE_IDS))
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<ProbeResult[]>([])
@@ -124,8 +141,45 @@ export default function SiteProbing() {
   }, [account, apiKey, model, t])
 
   /**
-   * Fills the probe API key with the account's default runtime key, resolving
-   * the plaintext from the site when the inventory only exposes a mask.
+   * Resolves the plaintext of a runtime key, asking the site for it when the
+   * inventory only exposes a mask.
+   */
+  const resolveRuntimeKeySecret = useCallback(
+    async (runtimeKey: AccountRuntimeKey) => {
+      if (!account) return ""
+      const displayAccount = await accountReadModels.getDisplayDataById(
+        account.id,
+      )
+      if (!displayAccount) return ""
+      const resolvedKey = runtimeKey.secret
+        ? runtimeKey
+        : await resolveDisplayAccountRuntimeKeySecret(
+            displayAccount,
+            runtimeKey,
+          )
+      return resolvedKey.secret?.trim() ?? ""
+    },
+    [account],
+  )
+
+  /** Writes one runtime key into the probe field and reports the outcome. */
+  const applyRuntimeKey = useCallback(
+    async (runtimeKey: AccountRuntimeKey) => {
+      const secret = await resolveRuntimeKeySecret(runtimeKey)
+      if (!secret) {
+        setNotice(t("status.apiKeyMissing"))
+        return false
+      }
+      setApiKey(secret)
+      setNotice(t("status.apiKeyFetched"))
+      return true
+    },
+    [resolveRuntimeKeySecret, t],
+  )
+
+  /**
+   * Fills the probe API key from the account's runtime keys, letting the user
+   * pick one when the account owns several.
    */
   const handleAutoFetchApiKey = useCallback(async () => {
     if (!account) {
@@ -145,31 +199,42 @@ export default function SiteProbing() {
       const runtimeKeys = sortAccountRuntimeKeysActiveFirst(
         await fetchDisplayAccountRuntimeKeys(displayAccount),
       )
-      const runtimeKey = findDefaultSelectableAccountRuntimeKey(runtimeKeys)
-      if (!runtimeKey) {
+      if (runtimeKeys.length === 0) {
         setNotice(t("status.apiKeyMissing"))
         return
       }
-      const resolvedKey = runtimeKey.secret
-        ? runtimeKey
-        : await resolveDisplayAccountRuntimeKeySecret(
-            displayAccount,
-            runtimeKey,
-          )
-      const secret = resolvedKey.secret?.trim() ?? ""
-      if (!secret) {
-        setNotice(t("status.apiKeyMissing"))
+      const singleKey = runtimeKeys[0]
+      if (runtimeKeys.length === 1 && singleKey) {
+        await applyRuntimeKey(singleKey)
         return
       }
-      setApiKey(secret)
-      setNotice(t("status.apiKeyFetched"))
+      setApiKeyChoices(runtimeKeys)
+      setApiKeyDialogOpen(true)
     } catch (error) {
       logger.warn("Failed to auto-fetch API key", error)
       setNotice(t("status.apiKeyFetchFailed"))
     } finally {
       setApiKeyLoading(false)
     }
-  }, [account, t])
+  }, [account, applyRuntimeKey, t])
+
+  /** Applies the runtime key chosen from the multi-key dialog. */
+  const handleSelectApiKey = useCallback(
+    async (runtimeKey: AccountRuntimeKey) => {
+      setApiKeyChoiceId(runtimeKey.id)
+      try {
+        if (await applyRuntimeKey(runtimeKey)) {
+          setApiKeyDialogOpen(false)
+        }
+      } catch (error) {
+        logger.warn("Failed to resolve the selected API key", error)
+        setNotice(t("status.apiKeyFetchFailed"))
+      } finally {
+        setApiKeyChoiceId(null)
+      }
+    },
+    [applyRuntimeKey, t],
+  )
 
   /**
    * Fills the billing access token and user id from the site's own browser
@@ -546,6 +611,46 @@ export default function SiteProbing() {
           ) : null}
         </>
       )}
+
+      <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("dialog.apiKeyTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("dialog.apiKeyDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex max-h-80 flex-col gap-2 overflow-y-auto">
+            {apiKeyChoices.map((runtimeKey) => (
+              <div
+                key={runtimeKey.id}
+                className="flex items-center justify-between gap-3 rounded-md border p-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {runtimeKey.label}
+                  </p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {runtimeKey.secret
+                      ? maskRuntimeKeySecret(runtimeKey.secret)
+                      : t("dialog.apiKeyUnavailable")}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={apiKeyChoiceId === runtimeKey.id}
+                  disabled={apiKeyChoiceId !== null}
+                  onClick={() => void handleSelectApiKey(runtimeKey)}
+                >
+                  {t("dialog.apiKeyUse")}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

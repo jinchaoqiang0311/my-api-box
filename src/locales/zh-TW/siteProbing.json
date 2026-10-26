@@ -1,5 +1,11 @@
 {
   "description": "七種標準化檢測,驗證中轉站是否如實提供你付費的模型。每次運行消耗少量 token,報告可在本地匯出。",
+  "dialog": {
+    "apiKeyDescription": "該帳號下有多個 API 金鑰,請選擇本次檢測要使用的一個。",
+    "apiKeyTitle": "選擇 API 金鑰",
+    "apiKeyUnavailable": "無明文",
+    "apiKeyUse": "使用"
+  },
   "labels": {
     "accessToken": "系統存取權杖(可選)",
     "accessTokenHint": "個人設定頁產生的系統存取權杖,計費檢測需要",

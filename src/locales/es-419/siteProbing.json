@@ -1,5 +1,11 @@
 {
   "description": "Siete comprobaciones estandarizadas que verifican si un sitio de retransmisión sirve el modelo que pagas. Cada ejecución cuesta pocos tokens; los informes se quedan en local.",
+  "dialog": {
+    "apiKeyDescription": "Esta cuenta tiene varias claves API. Elige la que se usará en esta ejecución.",
+    "apiKeyTitle": "Elegir clave API",
+    "apiKeyUnavailable": "Sin texto plano",
+    "apiKeyUse": "Usar"
+  },
   "labels": {
     "accessToken": "Token de acceso del sistema (opcional)",
     "accessTokenHint": "Token de la página de ajustes personales del sitio; lo necesita la prueba de facturación",

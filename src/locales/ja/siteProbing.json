@@ -1,5 +1,11 @@
 {
   "description": "リレーサイトが支払ったモデルを実際に提供しているかを検証する 7 種類の標準チェック。各実行はわずかなトークンを消費し、レポートはローカルに保持されます。",
+  "dialog": {
+    "apiKeyDescription": "このアカウントには複数の API キーがあります。今回の実行に使うものを選択してください。",
+    "apiKeyTitle": "API キーを選択",
+    "apiKeyUnavailable": "平文なし",
+    "apiKeyUse": "使用"
+  },
   "labels": {
     "accessToken": "システムアクセストークン(任意)",
     "accessTokenHint": "サイトの個人設定ページで生成されたトークン。課金検査に必要",

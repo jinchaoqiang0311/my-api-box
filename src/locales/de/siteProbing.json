@@ -1,5 +1,11 @@
 {
   "description": "Sieben standardisierte Checks, die verifizieren, ob eine Relay-Site das gebuchte Modell tatsächlich liefert. Jeder Lauf kostet wenige Tokens; Berichte bleiben lokal.",
+  "dialog": {
+    "apiKeyDescription": "Dieses Konto hat mehrere API-Schlüssel. Wähle den Schlüssel für diesen Lauf.",
+    "apiKeyTitle": "API-Schlüssel auswählen",
+    "apiKeyUnavailable": "Kein Klartext",
+    "apiKeyUse": "Verwenden"
+  },
   "labels": {
     "accessToken": "System-Zugriffstoken (optional)",
     "accessTokenHint": "Token aus den persönlichen Einstellungen der Site; für die Abrechnungsprüfung nötig",

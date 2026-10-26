@@ -1,5 +1,11 @@
 {
   "description": "Seven standardized checks that verify a relay site serves the model you pay for. Each run costs a few tokens; reports stay local.",
+  "dialog": {
+    "apiKeyDescription": "This account has several API keys. Choose the one to use for this run.",
+    "apiKeyTitle": "Choose an API key",
+    "apiKeyUnavailable": "No plaintext",
+    "apiKeyUse": "Use"
+  },
   "labels": {
     "accessToken": "System access token (optional)",
     "accessTokenHint": "Access token from the site's personal-settings page; required by the billing probe",

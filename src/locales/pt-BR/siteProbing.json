@@ -1,5 +1,11 @@
 {
   "description": "Sete verificações padronizadas que confirmam se um site de relay entrega o modelo pelo qual você pagou. Cada execução custa poucos tokens; os relatórios ficam locais.",
+  "dialog": {
+    "apiKeyDescription": "Esta conta tem várias chaves de API. Escolha a que será usada nesta execução.",
+    "apiKeyTitle": "Escolher chave de API",
+    "apiKeyUnavailable": "Sem texto puro",
+    "apiKeyUse": "Usar"
+  },
   "labels": {
     "accessToken": "Token de acesso do sistema (opcional)",
     "accessTokenHint": "Token da página de configurações pessoais do site; exigido pela sonda de cobrança",
