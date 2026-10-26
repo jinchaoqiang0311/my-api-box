@@ -1,4 +1,5 @@
 import { SITE_TYPES, type ManagedSiteType } from "~/constants/siteType"
+import { type CommunitySubmissionSettings } from "~/services/communitySubmission"
 import { getManagedSiteConfigRegistration } from "~/services/managedSites/configuration/configRegistration"
 import {
   createDefaultSortingPriorityConfig,
@@ -535,6 +536,15 @@ class UserPreferencesService extends PreferencesStore {
   async resetTaskNotifications(): Promise<PreferenceWriteResult> {
     return this.savePreferences({
       taskNotifications: DEFAULT_PREFERENCES.taskNotifications,
+    })
+  }
+
+  /** Update anonymous community submission settings. */
+  async updateCommunitySubmission(
+    updates: Partial<CommunitySubmissionSettings>,
+  ): Promise<PreferenceWriteResult> {
+    return this.savePreferences({
+      communitySubmission: updates,
     })
   }
 

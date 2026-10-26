@@ -2,12 +2,16 @@ export type {
   CommunitySubmissionSettings,
   CommunityProbeSubmissionPayload,
   CommunityProbeMeasures,
+  CommunityPriceSubmissionPayload,
+  CommunityPriceModelEntry,
 } from "./types"
-// P1 (model‑catalog hook): CommunityPriceSubmissionPayload, CommunityPriceModelEntry
 export { DEFAULT_COMMUNITY_SUBMISSION_SETTINGS } from "./types"
 
-export { sanitizeProbeReport } from "./sanitizer"
-// P1: sanitizeModelCatalog, finalizePricePayload
+export {
+  sanitizeProbeReport,
+  sanitizeModelCatalog,
+  finalizePricePayload,
+} from "./sanitizer"
 
 export {
   communitySubmissionService,

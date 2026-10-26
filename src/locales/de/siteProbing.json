@@ -1,4 +1,17 @@
 {
+  "community": {
+    "afterCatalog": "Nach Aktualisierung der Modellpreise beitragen",
+    "afterProbe": "Nach jedem Prüflauf beitragen",
+    "description": "Teile bereinigte Prüfergebnisse und öffentliche Modellpreise mit deiner Bewertungsseite, um aktuelle Stationsbewertungen zu verbessern. Standardmäßig deaktiviert; du musst ausdrücklich zustimmen.",
+    "enabled": "Anonyme Beiträge aktivieren",
+    "endpoint": "API-Endpunkt der Bewertungsseite",
+    "endpointHint": "Nur die API-Basis-URL eingeben, z. B. https://ratings.example.com/api/v1; /probes und /prices werden automatisch angehängt.",
+    "hashUrl": "Stations-URLs vor dem Upload hashen",
+    "hashUrlHint": "Empfohlen: Die Website erhält den Hash statt der lesbaren Domain.",
+    "privacy": "Datenschutz: API-Schlüssel, Zugriffstoken, Kontostände und persönliche Daten werden niemals hochgeladen. Geteilt werden nur Prüfergebnisse, Kennzahlen wie Latenz und öffentliche Preise.",
+    "saveFailed": "Einstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
+    "title": "Anonyme Prüfdaten beitragen"
+  },
   "description": "Sieben standardisierte Checks, die verifizieren, ob eine Relay-Site das gebuchte Modell tatsächlich liefert. Jeder Lauf kostet wenige Tokens; Berichte bleiben lokal.",
   "dialog": {
     "apiKeyDescription": "Dieses Konto hat mehrere API-Schlüssel. Wähle den Schlüssel für diesen Lauf.",

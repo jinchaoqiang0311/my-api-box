@@ -1,4 +1,17 @@
 {
+  "community": {
+    "afterCatalog": "Đóng góp sau khi cập nhật giá mô hình",
+    "afterProbe": "Đóng góp sau mỗi lần kiểm tra",
+    "description": "Chia sẻ kết quả kiểm tra đã lọc và giá mô hình công khai với trang đánh giá để cải thiện xếp hạng theo thời gian thực. Mặc định tắt; bạn phải chủ động bật.",
+    "enabled": "Bật đóng góp ẩn danh",
+    "endpoint": "Endpoint API của trang đánh giá",
+    "endpointHint": "Chỉ nhập URL gốc của API, ví dụ https://ratings.example.com/api/v1; /probes và /prices sẽ được tự động thêm.",
+    "hashUrl": "Băm URL trạm trước khi tải lên",
+    "hashUrlHint": "Khuyến nghị: trang web chỉ nhận mã băm thay vì tên miền rõ ràng.",
+    "privacy": "Quyền riêng tư: khóa API, token truy cập, số dư tuyệt đối và dữ liệu cá nhân không bao giờ được tải lên. Chỉ chia sẻ kết quả, chỉ số như độ trễ và giá công khai.",
+    "saveFailed": "Không thể lưu cài đặt đóng góp. Vui lòng thử lại.",
+    "title": "Đóng góp dữ liệu xác minh ẩn danh"
+  },
   "description": "Bảy bước kiểm tra chuẩn hóa xác minh trang chuyển tiếp có thực sự cung cấp mẫu bạn đã trả tiền. Mỗi lần chạy tốn ít token; báo cáo giữ trên máy.",
   "dialog": {
     "apiKeyDescription": "Tài khoản này có nhiều API key. Hãy chọn key dùng cho lần chạy này.",

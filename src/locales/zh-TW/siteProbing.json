@@ -1,4 +1,17 @@
 {
+  "community": {
+    "afterCatalog": "模型價格更新後自動貢獻",
+    "afterProbe": "每次檢測完成後自動貢獻",
+    "description": "將去識別化的檢測結果與公開模型價格分享給測評網站,協助產生即時站點評分。預設關閉,需由你主動開啟。",
+    "enabled": "開啟匿名貢獻",
+    "endpoint": "測評網站 API 位址",
+    "endpointHint": "只填寫 API 根位址,例如 https://ratings.example.com/api/v1;用戶端會自動加上 /probes 與 /prices。",
+    "hashUrl": "上傳前將站點網址雜湊",
+    "hashUrlHint": "建議開啟:網站只會收到站點雜湊,不會收到明文網域。",
+    "privacy": "隱私承諾:不會上傳 API 金鑰、存取權杖、餘額絕對值或個人資料;只分享檢測結果、延遲等指標與公開價格。",
+    "saveFailed": "貢獻設定儲存失敗,請重試",
+    "title": "貢獻匿名驗證資料"
+  },
   "description": "七種標準化檢測,驗證中轉站是否如實提供你付費的模型。每次運行消耗少量 token,報告可在本地匯出。",
   "dialog": {
     "apiKeyDescription": "該帳號下有多個 API 金鑰,請選擇本次檢測要使用的一個。",

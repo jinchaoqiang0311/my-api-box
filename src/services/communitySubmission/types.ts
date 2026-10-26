@@ -38,7 +38,8 @@ export const DEFAULT_COMMUNITY_SUBMISSION_SETTINGS: CommunitySubmissionSettings 
 /* -------------------------------------------------------------------------- */
 
 export interface CommunityProbeSubmissionPayload {
-  station_url: string
+  /** Present only when the user did not enable station URL hashing. */
+  station_url?: string
   station_hash?: string
   site_type: string
   extension_version: string
@@ -83,7 +84,8 @@ export interface CommunityProbeMeasures {
 }
 
 export interface CommunityPriceSubmissionPayload {
-  station_url: string
+  /** Present only when the user did not enable station URL hashing. */
+  station_url?: string
   station_hash?: string
   site_type: string
   extension_version: string

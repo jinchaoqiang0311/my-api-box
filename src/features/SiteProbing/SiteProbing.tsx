@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog"
 import { FormField } from "~/components/ui/FormField"
+import { Switch } from "~/components/ui/Switch"
 import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
 import { accountReadModels } from "~/services/accounts/accountStorage/accountReadModels"
 import {
@@ -27,6 +28,11 @@ import {
 } from "~/services/accountSiteDefinitions"
 import { createNewApiAccountBootstrap } from "~/services/apiAdapters/newApi/account/accountBootstrap"
 import { API_ERROR_CODES, ApiError } from "~/services/apiTransport/errors"
+import {
+  DEFAULT_COMMUNITY_SUBMISSION_SETTINGS,
+  type CommunitySubmissionSettings,
+} from "~/services/communitySubmission"
+import { userPreferences } from "~/services/preferences/userPreferences"
 import {
   getProbeHint,
   getProbeLabel,
@@ -90,6 +96,47 @@ export default function SiteProbing() {
   const [results, setResults] = useState<ProbeResult[]>([])
   const [reportAt, setReportAt] = useState<number | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [communitySettings, setCommunitySettings] =
+    useState<CommunitySubmissionSettings>(DEFAULT_COMMUNITY_SUBMISSION_SETTINGS)
+  const [communitySaving, setCommunitySaving] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    userPreferences
+      .getPreferences()
+      .then((preferences) => {
+        if (!cancelled) {
+          setCommunitySettings({
+            ...DEFAULT_COMMUNITY_SUBMISSION_SETTINGS,
+            ...preferences.communitySubmission,
+          })
+        }
+      })
+      .catch((error: unknown) =>
+        logger.warn("Failed to load community submission settings", error),
+      )
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const saveCommunitySettings = useCallback(
+    async (updates: Partial<CommunitySubmissionSettings>) => {
+      const next = { ...communitySettings, ...updates }
+      setCommunitySettings(next)
+      setCommunitySaving(true)
+      try {
+        const result = await userPreferences.updateCommunitySubmission(next)
+        if (!result.ok) setNotice(t("community.saveFailed"))
+      } catch (error) {
+        logger.warn("Failed to save community submission settings", error)
+        setNotice(t("community.saveFailed"))
+      } finally {
+        setCommunitySaving(false)
+      }
+    },
+    [communitySettings, t],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -372,6 +419,107 @@ export default function SiteProbing() {
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground text-sm">{t("description")}</p>
       </header>
+
+      <section className="space-y-3 rounded-md border p-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold">{t("community.title")}</h2>
+            <p className="text-muted-foreground text-xs">
+              {t("community.description")}
+            </p>
+          </div>
+          <Switch
+            checked={communitySettings.enabled}
+            disabled={communitySaving}
+            aria-label={t("community.enabled")}
+            onChange={(checked) =>
+              void saveCommunitySettings({ enabled: checked })
+            }
+          />
+        </div>
+        <p className="text-muted-foreground text-xs">
+          {t("community.privacy")}
+        </p>
+        {communitySettings.enabled ? (
+          <>
+            <FormField
+              label={t("community.endpoint")}
+              description={t("community.endpointHint")}
+              htmlFor="community-submission-endpoint"
+            >
+              <input
+                id="community-submission-endpoint"
+                type="url"
+                inputMode="url"
+                className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+                placeholder="https://ratings.example.com/api/v1"
+                value={communitySettings.endpoint}
+                disabled={communitySaving}
+                onChange={(event) =>
+                  setCommunitySettings((previous) => ({
+                    ...previous,
+                    endpoint: event.target.value,
+                  }))
+                }
+                onBlur={() =>
+                  void saveCommunitySettings({
+                    endpoint: communitySettings.endpoint.trim(),
+                  })
+                }
+              />
+            </FormField>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={communitySettings.hashStationUrl}
+                disabled={communitySaving}
+                onChange={(event) =>
+                  void saveCommunitySettings({
+                    hashStationUrl: event.target.checked,
+                  })
+                }
+              />
+              <span>
+                <span className="block">{t("community.hashUrl")}</span>
+                <span className="text-muted-foreground block text-xs">
+                  {t("community.hashUrlHint")}
+                </span>
+              </span>
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={communitySettings.autoSubmitAfterProbe}
+                  disabled={communitySaving}
+                  onChange={(event) =>
+                    void saveCommunitySettings({
+                      autoSubmitAfterProbe: event.target.checked,
+                    })
+                  }
+                />
+                <span>{t("community.afterProbe")}</span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={communitySettings.autoSubmitAfterCatalog}
+                  disabled={communitySaving}
+                  onChange={(event) =>
+                    void saveCommunitySettings({
+                      autoSubmitAfterCatalog: event.target.checked,
+                    })
+                  }
+                />
+                <span>{t("community.afterCatalog")}</span>
+              </label>
+            </div>
+          </>
+        ) : null}
+      </section>
 
       {accounts.length === 0 ? (
         <p className="text-muted-foreground text-sm">

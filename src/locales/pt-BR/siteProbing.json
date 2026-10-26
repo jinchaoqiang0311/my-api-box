@@ -1,4 +1,17 @@
 {
+  "community": {
+    "afterCatalog": "Contribuir após atualizar os preços dos modelos",
+    "afterProbe": "Contribuir após cada teste",
+    "description": "Compartilhe resultados de testes higienizados e preços públicos de modelos com seu site de avaliações para melhorar as classificações em tempo real. Desativado por padrão; você precisa ativar.",
+    "enabled": "Ativar contribuições anônimas",
+    "endpoint": "Endpoint da API do site de avaliações",
+    "endpointHint": "Informe apenas a URL base da API, por exemplo https://ratings.example.com/api/v1; /probes e /prices serão adicionados automaticamente.",
+    "hashUrl": "Aplicar hash às URLs dos sites antes do envio",
+    "hashUrlHint": "Recomendado: o site recebe um hash em vez do domínio em texto claro.",
+    "privacy": "Privacidade: chaves de API, tokens de acesso, saldos absolutos e dados pessoais nunca são enviados. Apenas vereditos, métricas como latência e preços públicos são compartilhados.",
+    "saveFailed": "Não foi possível salvar as configurações. Tente novamente.",
+    "title": "Contribuir com dados anônimos de verificação"
+  },
   "description": "Sete verificações padronizadas que confirmam se um site de relay entrega o modelo pelo qual você pagou. Cada execução custa poucos tokens; os relatórios ficam locais.",
   "dialog": {
     "apiKeyDescription": "Esta conta tem várias chaves de API. Escolha a que será usada nesta execução.",

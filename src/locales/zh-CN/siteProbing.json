@@ -1,4 +1,17 @@
 {
+  "community": {
+    "afterCatalog": "模型价格刷新后自动贡献",
+    "afterProbe": "测评完成后自动贡献",
+    "description": "将脱敏后的探针结果和公开模型价格贡献给测评网站,帮助生成实时站点评分。默认关闭,需你主动开启。",
+    "enabled": "开启社区贡献",
+    "endpoint": "测评网站 API 地址",
+    "endpointHint": "只填写 API 根地址,例如 https://ratings.example.com/api/v1;客户端会追加 /probes 和 /prices。",
+    "hashUrl": "上传前哈希站点地址",
+    "hashUrlHint": "推荐开启:网站只收到站点哈希,不收到明文域名。",
+    "privacy": "隐私承诺:不会上传 API 密钥、访问令牌、余额绝对值或个人数据;仅上传验真结论、延迟等指标和公开价格。",
+    "saveFailed": "贡献设置保存失败,请重试",
+    "title": "匿名贡献验真数据"
+  },
   "description": "七种标准化检测,验证中转站是否如实提供你付费的模型。每次运行消耗少量 token,报告可在本地导出。",
   "dialog": {
     "apiKeyDescription": "该账号下有多个 API 密钥,请选择本次检测要使用的一个。",

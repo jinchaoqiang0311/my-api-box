@@ -1,4 +1,17 @@
 {
+  "community": {
+    "afterCatalog": "Contribute after model-price refresh",
+    "afterProbe": "Contribute after each probe run",
+    "description": "Share sanitized probe results and public model prices with your review site to improve live station ratings. Off by default; you must opt in.",
+    "enabled": "Enable community contributions",
+    "endpoint": "Review-site API endpoint",
+    "endpointHint": "Enter the API base URL only, e.g. https://ratings.example.com/api/v1; the client appends /probes and /prices.",
+    "hashUrl": "Hash station URLs before upload",
+    "hashUrlHint": "Recommended: the site receives a station hash instead of the cleartext domain.",
+    "privacy": "Privacy promise: API keys, access tokens, absolute balances, and personal data are never uploaded. Only verdicts, metrics such as latency, and public prices are shared.",
+    "saveFailed": "Could not save contribution settings. Please retry.",
+    "title": "Contribute anonymous verification data"
+  },
   "description": "Seven standardized checks that verify a relay site serves the model you pay for. Each run costs a few tokens; reports stay local.",
   "dialog": {
     "apiKeyDescription": "This account has several API keys. Choose the one to use for this run.",

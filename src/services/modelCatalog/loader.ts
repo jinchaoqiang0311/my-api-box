@@ -11,6 +11,7 @@ import {
   fetchApiCredentialModelIds,
 } from "~/services/apiCredentialProfiles/modelCatalog"
 import { API_ERROR_CODES } from "~/services/apiTransport/errors"
+import { submitCatalogSnapshot } from "~/services/communitySubmission/catalogSubmission"
 import {
   loadAccountRuntimeKeyFallbackPricingResponse,
   MODEL_LIST_ACCOUNT_SOURCE_ROUTES,
@@ -57,6 +58,11 @@ export async function loadAccountModelCatalog(params: {
   if (!hasValidCatalogFacts(pricing)) throw createInvalidFormatError()
   await modelPricingCache.set(cacheKey, pricing)
   throwIfCatalogLoadAborted(params.abortSignal)
+  void submitCatalogSnapshot({
+    origin: params.account.baseUrl,
+    siteType: String(params.account.siteType),
+    pricing,
+  })
   return { pricing, cacheHit: false }
 }
 

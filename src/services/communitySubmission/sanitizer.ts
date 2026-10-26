@@ -148,7 +148,7 @@ export async function sanitizeProbeReport(
   }
 
   const payload: CommunityProbeSubmissionPayload = {
-    station_url: origin,
+    ...(opts.hashStationUrl ? {} : { station_url: origin }),
     site_type: opts.siteType,
     extension_version: opts.extensionVersion,
     submitted_at: Date.now(),
@@ -167,8 +167,7 @@ export async function sanitizeProbeReport(
  * Sanitize a model catalog snapshot into a price submission.
  * Takes raw model entries (from ProductCanonicalModel or ModelCatalogModel).
  */
-// @ts-expect-error — P1 helper, not consumed yet
-function _sanitizeModelCatalog(
+export function sanitizeModelCatalog(
   origin: string,
   entries: Array<{
     model_name: string
@@ -209,7 +208,7 @@ function _sanitizeModelCatalog(
 
   return {
     payload: {
-      station_url: origin,
+      ...(opts.hashStationUrl ? {} : { station_url: origin }),
       site_type: opts.siteType,
       extension_version: opts.extensionVersion,
       submitted_at: Date.now(),
@@ -221,8 +220,7 @@ function _sanitizeModelCatalog(
 }
 
 /** Attaches the optional station_hash to a price payload before submission. */
-// @ts-expect-error — P1 helper, not consumed yet
-async function _finalizePricePayload(
+export async function finalizePricePayload(
   payload: CommunityPriceSubmissionPayload,
   stationHash: string | undefined,
 ): Promise<CommunityPriceSubmissionPayload> {
