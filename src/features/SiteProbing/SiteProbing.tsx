@@ -130,6 +130,16 @@ export default function SiteProbing() {
       setNotice(t("status.autoFetchUnsupported"))
       return
     }
+    // Accounts that already own an access token keep it in the account record,
+    // which is the only copy some deployments can recover. Prefer it over a
+    // network round-trip that may not be allowed to expose or mint the token.
+    const storedAccessToken = account.account_info.access_token?.trim()
+    if (storedAccessToken) {
+      setAccessToken(storedAccessToken)
+      setRemoteUserId(account.account_info.id)
+      setNotice(t("status.autoFetchDone"))
+      return
+    }
     setCredentialsLoading(true)
     setNotice(null)
     try {
