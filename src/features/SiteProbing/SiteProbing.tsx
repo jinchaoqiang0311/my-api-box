@@ -136,16 +136,22 @@ export default function SiteProbing() {
       const bootstrap = createNewApiAccountBootstrap(account.site_type, {
         expectedUserId: account.account_info.id,
       })
-      const userInfo = await bootstrap.fetchUserInfo({
+      const request = {
         baseUrl: account.site_url,
         auth: {
           authType: AuthTypeEnum.Cookie,
           userId: account.account_info.id,
         },
-      })
+      }
+      const userInfo = await bootstrap.fetchUserInfo(request)
       setRemoteUserId(userInfo.id)
-      if (userInfo.access_token) {
-        setAccessToken(userInfo.access_token)
+      // `/api/user/self` omits the access token on accounts that never
+      // generated one, so mint it the same way the account dialog does.
+      const accessToken =
+        userInfo.access_token ||
+        (await bootstrap.getOrCreateAccessToken(request)).access_token
+      if (accessToken) {
+        setAccessToken(accessToken)
         setNotice(t("status.autoFetchDone"))
       } else {
         setNotice(t("status.autoFetchNoToken"))
