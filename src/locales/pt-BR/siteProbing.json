@@ -54,6 +54,9 @@
     "title": "Resultados"
   },
   "status": {
+    "apiKeyFetched": "Chave de API preenchida automaticamente.",
+    "apiKeyFetchFailed": "Falha ao obter a chave de API. Confirme que você está logado neste site de relay e tente novamente.",
+    "apiKeyMissing": "Esta conta não tem nenhuma chave de API utilizável, ou o site não revela a chave. Preencha manualmente.",
     "autoFetchDone": "Token de acesso e ID de usuário preenchidos automaticamente.",
     "autoFetchFailed": "Falha ao preencher automaticamente. Confirme que você está logado neste site de relay no navegador e tente novamente.",
     "autoFetchIdentityMismatch": "A sessão do navegador está logada em uma conta diferente da selecionada. Troque de conta e tente novamente.",

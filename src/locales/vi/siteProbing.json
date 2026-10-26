@@ -54,6 +54,9 @@
     "title": "Kết quả"
   },
   "status": {
+    "apiKeyFetched": "Đã tự động điền API key.",
+    "apiKeyFetchFailed": "Không lấy được API key. Hãy đăng nhập trang trung chuyển này rồi thử lại.",
+    "apiKeyMissing": "Tài khoản này không có API key khả dụng, hoặc trang không trả về key dạng văn bản. Vui lòng điền thủ công.",
     "autoFetchDone": "Đã tự động điền access token và user ID.",
     "autoFetchFailed": "Tự động lấy thất bại. Hãy đăng nhập trang trung chuyển này trong trình duyệt rồi thử lại.",
     "autoFetchIdentityMismatch": "Phiên trình duyệt đang đăng nhập bằng tài khoản khác với tài khoản đã chọn. Hãy đổi tài khoản rồi thử lại.",

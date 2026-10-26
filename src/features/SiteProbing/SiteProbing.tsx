@@ -5,6 +5,15 @@ import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { FormField } from "~/components/ui/FormField"
 import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
+import { accountReadModels } from "~/services/accounts/accountStorage/accountReadModels"
+import {
+  findDefaultSelectableAccountRuntimeKey,
+  sortAccountRuntimeKeysActiveFirst,
+} from "~/services/accounts/keys/accountRuntimeKeys"
+import {
+  fetchDisplayAccountRuntimeKeys,
+  resolveDisplayAccountRuntimeKeySecret,
+} from "~/services/accounts/utils/apiServiceRequest"
 import {
   ACCOUNT_SITE_ADAPTER_FAMILIES,
   getAccountSiteDefinition,
@@ -58,6 +67,7 @@ export default function SiteProbing() {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [credentialsLoading, setCredentialsLoading] = useState(false)
+  const [apiKeyLoading, setApiKeyLoading] = useState(false)
   const [selected, setSelected] = useState<Set<ProbeId>>(new Set(ALL_PROBE_IDS))
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<ProbeResult[]>([])
@@ -112,6 +122,54 @@ export default function SiteProbing() {
       setModelsLoading(false)
     }
   }, [account, apiKey, model, t])
+
+  /**
+   * Fills the probe API key with the account's default runtime key, resolving
+   * the plaintext from the site when the inventory only exposes a mask.
+   */
+  const handleAutoFetchApiKey = useCallback(async () => {
+    if (!account) {
+      setNotice(t("status.autoFetchNoAccount"))
+      return
+    }
+    setApiKeyLoading(true)
+    setNotice(null)
+    try {
+      const displayAccount = await accountReadModels.getDisplayDataById(
+        account.id,
+      )
+      if (!displayAccount) {
+        setNotice(t("status.apiKeyFetchFailed"))
+        return
+      }
+      const runtimeKeys = sortAccountRuntimeKeysActiveFirst(
+        await fetchDisplayAccountRuntimeKeys(displayAccount),
+      )
+      const runtimeKey = findDefaultSelectableAccountRuntimeKey(runtimeKeys)
+      if (!runtimeKey) {
+        setNotice(t("status.apiKeyMissing"))
+        return
+      }
+      const resolvedKey = runtimeKey.secret
+        ? runtimeKey
+        : await resolveDisplayAccountRuntimeKeySecret(
+            displayAccount,
+            runtimeKey,
+          )
+      const secret = resolvedKey.secret?.trim() ?? ""
+      if (!secret) {
+        setNotice(t("status.apiKeyMissing"))
+        return
+      }
+      setApiKey(secret)
+      setNotice(t("status.apiKeyFetched"))
+    } catch (error) {
+      logger.warn("Failed to auto-fetch API key", error)
+      setNotice(t("status.apiKeyFetchFailed"))
+    } finally {
+      setApiKeyLoading(false)
+    }
+  }, [account, t])
 
   /**
    * Fills the billing access token and user id from the site's own browser
@@ -285,14 +343,26 @@ export default function SiteProbing() {
               description={t("labels.apiKeyHint")}
               htmlFor="site-probing-key"
             >
-              <input
-                id="site-probing-key"
-                type="password"
-                className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder="sk-..."
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  id="site-probing-key"
+                  type="password"
+                  className="min-w-0 flex-1 rounded-md border bg-transparent px-3 py-2 text-sm"
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder="sk-..."
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleAutoFetchApiKey()}
+                  disabled={!account || apiKeyLoading}
+                >
+                  {apiKeyLoading
+                    ? t("labels.autoFetchLoading")
+                    : t("labels.autoFetch")}
+                </Button>
+              </div>
             </FormField>
 
             <div className="flex items-end gap-2">

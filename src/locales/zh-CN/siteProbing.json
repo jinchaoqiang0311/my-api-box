@@ -54,6 +54,9 @@
     "title": "检测结果"
   },
   "status": {
+    "apiKeyFetched": "已自动填入 API 密钥。",
+    "apiKeyFetchFailed": "自动获取 API 密钥失败,请确认已登录该中转站后重试。",
+    "apiKeyMissing": "该账号下没有可用的 API 密钥,或站点不返回密钥明文,请手动填写。",
     "autoFetchDone": "已自动填入访问令牌和用户 ID。",
     "autoFetchFailed": "自动获取失败,请确认已在浏览器中登录该中转站后重试。",
     "autoFetchIdentityMismatch": "当前浏览器登录的账号与所选账号不一致,请切换登录后重试。",

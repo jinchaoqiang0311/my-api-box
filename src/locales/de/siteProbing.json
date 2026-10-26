@@ -54,6 +54,9 @@
     "title": "Ergebnisse"
   },
   "status": {
+    "apiKeyFetched": "API-Schlüssel wurde automatisch eingetragen.",
+    "apiKeyFetchFailed": "API-Schlüssel konnte nicht abgerufen werden. Melde dich bei dieser Relay-Seite an und versuche es erneut.",
+    "apiKeyMissing": "Dieses Konto hat keinen nutzbaren API-Schlüssel, oder die Seite gibt den Schlüssel nicht preis. Bitte manuell eingeben.",
     "autoFetchDone": "Zugriffstoken und Benutzer-ID wurden automatisch eingetragen.",
     "autoFetchFailed": "Automatisches Ausfüllen fehlgeschlagen. Melde dich im Browser bei dieser Relay-Seite an und versuche es erneut.",
     "autoFetchIdentityMismatch": "Die Browsersitzung ist mit einem anderen Konto angemeldet als dem ausgewählten. Wechsle das Konto und versuche es erneut.",

@@ -54,6 +54,9 @@
     "title": "檢測結果"
   },
   "status": {
+    "apiKeyFetched": "已自動填入 API 金鑰。",
+    "apiKeyFetchFailed": "自動取得 API 金鑰失敗,請確認已登入該中轉站後重試。",
+    "apiKeyMissing": "該帳號下沒有可用的 API 金鑰,或站點不回傳金鑰明文,請手動填寫。",
     "autoFetchDone": "已自動填入存取權杖與使用者 ID。",
     "autoFetchFailed": "自動取得失敗,請確認已在瀏覽器中登入該中轉站後重試。",
     "autoFetchIdentityMismatch": "目前瀏覽器登入的帳號與所選帳號不一致,請切換登入後重試。",

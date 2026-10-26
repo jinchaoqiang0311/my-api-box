@@ -54,6 +54,9 @@
     "title": "Resultados"
   },
   "status": {
+    "apiKeyFetched": "La clave API se completó automáticamente.",
+    "apiKeyFetchFailed": "No se pudo obtener la clave API. Asegúrate de haber iniciado sesión en este sitio de retransmisión y vuelve a intentarlo.",
+    "apiKeyMissing": "Esta cuenta no tiene ninguna clave API utilizable, o el sitio no revela la clave. Introdúcela manualmente.",
     "autoFetchDone": "El token de acceso y el ID de usuario se completaron automáticamente.",
     "autoFetchFailed": "Error al rellenar automáticamente. Asegúrate de haber iniciado sesión en este sitio de retransmisión en el navegador y vuelve a intentarlo.",
     "autoFetchIdentityMismatch": "La sesión del navegador pertenece a una cuenta distinta de la seleccionada. Cambia de cuenta y vuelve a intentarlo.",

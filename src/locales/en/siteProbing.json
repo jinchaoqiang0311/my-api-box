@@ -54,6 +54,9 @@
     "title": "Results"
   },
   "status": {
+    "apiKeyFetched": "API key filled automatically.",
+    "apiKeyFetchFailed": "Failed to fetch the API key. Make sure you are logged in to this relay site, then retry.",
+    "apiKeyMissing": "This account has no usable API key, or the site does not reveal the key. Enter it manually.",
     "autoFetchDone": "Access token and user ID filled automatically.",
     "autoFetchFailed": "Auto-fill failed. Make sure you are logged in to this relay site in the browser, then retry.",
     "autoFetchIdentityMismatch": "The browser session is signed in to a different account than the one selected. Switch accounts and retry.",
