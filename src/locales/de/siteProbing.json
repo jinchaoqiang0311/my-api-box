@@ -59,5 +59,37 @@
     "running": "Läuft…",
     "summary": "{{pass}}/{{total}} bestanden"
   },
-  "title": "Site-Prüfung"
+  "summaries": {
+    "billingNoUsage": "Antwort ohne Nutzungdaten (abgebucht {{deducted}})",
+    "billingOk": "Abgebucht {{deducted}} ≈ erwartet {{expected}}",
+    "billingOver": "Abgebucht {{deducted}} weit über erwartet {{expected}}",
+    "billingSkip": "Kein Zugriffstoken; übersprungen",
+    "cacheFresh": "Beide Antworten frisch",
+    "cacheHit": "Zweiter Aufruf wiederholte die erste Antwort",
+    "cacheOdd": "Echo-Anomalie",
+    "cacheVague": "Modell hat nicht wiederholt; unbestimmt",
+    "consistencyDrift": "Weicht von der Baseline ab ({{field}}); möglicher stiller Austausch",
+    "consistencyFirst": "Erster Lauf; Baseline gespeichert",
+    "consistencyStable": "Stimmt mit der Baseline überein",
+    "identityMatch": "Selbstgemeldet: {{claimed}}",
+    "identityMismatch": "Angefordert {{requested}}, selbstgemeldet {{claimed}}",
+    "identityVague": "Modell hat sich nicht gemeldet",
+    "injectionClean": "Keine injizierten Anweisungen gefunden",
+    "injectionSuspect": "Modell offenbarte nie gesendete Anweisungen",
+    "probeError": "Anfrage fehlgeschlagen: {{error}}",
+    "reachError": "Verbindung fehlgeschlagen: {{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "Möglicherweise Fake-Streaming: einzelner Chunk nach {{ttft}} ms",
+    "streamNoMetric": "Keine Streaming-Metriken erfasst",
+    "streamOk": "TTFT {{ttft}} ms / {{chunks}} Chunks"
+  },
+  "title": "Site-Prüfung",
+  "verdicts": {
+    "fail": "Fehler",
+    "pass": "Bestanden",
+    "skip": "Übersprungen",
+    "suspect": "Verdächtig",
+    "unknown": "Unbekannt"
+  }
 }

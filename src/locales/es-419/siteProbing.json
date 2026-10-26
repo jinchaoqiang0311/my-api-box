@@ -59,5 +59,37 @@
     "running": "Ejecutando…",
     "summary": "{{pass}}/{{total}} correctas"
   },
-  "title": "Inspección del sitio"
+  "summaries": {
+    "billingNoUsage": "Respuesta sin datos de uso (descontado {{deducted}})",
+    "billingOk": "Descontado {{deducted}} ≈ esperado {{expected}}",
+    "billingOver": "Descontado {{deducted}} muy por encima de {{expected}}",
+    "billingSkip": "Sin token de acceso; omitido",
+    "cacheFresh": "Ambas respuestas frescas",
+    "cacheHit": "La segunda llamada repitió la primera respuesta",
+    "cacheOdd": "Anomalía en el eco",
+    "cacheVague": "El modelo no repitió; inconcluso",
+    "consistencyDrift": "Se desvía de la línea base ({{field}}); posible cambio silencioso",
+    "consistencyFirst": "Primera ejecución; línea base guardada",
+    "consistencyStable": "Coincide con la línea base",
+    "identityMatch": "Autoinformado: {{claimed}}",
+    "identityMismatch": "Solicitado {{requested}} pero autoinformado {{claimed}}",
+    "identityVague": "El modelo no se autoinformó",
+    "injectionClean": "No se encontraron instrucciones inyectadas",
+    "injectionSuspect": "El modelo reveló instrucciones que nunca enviamos",
+    "probeError": "Solicitud fallida: {{error}}",
+    "reachError": "Conexión fallida: {{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "Posible streaming falso: un solo fragmento tras {{ttft}} ms",
+    "streamNoMetric": "Sin métricas de streaming",
+    "streamOk": "TTFT {{ttft}} ms / {{chunks}} fragmentos"
+  },
+  "title": "Inspección del sitio",
+  "verdicts": {
+    "fail": "Fallo",
+    "pass": "Correcto",
+    "skip": "Omitido",
+    "suspect": "Sospechoso",
+    "unknown": "Desconocido"
+  }
 }

@@ -59,5 +59,37 @@
     "running": "実行中…",
     "summary": "{{pass}}/{{total}} 合格"
   },
-  "title": "サイト検査"
+  "summaries": {
+    "billingNoUsage": "応答に使用量データなし(引き去り {{deducted}})",
+    "billingOk": "引き去り {{deducted}} ≈ 理論 {{expected}}",
+    "billingOver": "引き去り {{deducted}} が理論 {{expected}} を大幅超過",
+    "billingSkip": "アクセストークンがないためスキップ",
+    "cacheFresh": "両方とも新鮮な生成",
+    "cacheHit": "2 回目が 1 回目の答えを再生",
+    "cacheOdd": "反復の異常",
+    "cacheVague": "モデルが反復せず判定不能",
+    "consistencyDrift": "ベースラインから逸脱({{field}})。無断入れ替えの疑い",
+    "consistencyFirst": "初回実行。ベースラインを記録",
+    "consistencyStable": "ベースラインと一致",
+    "identityMatch": "自己申告:{{claimed}}",
+    "identityMismatch": "要求 {{requested}} に対し自己申告は {{claimed}}",
+    "identityVague": "モデルが自己申告しなかった",
+    "injectionClean": "注入された指示は見つかりませんでした",
+    "injectionSuspect": "送っていない指示をモデルが開示",
+    "probeError": "リクエスト失敗:{{error}}",
+    "reachError": "接続失敗:{{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "偽ストリーミングの疑い:{{ttft}} ms 後に単一チャンク",
+    "streamNoMetric": "ストリーミング指標を取得できず",
+    "streamOk": "初頭 {{ttft}} ms / {{chunks}} チャンク"
+  },
+  "title": "サイト検査",
+  "verdicts": {
+    "fail": "異常",
+    "pass": "合格",
+    "skip": "スキップ",
+    "suspect": "疑わしい",
+    "unknown": "不明"
+  }
 }

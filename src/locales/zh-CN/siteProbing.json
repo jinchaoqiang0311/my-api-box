@@ -59,5 +59,37 @@
     "running": "检测中…",
     "summary": "{{pass}}/{{total}} 通过"
   },
-  "title": "站点检测"
+  "summaries": {
+    "billingNoUsage": "响应缺少用量数据(扣费 {{deducted}})",
+    "billingOk": "扣费 {{deducted}} ≈ 理论 {{expected}}",
+    "billingOver": "扣费 {{deducted}} 远超理论 {{expected}}",
+    "billingSkip": "缺少访问令牌,已跳过",
+    "cacheFresh": "两次均为新鲜生成",
+    "cacheHit": "第二次回放了第一次的答案",
+    "cacheOdd": "回显异常",
+    "cacheVague": "模型未配合回显,无法判定",
+    "consistencyDrift": "与基线漂移({{field}}),疑似静默换模",
+    "consistencyFirst": "首次运行,已记录基线",
+    "consistencyStable": "与基线一致",
+    "identityMatch": "自报:{{claimed}}",
+    "identityMismatch": "请求 {{requested}} 但自报 {{claimed}}",
+    "identityVague": "模型未按要求自报",
+    "injectionClean": "未发现注入指令",
+    "injectionSuspect": "模型披露了未下发的前置指令",
+    "probeError": "请求失败:{{error}}",
+    "reachError": "连接失败:{{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "疑似伪流式:首字 {{ttft}} ms 后单块吐出",
+    "streamNoMetric": "未取到流式指标",
+    "streamOk": "首字 {{ttft}} ms / {{chunks}} 块"
+  },
+  "title": "站点检测",
+  "verdicts": {
+    "fail": "异常",
+    "pass": "通过",
+    "skip": "跳过",
+    "suspect": "可疑",
+    "unknown": "未知"
+  }
 }

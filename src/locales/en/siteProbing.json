@@ -59,5 +59,37 @@
     "running": "Running…",
     "summary": "{{pass}}/{{total}} passed"
   },
-  "title": "Site Probing"
+  "summaries": {
+    "billingNoUsage": "Response lacks usage data (deducted {{deducted}})",
+    "billingOk": "Deducted {{deducted}} ≈ expected {{expected}}",
+    "billingOver": "Deducted {{deducted}} far above expected {{expected}}",
+    "billingSkip": "No access token provided; skipped",
+    "cacheFresh": "Both responses fresh",
+    "cacheHit": "Second call replayed the first answer",
+    "cacheOdd": "Echo anomaly",
+    "cacheVague": "Model did not echo; inconclusive",
+    "consistencyDrift": "Drifted from baseline ({{field}}); possible silent swap",
+    "consistencyFirst": "First run; baseline recorded",
+    "consistencyStable": "Matches the baseline",
+    "identityMatch": "Self-reported: {{claimed}}",
+    "identityMismatch": "Requested {{requested}} but self-reported {{claimed}}",
+    "identityVague": "Model did not self-report",
+    "injectionClean": "No injected instructions found",
+    "injectionSuspect": "Model disclosed instructions we never sent",
+    "probeError": "Request failed: {{error}}",
+    "reachError": "Connection failed: {{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "Possible fake streaming: single chunk after {{ttft}} ms",
+    "streamNoMetric": "No streaming metrics captured",
+    "streamOk": "TTFT {{ttft}} ms / {{chunks}} chunks"
+  },
+  "title": "Site Probing",
+  "verdicts": {
+    "fail": "Fail",
+    "pass": "Pass",
+    "skip": "Skip",
+    "suspect": "Suspect",
+    "unknown": "Unknown"
+  }
 }

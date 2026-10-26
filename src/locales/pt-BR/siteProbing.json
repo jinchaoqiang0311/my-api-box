@@ -59,5 +59,37 @@
     "running": "Executando…",
     "summary": "{{pass}}/{{total}} aprovadas"
   },
-  "title": "Inspeção do site"
+  "summaries": {
+    "billingNoUsage": "Resposta sem dados de uso (debitado {{deducted}})",
+    "billingOk": "Debitado {{deducted}} ≈ esperado {{expected}}",
+    "billingOver": "Debitado {{deducted}} bem acima do esperado {{expected}}",
+    "billingSkip": "Sem token de acesso; ignorado",
+    "cacheFresh": "Ambas as respostas frescas",
+    "cacheHit": "A segunda chamada repetiu a primeira resposta",
+    "cacheOdd": "Anomalia no eco",
+    "cacheVague": "O modelo não repetiu; inconclusivo",
+    "consistencyDrift": "Divergiu da baseline ({{field}}); possível troca silenciosa",
+    "consistencyFirst": "Primeira execução; baseline registrada",
+    "consistencyStable": "Condiz com a baseline",
+    "identityMatch": "Autodeclarado: {{claimed}}",
+    "identityMismatch": "Solicitado {{requested}} mas autodeclarado {{claimed}}",
+    "identityVague": "O modelo não se autodeclarou",
+    "injectionClean": "Nenhuma instrução injetada encontrada",
+    "injectionSuspect": "O modelo revelou instruções que nunca enviamos",
+    "probeError": "Requisição falhou: {{error}}",
+    "reachError": "Conexão falhou: {{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "Possível streaming falso: um único bloco após {{ttft}} ms",
+    "streamNoMetric": "Sem métricas de streaming",
+    "streamOk": "TTFT {{ttft}} ms / {{chunks}} blocos"
+  },
+  "title": "Inspeção do site",
+  "verdicts": {
+    "fail": "Falha",
+    "pass": "Aprovado",
+    "skip": "Ignorado",
+    "suspect": "Suspeito",
+    "unknown": "Desconhecido"
+  }
 }

@@ -53,11 +53,43 @@
   },
   "status": {
     "copied": "報告已複製到剪貼簿",
-    "modelsError": "模型加载失败:{{error}}",
+    "modelsError": "模型載入失敗:{{error}}",
     "needKey": "請先選擇帳號、填寫金鑰並載入模型。",
     "noAccounts": "暫無帳號,請先在帳號管理中新增。",
-    "running": "检测中…",
-    "summary": "{{pass}}/{{total}} 通过"
+    "running": "檢測中…",
+    "summary": "{{pass}}/{{total}} 通過"
   },
-  "title": "站點檢測"
+  "summaries": {
+    "billingNoUsage": "回應缺少用量資料(扣費 {{deducted}})",
+    "billingOk": "扣費 {{deducted}} ≈ 理論 {{expected}}",
+    "billingOver": "扣費 {{deducted}} 遠超理論 {{expected}}",
+    "billingSkip": "缺少存取權杖,已跳過",
+    "cacheFresh": "兩次均為新鮮生成",
+    "cacheHit": "第二次回放了第一次的答案",
+    "cacheOdd": "回顯異常",
+    "cacheVague": "模型未配合回顯,無法判定",
+    "consistencyDrift": "與基線漂移({{field}}),疑似靜默換模",
+    "consistencyFirst": "首次執行,已記錄基線",
+    "consistencyStable": "與基線一致",
+    "identityMatch": "自報:{{claimed}}",
+    "identityMismatch": "請求 {{requested}} 但自報 {{claimed}}",
+    "identityVague": "模型未按要求自報",
+    "injectionClean": "未發現注入指令",
+    "injectionSuspect": "模型披露了未下發的前置指令",
+    "probeError": "请求失败:{{error}}",
+    "reachError": "連線失敗:{{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "疑似偽串流:首字 {{ttft}} ms 後單塊吐出",
+    "streamNoMetric": "未取到串流指標",
+    "streamOk": "首字 {{ttft}} ms / {{chunks}} 塊"
+  },
+  "title": "站點檢測",
+  "verdicts": {
+    "fail": "異常",
+    "pass": "通過",
+    "skip": "跳過",
+    "suspect": "可疑",
+    "unknown": "未知"
+  }
 }

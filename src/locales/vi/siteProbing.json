@@ -59,5 +59,37 @@
     "running": "Đang chạy…",
     "summary": "{{pass}}/{{total}} đạt"
   },
-  "title": "Kiểm tra trang"
+  "summaries": {
+    "billingNoUsage": "Phản hồi thiếu dữ liệu sử dụng (đã trừ {{deducted}})",
+    "billingOk": "Đã trừ {{deducted}} ≈ lý thuyết {{expected}}",
+    "billingOver": "Đã trừ {{deducted}} vượt xa lý thuyết {{expected}}",
+    "billingSkip": "Thiếu token truy cập; bỏ qua",
+    "cacheFresh": "Cả hai phản hồi đều mới",
+    "cacheHit": "Lần hai phát lại câu trả lời lần một",
+    "cacheOdd": "Lặp lại bất thường",
+    "cacheVague": "Mô hình không lặp lại; không kết luận được",
+    "consistencyDrift": "Lệch baseline ({{field}}); nghi tráo đổi ngầm",
+    "consistencyFirst": "Chạy lần đầu; đã ghi baseline",
+    "consistencyStable": "Khớp baseline",
+    "identityMatch": "Tự báo: {{claimed}}",
+    "identityMismatch": "Yêu cầu {{requested}} nhưng tự báo {{claimed}}",
+    "identityVague": "Mô hình không tự báo",
+    "injectionClean": "Không tìm thấy lệnh bị tiêm",
+    "injectionSuspect": "Mô hình tiết lộ lệnh ta chưa từng gửi",
+    "probeError": "Yêu cầu thất bại: {{error}}",
+    "reachError": "Kết nối thất bại: {{error}}",
+    "reachFail": "HTTP {{status}}",
+    "reachOk": "{{ms}} ms",
+    "streamFake": "Nghi streaming giả: một khối duy nhất sau {{ttft}} ms",
+    "streamNoMetric": "Không thu được chỉ số streaming",
+    "streamOk": "TTFT {{ttft}} ms / {{chunks}} khối"
+  },
+  "title": "Kiểm tra trang",
+  "verdicts": {
+    "fail": "Lỗi",
+    "pass": "Đạt",
+    "skip": "Bỏ qua",
+    "suspect": "Nghi vấn",
+    "unknown": "Không rõ"
+  }
 }
