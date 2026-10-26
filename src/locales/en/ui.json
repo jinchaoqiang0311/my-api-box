@@ -573,7 +573,6 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "externalCheckinAll": "Open all external check-ins",
-    "externalCheckinAllHint": "Open unchecked external check-ins. Ctrl/Cmd: open all. Shift: open in new window. Ctrl/Cmd+Shift: open all in new window.",
     "importExport": "Import/Export",
     "keys": "Key Management",
     "managedSiteChannels": "Channels Management",
@@ -672,7 +671,6 @@
   "sidebarFooter": {
     "community": "Community",
     "docs": "Docs",
-    "github": "GitHub",
     "sponsor": "Sponsor"
   },
   "starPromotion": {

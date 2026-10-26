@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import iconImage from "~/assets/icon.png"
 import { FeedbackDropdownMenu } from "~/components/FeedbackDropdownMenu"
 import Tooltip from "~/components/Tooltip"
-import { BodySmall, IconButton } from "~/components/ui"
+import { BodySmall, IconButton, OverflowMenu } from "~/components/ui"
 import { VersionBadge } from "~/components/VersionBadge"
 import { COLORS } from "~/constants/designTokens"
 import { ProductAnalyticsScope } from "~/contexts/ProductAnalyticsScopeContext"
@@ -218,88 +218,71 @@ export default function HeaderSection({
       <ProductAnalyticsScope entrypoint={entrypoint} surfaceId={headerSurface}>
         <div className="gap-y-density-1 sm:gap-y-density-2 flex shrink-0 items-center gap-x-1 sm:gap-x-2">
           {showRefresh && (
-            <div className="flex items-center gap-x-1 sm:gap-x-2">
-              <ProductAnalyticsScope
-                featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement}
-              >
-                <Tooltip content={t("common:actions.refresh")}>
-                  <IconButton
-                    onClick={handleGlobalRefresh}
-                    loading={isManualRefreshPending}
-                    disabled={isRefreshing}
-                    variant="outline"
-                    size="sm"
-                    aria-label={t("common:actions.refresh")}
-                    className="touch-manipulation"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </IconButton>
-                </Tooltip>
-              </ProductAnalyticsScope>
-            </div>
-          )}
-          <div className="border-border flex items-center gap-x-1 sm:gap-x-2 sm:border-s sm:ps-2">
-            <ProductAnnouncementButton surface="popup-header" onlyWhenRisk />
-            <FeedbackDropdownMenu language={i18n.language} />
-          </div>
-          <div className="border-border flex items-center gap-x-1 sm:gap-x-2 sm:border-s sm:ps-2">
-            <HeaderThemeSwitcher />
-            <ProductAnalyticsScope
-              featureId={PRODUCT_ANALYTICS_FEATURE_IDS.ProductAnalyticsSettings}
-            >
-              <Tooltip content={t("common:labels.settings")}>
-                <IconButton
-                  onClick={handleOpenSetting}
-                  variant="outline"
-                  size="sm"
-                  aria-label={t("common:labels.settings")}
-                  className="touch-manipulation"
-                  analyticsAction={
-                    PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupSettingsPage
-                  }
-                >
-                  <Settings className="h-4 w-4" />
-                </IconButton>
-              </Tooltip>
-            </ProductAnalyticsScope>
-          </div>
-          <div className="border-border flex items-center gap-x-1 sm:gap-x-2 sm:border-s sm:ps-2">
             <ProductAnalyticsScope
               featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement}
             >
-              <ProductAnalyticsScope featureId={openFullPageFeatureId}>
-                <Tooltip content={openFullPageLabel}>
-                  <IconButton
-                    onClick={handleOpenFullPage}
-                    variant="outline"
-                    size="sm"
-                    aria-label={openFullPageLabel}
-                    data-testid={openFullPageTestId}
-                    className="touch-manipulation"
-                    analyticsAction={openFullPageActionId}
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </IconButton>
-                </Tooltip>
-              </ProductAnalyticsScope>
-
-              {!inSidePanel && sidePanelSupported && (
-                <Tooltip content={t("common:actions.openSidePanel")}>
-                  <IconButton
-                    aria-label={t("common:actions.openSidePanel")}
-                    size="sm"
-                    variant="outline"
-                    onClick={handleOpenSidePanel}
-                    analyticsAction={
-                      PRODUCT_ANALYTICS_ACTION_IDS.OpenSidepanelFromPopup
-                    }
-                  >
-                    <PanelRightClose className="h-4 w-4" />
-                  </IconButton>
-                </Tooltip>
-              )}
+              <Tooltip content={t("common:actions.refresh")}>
+                <IconButton
+                  onClick={handleGlobalRefresh}
+                  loading={isManualRefreshPending}
+                  disabled={isRefreshing}
+                  variant="outline"
+                  size="sm"
+                  aria-label={t("common:actions.refresh")}
+                  className="touch-manipulation"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </IconButton>
+              </Tooltip>
             </ProductAnalyticsScope>
-          </div>
+          )}
+
+          <ProductAnnouncementButton surface="popup-header" onlyWhenRisk />
+          <FeedbackDropdownMenu language={i18n.language} />
+          <HeaderThemeSwitcher />
+
+          {/* Settings, side-panel entry, and other low-frequency navigation
+              live behind a single kebab so the header keeps visual breathing
+              room on compact popup surfaces. */}
+          <OverflowMenu
+            triggerLabel={t("common:labels.moreActions")}
+            triggerTooltip={t("common:labels.moreActions")}
+            items={[
+              {
+                label: t("common:labels.settings"),
+                icon: Settings,
+                onSelect: () => void handleOpenSetting(),
+              },
+              {
+                label: t("common:labels.sidepanelOpen"),
+                icon: PanelRightClose,
+                onSelect: () => void handleOpenSidePanel(),
+                hidden: inSidePanel || !sidePanelSupported,
+              },
+            ]}
+          />
+
+          {/* Open-full-page stays visibly pinned because it's the primary
+              escape hatch when the popup's compact view outlives its welcome. */}
+          <ProductAnalyticsScope
+            featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement}
+          >
+            <ProductAnalyticsScope featureId={openFullPageFeatureId}>
+              <Tooltip content={openFullPageLabel}>
+                <IconButton
+                  onClick={handleOpenFullPage}
+                  variant="outline"
+                  size="sm"
+                  aria-label={openFullPageLabel}
+                  data-testid={openFullPageTestId}
+                  className="touch-manipulation"
+                  analyticsAction={openFullPageActionId}
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </IconButton>
+              </Tooltip>
+            </ProductAnalyticsScope>
+          </ProductAnalyticsScope>
         </div>
       </ProductAnalyticsScope>
     </header>

@@ -8,8 +8,7 @@ import {
 import type { MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
 
-import Tooltip from "~/components/Tooltip"
-import { Button, IconButton } from "~/components/ui"
+import { Button, OverflowMenu } from "~/components/ui"
 import { COLORS } from "~/constants/designTokens"
 import { ProductAnalyticsScope } from "~/contexts/ProductAnalyticsScopeContext"
 import { useAccountActionsContext } from "~/features/AccountManagement/actions/AccountActionsContext"
@@ -69,10 +68,6 @@ export default function ActionButtons({
     return typeof customUrl === "string" && customUrl.trim() !== ""
   })
   const canOpenExternalCheckIns = externalCheckInAccounts.length > 0
-  // Use a neutral indicator while any external check-in is still pending today.
-  const hasUncheckedExternalCheckIns = externalCheckInAccounts.some(
-    (account) => !account.checkIn?.customCheckIn?.isCheckedInToday,
-  )
 
   const handleOpenKeysPageClick = () => {
     openKeysPage()
@@ -87,9 +82,12 @@ export default function ActionButtons({
   }
 
   const handleOpenExternalCheckInsClick = async (
-    event: MouseEvent<HTMLButtonElement>,
+    options:
+      | MouseEvent<HTMLButtonElement>
+      | { openAll: boolean; openInNewWindow: boolean },
   ) => {
-    const { openAll, openInNewWindow } = getExternalCheckInOpenOptions(event)
+    const { openAll, openInNewWindow } =
+      "openAll" in options ? options : getExternalCheckInOpenOptions(options)
     await handleOpenExternalCheckIns(externalCheckInAccounts, {
       openAll,
       openInNewWindow,
@@ -123,85 +121,38 @@ export default function ActionButtons({
           </Button>
 
           {showAccountActions && (
-            <>
-              <Tooltip content={t("navigation.keys")}>
-                <ProductAnalyticsScope
-                  featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AccountManagement}
-                >
-                  <IconButton
-                    onClick={handleOpenKeysPageClick}
-                    variant="outline"
-                    size="default"
-                    className="touch-manipulation"
-                    aria-label={t("navigation.keys")}
-                    analyticsAction={
-                      PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupKeyManagement
-                    }
-                  >
-                    <KeyRound className="h-4 w-4" />
-                  </IconButton>
-                </ProductAnalyticsScope>
-              </Tooltip>
-
-              <Tooltip content={t("navigation.models")}>
-                <ProductAnalyticsScope
-                  featureId={PRODUCT_ANALYTICS_FEATURE_IDS.ModelList}
-                >
-                  <IconButton
-                    onClick={handleOpenModelsPageClick}
-                    variant="outline"
-                    size="default"
-                    className="touch-manipulation"
-                    aria-label={t("navigation.models")}
-                    analyticsAction={
-                      PRODUCT_ANALYTICS_ACTION_IDS.OpenPopupModelManagement
-                    }
-                  >
-                    <Cpu className="h-4 w-4" />
-                  </IconButton>
-                </ProductAnalyticsScope>
-              </Tooltip>
-
-              <ProductAnalyticsScope
-                featureId={PRODUCT_ANALYTICS_FEATURE_IDS.AutoCheckin}
-              >
-                <Tooltip content={t("navigation.autoCheckinRunNow")}>
-                  <IconButton
-                    onClick={handleQuickCheckinClick}
-                    variant="outline"
-                    size="default"
-                    className="touch-manipulation"
-                    aria-label={t("navigation.autoCheckinRunNow")}
-                    analyticsAction={
-                      PRODUCT_ANALYTICS_ACTION_IDS.RunPopupQuickCheckin
-                    }
-                  >
-                    <CalendarCheck2 className="h-4 w-4" />
-                  </IconButton>
-                </Tooltip>
-
-                {canOpenExternalCheckIns && (
-                  <Tooltip content={t("navigation.externalCheckinAllHint")}>
-                    <IconButton
-                      onClick={handleOpenExternalCheckInsClick}
-                      variant="outline"
-                      size="default"
-                      className="touch-manipulation"
-                      aria-label={t("navigation.externalCheckinAll")}
-                    >
-                      {/* Match per-account indicators: neutral while pending, success when done. */}
-                      <CircleDollarSign
-                        className={`h-4 w-4 ${
-                          hasUncheckedExternalCheckIns
-                            ? "text-neutral-indicator"
-                            : "text-success-indicator"
-                        }`}
-                      />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </ProductAnalyticsScope>
-            </>
+            <OverflowMenu
+              triggerLabel={t("common:labels.moreActions")}
+              triggerTooltip={t("common:labels.moreActions")}
+              items={[
+                {
+                  label: t("ui:navigation.keys"),
+                  icon: KeyRound,
+                  onSelect: handleOpenKeysPageClick,
+                },
+                {
+                  label: t("ui:navigation.models"),
+                  icon: Cpu,
+                  onSelect: handleOpenModelsPageClick,
+                },
+                {
+                  label: t("ui:navigation.autoCheckinRunNow"),
+                  icon: CalendarCheck2,
+                  onSelect: handleQuickCheckinClick,
+                },
+                {
+                  label: t("ui:navigation.externalCheckinAll"),
+                  icon: CircleDollarSign,
+                  onSelect: () => {
+                    void handleOpenExternalCheckInsClick({
+                      openAll: true,
+                      openInNewWindow: false,
+                    })
+                  },
+                  disabled: !canOpenExternalCheckIns,
+                },
+              ]}
+            />
           )}
         </div>
       </ProductAnalyticsScope>

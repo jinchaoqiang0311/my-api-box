@@ -13,7 +13,6 @@
     "more": "その他",
     "moveDownItem": "{{name}}を下に移動",
     "moveUpItem": "{{name}}を上に移動",
-    "openSidePanel": "サイドパネルで開く",
     "refresh": "更新",
     "refreshField": "{{field}}を更新",
     "reset": "リセット",
@@ -42,8 +41,10 @@
   },
   "labels": {
     "apiKey": "API キー",
+    "moreActions": "その他の操作",
     "notAvailable": "N/A",
     "settings": "設定",
+    "sidepanelOpen": "サイドパネルで開く",
     "token": "トークン",
     "unknown": "不明"
   },

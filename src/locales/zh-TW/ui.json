@@ -566,7 +566,6 @@
     "collapseSidebar": "摺疊側邊欄",
     "expandSidebar": "展開側邊欄",
     "externalCheckinAll": "一鍵開啟外部簽到",
-    "externalCheckinAllHint": "預設僅開啟未簽到；Ctrl/Cmd 開啟全部；Shift 在新視窗開啟；Ctrl/Cmd+Shift 同時生效。",
     "importExport": "匯入/匯出",
     "keys": "金鑰管理",
     "managedSiteChannels": "渠道管理",
@@ -664,7 +663,6 @@
   "sidebarFooter": {
     "community": "社區",
     "docs": "文檔",
-    "github": "GitHub",
     "sponsor": "贊助支持"
   },
   "starPromotion": {

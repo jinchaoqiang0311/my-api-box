@@ -13,7 +13,6 @@
     "more": "Thêm",
     "moveDownItem": "Di chuyển {{name}} xuống",
     "moveUpItem": "Di chuyển {{name}} lên",
-    "openSidePanel": "Mở trong bảng điều khiển bên",
     "refresh": "Làm mới",
     "refreshField": "Làm mới {{field}}",
     "reset": "Đặt lại",
@@ -42,8 +41,10 @@
   },
   "labels": {
     "apiKey": "API Key",
+    "moreActions": "Thao tác khác",
     "notAvailable": "N/A",
     "settings": "Cài đặt",
+    "sidepanelOpen": "Mở trong bảng bên",
     "token": "Token",
     "unknown": "Không xác định"
   },

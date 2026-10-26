@@ -586,7 +586,6 @@
     "collapseSidebar": "Contraer barra lateral",
     "expandSidebar": "Expandir barra lateral",
     "externalCheckinAll": "Abrir todos los check-ins externos",
-    "externalCheckinAllHint": "Abrir check-ins externos pendientes. Ctrl/Cmd: abrir todos. Shift: abrir en ventana nueva. Ctrl/Cmd+Shift: abrir todos en ventana nueva.",
     "importExport": "Importar/Exportar",
     "keys": "Gestión de claves",
     "managedSiteChannels": "Gestión de canales",
@@ -686,7 +685,6 @@
   "sidebarFooter": {
     "community": "Comunidad",
     "docs": "Docs",
-    "github": "GitHub",
     "sponsor": "Patrocinar"
   },
   "starPromotion": {

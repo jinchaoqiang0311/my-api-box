@@ -573,7 +573,6 @@
     "collapseSidebar": "Seitenleiste einklappen",
     "expandSidebar": "Seitenleiste erweitern",
     "externalCheckinAll": "Alle externen Check-ins öffnen",
-    "externalCheckinAllHint": "Öffnen Sie ungeprüfte externe Check-ins. Ctrl/Cmd: alle öffnen. Shift: in neuem Fenster öffnen. Ctrl/Cmd+Shift: Alles in neuem Fenster öffnen.",
     "importExport": "Import/Export",
     "keys": "Schlüsselverwaltung",
     "managedSiteChannels": "Kanalverwaltung",
@@ -672,7 +671,6 @@
   "sidebarFooter": {
     "community": "Community",
     "docs": "Doku",
-    "github": "GitHub",
     "sponsor": "Sponsor"
   },
   "starPromotion": {

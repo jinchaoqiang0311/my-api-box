@@ -560,7 +560,6 @@
     "collapseSidebar": "收起侧边栏",
     "expandSidebar": "展开侧边栏",
     "externalCheckinAll": "一键打开外部签到",
-    "externalCheckinAllHint": "默认仅打开未签到；Ctrl/Cmd 打开全部；Shift 在新窗口打开；Ctrl/Cmd+Shift 同时生效。",
     "importExport": "导入/导出",
     "keys": "密钥管理",
     "managedSiteChannels": "渠道管理",
@@ -658,7 +657,6 @@
   "sidebarFooter": {
     "community": "社区",
     "docs": "文档",
-    "github": "GitHub",
     "sponsor": "赞助支持"
   },
   "starPromotion": {

@@ -13,7 +13,6 @@
     "more": "更多",
     "moveDownItem": "下移{{name}}",
     "moveUpItem": "上移{{name}}",
-    "openSidePanel": "在側邊欄中開啟",
     "refresh": "重新整理",
     "refreshField": "重新整理{{field}}",
     "reset": "重置",
@@ -42,8 +41,10 @@
   },
   "labels": {
     "apiKey": "API Key",
+    "moreActions": "更多操作",
     "notAvailable": "N/A",
     "settings": "設定",
+    "sidepanelOpen": "開啟側邊欄",
     "token": "令牌",
     "unknown": "未知"
   },

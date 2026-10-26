@@ -12,6 +12,11 @@ export {
   type DatePickerProps,
 } from "./DatePicker"
 export { WorkflowTransitionButton } from "./WorkflowTransitionButton"
+export {
+  OverflowMenu,
+  type OverflowMenuItem,
+  type OverflowMenuProps,
+} from "./OverflowMenu"
 export { Input, inputVariants } from "./input"
 export {
   InputOTP,

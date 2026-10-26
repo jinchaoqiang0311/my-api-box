@@ -566,7 +566,6 @@
     "collapseSidebar": "Thu gọn thanh bên",
     "expandSidebar": "Mở rộng thanh bên",
     "externalCheckinAll": "Mở điểm danh bên ngoài bằng một nhấp",
-    "externalCheckinAllHint": "Mặc định chỉ mở các mục chưa điểm danh; Ctrl/Cmd để mở tất cả; Shift để mở trong cửa sổ mới; Ctrl/Cmd+Shift có hiệu lực đồng thời.",
     "importExport": "Nhập/Xuất",
     "keys": "Quản lý API Key",
     "managedSiteChannels": "Quản lý kênh",
@@ -664,7 +663,6 @@
   "sidebarFooter": {
     "community": "Cộng đồng",
     "docs": "Tài liệu",
-    "github": "GitHub",
     "sponsor": "Tài trợ"
   },
   "starPromotion": {

@@ -13,7 +13,6 @@
     "more": "More",
     "moveDownItem": "Move {{name}} down",
     "moveUpItem": "Move {{name}} up",
-    "openSidePanel": "Open in SidePanel",
     "refresh": "Refresh",
     "refreshField": "Refresh {{field}}",
     "reset": "Reset",
@@ -42,8 +41,10 @@
   },
   "labels": {
     "apiKey": "API Key",
+    "moreActions": "More actions",
     "notAvailable": "N/A",
     "settings": "Settings",
+    "sidepanelOpen": "Open in side panel",
     "token": "Token",
     "unknown": "Unknown"
   },

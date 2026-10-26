@@ -305,10 +305,7 @@ function OptionsSidebar({
               })}
             </nav>
 
-            <OptionsSidebarFooter
-              isCollapsed={shouldShowCollapsedState}
-              onMenuItemClick={onMenuItemClick}
-            />
+            <OptionsSidebarFooter isCollapsed={shouldShowCollapsedState} />
           </div>
         </div>
       </motion.aside>

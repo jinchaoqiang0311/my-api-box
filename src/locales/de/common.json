@@ -13,7 +13,6 @@
     "more": "Mehr",
     "moveDownItem": "{{name}} nach unten verschieben",
     "moveUpItem": "{{name}} nach oben verschieben",
-    "openSidePanel": "In der Seitenleiste öffnen",
     "refresh": "Aktualisieren",
     "refreshField": "{{field}} aktualisieren",
     "reset": "Zurücksetzen",
@@ -42,8 +41,10 @@
   },
   "labels": {
     "apiKey": "API-Schlüssel",
+    "moreActions": "Mehr Aktionen",
     "notAvailable": "N/A",
     "settings": "Einstellungen",
+    "sidepanelOpen": "Im Seitenbereich öffnen",
     "token": "Token",
     "unknown": "Unbekannt"
   },

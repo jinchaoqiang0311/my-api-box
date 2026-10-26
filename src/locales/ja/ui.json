@@ -566,7 +566,6 @@
     "collapseSidebar": "サイドバーを折りたたむ",
     "expandSidebar": "サイドバーを展開",
     "externalCheckinAll": "すべての外部チェックインを開く",
-    "externalCheckinAllHint": "未開封の外部チェックインを開きます。Ctrl/Cmd: すべて開く。Shift: 新しいウィンドウで開く。Ctrl/Cmd+Shift: すべてを新しいウィンドウで開く。",
     "importExport": "インポート / エクスポート",
     "keys": "キー管理",
     "managedSiteChannels": "チャネル管理",
@@ -664,7 +663,6 @@
   "sidebarFooter": {
     "community": "コミュニティ",
     "docs": "ドキュメント",
-    "github": "GitHub",
     "sponsor": "スポンサー"
   },
   "starPromotion": {

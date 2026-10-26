@@ -13,7 +13,6 @@
     "more": "Más",
     "moveDownItem": "Bajar {{name}}",
     "moveUpItem": "Subir {{name}}",
-    "openSidePanel": "Abrir en SidePanel",
     "refresh": "Actualizar",
     "refreshField": "Actualizar {{field}}",
     "reset": "Restablecer",
@@ -42,8 +41,10 @@
   },
   "labels": {
     "apiKey": "Clave API",
+    "moreActions": "Más acciones",
     "notAvailable": "N/D",
     "settings": "Configuración",
+    "sidepanelOpen": "Abrir en panel lateral",
     "token": "Token",
     "unknown": "Desconocido"
   },
