@@ -1,4 +1,4 @@
-# 常见问题
+﻿# 常见问题
 
 收集一些插件使用时遇到的常见问题。
 
@@ -115,7 +115,7 @@ Sub2API 站点常见特征：控制台接口在 `/api/v1/*`，并使用 **短期
 
 ### 遇到功能问题或Bug怎么办？
 
-1. **查询Issue**：前往 [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) 搜索是否有相同问题
+1. **查询Issue**：前往 [GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) 搜索是否有相同问题
 2. **使用最新版本**：
    - 大多数用户建议优先使用商店版，等待浏览器商店自动更新
    - 如果修复尚未上架商店、你的浏览器无法安装商店版或 Chrome Web Store 兼容版本，可临时从 GitHub Releases 手动安装
@@ -351,7 +351,7 @@ WebDAV 备份可以帮你在多设备间同步数据：
 3. 提交代码
 4. 发起 Pull Request
 
-详见：[CONTRIBUTING.md](https://github.com/qixing-jk/all-api-hub/blob/main/CONTRIBUTING.md)
+详见：[CONTRIBUTING.md](https://github.com/jinchaoqiang0311/my-api-box/blob/main/CONTRIBUTING.md)
 
 ---
 
@@ -359,10 +359,10 @@ WebDAV 备份可以帮你在多设备间同步数据：
 
 - [使用教程](./get-started.md)
 - [其他浏览器安装指南](./other-browser-install.md)
-- [GitHub 仓库](https://github.com/qixing-jk/all-api-hub)
-- [问题反馈](https://github.com/qixing-jk/all-api-hub/issues)
+- [GitHub 仓库](https://github.com/jinchaoqiang0311/my-api-box)
+- [问题反馈](https://github.com/jinchaoqiang0311/my-api-box/issues)
 - [更新日志](./changelog.md)
 
 ::: tip 找不到答案？
-如果以上内容没有解决你的问题，欢迎在 [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) 提问。
+如果以上内容没有解决你的问题，欢迎在 [GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) 提问。
 :::

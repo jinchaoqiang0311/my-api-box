@@ -1,29 +1,19 @@
-# はじめに
+﻿# はじめに
 
 わずか数分で、AIアセットのインテリジェント管理の旅を始めましょう。My API Box は、残高の自動同期、毎日のチェックイン、および一般的なAIツールへのワンクリック統合を支援します。
 
-## 1. プラグインのインストール
+::: tip 現状（v1.0.0）
+ストア版は審査待ちです。**当面は GitHub Releases から手動インストール**してください。ストア版は公開後自動更新されます。**Star / Watch** で公開・新バージョンをお知らせします。
+:::
 
-最適な体験（自動更新を含む）を得るために、**各ブラウザの公式ストアからのインストールを強くお勧めします**。
+| チャネル | ダウンロード | 用途 |
+|---------|-------------|------|
+| **GitHub Releases（推奨）** | [my-api-box-v1.0.0.zip](https://github.com/jinchaoqiang0311/my-api-box/releases) | Chrome / Edge / Firefox および全 Chromium 系ブラウザへの手動読み込み；Nightly プレリリースも公開 |
+| Chrome Web Store | 近日公開 | 公開後は自動更新 |
+| Edge Add-ons | 近日公開 | 公開後は自動更新 |
+| Firefox Add-ons | 近日公開 | 公開後は自動更新 |
 
-| チャネル | ダウンロードリンク | 現在のバージョン | ユーザー数 |
-|---|---|---|---|
-| Chrome ウェブストア | [Chrome ウェブストア](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome version](https://img.shields.io/chrome-web-store/v/YOUR-CHROME-EXTENSION-ID?label=Chrome&logo=googlechrome&style=flat)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/YOUR-CHROME-EXTENSION-ID?label=Chrome%20Users)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) |
-| Edge ウェブストア | [Edge ウェブストア](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge version](https://img.shields.io/badge/dynamic/json?label=Edge&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2FYOUR-EDGE-EXTENSION-ID&logo=microsoftedge&style=flat)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge Add-ons Users](https://img.shields.io/badge/dynamic/json?label=Edge%20Users&query=$.activeInstallCount&url=https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/YOUR-EDGE-EXTENSION-ID)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) |
-| Firefox ウェブストア | [Firefox ウェブストア](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Firefox version](https://img.shields.io/amo/v/YOUR-AMO-SLUG?label=Firefox&logo=firefoxbrowser&style=flat)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Mozilla Add-on Users](https://img.shields.io/amo/users/YOUR-AMO-SLUG?label=Firefox%20Users)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
 
-<details>
-<summary>📦 手動インストール、Safari、またはモバイルデバイスが必要ですか？（クリックして展開）</summary>
-
-- **GitHub Stable**：ストア版または Chrome ウェブストア互換版をインストールできない場合、または公開済みの修正を一時的に手動インストールしたい場合は、[GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases) から正式版をダウンロードできます。手動インストール版はストア版のように自動更新されません。新しいバージョンの通知を受け取るには、リポジトリを Star / Watch してください。
-- **Nightly プレリリース**：新機能を早く試してテストに協力したいユーザー向けです。ストアの安定版より不安定な場合があります。Nightly も手動インストール経路で、自動更新されません。
-- **Safari (Mac)**：Xcode を介してインストールする必要があります。詳細は [Safari インストールガイド](./safari-install.md) を参照してください。
-- **QQ / 360 / Brave / Vivaldi / Opera など**：Chromium 系ブラウザでもインストール経路は異なります。Brave、Vivaldi、Opera は通常まず Chrome ウェブストアを試せます。ストア経路を使えない場合は手動読み込みを使ってください。詳細は [その他のブラウザへのインストールガイド](./other-browser-install.md) を参照してください。
-- **モバイルデバイス**：Edge モバイル版、Firefox Android、Kiwi などに対応しています。詳細は [モバイル FAQ](./faq.md#mobile-browser-support) を参照してください。
-
-</details>
-
-<a id="add-site"></a>
 ## 2. 最初のアカウントを追加する
 
 これは、プラグインを使用する上で最も重要なステップです。**「自動認識」機能の使用を強くお勧めします**。これは、QR コードでログインするのと同じくらい簡単です。

@@ -1,4 +1,4 @@
-# Safari 拡張機能のインストール
+﻿# Safari 拡張機能のインストール
 
 このガイドでは、Mac で My API Box Safari 拡張機能をインストールし、継続して使う方法を説明します。Safari 拡張機能は付属の macOS アプリを通じてインストールします。セットアップ後、アカウントと設定はローカルに保存されます。
 
@@ -8,7 +8,7 @@
 
 ## インストール
 
-1. [My API Box の最新リリース](https://github.com/qixing-jk/all-api-hub/releases/latest)を開き、`all-api-hub-<バージョン>-safari-xcode-bundle.zip` をダウンロードします。ファイル名が `-safari.zip` だけの添付ファイルは選ばないでください。
+1. [My API Box の最新リリース](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)を開き、`all-api-hub-<バージョン>-safari-xcode-bundle.zip` をダウンロードします。ファイル名が `-safari.zip` だけの添付ファイルは選ばないでください。
 2. アーカイブを展開し、中にある Xcode プロジェクトを見つけて Xcode で開きます。
 3. Xcode の上部で macOS アプリと実行先の Mac を選び、`Product > Run` をクリックします。署名について確認された場合は、画面の案内に従ってローカル実行用のオプションを選びます。
 4. Safari でまず `Safari > 設定 > 詳細` を開き、「Web デベロッパ用の機能を表示」を有効にします。その後、`Safari > 設定 > 開発者` で「署名されていない拡張機能を許可」を有効にします。Mac のログインパスワードを求められる場合があります。
@@ -61,4 +61,4 @@ Safari は付属の macOS アプリに拡張機能を含めてインストール
 
 - [Apple：Safari Web 拡張機能を実行する](https://developer.apple.com/documentation/safariservices/running-your-safari-web-extension)
 - [Apple Safari Web Extensions ドキュメント](https://developer.apple.com/documentation/safari-extensions/safari-web-extensions)
-- [GitHub で問題を報告](https://github.com/qixing-jk/all-api-hub/issues)
+- [GitHub で問題を報告](https://github.com/jinchaoqiang0311/my-api-box/issues)

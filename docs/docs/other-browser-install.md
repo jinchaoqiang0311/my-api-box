@@ -1,4 +1,4 @@
-# 其他浏览器安装指南
+﻿# 其他浏览器安装指南
 
 本文档介绍如何在 QQ 浏览器、360 安全浏览器、360 极速浏览器、猎豹浏览器、Brave、Vivaldi、Opera 等浏览器中安装 My API Box 扩展。
 
@@ -40,7 +40,7 @@
 
 如果你可以直接从 Chrome Web Store、Edge Add-ons 或 Firefox Add-ons 安装，不需要执行本节步骤。下面只适用于需要手动加载的浏览器。
 
-1. 打开 [最新版本 Release](https://github.com/qixing-jk/all-api-hub/releases/latest)。
+1. 打开 [最新版本 Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)。
 2. 在附件中下载 Chrome 版本压缩包：
 
 ```text
@@ -196,7 +196,7 @@ liebao://extensions/
 
 手动加载版本不会自动更新。关于商店版、GitHub Stable 和 Nightly 的区别，请先查看 [安装渠道与更新说明](./extension-update-install.md)。手动加载版本更新时请按下面流程处理：
 
-1. 打开 [最新版本 Release](https://github.com/qixing-jk/all-api-hub/releases/latest)。
+1. 打开 [最新版本 Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)。
 2. 下载新的 `all-api-hub-<version>-chrome.zip`。
 3. 解压到原来的固定目录，或解压到一个新的版本目录。
 4. 打开扩展管理页。
@@ -261,4 +261,4 @@ all-api-hub-<version>-chrome.zip
 
 ---
 
-如有问题，请在 [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) 中反馈。
+如有问题，请在 [GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) 中反馈。

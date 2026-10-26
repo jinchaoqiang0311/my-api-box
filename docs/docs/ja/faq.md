@@ -1,4 +1,4 @@
-# よくある質問
+﻿# よくある質問
 
 プラグインの使用中に発生する可能性のある一般的な質問をいくつか集めました。
 
@@ -115,7 +115,7 @@ Sub2APIサイトの一般的な特徴は以下の通りです。コンソール�
 
 ### 機能の問題やバグに遭遇した場合はどうすればよいですか？
 
-1. **Issueの確認**：[GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) にアクセスして、同じ問題がないか検索してください。
+1. **Issueの確認**：[GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) にアクセスして、同じ問題がないか検索してください。
 2. **最新バージョンの使用**：
    - 多くのユーザーには、ストア版を使い、ブラウザの自動更新を待つことをお勧めします。
    - 修正がまだストアに反映されていない場合、またはストア版をインストールできない場合は、GitHub Releases から一時的に手動インストールできます。
@@ -130,8 +130,8 @@ Sub2APIサイトの一般的な特徴は以下の通りです。コンソール�
 | **Chrome Web Store** | 審査後に自動更新 | [インストールはこちら](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) |
 | **Edge Add-ons** | 審査後に自動更新 | [インストールはこちら](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) |
 | **Firefox Add-ons** | ⚡ 速い（数時間で審査） | [インストールはこちら](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
-| **GitHub Stable** | 公開済みバージョンを最速で入手、手動インストールが必要 | [ダウンロードはこちら](https://github.com/qixing-jk/all-api-hub/releases/latest) |
-| **Nightly プレリリース** | 開発中の変更を最速で試せるが、不安定な場合あり | [ダウンロードはこちら](https://github.com/qixing-jk/all-api-hub/releases/tag/nightly) |
+| **GitHub Stable** | 公開済みバージョンを最速で入手、手動インストールが必要 | [ダウンロードはこちら](https://github.com/jinchaoqiang0311/my-api-box/releases/latest) |
+| **Nightly プレリリース** | 開発中の変更を最速で試せるが、不安定な場合あり | [ダウンロードはこちら](https://github.com/jinchaoqiang0311/my-api-box/releases/tag/nightly) |
 
 ::: tip 推奨
 Chrome、Edge、Firefox ユーザーは対応するストア版を優先してください。Brave、Vivaldi、Opera ユーザーは通常、まず Chrome ウェブストアを試せます。新しいバージョンがあるか確認したい場合、ストア版が GitHub Releases より遅れる理由を知りたい場合、または GitHub パッケージを手動インストールしたい場合は、[インストール方法と更新について](./extension-update-install.md) を確認してください。GitHub Releases は、修正がまだストアに反映されていない場合、ストア版や Chrome ウェブストア互換版をインストールできない場合、または QQ ブラウザ、360 系ブラウザ、チーターブラウザなど手動読み込みが必要なブラウザを使う場合に限って利用するのがお勧めです。これらの手動インストール版は自動更新されません。新しいバージョンの通知を受け取るにはリポジトリを Star / Watch し、対象ブラウザについては [その他のブラウザへのインストールガイド](./other-browser-install.md) を参照してください。
@@ -363,7 +363,7 @@ Pull Requestを歓迎します。
 3. コードをコミットします。
 4. Pull Requestを送信します。
 
-詳細は：[CONTRIBUTING.md](https://github.com/qixing-jk/all-api-hub/blob/main/CONTRIBUTING.md) を参照してください。
+詳細は：[CONTRIBUTING.md](https://github.com/jinchaoqiang0311/my-api-box/blob/main/CONTRIBUTING.md) を参照してください。
 
 ---
 
@@ -371,10 +371,10 @@ Pull Requestを歓迎します。
 
 - [使い方ガイド](./get-started.md)
 - [その他のブラウザへのインストールガイド](./other-browser-install.md)
-- [GitHubリポジトリ](https://github.com/qixing-jk/all-api-hub)
-- [問題報告](https://github.com/qixing-jk/all-api-hub/issues)
+- [GitHubリポジトリ](https://github.com/jinchaoqiang0311/my-api-box)
+- [問題報告](https://github.com/jinchaoqiang0311/my-api-box/issues)
 - [更新ログ](./changelog.md)
 
 ::: tip 回答が見つかりませんか？
-上記の内容で問題が解決しない場合は、[GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) で質問してください。
+上記の内容で問題が解決しない場合は、[GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) で質問してください。
 :::

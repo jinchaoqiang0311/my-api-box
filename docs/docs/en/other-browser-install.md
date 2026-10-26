@@ -1,4 +1,4 @@
-# Other Browser Installation Guide
+﻿# Other Browser Installation Guide
 
 This document explains how to install the My API Box extension in browsers such as QQ Browser, 360 Secure Browser, 360 Speed Browser, Cheetah Browser, Brave, Vivaldi, and Opera.
 
@@ -40,7 +40,7 @@ A browser can have its own extension store without My API Box being listed there
 
 If you can install directly from Chrome Web Store, Edge Add-ons, or Firefox Add-ons, you do not need this section. These steps are only for browsers that need manual loading.
 
-1. Open the [Latest Release](https://github.com/qixing-jk/all-api-hub/releases/latest).
+1. Open the [Latest Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest).
 2. Download the Chrome version package from the attachments:
 
 ```text
@@ -196,7 +196,7 @@ Once on the extension management page, follow the [manual loading procedure](#de
 
 Manually loaded versions do not update automatically. For the differences between store versions, GitHub Stable, and Nightly, read [Installation Channels and Updates](./extension-update-install.md) first. To update a manually loaded version, follow these steps:
 
-1. Open the [Latest Release](https://github.com/qixing-jk/all-api-hub/releases/latest).
+1. Open the [Latest Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest).
 2. Download the new `all-api-hub-<version>-chrome.zip`.
 3. Extract it to the original fixed directory or to a new version-specific directory.
 4. Open the extension management page.
@@ -261,4 +261,4 @@ Some browsers do not support the sidebar capabilities of Chrome/Edge. In such ca
 
 ---
 
-If you encounter any issues, please report them in [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues).
+If you encounter any issues, please report them in [GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues).

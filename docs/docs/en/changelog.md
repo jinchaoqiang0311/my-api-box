@@ -1,11 +1,11 @@
-# Changelog
+﻿# Changelog
 
-This page records major updates for general users (feature changes / experience optimizations / bug fixes). For complete historical versions and more detailed technical changes, please visit [GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases).
+This page records major updates for general users (feature changes / experience optimizations / bug fixes). For complete historical versions and more detailed technical changes, please visit [GitHub Releases](https://github.com/jinchaoqiang0311/my-api-box/releases).
 
 ::: tip For New Users
 - **How to confirm your current version**: Open the extension popup; the version number will be displayed in the title bar. You can also check it on the settings page.
 - **How to stop this page from opening automatically**: You can control whether to "Automatically open the changelog after updates" in "Settings → General → Changelog".
-- **Troubleshooting**: You can enable console logs in "Settings → General → Logs" and report reproduction steps to [Issues](https://github.com/qixing-jk/all-api-hub/issues).
+- **Troubleshooting**: You can enable console logs in "Settings → General → Logs" and report reproduction steps to [Issues](https://github.com/jinchaoqiang0311/my-api-box/issues).
 :::
 
 ## 4.6.0

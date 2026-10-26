@@ -1,4 +1,4 @@
----
+﻿---
 home: true
 title: "首页"
 heroImage: "/512.png"
@@ -87,7 +87,7 @@ footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
 
 遇到问题？想分享好用的站点？加入我们的社区：
 
-- [GitHub Discussions](https://github.com/qixing-jk/all-api-hub/discussions)
+- [GitHub Discussions](https://github.com/jinchaoqiang0311/my-api-box/discussions)
 - [Discord 社区](https://discord.gg/RmFXZ577ZQ)
 - [Telegram 群](https://t.me/qixing_chat)
 - [QQ 群](https://qm.qq.com/q/ebSCy31Phe)

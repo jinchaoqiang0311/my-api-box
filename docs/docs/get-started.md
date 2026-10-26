@@ -1,24 +1,25 @@
-# 快速上手
+﻿# 快速上手
 
 只需几分钟，即可开启你的 AI 资产智能管理之旅。My API Box 能帮你自动同步额度、每日签到、并一键集成到常用的 AI 工具中。
 
 ## 1. 安装插件
 
-为了获得最佳体验（包括自动更新），我们**强烈推荐从各浏览器官方商店安装**。
+::: tip 当前阶段（v1.0.0）
+浏览器商店审核中，**现阶段请从 GitHub Releases 手动安装**。商店版上架后会自动更新。**Star / Watch 仓库**第一时间收到商店上架和新版本通知。
+:::
 
-| 渠道 | 下载链接 | 当前版本 | 用户数 |
-|------|----------|----------|--------|
-| Chrome 商店 | [Chrome 商店](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome version](https://img.shields.io/chrome-web-store/v/YOUR-CHROME-EXTENSION-ID?label=Chrome&logo=googlechrome&style=flat)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/YOUR-CHROME-EXTENSION-ID?label=Chrome%20Users)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) |
-| Edge 商店 | [Edge 商店](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge version](https://img.shields.io/badge/dynamic/json?label=Edge&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2FYOUR-EDGE-EXTENSION-ID&logo=microsoftedge&style=flat)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge Add-ons Users](https://img.shields.io/badge/dynamic/json?label=Edge%20Users&query=$.activeInstallCount&url=https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/YOUR-EDGE-EXTENSION-ID)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) |
-| Firefox 商店 | [Firefox 商店](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Firefox version](https://img.shields.io/amo/v/YOUR-AMO-SLUG?label=Firefox&logo=firefoxbrowser&style=flat)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Mozilla Add-on Users](https://img.shields.io/amo/users/YOUR-AMO-SLUG?label=Firefox%20Users)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
+| 渠道 | 下载地址 | 适用场景 |
+|------|----------|----------|
+| **GitHub Releases（推荐）** | [my-api-box-v1.0.0.zip](https://github.com/jinchaoqiang0311/my-api-box/releases) | Chrome / Edge / Firefox 及所有 Chromium 内核浏览器手动加载；Nightly 预发布同步提供 |
+| Chrome Web Store | 即将上架 | 商店版自动更新，上架后优先使用 |
+| Edge Add-ons | 即将上架 | 商店版自动更新 |
+| Firefox Add-ons | 即将上架 | 商店版自动更新 |
 
 <details>
-<summary>📦 需要手动安装、Safari 或手机端？（点击展开）</summary>
+<summary>📦 Safari、手机端或其他浏览器？（点击展开）</summary>
 
-- **GitHub Stable**：无法安装商店版或 Chrome Web Store 兼容版本，或需要临时手动安装已发布修复时，可前往 [GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases) 下载正式版。手动安装版本不会像商店版一样自动更新，你可以 Star / Watch 仓库来接收新版本通知。
-- **Nightly 预发布**：适合想抢先体验并协助测试的用户，可能不如商店稳定版稳定。Nightly 也属于手动安装通道，不会自动更新。
 - **Safari (Mac)**：需要通过 Xcode 安装，详见 [Safari 安装指南](./safari-install.md)。
-- **QQ / 360 / Brave / Vivaldi / Opera 等**：不同 Chromium 浏览器的商店入口不同，Brave、Vivaldi、Opera 可优先尝试 Chrome Web Store；无法使用商店时再手动加载，详见 [其他浏览器安装指南](./other-browser-install.md)。
+- **QQ / 360 / Brave / Vivaldi / Opera 等**：不同 Chromium 浏览器的商店入口不同，Brave、Vivaldi、Opera 可优先尝试 Chrome Web Store；无法使用商店时再手动加载 GitHub Chrome 安装包，详见 [其他浏览器安装指南](./other-browser-install.md)。
 - **移动端**：支持 Edge 手机版、Firefox Android、Kiwi 等，详见 [移动端 FAQ](./faq.md#mobile-browser-support)。
 
 </details>

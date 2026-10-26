@@ -1,4 +1,4 @@
----
+﻿---
 home: true
 title: "Homepage"
 heroImage: "/512.png"
@@ -91,7 +91,7 @@ No matter which architecture you use, there is a good chance we support it:
 
 Have questions or want to share useful sites Join the community:
 
-- [GitHub Discussions](https://github.com/qixing-jk/all-api-hub/discussions)
+- [GitHub Discussions](https://github.com/jinchaoqiang0311/my-api-box/discussions)
 - [Discord Community](https://discord.gg/RmFXZ577ZQ)
 - [Telegram Group](https://t.me/qixing_chat)
 - [QQ Group](https://qm.qq.com/q/ebSCy31Phe)

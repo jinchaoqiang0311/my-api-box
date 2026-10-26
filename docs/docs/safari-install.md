@@ -1,4 +1,4 @@
-# Safari 扩展安装指南
+﻿# Safari 扩展安装指南
 
 本文说明如何在自己的 Mac 上安装并持续使用 My API Box Safari 扩展。Safari 扩展需要通过配套的 macOS 应用安装；按下面步骤完成后，账号和设置会保存在本机。
 
@@ -8,7 +8,7 @@
 
 ## 安装
 
-1. 打开 [My API Box 最新 Release](https://github.com/qixing-jk/all-api-hub/releases/latest)，下载 `all-api-hub-<版本号>-safari-xcode-bundle.zip`。不要下载名称中只有 `-safari.zip` 的附件。
+1. 打开 [My API Box 最新 Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)，下载 `all-api-hub-<版本号>-safari-xcode-bundle.zip`。不要下载名称中只有 `-safari.zip` 的附件。
 2. 解压文件，找到其中的 Xcode 工程并用 Xcode 打开。
 3. 在 Xcode 顶部选择 macOS 应用和这台 Mac 作为运行目标，点击 `Product > Run`。如果 Xcode 提示签名，按提示选择本机运行的签名选项。
 4. 打开 Safari，先在 `Safari > 设置 > 高级` 中启用“显示网页开发者功能”，再到 `Safari > 设置 > 开发者` 中启用“允许未签名的扩展”。Safari 可能会要求输入 Mac 登录密码。
@@ -61,4 +61,4 @@ Safari 将扩展放在配套的 macOS 应用中安装。本指南下载的压缩
 
 - [Apple：运行 Safari Web 扩展](https://developer.apple.com/documentation/safariservices/running-your-safari-web-extension)
 - [Apple Safari Web Extensions 文档](https://developer.apple.com/documentation/safari-extensions/safari-web-extensions)
-- [GitHub Issues 反馈问题](https://github.com/qixing-jk/all-api-hub/issues)
+- [GitHub Issues 反馈问题](https://github.com/jinchaoqiang0311/my-api-box/issues)

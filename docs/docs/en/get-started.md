@@ -1,29 +1,19 @@
-# Getting Started
+﻿# Getting Started
 
 In just a few minutes, you can start your journey of intelligent AI asset management. My API Box can help you automatically sync quotas, perform daily check-ins, and integrate with your favorite AI tools with one click.
 
-## 1. Installation
+::: tip Current status (v1.0.0)
+Store listings are pending browser review. **For now, install from GitHub Releases**. Store versions will auto‑update once published. **Star / Watch the repo** to be notified when stores go live.
+:::
 
-For the best experience (including automatic updates), we **strongly recommend installing from each browser's official store**.
+| Channel | Download | Best For |
+|---------|----------|----------|
+| **GitHub Releases (recommended)** | [my-api-box-v1.0.0.zip](https://github.com/jinchaoqiang0311/my-api-box/releases) | Manual load in Chrome / Edge / Firefox and all Chromium browsers; Nightly prerelease also available |
+| Chrome Web Store | Coming soon | Auto‑update once listed |
+| Edge Add-ons | Coming soon | Auto‑update once listed |
+| Firefox Add-ons | Coming soon | Auto‑update once listed |
 
-| Channel | Download Link | Current Version | Users |
-|---|---|---|---|
-| Chrome Store | [Chrome Store](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome version](https://img.shields.io/chrome-web-store/v/YOUR-CHROME-EXTENSION-ID?label=Chrome&logo=googlechrome&style=flat)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | [![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/YOUR-CHROME-EXTENSION-ID?label=Chrome%20Users)](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) |
-| Edge Store | [Edge Store](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge version](https://img.shields.io/badge/dynamic/json?label=Edge&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2FYOUR-EDGE-EXTENSION-ID&logo=microsoftedge&style=flat)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) | [![Edge Add-ons Users](https://img.shields.io/badge/dynamic/json?label=Edge%20Users&query=$.activeInstallCount&url=https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/YOUR-EDGE-EXTENSION-ID)](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) |
-| Firefox Store | [Firefox Store](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Firefox version](https://img.shields.io/amo/v/YOUR-AMO-SLUG?label=Firefox&logo=firefoxbrowser&style=flat)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) | [![Mozilla Add-on Users](https://img.shields.io/amo/users/YOUR-AMO-SLUG?label=Firefox%20Users)](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
 
-<details>
-<summary>📦 Manual Installation, Safari, or Mobile (Click to expand)</summary>
-
-- **GitHub Stable**: Use [GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases) when you cannot install a store build or Chrome Web Store compatible build, or need to temporarily install a published fix manually. Manual installations do not auto-update like the store build. You can Star / Watch the repository to receive new version notifications.
-- **Nightly pre-release**: For early access and testing. It may be less stable than the store build. Nightly is also a manual installation channel and does not auto-update.
-- **Safari (Mac)**: Requires installation via Xcode. See the [Safari Installation Guide](./safari-install.md).
-- **QQ / 360 / Brave / Vivaldi / Opera, etc.**: Installation paths differ across Chromium browsers. Brave, Vivaldi, and Opera can usually try Chrome Web Store first; if a store path is unavailable, use manual loading. See the [Other Browser Installation Guide](./other-browser-install.md).
-- **Mobile**: Supports Edge mobile, Firefox Android, Kiwi, etc. See [Mobile FAQ](./faq.md#mobile-browser-support).
-
-</details>
-
-<a id="add-site"></a>
 ## 2. Add Your First Account
 
 This is the most crucial step for using the plugin. We **highly recommend using the "Auto-Recognize" feature**, which is as simple as scanning a QR code to log in.

@@ -1,4 +1,4 @@
----
+﻿---
 home: true
 title: "ホーム"
 heroImage: "/512.png"
@@ -91,7 +91,7 @@ AI の時代には、節約したり別のモデルを試したりするため�
 
 問題の相談や便利なサイトの共有をしたい場合は、コミュニティに参加してください：
 
-- [GitHub Discussions](https://github.com/qixing-jk/all-api-hub/discussions)
+- [GitHub Discussions](https://github.com/jinchaoqiang0311/my-api-box/discussions)
 - [Discord コミュニティ](https://discord.gg/RmFXZ577ZQ)
 - [Telegram グループ](https://t.me/qixing_chat)
 - [QQ グループ](https://qm.qq.com/q/ebSCy31Phe)

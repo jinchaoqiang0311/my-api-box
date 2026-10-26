@@ -1,4 +1,4 @@
-# その他のブラウザへのインストールガイド
+﻿# その他のブラウザへのインストールガイド
 
 この記事では、QQブラウザ、360セーフブラウザ、360エクストリームブラウザ、チーターブラウザ、Brave、Vivaldi、OperaなどのブラウザにMy API Box拡張機能をインストールする方法を説明します。
 
@@ -40,7 +40,7 @@
 
 Chrome ウェブストア、Edge Add-ons、Firefox Add-ons から直接インストールできる場合、この手順は不要です。以下は手動読み込みが必要なブラウザ向けです。
 
-1. [最新リリースバージョン](https://github.com/qixing-jk/all-api-hub/releases/latest)を開きます。
+1. [最新リリースバージョン](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)を開きます。
 2. 添付ファイルからChrome版の圧縮ファイルをダウンロードします：
 
 ```text
@@ -196,7 +196,7 @@ liebao://extensions/
 
 手動で読み込んだバージョンは自動更新されません。ストア版、GitHub Stable、Nightly の違いについては、先に [インストール方法と更新について](./extension-update-install.md) を確認してください。手動で読み込んだバージョンを更新する場合は、以下の手順に従ってください：
 
-1. [最新リリースバージョン](https://github.com/qixing-jk/all-api-hub/releases/latest)を開きます。
+1. [最新リリースバージョン](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)を開きます。
 2. 新しい `all-api-hub-<version>-chrome.zip` をダウンロードします。
 3. 元の固定ディレクトリに解凍するか、新しいバージョンディレクトリに解凍します。
 4. 拡張機能管理ページを開きます。
@@ -261,4 +261,4 @@ Firefoxの`.xpi` / Firefoxパッケージや、SafariのXcodeバンドルはダ�
 
 ---
 
-問題がある場合は、[GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) でフィードバックしてください。
+問題がある場合は、[GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) でフィードバックしてください。

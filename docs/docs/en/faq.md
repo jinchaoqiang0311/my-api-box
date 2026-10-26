@@ -1,4 +1,4 @@
-# Frequently Asked Questions
+﻿# Frequently Asked Questions
 
 A collection of common issues encountered when using the plugin.
 
@@ -115,7 +115,7 @@ Common incompatibility scenarios:
 
 ### What to do if I encounter functional issues or bugs
 
-1. **Check Issues**: Go to [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues) to search for similar problems.
+1. **Check Issues**: Go to [GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues) to search for similar problems.
 2. **Use the Latest Version**:
    - Most users should stay on the store build and let the browser update it automatically.
    - If a fix has not reached the store yet, or you cannot install the store build, you can temporarily install it from GitHub Releases.
@@ -130,8 +130,8 @@ The plugin is released on multiple platforms. Prefer the official store that mat
 | **Chrome Web Store** | Automatic updates after review             | [Install Here](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) |
 | **Edge Add-ons**     | Automatic updates after review             | [Install Here](https://microsoftedge.microsoft.com/addons/detail/YOUR-EDGE-EXTENSION-ID) |
 | **Firefox Add-ons**  | ⚡ Fast (a few hours review)                | [Install Here](https://addons.mozilla.org/firefox/addon/{YOUR-AMO-SLUG}) |
-| **GitHub Stable**    | Fastest published build, manual install    | [Download Here](https://github.com/qixing-jk/all-api-hub/releases/latest) |
-| **Nightly pre-release** | Fastest access to in-progress changes, may be unstable | [Download Here](https://github.com/qixing-jk/all-api-hub/releases/tag/nightly) |
+| **GitHub Stable**    | Fastest published build, manual install    | [Download Here](https://github.com/jinchaoqiang0311/my-api-box/releases/latest) |
+| **Nightly pre-release** | Fastest access to in-progress changes, may be unstable | [Download Here](https://github.com/jinchaoqiang0311/my-api-box/releases/tag/nightly) |
 
 ::: tip Recommendation
 Chrome, Edge, and Firefox users should prioritize the matching store build. Brave, Vivaldi, and Opera users can usually try Chrome Web Store first. If you want to check whether a new version is available, understand why the store version may be behind GitHub Releases, or manually install a GitHub package, see [Installation Channels and Updates](./extension-update-install.md). Use GitHub Releases only when a fix has not reached the store yet, you cannot install the store build or Chrome Web Store compatible build, or you use a browser that needs manual loading, such as QQ Browser, 360 Series Browsers, or Cheetah Browser. These manual installations do not auto-update. You can Star / Watch the repository to receive new version notifications, and see the [Other Browser Installation Guide](./other-browser-install.md) for those browsers.
@@ -363,7 +363,7 @@ Pull Requests are welcome:
 3. Commit your code.
 4. Submit a Pull Request.
 
-See details: [CONTRIBUTING.md](https://github.com/qixing-jk/all-api-hub/blob/main/CONTRIBUTING.md)
+See details: [CONTRIBUTING.md](https://github.com/jinchaoqiang0311/my-api-box/blob/main/CONTRIBUTING.md)
 
 ---
 
@@ -371,10 +371,10 @@ See details: [CONTRIBUTING.md](https://github.com/qixing-jk/all-api-hub/blob/mai
 
 - [Tutorial](./get-started.md)
 - [Other Browser Installation Guide](./other-browser-install.md)
-- [GitHub Repository](https://github.com/qixing-jk/all-api-hub)
-- [Feedback](https://github.com/qixing-jk/all-api-hub/issues)
+- [GitHub Repository](https://github.com/jinchaoqiang0311/my-api-box)
+- [Feedback](https://github.com/jinchaoqiang0311/my-api-box/issues)
 - [Changelog](./changelog.md)
 
 ::: tip Can't find an answer
-If the above content does not resolve your issue, please feel free to ask on [GitHub Issues](https://github.com/qixing-jk/all-api-hub/issues).
+If the above content does not resolve your issue, please feel free to ask on [GitHub Issues](https://github.com/jinchaoqiang0311/my-api-box/issues).
 :::

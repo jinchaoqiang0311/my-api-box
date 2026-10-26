@@ -1,4 +1,4 @@
-# Install the Safari Extension
+﻿# Install the Safari Extension
 
 This guide explains how to install and keep using the My API Box Safari extension on your Mac. Safari installs extensions through a companion macOS app. After setup, your accounts and settings are stored locally.
 
@@ -8,7 +8,7 @@ This installation flow was verified on macOS 26.6.2 and Safari 26.6.2. This desc
 
 ## Install
 
-1. Open the [latest My API Box release](https://github.com/qixing-jk/all-api-hub/releases/latest) and download `all-api-hub-<version>-safari-xcode-bundle.zip`. Do not download the attachment named only `-safari.zip`.
+1. Open the [latest My API Box release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest) and download `all-api-hub-<version>-safari-xcode-bundle.zip`. Do not download the attachment named only `-safari.zip`.
 2. Extract the archive, find the Xcode project, and open it in Xcode.
 3. Select the macOS app and your Mac as the run destination in Xcode, then choose `Product > Run`. If Xcode asks about signing, choose the option for running locally as prompted.
 4. In Safari, open `Safari > Settings > Advanced` and enable “Show features for web developers,” then open `Safari > Settings > Developer` and enable “Allow Unsigned Extensions.” Safari may ask for your Mac login password.
@@ -61,4 +61,4 @@ Export the data from the original device or configure WebDAV backup. Then instal
 
 - [Apple: Running your Safari web extension](https://developer.apple.com/documentation/safariservices/running-your-safari-web-extension)
 - [Apple Safari Web Extensions documentation](https://developer.apple.com/documentation/safari-extensions/safari-web-extensions)
-- [Report an issue on GitHub](https://github.com/qixing-jk/all-api-hub/issues)
+- [Report an issue on GitHub](https://github.com/jinchaoqiang0311/my-api-box/issues)

@@ -1,12 +1,24 @@
-# 更新日志
+﻿# 更新日志
 
-本页记录面向普通用户的主要更新点（功能变化 / 体验优化 / 问题修复）。如需查看完整历史版本与更详细的技术变更，请访问 [GitHub Releases](https://github.com/qixing-jk/all-api-hub/releases)。
+本页记录面向普通用户的主要更新点（功能变化 / 体验优化 / 问题修复）。如需查看完整历史版本与更详细的技术变更，请访问 [GitHub Releases](https://github.com/jinchaoqiang0311/my-api-box/releases)。
 
 ::: tip 新用户先读
 - **怎么确认你当前的版本**：打开扩展弹窗，标题栏会显示版本号；也可以在设置页查看。
 - **如何不再自动打开本页**：可在「设置 → 通用 → 更新日志」控制是否“更新后自动打开更新日志”。
-- **排查异常**：可在「设置 → 通用 → 日志」开启控制台日志，并附上复现步骤到 [Issues](https://github.com/qixing-jk/all-api-hub/issues)。
+- **排查异常**：可在「设置 → 通用 → 日志」开启控制台日志，并附上复现步骤到 [Issues](https://github.com/jinchaoqiang0311/my-api-box/issues)。
 :::
+
+## 1.0.0（My API Box 首个独立稳定版）
+
+My API Box 从 all‑api‑hub fork 而来（AGPL‑3.0），本次 v1.0.0 是首个独立发布的稳定版本。自此版本起，插件在品牌、发布管道、文档与核心功能上与上游分叉独立演进。
+
+- **签名功能 — Site Probing 七大探针完整性检测**：对任意中转站运行 Reach / Identity / Injection / Stream / Cache / Consistency / Billing 七项标准化检测，验证站点是否如实交付付费模型。可从浮窗站点行 kebab 菜单（**模型检测**）或独立检测页发起，结果支持 JSON 导出。详见 [站点检测](./site-probing.md)。
+- **Popup 密度优化**：头部按钮从约 9 个压缩到 5 个可见（刷新、公告徽章、反馈、主题、全屏展开），设置与侧边栏入口折叠进 kebab；操作栏从 5 按钮压缩为 2 按钮（主 CTA + 溢出菜单）。
+- **Options 侧边栏 footer 单行化**：无论展开还是折叠，统一为单行图标布局，回收约 40px 纵向空间。
+- **品牌重命名**：标语改为「你的中转站管家」，所有 manifest 多语言同步更新。
+- **文档独立**：GitHub Pages 文档站重指向本仓库，Release 管道与商店占位符改为 My API Box 命名。
+
+> 4.6.0 及更早版本为 fork 前 all‑api‑hub 原版更新日志，仅供参考。
 
 ## 4.6.0
 本次更新重点为 AgentRouter 签到支持用户名密码登录以解锁多账号自动签到，同时新增 RelayFor 与 EMRank 账号支持，升级分发渠道感知的更新检查，Sub2API 增加 NexaVlinks 签到与密钥创建错误指引，并将原生额度与货币余额分离展示，优化了设置页总览与更新日志弹窗体验。
