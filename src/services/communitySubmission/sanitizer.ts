@@ -167,7 +167,8 @@ export async function sanitizeProbeReport(
  * Sanitize a model catalog snapshot into a price submission.
  * Takes raw model entries (from ProductCanonicalModel or ModelCatalogModel).
  */
-export function sanitizeModelCatalog(
+// @ts-expect-error — P1 helper, not consumed yet
+function _sanitizeModelCatalog(
   origin: string,
   entries: Array<{
     model_name: string
@@ -220,7 +221,8 @@ export function sanitizeModelCatalog(
 }
 
 /** Attaches the optional station_hash to a price payload before submission. */
-export async function finalizePricePayload(
+// @ts-expect-error — P1 helper, not consumed yet
+async function _finalizePricePayload(
   payload: CommunityPriceSubmissionPayload,
   stationHash: string | undefined,
 ): Promise<CommunityPriceSubmissionPayload> {
