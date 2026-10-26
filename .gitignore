@@ -99,3 +99,7 @@ src/public/react-devtools*
 
 # Authenticated RelayFor identity and screenshot evidence stays local.
 .scratch/relayfor-parity-audit/
+
+# Release zip artifacts
+my-api-box-v*.zip
+my-api-box-nightly-*.zip
