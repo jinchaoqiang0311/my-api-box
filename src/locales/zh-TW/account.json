@@ -50,6 +50,7 @@
     "scanDuplicates": "掃描重複帳號",
     "scanDuplicatesHint": "按 URL 源站 + 使用者 ID 掃描重複帳號並安全清理。",
     "share": "分享",
+    "siteProbing": "模型偵測",
     "unpin": "取消置頂",
     "urlCopied": "網址已複製到剪貼簿",
     "usageLog": "用量日誌",

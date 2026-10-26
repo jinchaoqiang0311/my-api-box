@@ -50,6 +50,7 @@
     "scanDuplicates": "Verificar duplicatas",
     "scanDuplicatesHint": "Verifique as contas em busca de duplicatas (origem + ID do usuário upstream) e limpe-as com segurança.",
     "share": "Compartilhar",
+    "siteProbing": "Inspeção do site",
     "unpin": "Desafixar conta",
     "urlCopied": "URL copiada para a área de transferência",
     "usageLog": "Registro de uso",

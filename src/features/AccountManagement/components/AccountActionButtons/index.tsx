@@ -12,6 +12,7 @@ import {
   ScanSearch,
   Search,
   Share2,
+  ShieldCheck,
   Trash2,
   Wrench,
 } from "lucide-react"
@@ -102,6 +103,7 @@ export default function AccountActionButtons({
     handleNavigateToUsageManagement,
     handleNavigateToRedeemPage,
     handleLocateManagedSiteChannel,
+    handleNavigateToSiteProbing,
     handleOpenKeyList,
     handleRefreshLocal,
     handleDeleteLocal,
@@ -318,6 +320,12 @@ export default function AccountActionButtons({
                     )}
                   />
                 )}
+
+                <AccountActionMenuItem
+                  onClick={handleNavigateToSiteProbing}
+                  icon={ShieldCheck}
+                  label={t("actions.siteProbing")}
+                />
 
                 {isQuickCheckinEligible && (
                   <ProductAnalyticsScope

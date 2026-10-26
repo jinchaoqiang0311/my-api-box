@@ -50,6 +50,7 @@
     "scanDuplicates": "扫描重复账号",
     "scanDuplicatesHint": "按 URL 源站 + 用户 ID 扫描重复账号并安全清理。",
     "share": "分享",
+    "siteProbing": "模型检测",
     "unpin": "取消置顶",
     "urlCopied": "网址已复制到剪贴板",
     "usageLog": "用量日志",

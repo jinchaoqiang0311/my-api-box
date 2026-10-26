@@ -472,6 +472,14 @@ export const openAutoCheckinPage = withPopupClose(
 )
 
 /**
+ * Open the Site Probing page and close the popup afterward when applicable.
+ */
+export const openSiteProbingPage = withPopupClose(
+  (searchParams?: Record<string, string | undefined>) =>
+    openOrFocusOptionsMenuItem(MENU_ITEM_IDS.SITE_PROBING, searchParams),
+)
+
+/**
  * Open the API credential profiles page and close the popup afterward when applicable.
  */
 export const openApiCredentialProfilesPage = withPopupClose(

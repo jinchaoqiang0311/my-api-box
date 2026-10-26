@@ -50,6 +50,7 @@
     "scanDuplicates": "Duplikate scannen",
     "scanDuplicatesHint": "Scannen Sie Konten auf Duplikate (Ursprung + Upstream-Benutzer-ID) und bereinigen Sie sie sicher.",
     "share": "Teilen",
+    "siteProbing": "Site-Prüfung",
     "unpin": "Konto nicht mehr anheften",
     "urlCopied": "URL in Zwischenablage kopiert",
     "usageLog": "Nutzungsprotokoll",

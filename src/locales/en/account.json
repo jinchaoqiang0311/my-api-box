@@ -50,6 +50,7 @@
     "scanDuplicates": "Scan duplicates",
     "scanDuplicatesHint": "Scan accounts for duplicates (origin + upstream user id) and clean them up safely.",
     "share": "Share",
+    "siteProbing": "Site probing",
     "unpin": "Unpin account",
     "urlCopied": "URL copied to clipboard",
     "usageLog": "Usage Log",

@@ -50,6 +50,7 @@
     "scanDuplicates": "重複をスキャン",
     "scanDuplicatesHint": "重複アカウント（origin + 上流 user id）をスキャンし、安全に整理します。",
     "share": "共有",
+    "siteProbing": "サイト検査",
     "unpin": "アカウントのピン留め解除",
     "urlCopied": "URL をクリップボードにコピーしました",
     "usageLog": "利用ログ",

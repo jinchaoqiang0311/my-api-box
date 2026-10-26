@@ -50,6 +50,7 @@
     "scanDuplicates": "Quét tài khoản trùng lặp",
     "scanDuplicatesHint": "Quét tài khoản trùng lặp theo URL trang gốc + ID người dùng và dọn dẹp an toàn.",
     "share": "Chia sẻ",
+    "siteProbing": "Kiểm tra trang",
     "unpin": "Bỏ ghim",
     "urlCopied": "URL đã được sao chép vào khay nhớ tạm",
     "usageLog": "Nhật ký sử dụng",
