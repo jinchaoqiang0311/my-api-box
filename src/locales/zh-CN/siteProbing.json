@@ -7,6 +7,8 @@
     "accountPlaceholder": "请选择账号",
     "apiKey": "API 密钥",
     "apiKeyHint": "sk- 开头的密钥,用于对话与流式检测",
+    "autoFetch": "自动获取",
+    "autoFetchLoading": "获取中…",
     "billingNote": "计费检测通过站点 /api/user/self 读取余额前后差值,需要访问令牌与用户 ID。",
     "exportJson": "复制报告 JSON",
     "loadModels": "加载模型",
@@ -52,6 +54,13 @@
     "title": "检测结果"
   },
   "status": {
+    "autoFetchDone": "已自动填入访问令牌和用户 ID。",
+    "autoFetchFailed": "自动获取失败,请确认已在浏览器中登录该中转站后重试。",
+    "autoFetchIdentityMismatch": "当前浏览器登录的账号与所选账号不一致,请切换登录后重试。",
+    "autoFetchLoginRequired": "获取失败:请先在当前标签页登录该中转站后重试。",
+    "autoFetchNoAccount": "请先选择账号。",
+    "autoFetchNoToken": "已填入用户 ID,但站点未返回访问令牌,请手动填写。",
+    "autoFetchUnsupported": "该账号的站点类型暂不支持自动获取,请手动填写。",
     "copied": "报告已复制到剪贴板",
     "modelsError": "模型加载失败:{{error}}",
     "needKey": "请先选择账号、填写密钥并加载模型。",

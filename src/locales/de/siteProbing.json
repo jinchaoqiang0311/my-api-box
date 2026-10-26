@@ -7,6 +7,8 @@
     "accountPlaceholder": "Konto auswählen",
     "apiKey": "API-Schlüssel",
     "apiKeyHint": "sk- Schlüssel für Chat- und Streaming-Prüfungen",
+    "autoFetch": "Automatisch ausfüllen",
+    "autoFetchLoading": "Wird abgerufen…",
     "billingNote": "Die Abrechnungsprüfung liest das Guthaben vor/nach einer abgerechneten Anfrage über /api/user/self; Zugangstoken und Benutzer-ID sind erforderlich.",
     "exportJson": "Bericht-JSON kopieren",
     "loadModels": "Modelle laden",
@@ -52,6 +54,13 @@
     "title": "Ergebnisse"
   },
   "status": {
+    "autoFetchDone": "Zugriffstoken und Benutzer-ID wurden automatisch eingetragen.",
+    "autoFetchFailed": "Automatisches Ausfüllen fehlgeschlagen. Melde dich im Browser bei dieser Relay-Seite an und versuche es erneut.",
+    "autoFetchIdentityMismatch": "Die Browsersitzung ist mit einem anderen Konto angemeldet als dem ausgewählten. Wechsle das Konto und versuche es erneut.",
+    "autoFetchLoginRequired": "Abruf fehlgeschlagen: Melde dich im aktuellen Tab bei dieser Relay-Seite an und versuche es erneut.",
+    "autoFetchNoAccount": "Wähle zuerst ein Konto aus.",
+    "autoFetchNoToken": "Benutzer-ID eingetragen, aber die Seite hat kein Zugriffstoken zurückgegeben. Bitte manuell eingeben.",
+    "autoFetchUnsupported": "Der Website-Typ dieses Kontos unterstützt kein automatisches Ausfüllen. Bitte manuell eingeben.",
     "copied": "Bericht in die Zwischenablage kopiert",
     "modelsError": "Modelle konnten nicht geladen werden: {{error}}",
     "needKey": "Konto auswählen, API-Schlüssel eingeben, dann Modelle laden.",

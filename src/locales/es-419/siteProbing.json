@@ -7,6 +7,8 @@
     "accountPlaceholder": "Selecciona una cuenta",
     "apiKey": "Clave API",
     "apiKeyHint": "Clave tipo sk- para las pruebas de chat y streaming",
+    "autoFetch": "Rellenar automáticamente",
+    "autoFetchLoading": "Obteniendo…",
     "billingNote": "La prueba de facturación lee la cuota antes/después de una solicitud facturada vía /api/user/self; necesita token de acceso e ID de usuario.",
     "exportJson": "Copiar JSON del informe",
     "loadModels": "Cargar modelos",
@@ -52,6 +54,13 @@
     "title": "Resultados"
   },
   "status": {
+    "autoFetchDone": "El token de acceso y el ID de usuario se completaron automáticamente.",
+    "autoFetchFailed": "Error al rellenar automáticamente. Asegúrate de haber iniciado sesión en este sitio de retransmisión en el navegador y vuelve a intentarlo.",
+    "autoFetchIdentityMismatch": "La sesión del navegador pertenece a una cuenta distinta de la seleccionada. Cambia de cuenta y vuelve a intentarlo.",
+    "autoFetchLoginRequired": "Error al obtener: inicia sesión en este sitio de retransmisión en la pestaña actual y vuelve a intentarlo.",
+    "autoFetchNoAccount": "Selecciona primero una cuenta.",
+    "autoFetchNoToken": "Se completó el ID de usuario, pero el sitio no devolvió ningún token de acceso. Introdúcelo manualmente.",
+    "autoFetchUnsupported": "El tipo de sitio de esta cuenta no admite el rellenado automático. Introdúcelo manualmente.",
     "copied": "Informe copiado al portapapeles",
     "modelsError": "Error al cargar modelos: {{error}}",
     "needKey": "Selecciona una cuenta, introduce la clave API y carga los modelos.",

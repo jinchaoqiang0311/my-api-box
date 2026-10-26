@@ -7,6 +7,8 @@
     "accountPlaceholder": "アカウントを選択",
     "apiKey": "API キー",
     "apiKeyHint": "チャットとストリーミング検査で使用する sk- 形式のキー",
+    "autoFetch": "自動取得",
+    "autoFetchLoading": "取得中…",
     "billingNote": "課金検査は /api/user/self で前後の残高差を読み取ります。アクセストークンとユーザー ID が必要です。",
     "exportJson": "レポート JSON をコピー",
     "loadModels": "モデル取得",
@@ -52,6 +54,13 @@
     "title": "結果"
   },
   "status": {
+    "autoFetchDone": "アクセストークンとユーザー ID を自動入力しました。",
+    "autoFetchFailed": "自動取得に失敗しました。ブラウザでこの中継サイトにログインしてから再試行してください。",
+    "autoFetchIdentityMismatch": "ブラウザでログイン中のアカウントが選択したアカウントと一致しません。ログインを切り替えて再試行してください。",
+    "autoFetchLoginRequired": "取得に失敗しました。現在のタブでこの中継サイトにログインしてから再試行してください。",
+    "autoFetchNoAccount": "先にアカウントを選択してください。",
+    "autoFetchNoToken": "ユーザー ID は入力しましたが、サイトがアクセストークンを返しませんでした。手動で入力してください。",
+    "autoFetchUnsupported": "このアカウントのサイト種別は自動取得に対応していません。手動で入力してください。",
     "copied": "レポートをクリップボードにコピーしました",
     "modelsError": "モデル取得に失敗:{{error}}",
     "needKey": "アカウントを選択し、API キーを入力してモデルを取得してください。",

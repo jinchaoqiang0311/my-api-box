@@ -7,6 +7,8 @@
     "accountPlaceholder": "Select an account",
     "apiKey": "API key",
     "apiKeyHint": "sk- style key used by chat and streaming probes",
+    "autoFetch": "Auto-fill",
+    "autoFetchLoading": "Fetching…",
     "billingNote": "The billing probe reads quota before/after one billed request via /api/user/self; it needs the access token and user id.",
     "exportJson": "Copy report JSON",
     "loadModels": "Load models",
@@ -52,6 +54,13 @@
     "title": "Results"
   },
   "status": {
+    "autoFetchDone": "Access token and user ID filled automatically.",
+    "autoFetchFailed": "Auto-fill failed. Make sure you are logged in to this relay site in the browser, then retry.",
+    "autoFetchIdentityMismatch": "The browser session is signed in to a different account than the one selected. Switch accounts and retry.",
+    "autoFetchLoginRequired": "Fetch failed: sign in to this relay site in the current tab, then retry.",
+    "autoFetchNoAccount": "Select an account first.",
+    "autoFetchNoToken": "User ID filled, but the site returned no access token. Enter it manually.",
+    "autoFetchUnsupported": "This account's site type does not support auto-fill. Enter the values manually.",
     "copied": "Report copied to clipboard",
     "modelsError": "Failed to load models: {{error}}",
     "needKey": "Select an account, enter the API key, then load models.",

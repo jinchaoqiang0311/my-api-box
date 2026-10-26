@@ -6,6 +6,12 @@ import { Button } from "~/components/ui/button"
 import { FormField } from "~/components/ui/FormField"
 import { accountQueries } from "~/services/accounts/accountStorage/accountQueries"
 import {
+  ACCOUNT_SITE_ADAPTER_FAMILIES,
+  getAccountSiteDefinition,
+} from "~/services/accountSiteDefinitions"
+import { createNewApiAccountBootstrap } from "~/services/apiAdapters/newApi/account/accountBootstrap"
+import { API_ERROR_CODES, ApiError } from "~/services/apiTransport/errors"
+import {
   getProbeHint,
   getProbeLabel,
   getVerdictLabel,
@@ -19,7 +25,7 @@ import {
   type ProbeResult,
   type ProbeVerdict,
 } from "~/services/probeSystem/types"
-import type { SiteAccount } from "~/types"
+import { AuthTypeEnum, type SiteAccount } from "~/types"
 import { createLogger } from "~/utils/core/logger"
 
 const logger = createLogger("SiteProbingPage")
@@ -51,6 +57,7 @@ export default function SiteProbing() {
   const [model, setModel] = useState("")
   const [modelsLoading, setModelsLoading] = useState(false)
   const [modelsError, setModelsError] = useState<string | null>(null)
+  const [credentialsLoading, setCredentialsLoading] = useState(false)
   const [selected, setSelected] = useState<Set<ProbeId>>(new Set(ALL_PROBE_IDS))
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<ProbeResult[]>([])
@@ -105,6 +112,60 @@ export default function SiteProbing() {
       setModelsLoading(false)
     }
   }, [account, apiKey, model, t])
+
+  /**
+   * Fills the billing access token and user id from the site's own browser
+   * session, reusing the cookie-auth `/api/user/self` read that the account
+   * dialog uses during auto-detection.
+   */
+  const handleAutoFetchCredentials = useCallback(async () => {
+    if (!account) {
+      setNotice(t("status.autoFetchNoAccount"))
+      return
+    }
+    if (
+      getAccountSiteDefinition(account.site_type)?.adapterFamily !==
+      ACCOUNT_SITE_ADAPTER_FAMILIES.NewApiFamily
+    ) {
+      setNotice(t("status.autoFetchUnsupported"))
+      return
+    }
+    setCredentialsLoading(true)
+    setNotice(null)
+    try {
+      const bootstrap = createNewApiAccountBootstrap(account.site_type, {
+        expectedUserId: account.account_info.id,
+      })
+      const userInfo = await bootstrap.fetchUserInfo({
+        baseUrl: account.site_url,
+        auth: {
+          authType: AuthTypeEnum.Cookie,
+          userId: account.account_info.id,
+        },
+      })
+      setRemoteUserId(userInfo.id)
+      if (userInfo.access_token) {
+        setAccessToken(userInfo.access_token)
+        setNotice(t("status.autoFetchDone"))
+      } else {
+        setNotice(t("status.autoFetchNoToken"))
+      }
+    } catch (error) {
+      logger.warn("Failed to auto-fetch billing credentials", error)
+      if (
+        error instanceof ApiError &&
+        error.code === API_ERROR_CODES.ACCOUNT_IDENTITY_MISMATCH
+      ) {
+        setNotice(t("status.autoFetchIdentityMismatch"))
+      } else if (error instanceof ApiError && error.statusCode === 401) {
+        setNotice(t("status.autoFetchLoginRequired"))
+      } else {
+        setNotice(t("status.autoFetchFailed"))
+      }
+    } finally {
+      setCredentialsLoading(false)
+    }
+  }, [account, t])
 
   const toggleProbe = useCallback((probeId: ProbeId, enabled: boolean) => {
     setSelected((previous) => {
@@ -295,25 +356,49 @@ export default function SiteProbing() {
                 description={t("labels.accessTokenHint")}
                 htmlFor="site-probing-access-token"
               >
-                <input
-                  id="site-probing-access-token"
-                  type="password"
-                  className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-                  value={accessToken}
-                  onChange={(event) => setAccessToken(event.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    id="site-probing-access-token"
+                    type="password"
+                    className="min-w-0 flex-1 rounded-md border bg-transparent px-3 py-2 text-sm"
+                    value={accessToken}
+                    onChange={(event) => setAccessToken(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleAutoFetchCredentials()}
+                    disabled={!account || credentialsLoading}
+                  >
+                    {credentialsLoading
+                      ? t("labels.autoFetchLoading")
+                      : t("labels.autoFetch")}
+                  </Button>
+                </div>
               </FormField>
               <FormField
                 label={t("labels.userId")}
                 description={t("labels.userIdHint")}
                 htmlFor="site-probing-user-id"
               >
-                <input
-                  id="site-probing-user-id"
-                  className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-                  value={remoteUserId}
-                  onChange={(event) => setRemoteUserId(event.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    id="site-probing-user-id"
+                    className="min-w-0 flex-1 rounded-md border bg-transparent px-3 py-2 text-sm"
+                    value={remoteUserId}
+                    onChange={(event) => setRemoteUserId(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleAutoFetchCredentials()}
+                    disabled={!account || credentialsLoading}
+                  >
+                    {credentialsLoading
+                      ? t("labels.autoFetchLoading")
+                      : t("labels.autoFetch")}
+                  </Button>
+                </div>
               </FormField>
             </section>
           ) : null}

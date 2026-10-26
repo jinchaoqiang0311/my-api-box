@@ -7,6 +7,8 @@
     "accountPlaceholder": "Chọn tài khoản",
     "apiKey": "Khóa API",
     "apiKeyHint": "Khóa dạng sk- dùng cho các kiểm tra chat và streaming",
+    "autoFetch": "Tự động lấy",
+    "autoFetchLoading": "Đang lấy…",
     "billingNote": "Kiểm tra thanh toán đọc hạn mức trước/sau một yêu cầu tính phí qua /api/user/self; cần token truy cập và ID người dùng.",
     "exportJson": "Sao chép JSON báo cáo",
     "loadModels": "Tải mô hình",
@@ -52,6 +54,13 @@
     "title": "Kết quả"
   },
   "status": {
+    "autoFetchDone": "Đã tự động điền access token và user ID.",
+    "autoFetchFailed": "Tự động lấy thất bại. Hãy đăng nhập trang trung chuyển này trong trình duyệt rồi thử lại.",
+    "autoFetchIdentityMismatch": "Phiên trình duyệt đang đăng nhập bằng tài khoản khác với tài khoản đã chọn. Hãy đổi tài khoản rồi thử lại.",
+    "autoFetchLoginRequired": "Lấy thất bại: hãy đăng nhập trang trung chuyển này ở tab hiện tại rồi thử lại.",
+    "autoFetchNoAccount": "Hãy chọn tài khoản trước.",
+    "autoFetchNoToken": "Đã điền user ID nhưng trang không trả về access token. Vui lòng điền thủ công.",
+    "autoFetchUnsupported": "Loại trang của tài khoản này chưa hỗ trợ tự động lấy. Vui lòng điền thủ công.",
     "copied": "Đã sao chép báo cáo vào clipboard",
     "modelsError": "Tải mô hình thất bại: {{error}}",
     "needKey": "Chọn tài khoản, nhập khóa API rồi tải mô hình.",

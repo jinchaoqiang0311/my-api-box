@@ -7,6 +7,8 @@
     "accountPlaceholder": "請選擇帳號",
     "apiKey": "API 金鑰",
     "apiKeyHint": "sk- 開頭的金鑰,用於對話與串流檢測",
+    "autoFetch": "自動取得",
+    "autoFetchLoading": "取得中…",
     "billingNote": "計費檢測透過站點 /api/user/self 讀取餘額前後差值,需要存取權杖與使用者 ID。",
     "exportJson": "複製報告 JSON",
     "loadModels": "載入模型",
@@ -52,6 +54,13 @@
     "title": "檢測結果"
   },
   "status": {
+    "autoFetchDone": "已自動填入存取權杖與使用者 ID。",
+    "autoFetchFailed": "自動取得失敗,請確認已在瀏覽器中登入該中轉站後重試。",
+    "autoFetchIdentityMismatch": "目前瀏覽器登入的帳號與所選帳號不一致,請切換登入後重試。",
+    "autoFetchLoginRequired": "取得失敗:請先在目前分頁登入該中轉站後重試。",
+    "autoFetchNoAccount": "請先選擇帳號。",
+    "autoFetchNoToken": "已填入使用者 ID,但站點未回傳存取權杖,請手動填寫。",
+    "autoFetchUnsupported": "該帳號的站點類型暫不支援自動取得,請手動填寫。",
     "copied": "報告已複製到剪貼簿",
     "modelsError": "模型載入失敗:{{error}}",
     "needKey": "請先選擇帳號、填寫金鑰並載入模型。",

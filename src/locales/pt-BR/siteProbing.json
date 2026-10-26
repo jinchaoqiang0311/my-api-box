@@ -7,6 +7,8 @@
     "accountPlaceholder": "Selecione uma conta",
     "apiKey": "Chave de API",
     "apiKeyHint": "Chave sk- usada pelas sondas de chat e streaming",
+    "autoFetch": "Preencher automaticamente",
+    "autoFetchLoading": "Obtendo…",
     "billingNote": "A sonda de cobrança lê a cota antes/depois de uma requisição cobrada via /api/user/self; exige token de acesso e ID do usuário.",
     "exportJson": "Copiar JSON do relatório",
     "loadModels": "Carregar modelos",
@@ -52,6 +54,13 @@
     "title": "Resultados"
   },
   "status": {
+    "autoFetchDone": "Token de acesso e ID de usuário preenchidos automaticamente.",
+    "autoFetchFailed": "Falha ao preencher automaticamente. Confirme que você está logado neste site de relay no navegador e tente novamente.",
+    "autoFetchIdentityMismatch": "A sessão do navegador está logada em uma conta diferente da selecionada. Troque de conta e tente novamente.",
+    "autoFetchLoginRequired": "Falha ao obter: faça login neste site de relay na aba atual e tente novamente.",
+    "autoFetchNoAccount": "Selecione uma conta primeiro.",
+    "autoFetchNoToken": "ID de usuário preenchido, mas o site não retornou token de acesso. Preencha manualmente.",
+    "autoFetchUnsupported": "O tipo de site desta conta não suporta preenchimento automático. Preencha manualmente.",
     "copied": "Relatório copiado para a área de transferência",
     "modelsError": "Falha ao carregar modelos: {{error}}",
     "needKey": "Selecione uma conta, informe a chave de API e carregue os modelos.",
