@@ -12,6 +12,7 @@ import {
   fetchSiteBillingBasis,
   fetchSiteStatusConfig,
   type BillingComparison,
+  type SiteBillingBasis,
 } from "~/services/probeSystem/billing"
 
 import {
@@ -626,13 +627,29 @@ export const billingProbe = {
       before.group,
       auth,
     )
-    // If /api/pricing had no 'default' group ratio, use /api/status's fallback.
-    const resolvedGroupRatio =
+    // Group ratio: the account's own group, then a literal "default" entry
+    // from /api/pricing, then the site-wide default from /api/status. No
+    // median guess — aicost publishes channel names in group_ratio, so the
+    // median was silently 1.0 while the site actually multiplied by 0.1.
+    const pricingGroupRatio =
       siteBasis != null &&
+      siteBasis.groupRatioSource !== "unknown" &&
       typeof siteBasis.groupRatio === "number" &&
       Number.isFinite(siteBasis.groupRatio)
         ? siteBasis.groupRatio
-        : status.fallbackGroupRatio ?? 1
+        : undefined
+    const statusGroupRatio =
+      typeof status.fallbackGroupRatio === "number" &&
+      Number.isFinite(status.fallbackGroupRatio)
+        ? status.fallbackGroupRatio
+        : undefined
+    const resolvedGroupRatio = pricingGroupRatio ?? statusGroupRatio ?? 1
+    const resolvedGroupRatioSource: SiteBillingBasis["groupRatioSource"] =
+      pricingGroupRatio != null
+        ? siteBasis?.groupRatioSource
+        : statusGroupRatio != null
+          ? "status"
+          : "unknown"
 
     // Custom billing_mode rows (tiered_expr, token_expr, …) are now USABLE —
     // we parse the billing_expr coefficients into USD/M prices and compute
@@ -665,6 +682,27 @@ export const billingProbe = {
         ).toFixed(6),
       )
     const basis = siteExpected != null ? "site" : "baseline"
+
+    // Back-solve the multiplier the site actually applied: deducted ÷ the list
+    // price with the group ratio forced to 1. This is independent of whichever
+    // group ratio we managed to resolve, so a wrong resolution (or an
+    // unpublished discount group) shows up as a number instead of hiding
+    // behind a "pass" — e.g. 0.1 means the site applies a 10× discount.
+    const expectedAtRatioOne =
+      usableRow && siteExpected != null
+        ? computeSiteExpectedUsd({
+            promptTokens: outcome.promptTokens,
+            completionTokens: outcome.completionTokens,
+            cachedTokens: outcome.cachedTokens,
+            row: usableRow,
+            groupRatio: 1,
+            quotaPerUnit: status.quotaPerUnit,
+          })
+        : null
+    const impliedGroupRatio =
+      expectedAtRatioOne != null && expectedAtRatioOne > 0
+        ? Number((deducted / expectedAtRatioOne).toFixed(3))
+        : null
     const ratio = expected > 0 ? deducted / expected : 1
     const comparison = compareBillingAmounts(
       deducted,
@@ -710,9 +748,12 @@ export const billingProbe = {
       // account's own group name, so a mismatch against groupRatioOptions
       // explains an unexpected fallback.
       userGroup: before.group ?? null,
-      groupRatioSource: siteBasis?.groupRatioSource,
+      groupRatioSource: resolvedGroupRatioSource,
       groupRatioKey: siteBasis?.groupRatioKey,
       groupRatioOptions: siteBasis?.groupRatioOptions,
+      // Multiplier the site actually applied, measured from the deduction
+      // itself (independent of group-ratio resolution).
+      impliedGroupRatio: impliedGroupRatio ?? undefined,
       // Diagnostic fields — help diagnose formula mismatches and site
       // pricing data problems.
       promptTokens: outcome.promptTokens,

@@ -115,13 +115,13 @@ export interface SiteBillingBasis {
   groupRatio: unknown
   /**
    * Which rule produced `groupRatio` — surfaced in probe evidence so users can
-   * tell a real per-account multiplier from a median guess.
+   * tell a real per-account multiplier from an assumption.
    *   user     → the account's own group name matched a group_ratio key
    *   default  → a group literally named default/默认/普通用户/normal
-   *   median   → the middle ratio across all published groups (a guess)
-   *   fallback → no usable group_ratio map at all, ratio assumed 1
+   *   status   → /api/status published a site-wide default multiplier
+   *   unknown  → nothing matched; ratio assumed 1 and must NOT be trusted
    */
-  groupRatioSource?: "user" | "default" | "median" | "fallback"
+  groupRatioSource?: "user" | "default" | "status" | "unknown"
   /** The group_ratio key the ratio came from, when one matched. */
   groupRatioKey?: string
   /**
@@ -444,7 +444,7 @@ export async function fetchSiteBillingBasis(
           e.value != null && Number.isFinite(e.value) && e.value >= 0,
       )
     let groupRatio: number | null = null
-    let groupRatioSource: SiteBillingBasis["groupRatioSource"] = "fallback"
+    let groupRatioSource: SiteBillingBasis["groupRatioSource"] = "unknown"
     let groupRatioKey: string | undefined
     if (ratioEntries.length > 0) {
       const DEFAULT_RE = /^(default|默认|普通用户|normal)$/i
@@ -463,17 +463,13 @@ export async function fetchSiteBillingBasis(
           groupRatio = def.value
           groupRatioSource = "default"
           groupRatioKey = def.key
-        } else {
-          // 3. median across published groups — a documented guess, labelled
-          //    as such so evidence never passes it off as the real multiplier.
-          const sorted = [...ratioEntries].sort((a, b) => a.value - b.value)
-          const mid = sorted[Math.floor(sorted.length / 2)]
-          if (mid) {
-            groupRatio = mid.value
-            groupRatioSource = "median"
-            groupRatioKey = mid.key
-          }
         }
+        // 3. No median guess: many relays publish CHANNEL names here
+        //    (即梦渠道10, seedance2.0批发, gpt-image-2-主…) rather than
+        //    account tiers, so a median is meaningless and silently reported
+        //    1.0 for a site whose real multiplier was 0.1. Leaving the ratio
+        //    unresolved lets the caller fall back to /api/status and the
+        //    implied-ratio back-solve expose the truth.
       }
     }
 

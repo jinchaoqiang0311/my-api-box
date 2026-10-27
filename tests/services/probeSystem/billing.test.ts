@@ -215,6 +215,45 @@ describe("fetchSiteBillingBasis", () => {
     expect(basis?.groupRatioKey).toBe("default")
   })
 
+  it("leaves channel-named group maps unresolved instead of guessing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  model_name: "gpt-5.6-sol",
+                  quota_type: 0,
+                  model_ratio: 37.5,
+                },
+              ],
+              // aicost-style map: channel names, not account tiers. A median
+              // here happens to be 1, which would silently claim the account
+              // runs at list price when it actually multiplies by 0.1.
+              group_ratio: {
+                即梦渠道10: 1,
+                "gpt-image-2-主": 0.0207,
+                "gpt-官转": 3.9,
+              },
+            }),
+            { status: 200 },
+          ),
+      ),
+    )
+
+    const basis = await fetchSiteBillingBasis(
+      "https://aicost.example.com",
+      "gpt-5.6-sol",
+      "default",
+    )
+    expect(basis?.groupRatio).toBe(1)
+    expect(basis?.groupRatioSource).toBe("unknown")
+    expect(basis?.groupRatioKey).toBeUndefined()
+    expect(basis?.groupRatioOptions).toHaveLength(3)
+  })
+
   it("returns null when the public pricing response lacks the model", async () => {
     vi.stubGlobal(
       "fetch",
@@ -289,6 +328,8 @@ describe("billingProbe", () => {
       expectedUsd: 0.00176,
       basis: "site",
       comparison: "ok",
+      groupRatioSource: "user",
+      impliedGroupRatio: 0.8,
     })
     expect(fetchMock).toHaveBeenCalledTimes(5)
   })
