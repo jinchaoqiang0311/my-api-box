@@ -9,6 +9,7 @@ import {
   BASELINE_COMPLETION_RATIO,
   compareBillingAmounts,
   computeSiteExpectedUsd,
+  fetchBillingLogRatio,
   fetchSiteBillingBasis,
   fetchSiteStatusConfig,
   matchGroupRatioCandidate,
@@ -589,6 +590,9 @@ export const billingProbe = {
     if (before.quotaUsd == null) {
       return result(PROBE_IDS.Billing, "skip", "summaries.billingSkip")
     }
+    // Log timestamps are whole seconds — keep a minute of slack so a request
+    // that straddles a clock boundary still matches its own log row.
+    const probeStartedAt = Math.floor(Date.now() / 1000) - 60
     const outcome = await probeChatRequest(
       credentials,
       [
@@ -610,6 +614,16 @@ export const billingProbe = {
       )
     }
     const deducted = Number((before.quotaUsd - after.quotaUsd).toFixed(6))
+
+    // Ground truth for the multiplier: New API stores the ratio it actually
+    // applied in the consumption log, so this covers auto-group routing and
+    // unpublished discount groups that /api/pricing never exposes.
+    const logRatio = await fetchBillingLogRatio(
+      credentials.baseUrl,
+      credentials.model,
+      auth,
+      probeStartedAt,
+    )
     if (outcome.promptTokens == null || outcome.completionTokens == null) {
       return result(
         PROBE_IDS.Billing,
@@ -656,6 +670,7 @@ export const billingProbe = {
         : null
 
     // ── Resolve the multiplier this request was billed at ────────
+    //   0. the site's own consumption log for THIS request (ground truth)
     //   1. the account's own group, or a literal "default" entry, or the one
     //      priced channel of enable_groups — all from /api/pricing
     //   2. several enable_groups channels → whichever matches the deduction
@@ -675,7 +690,11 @@ export const billingProbe = {
         ? siteBasis.groupRatio
         : undefined
 
-    if (pricingGroupRatio != null) {
+    if (logRatio != null) {
+      resolvedGroupRatio = logRatio.groupRatio
+      resolvedGroupRatioSource = "log"
+      resolvedGroupRatioKey = undefined
+    } else if (pricingGroupRatio != null) {
       resolvedGroupRatio = pricingGroupRatio
       resolvedGroupRatioSource = siteBasis?.groupRatioSource
     } else {
@@ -774,6 +793,9 @@ export const billingProbe = {
       // Multiplier the site actually applied, measured from the deduction
       // itself (independent of group-ratio resolution).
       impliedGroupRatio: impliedGroupRatio ?? undefined,
+      // Multiplier the site's consumption log recorded for this request, when
+      // readable — this is what the resolution above prefers.
+      logGroupRatio: logRatio?.groupRatio,
       // Diagnostic fields — help diagnose formula mismatches and site
       // pricing data problems.
       promptTokens: outcome.promptTokens,

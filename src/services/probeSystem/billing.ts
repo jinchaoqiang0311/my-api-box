@@ -123,13 +123,22 @@ export interface SiteBillingBasis {
   /**
    * Which rule produced `groupRatio` — surfaced in probe evidence so users can
    * tell a real per-account multiplier from an assumption.
+   *   log      → the site's own consumption log recorded the multiplier it
+   *              applied to THIS request (ground truth, works on any New API
+   *              site including auto-group routing)
    *   user     → the account's own group name matched a group_ratio key
    *   default  → a group literally named default/默认/普通用户/normal
    *   auto_group → the model's enable_groups narrowed it to one published group
    *   status   → /api/status published a site-wide default multiplier
    *   unknown  → nothing matched; ratio assumed 1 and must NOT be trusted
    */
-  groupRatioSource?: "user" | "default" | "auto_group" | "status" | "unknown"
+  groupRatioSource?:
+    | "log"
+    | "user"
+    | "default"
+    | "auto_group"
+    | "status"
+    | "unknown"
   /** The group_ratio key the ratio came from, when one matched. */
   groupRatioKey?: string
   /**
@@ -640,5 +649,98 @@ export async function fetchSiteStatusConfig(
     }
   } catch {
     return DEFAULTS
+  }
+}
+
+/** A consumption-log row, reduced to the billing fields we trust from it. */
+export interface BillingLogRatio {
+  /** The multiplier the site itself recorded for this request. */
+  groupRatio: number
+  modelName?: string
+  /** Raw `other` payload — New API stores every billing parameter here. */
+  other: Record<string, unknown>
+}
+
+/** Reads the newest log entries out of either `{data:{items:[]}}` or `{data:[]}`. */
+function readLogRows(data: unknown): Array<Record<string, unknown>> {
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { items?: unknown } | null)?.items)
+      ? ((data as { items: unknown[] }).items as unknown[])
+      : []
+  return list.filter(
+    (entry): entry is Record<string, unknown> =>
+      typeof entry === "object" && entry !== null,
+  )
+}
+
+/** `other` is a JSON string on some forks and an object on others. */
+function readLogOther(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value)
+      return typeof parsed === "object" && parsed !== null
+        ? (parsed as Record<string, unknown>)
+        : null
+    } catch {
+      return null
+    }
+  }
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+/**
+ * Ground truth for the group multiplier: New API records the ratio it actually
+ * applied inside the consumption log's `other` field (`group_ratio`). Reading
+ * it beats any inference from /api/pricing, because it covers every case the
+ * public map does not: auto-group routing, unpublished discount groups, group
+ * names that differ between the panel and the pricing endpoint.
+ *
+ * Returns the newest entry that matches `model` (and, when the log exposes
+ * timestamps, was written after `sinceSeconds`) — earlier rows belong to other
+ * requests whose ratio may legitimately differ.
+ */
+export async function fetchBillingLogRatio(
+  baseUrl: string,
+  model: string,
+  auth: { accessToken?: string; remoteUserId?: string } | undefined,
+  sinceSeconds?: number,
+): Promise<BillingLogRatio | null> {
+  if (!auth?.accessToken) return null
+  try {
+    const headers: Record<string, string> = {
+      Authorization: auth.accessToken,
+    }
+    if (auth.remoteUserId) headers["New-Api-User"] = auth.remoteUserId
+    // type=2 → consumption logs; p=0 is the first page (newest first).
+    const url = `${baseUrl.replace(/\/+$/, "")}/api/log/self?p=0&page_size=20&type=2`
+    const response = await fetch(url, { headers })
+    if (!response.ok) return null
+    const payload = (await response.json()) as { data?: unknown }
+    for (const entry of readLogRows(payload.data)) {
+      const modelName =
+        typeof entry.model_name === "string" ? entry.model_name : undefined
+      if (modelName != null && modelName !== model) continue
+      const createdAt = coerceFiniteNumber(entry.created_at)
+      if (
+        sinceSeconds != null &&
+        createdAt != null &&
+        createdAt < sinceSeconds
+      ) {
+        continue
+      }
+      const other = readLogOther(entry.other)
+      if (!other) continue
+      const ratio = coerceFiniteNumber(
+        other.group_ratio ?? other.groupRatio ?? other.group,
+      )
+      if (ratio == null || !Number.isFinite(ratio) || ratio <= 0) continue
+      return { groupRatio: ratio, modelName, other }
+    }
+    return null
+  } catch {
+    return null
   }
 }

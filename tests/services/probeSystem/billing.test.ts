@@ -4,6 +4,7 @@ import {
   BASELINE_COMPLETION_RATIO,
   compareBillingAmounts,
   computeSiteExpectedUsd,
+  fetchBillingLogRatio,
   fetchSiteBillingBasis,
   matchGroupRatioCandidate,
 } from "~/services/probeSystem/billing"
@@ -364,6 +365,88 @@ describe("matchGroupRatioCandidate", () => {
   })
 })
 
+describe("fetchBillingLogRatio", () => {
+  const auth = { accessToken: "sk-test", remoteUserId: "7" }
+
+  it("reads group_ratio from a JSON-string other payload", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              data: {
+                items: [
+                  {
+                    model_name: "gpt-4o",
+                    created_at: 1_793_088_000,
+                    other: '{"model_ratio":1,"group_ratio":0.3}',
+                  },
+                ],
+              },
+            }),
+            { status: 200 },
+          ),
+      ),
+    )
+
+    const log = await fetchBillingLogRatio("https://relay.test", "gpt-4o", auth)
+    expect(log?.groupRatio).toBe(0.3)
+  })
+
+  it("skips rows for other models and rows older than the probe", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  model_name: "gpt-4o-mini",
+                  created_at: 1_793_088_100,
+                  other: { group_ratio: 2 },
+                },
+                {
+                  model_name: "gpt-4o",
+                  created_at: 1_793_000_000,
+                  other: { group_ratio: 5 },
+                },
+                {
+                  model_name: "gpt-4o",
+                  created_at: 1_793_088_200,
+                  other: { group_ratio: 0.1 },
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
+      ),
+    )
+
+    const log = await fetchBillingLogRatio(
+      "https://relay.test",
+      "gpt-4o",
+      auth,
+      1_793_088_000,
+    )
+    expect(log?.groupRatio).toBe(0.1)
+  })
+
+  it("returns null when the log endpoint is unavailable or unparsable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 404 })),
+    )
+    expect(
+      await fetchBillingLogRatio("https://relay.test", "gpt-4o", auth),
+    ).toBeNull()
+    expect(
+      await fetchBillingLogRatio("https://relay.test", "gpt-4o", undefined),
+    ).toBeNull()
+  })
+})
+
 describe("billingProbe", () => {
   it("compares the actual deduction against the site's model and group price", async () => {
     // New API official: points = (1000 + 1000*1.2) * 0.5 * 0.8 = 880
@@ -417,7 +500,7 @@ describe("billingProbe", () => {
       groupRatioSource: "user",
       impliedGroupRatio: 0.8,
     })
-    expect(fetchMock).toHaveBeenCalledTimes(5)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
   })
 
   it("bills an auto-group request at the channel that served it", async () => {
@@ -500,6 +583,89 @@ describe("billingProbe", () => {
       resolvedGroupRatio: 0.1,
       impliedGroupRatio: 0.1,
       userGroup: "default",
+    })
+  })
+
+  it("prefers the multiplier recorded in the site's consumption log", async () => {
+    // The account group "vip" is absent from group_ratio, so nothing in
+    // /api/pricing resolves it. The log says the site applied 0.5 — that is
+    // ground truth and must win over any inference.
+    const quotaValues = [1_000_000, 998_900]
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.endsWith("/api/user/self")) {
+          return new Response(
+            JSON.stringify({
+              data: { quota: quotaValues.shift(), group: "vip" },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.endsWith("/v1/chat/completions")) {
+          return new Response(
+            JSON.stringify({
+              choices: [{ message: { content: "4" } }],
+              usage: { prompt_tokens: 1000, completion_tokens: 1000 },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.endsWith("/api/pricing")) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  model_name: "gpt-4o",
+                  model_ratio: 1,
+                  completion_ratio: 1.2,
+                },
+              ],
+              group_ratio: { "some-channel": 3 },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.includes("/api/log/self")) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                items: [
+                  {
+                    model_name: "gpt-4o",
+                    created_at: Math.floor(Date.now() / 1000),
+                    other: '{"model_ratio":1,"group_ratio":0.5}',
+                  },
+                ],
+              },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.endsWith("/api/status")) {
+          return new Response(JSON.stringify({ quota_per_unit: 500000 }), {
+            status: 200,
+          })
+        }
+        return new Response("not found", { status: 404 })
+      }),
+    )
+
+    const result = await billingProbe.run(credentials)
+
+    expect(result.summaryKey).toBe("summaries.billingOk")
+    expect(result.evidence).toMatchObject({
+      // list price (1000×$2 + 1000×$2.4)/1M = 0.0044, log multiplier 0.5
+      deductedUsd: 0.0022,
+      expectedUsd: 0.0022,
+      basis: "site",
+      comparison: "ok",
+      groupRatioSource: "log",
+      resolvedGroupRatio: 0.5,
+      logGroupRatio: 0.5,
+      impliedGroupRatio: 0.5,
+      userGroup: "vip",
     })
   })
 
