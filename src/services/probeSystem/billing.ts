@@ -100,14 +100,29 @@ function round6(value: number): number {
  * Pure expected-cost calculation for one site pricing row and group ratio.
  * Returns null when the row lacks the facts needed for a site-based
  * expectation (the caller then uses the ecosystem baseline).
+ *
+ * New API official formula:
+ *   Token billing:  points = (tokens × completion_ratio) × model_ratio × group_ratio
+ *                   expectedUsd = points / quota_per_unit
+ *   Per-call billing: points = model_price(USD) × group_ratio × quota_per_unit
+ *                   expectedUsd = points / quota_per_unit = model_price × group_ratio
+ *
+ * quota_per_unit defaults to 500_000 (1 USD = 500,000 points).
  */
 export function computeSiteExpectedUsd(input: {
   promptTokens: number
   completionTokens: number
   row: SitePricingRow
   groupRatio?: unknown
+  quotaPerUnit?: number
 }): number | null {
   const groupRatio = finitePricingMultiplier(input.groupRatio) ?? 1
+  const quotaPerUnit =
+    typeof input.quotaPerUnit === "number" &&
+    Number.isFinite(input.quotaPerUnit) &&
+    input.quotaPerUnit > 0
+      ? input.quotaPerUnit
+      : 500_000
   const promptTokens =
     typeof input.promptTokens === "number" &&
     Number.isFinite(input.promptTokens) &&
@@ -122,9 +137,9 @@ export function computeSiteExpectedUsd(input: {
       : 0
 
   // Per-call billing: the site charges a fixed price per request.
-  // model_price is in USD — sites that publish per-call fees usually use
-  // the same USD scale as the token-ratio path, so no additional exchange
-  // is needed.
+  // model_price is in USD, so expectedUsd = model_price × group_ratio.
+  // quota_per_unit cancels out (points = model_price × group_ratio × qpu;
+  // expectedUsd = points / qpu = model_price × group_ratio).
   // quota_type may come as a string "1" from non-standard New API forks,
   // so we use coerceFiniteNumber for a tolerant comparison.
   const quotaType = coerceFiniteNumber(input.row.quota_type)
@@ -134,9 +149,9 @@ export function computeSiteExpectedUsd(input: {
     return round6(modelPrice * groupRatio)
   }
 
-  // Token billing: standard New API formula. quota_per_unit cancels out when
-  // we compare against deducted USD (which is also quota_delta / quota_per_unit),
-  // so we only need tokens × model_ratio × group_ratio / 1M.
+  // Token billing: standard New API formula.
+  //   points = (prompt + completion × completion_ratio) × model_ratio × group_ratio
+  //   expectedUsd = points / quota_per_unit
   const modelRatio = finiteNonnegative(input.row.model_ratio)
   if (modelRatio == null) return null
   const completionRatio =
@@ -146,7 +161,7 @@ export function computeSiteExpectedUsd(input: {
     ((promptTokens + completionTokens * completionRatio) *
       modelRatio *
       groupRatio) /
-      1_000_000,
+      quotaPerUnit,
   )
 }
 

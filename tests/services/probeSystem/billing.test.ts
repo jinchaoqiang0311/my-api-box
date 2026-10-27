@@ -29,7 +29,7 @@ describe("computeSiteExpectedUsd", () => {
         row: { quota_type: 0, model_ratio: 0.5, completion_ratio: 1.2 },
         groupRatio: 0.8,
       }),
-    ).toBe(0.00088)
+    ).toBe(0.00176)
   })
 
   it("uses per-call pricing instead of token math", () => {
@@ -51,9 +51,7 @@ describe("computeSiteExpectedUsd", () => {
         row: { quota_type: 0, model_ratio: 1 },
       }),
     ).toBe(
-      Number(
-        ((1000 + 1000 * BASELINE_COMPLETION_RATIO) / 1_000_000).toFixed(6),
-      ),
+      Number(((1000 + 1000 * BASELINE_COMPLETION_RATIO) / 500_000).toFixed(6)),
     )
   })
 
@@ -197,8 +195,8 @@ describe("fetchSiteBillingBasis", () => {
 
 describe("billingProbe", () => {
   it("compares the actual deduction against the site's model and group price", async () => {
-    // correct delta = (1000 + 1000*1.2) * 0.5 * 0.8 / 1M * 500k = 440 points
-    const quotaValues = [1_000_000, 999_560]
+    // New API official: points = (1000 + 1000*1.2) * 0.5 * 0.8 = 880
+    const quotaValues = [1_000_000, 999_120]
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.endsWith("/api/user/self")) {
@@ -241,8 +239,8 @@ describe("billingProbe", () => {
     expect(result.verdict).toBe("pass")
     expect(result.summaryKey).toBe("summaries.billingOk")
     expect(result.evidence).toMatchObject({
-      deductedUsd: 0.00088,
-      expectedUsd: 0.00088,
+      deductedUsd: 0.00176,
+      expectedUsd: 0.00176,
       basis: "site",
       comparison: "ok",
     })
@@ -250,8 +248,8 @@ describe("billingProbe", () => {
   })
 
   it("falls back to the baseline and labels that comparison when list price is unavailable", async () => {
-    // correct delta = (1000 + 1000*1.3) / 1M * 500k = 1150 points
-    const quotaValues = [1_000_000, 998_850]
+    // New API official: baseline points = (1000 + 1000*1.3) * 1 = 2300
+    const quotaValues = [1_000_000, 997_700]
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -282,7 +280,7 @@ describe("billingProbe", () => {
     expect(result.summaryKey).toBe("summaries.billingOkBaseline")
     expect(result.evidence).toMatchObject({
       basis: "baseline",
-      expectedUsd: 0.0023,
+      expectedUsd: 0.0046,
     })
   })
 })

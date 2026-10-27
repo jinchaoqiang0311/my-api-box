@@ -622,6 +622,7 @@ export const billingProbe = {
           completionTokens: outcome.completionTokens,
           row: siteBasis.row,
           groupRatio: resolvedGroupRatio,
+          quotaPerUnit: status.quotaPerUnit,
         })
       : null
     const expected =
@@ -630,7 +631,7 @@ export const billingProbe = {
         (
           (outcome.promptTokens +
             outcome.completionTokens * BASELINE_COMPLETION_RATIO) /
-          1_000_000
+          status.quotaPerUnit
         ).toFixed(6),
       )
     const basis = siteExpected != null ? "site" : "baseline"
