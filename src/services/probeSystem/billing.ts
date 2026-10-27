@@ -40,6 +40,27 @@ export interface SiteBillingBasis {
   groupRatio: unknown
 }
 
+/**
+ * Per‑site configuration facts read from /api/status that affect how the
+ * probe interprets quota and deduces the expected charge.
+ */
+export interface SiteStatusConfig {
+  /** Points per USD used by this site's quota accounting. Default 500_000. */
+  quotaPerUnit: number
+  /**
+   * Optional top‑up / recharge multiplier applied to the standard charge.
+   * A site that gives you double points for the same money publishes 2 here,
+   * which means every charge we compute must be divided by this factor to
+   * reconcile against the user's points balance. Default 1 (no top‑up).
+   */
+  topUpRatio: number
+  /**
+   * Default group multiplier from the site‑wide fallback (when the user's
+   *  named group is missing or /api/pricing does not publish one).
+   */
+  fallbackGroupRatio?: number
+}
+
 /** Accepts any finite non-negative number (free tiers price at 0). */
 function finiteNonnegative(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0
@@ -73,8 +94,15 @@ export function computeSiteExpectedUsd(input: {
   completionTokens: number
   row: SitePricingRow
   groupRatio?: unknown
+  /**
+   * Recharge/top-up multiplier (default 1). Higher than 1 means the site
+   *  issued bonus points against the same money — divide the theoretical
+   *  charge by this factor to reconcile with the user's points delta.
+   */
+  topUpRatio?: unknown
 }): number | null {
   const groupRatio = finitePricingMultiplier(input.groupRatio) ?? 1
+  const topUpRatio = finitePositive(input.topUpRatio) ?? 1
   const promptTokens =
     typeof input.promptTokens === "number" &&
     Number.isFinite(input.promptTokens) &&
@@ -94,7 +122,7 @@ export function computeSiteExpectedUsd(input: {
       ? finitePricingMultiplier(input.row.model_price)
       : null
   if (modelPrice != null) {
-    return round6(modelPrice * groupRatio)
+    return round6((modelPrice * groupRatio) / topUpRatio)
   }
 
   const modelRatio = finiteNonnegative(input.row.model_ratio)
@@ -107,7 +135,7 @@ export function computeSiteExpectedUsd(input: {
       modelRatio *
       groupRatio *
       USD_PER_1M_AT_RATIO_1) /
-      1_000_000,
+      (1_000_000 * topUpRatio),
   )
 }
 
@@ -200,5 +228,71 @@ export async function fetchSiteBillingBasis(
     return { row, groupRatio }
   } catch {
     return null
+  }
+}
+
+/**
+ * Fetches site-level configuration facts from /api/status: the quota‑per‑USD
+ * exchange (default 500_000), the optional recharge/top‑up ratio, and any
+ * site‑wide default group ratio. Missing fields fall back to safe defaults
+ * — this function never throws and always returns a usable SiteStatusConfig.
+ */
+export async function fetchSiteStatusConfig(
+  baseUrl: string,
+  auth?: { accessToken?: string; remoteUserId?: string },
+): Promise<SiteStatusConfig> {
+  const DEFAULTS: SiteStatusConfig = {
+    quotaPerUnit: 500_000,
+    topUpRatio: 1,
+  }
+  try {
+    const headers: Record<string, string> = {}
+    if (auth?.accessToken) headers.Authorization = auth.accessToken
+    if (auth?.remoteUserId) headers["New-Api-User"] = auth.remoteUserId
+    const response = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/status`, {
+      headers,
+    })
+    if (!response.ok) return DEFAULTS
+    const payload = (await response.json()) as Record<string, unknown>
+    if (!payload || typeof payload !== "object") return DEFAULTS
+
+    // quota_per_unit — points per 1 USD worth of quota. 500k is the New API
+    // default; some forks publish 250_000, 1_000_000, or similar.
+    const quotaPerUnit =
+      typeof payload.quota_per_unit === "number" &&
+      Number.isFinite(payload.quota_per_unit) &&
+      payload.quota_per_unit > 0
+        ? payload.quota_per_unit
+        : DEFAULTS.quotaPerUnit
+
+    // top_up_ratio — bonus‑points multiplier from recharge campaigns (2 = you
+    // get double points for the same money). Divide the theoretical charge
+    // by this factor to reconcile against the user's points delta.
+    const topUpRatio =
+      typeof payload.top_up_ratio === "number" &&
+      Number.isFinite(payload.top_up_ratio) &&
+      payload.top_up_ratio > 0
+        ? payload.top_up_ratio
+        : DEFAULTS.topUpRatio
+
+    // Site‑wide default group ratio — used as a backup when /api/pricing's
+    // group_ratio map has no 'default' key.
+    const grMap = payload.group_ratio as Record<string, unknown> | undefined
+    const fallbackGroupRatio =
+      grMap && typeof grMap === "object"
+        ? grMap.default ?? grMap["*"] ?? undefined
+        : undefined
+
+    return {
+      quotaPerUnit,
+      topUpRatio,
+      fallbackGroupRatio:
+        typeof fallbackGroupRatio === "number" &&
+        Number.isFinite(fallbackGroupRatio)
+          ? fallbackGroupRatio
+          : undefined,
+    }
+  } catch {
+    return DEFAULTS
   }
 }

@@ -247,7 +247,7 @@ describe("billingProbe", () => {
       basis: "site",
       comparison: "ok",
     })
-    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(fetchMock).toHaveBeenCalledTimes(5)
   })
 
   it("falls back to the baseline and labels that comparison when list price is unavailable", async () => {

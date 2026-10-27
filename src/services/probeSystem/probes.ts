@@ -10,6 +10,7 @@ import {
   compareBillingAmounts,
   computeSiteExpectedUsd,
   fetchSiteBillingBasis,
+  fetchSiteStatusConfig,
 } from "~/services/probeSystem/billing"
 
 import {
@@ -228,9 +229,15 @@ export async function probeListModels(
     .sort()
 }
 
-/** Reads New API quota in USD via /api/user/self; null when unavailable. */
+/**
+ * Reads New API quota in USD via /api/user/self; null when unavailable.
+ * `quotaPerUnit` defaults to 500_000 (standard New API exchange) but sites
+ * that publish a different rate through /api/status should pass their own
+ * value here so the points→USD conversion matches reality.
+ */
 async function readUserQuotaInfo(
   credentials: ProbeCredentials,
+  quotaPerUnit = 500_000,
 ): Promise<{ quotaUsd: number | null; group?: string }> {
   if (!credentials.accessToken) return { quotaUsd: null }
   const headers: Record<string, string> = {
@@ -247,8 +254,8 @@ async function readUserQuotaInfo(
     data?: { quota?: number; group?: unknown }
   }
   const quota = payload.data?.quota
-  // New API's ecosystem-standard quota unit: 500000 per USD.
-  const quotaUsd = typeof quota === "number" ? quota / 500000 : null
+  const quotaUsd =
+    typeof quota === "number" && quotaPerUnit > 0 ? quota / quotaPerUnit : null
   const group =
     typeof payload.data?.group === "string" && payload.data.group
       ? payload.data.group
@@ -547,7 +554,18 @@ export const billingProbe = {
     if (!credentials.accessToken) {
       return result(PROBE_IDS.Billing, "skip", "summaries.billingSkip")
     }
-    const before = await readUserQuotaInfo(credentials)
+
+    // Fetch site-level config first — quota_per_unit + top_up_ratio. These
+    // affect both how we interpret points deltas and how we compute the
+    // theoretical charge. Safe defaults (500_000 / 1) are used when /api/status
+    // is unreachable or omits the fields.
+    const auth = {
+      accessToken: credentials.accessToken,
+      remoteUserId: credentials.remoteUserId,
+    }
+    const status = await fetchSiteStatusConfig(credentials.baseUrl, auth)
+
+    const before = await readUserQuotaInfo(credentials, status.quotaPerUnit)
     if (before.quotaUsd == null) {
       return result(PROBE_IDS.Billing, "skip", "summaries.billingSkip")
     }
@@ -561,7 +579,7 @@ export const billingProbe = {
       ],
       { temperature: 0, maxTokens: 32 },
     )
-    const after = await readUserQuotaInfo(credentials)
+    const after = await readUserQuotaInfo(credentials, status.quotaPerUnit)
     if (!outcome.ok || after.quotaUsd == null) {
       return result(
         PROBE_IDS.Billing,
@@ -588,17 +606,23 @@ export const billingProbe = {
       credentials.baseUrl,
       credentials.model,
       before.group,
-      {
-        accessToken: credentials.accessToken,
-        remoteUserId: credentials.remoteUserId,
-      },
+      auth,
     )
+    // If /api/pricing had no 'default' group ratio, use /api/status's fallback.
+    const resolvedGroupRatio =
+      siteBasis != null &&
+      typeof siteBasis.groupRatio === "number" &&
+      Number.isFinite(siteBasis.groupRatio)
+        ? siteBasis.groupRatio
+        : status.fallbackGroupRatio ?? 1
+
     const siteExpected = siteBasis
       ? computeSiteExpectedUsd({
           promptTokens: outcome.promptTokens,
           completionTokens: outcome.completionTokens,
           row: siteBasis.row,
-          groupRatio: siteBasis.groupRatio,
+          groupRatio: resolvedGroupRatio,
+          topUpRatio: status.topUpRatio,
         })
       : null
     const expected =
@@ -608,7 +632,7 @@ export const billingProbe = {
           ((outcome.promptTokens +
             outcome.completionTokens * BASELINE_COMPLETION_RATIO) *
             2) /
-          1_000_000
+          (1_000_000 * status.topUpRatio)
         ).toFixed(6),
       )
     const basis = siteExpected != null ? "site" : "baseline"
@@ -621,6 +645,11 @@ export const billingProbe = {
       basis,
       ratio: Number(ratio.toFixed(3)),
       comparison,
+      // Site‑level config facts — included so users can diagnose why the
+      // numbers diverge (wrong quota_per_unit? top_up_ratio applied?).
+      quotaPerUnit: status.quotaPerUnit,
+      topUpRatio: status.topUpRatio,
+      resolvedGroupRatio,
     }
     if (comparison === "over") {
       return result(
