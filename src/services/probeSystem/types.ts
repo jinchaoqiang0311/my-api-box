@@ -56,10 +56,18 @@ export interface ProbeChatMessage {
 }
 
 export interface ProbeChatOutcome {
+  /** Whether the chat request succeeded (status 200, non-empty usage). */
   ok: boolean
   content: string
   promptTokens: number | null
   completionTokens: number | null
+  /**
+   * Cached prompt tokens — charged at cache_price (if the site publishes
+   *  cache_ratio) instead of input price. New API surfaces these in
+   *  usage.prompt_tokens_details.cached_tokens or at top level as
+   *  usage.cached_tokens. Null when the site doesn't report caching.
+   */
+  cachedTokens: number | null
   latencyMs: number
   error?: string
 }

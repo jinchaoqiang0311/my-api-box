@@ -25,20 +25,91 @@ const BILLING_RELATIVE_TOLERANCE = 0.3
 const BILLING_UNDERCHARGE_RATIO = 0.7
 
 /**
- * The site-published pricing row fields the reconciliation relies on.
- * New API v5+ adds billing_mode / billing_expr to rows; custom-expression
+ * Site‑published pricing row fields the reconciliation relies on.
+ * New API v5+ adds billing_mode / billing_expr to rows; custom‑expression
  * modes (tiered_expr, token_expr) bypass the standard model_ratio × tokens
- * formula, so we cannot compute a site-based expected cost for them.
+ * formula, so we parse them explicitly with parseTieredExpr below.
  */
 export interface SitePricingRow {
   quota_type?: unknown
   model_ratio?: unknown
   model_price?: unknown
   completion_ratio?: unknown
+  /**
+   * Cache‑read / fresh‑input multiplier (cache_ratio > 0 means caching is
+   *  separately billed). New API default is cache_ratio = completion_ratio.
+   */
+  cache_ratio?: unknown
   /** Optional custom billing mode — when non-default, standard ratio math is not used. */
   billing_mode?: unknown
   /** Raw custom billing expression — only meaningful when billing_mode is non-default. */
   billing_expr?: unknown
+}
+
+/**
+ * Parsed tiered_expr body — coefficient units are USD / 1M tokens. First tier
+ * in the expression is always the base (short‑context) tier, which is what a
+ * single‑probe request hits (< 4500 tokens). Missing optional coefficients
+ * return null; the caller must handle that.
+ */
+export interface TieredExprParsed {
+  /** Fresh input price, USD / 1M tokens (coefficient of `p`). */
+  input: number
+  /** Output price, USD / 1M tokens (coefficient of `c`). */
+  output: number
+  /** Cache‑read price, USD / 1M tokens (coefficient of `cr`), or null if absent. */
+  cacheRead: number | null
+  /** Cache‑write price, USD / 1M tokens (coefficient of `cc`), or null if absent. */
+  cacheWrite: number | null
+}
+
+/**
+ * Parse a New API v5+ `billing_expr` into USD/M prices. RelayLens validated
+ * this regex approach against real aicost billing data (40 lines, "分毫对平").
+ *
+ * Handles three shapes — all we see in the wild:
+ *   1. Single tier:                tier("name", p*X + c*Y + cr*Z + …)
+ *   2. len‑conditional two‑tier:   len <= N ? tier("base", …) : tier("hi", …)
+ *   3. Parameter‑wrapped:          (expr) * (param("service_tier")=="priority" ? 2 : 1)
+ *
+ * Only the FIRST tier is extracted — probe requests always land there.
+ * Returns null when the expression is missing, has no `p` coefficient, or is
+ * otherwise unparseable.
+ */
+export function parseTieredExpr(expr: unknown): TieredExprParsed | null {
+  if (typeof expr !== "string") return null
+  // Strip parameter wrappers like (expr) * (param("service_tier")=="priority" ? 2 : 1)
+  // — we just want the first tier body, whose coefficients are absolute USD/M.
+  const first = /tier\(\s*["'][^"']*["']\s*,([^)]*)\)/s.exec(expr)
+  let body: string | null = null
+  if (first) body = first[1]
+  else if (!/tier\(/.test(expr)) body = expr // no tier() wrapper — whole expr is body
+  if (!body) return null
+  const coef = (name: string): number | null => {
+    const m = new RegExp("\\b" + name + "\\s*\\*\\s*([\\d.]+)").exec(
+      body as string,
+    )
+    return m ? Number(m[1]) : null
+  }
+  const p = coef("p")
+  const c = coef("c")
+  if (
+    p == null ||
+    c == null ||
+    !Number.isFinite(p) ||
+    !Number.isFinite(c) ||
+    p <= 0 ||
+    c <= 0
+  )
+    return null
+  const cr = coef("cr")
+  const cc = coef("cc")
+  return {
+    input: p,
+    output: c,
+    cacheRead: cr != null && Number.isFinite(cr) ? cr : null,
+    cacheWrite: cc != null && Number.isFinite(cc) ? cc : null,
+  }
 }
 
 /** Resolved site basis: one pricing row plus the user's group multiplier. */
@@ -98,12 +169,6 @@ function finiteNonnegative(value: unknown): number | null {
   return num != null && num >= 0 ? num : null
 }
 
-/** Accepts only finite positive numbers (missing/degenerate values excluded). */
-function finitePositive(value: unknown): number | null {
-  const num = coerceFiniteNumber(value)
-  return num != null && num > 0 ? num : null
-}
-
 /** Accepts pricing multipliers where 0 is a legitimate "free" multiplier. */
 function finitePricingMultiplier(value: unknown): number | null {
   return finiteNonnegative(value)
@@ -116,20 +181,27 @@ function round6(value: number): number {
 
 /**
  * Pure expected-cost calculation for one site pricing row and group ratio.
- * Returns null when the row lacks the facts needed for a site-based
- * expectation (the caller then uses the ecosystem baseline).
+ * Returns null only when we cannot derive any USD/M price from the row.
  *
- * New API official formula:
- *   Token billing:  points = (tokens × completion_ratio) × model_ratio × group_ratio
- *                   expectedUsd = points / quota_per_unit
- *   Per-call billing: points = model_price(USD) × group_ratio × quota_per_unit
- *                   expectedUsd = points / quota_per_unit = model_price × group_ratio
+ * Three pricing sources — handled by one unified formula:
+ *   1. Per‑call (quota_type === 1): model_price is in USD → groupRatio is enough.
+ *   2. tiered_expr / token_expr:    parseTieredExpr extracts $/M coefficients.
+ *   3. default billing_mode:        model_ratio / quotaPerUnit → $/M input,
+ *                                   × completion_ratio → output,
+ *                                   × cache_ratio (or completion_ratio as fallback) → cacheRead.
  *
- * quota_per_unit defaults to 500_000 (1 USD = 500,000 points).
+ * Unified expectedUsd (in USD):
+ *   fresh = max(0, promptTokens − cachedTokens)
+ *   expectedUsd = (fresh × input + cached × cacheRead + completion × output) / 1_000_000 × groupRatio
+ *
+ * New API quirk: cache_ratio defaults to completion_ratio when omitted.
+ * Base anchor: 1 group = model_ratio = 1 → $1 / 1M tokens = 500_000 points
+ * (quotaPerUnit = 500_000 is the New API default exchange).
  */
 export function computeSiteExpectedUsd(input: {
   promptTokens: number
   completionTokens: number
+  cachedTokens?: number | null
   row: SitePricingRow
   groupRatio?: unknown
   quotaPerUnit?: number
@@ -153,44 +225,68 @@ export function computeSiteExpectedUsd(input: {
     input.completionTokens >= 0
       ? input.completionTokens
       : 0
+  const cachedTokens =
+    typeof input.cachedTokens === "number" &&
+    Number.isFinite(input.cachedTokens) &&
+    input.cachedTokens >= 0
+      ? Math.min(input.cachedTokens, promptTokens)
+      : 0
 
-  // Bail out early if the row uses a custom billing mode — the published
-  // model_ratio is just a placeholder and the real formula lives in a
-  // billing_expr we cannot evaluate statically.
-  if (
-    typeof input.row.billing_mode === "string" &&
-    input.row.billing_mode.trim().toLowerCase() !== "default"
-  ) {
-    return null
-  }
-
-  // Per-call billing: the site charges a fixed price per request.
-  // model_price is in USD, so expectedUsd = model_price × group_ratio.
-  // quota_per_unit cancels out (points = model_price × group_ratio × qpu;
-  // expectedUsd = points / qpu = model_price × group_ratio).
-  // quota_type may come as a string "1" from non-standard New API forks,
-  // so we use coerceFiniteNumber for a tolerant comparison.
+  // ── Per‑call billing (quota_type === 1) ─────────────────────
   const quotaType = coerceFiniteNumber(input.row.quota_type)
-  const modelPrice =
-    quotaType === 1 ? finitePricingMultiplier(input.row.model_price) : null
-  if (modelPrice != null) {
+  if (quotaType === 1) {
+    const modelPrice = finitePricingMultiplier(input.row.model_price)
+    if (modelPrice == null) return null
+    // model_price is already USD per request, groupRatio multiplies it.
+    // quota_per_unit cancels out.
     return round6(modelPrice * groupRatio)
   }
 
-  // Token billing: standard New API formula.
-  //   points = (prompt + completion × completion_ratio) × model_ratio × group_ratio
-  //   expectedUsd = points / quota_per_unit
-  const modelRatio = finiteNonnegative(input.row.model_ratio)
-  if (modelRatio == null) return null
-  const completionRatio =
-    finitePricingMultiplier(input.row.completion_ratio) ??
-    BASELINE_COMPLETION_RATIO
-  return round6(
-    ((promptTokens + completionTokens * completionRatio) *
-      modelRatio *
-      groupRatio) /
-      quotaPerUnit,
-  )
+  // ── Derive $/M input / output / cacheRead from row ──────────
+  let inputUSDperM: number | null = null
+  let outputUSDperM: number | null = null
+  let cacheReadUSDperM: number | null = null
+
+  const tiered = parseTieredExpr(input.row.billing_expr)
+  if (tiered) {
+    // tiered_expr coefficients ARE USD/M prices (RelayLens 40-bill verified).
+    inputUSDperM = tiered.input
+    outputUSDperM = tiered.output
+    cacheReadUSDperM = tiered.cacheRead
+    if (inputUSDperM <= 0 || outputUSDperM <= 0) return null
+  } else {
+    const modelRatio = finiteNonnegative(input.row.model_ratio)
+    if (modelRatio == null) return null
+    // Default New API anchor (RelayLens verified, matches our prior formula):
+    //   model_ratio × 2 / 1_000_000 USD/M  ≡  model_ratio / quotaPerUnit
+    // since 2/1M = 1/500k and quotaPerUnit = 500_000 by default. Derive from
+    // quotaPerUnit so forks that change their exchange rate still price right.
+    const anchorPerM = 1_000_000 / quotaPerUnit
+    inputUSDperM = modelRatio * anchorPerM
+    const completionRatio =
+      finitePricingMultiplier(input.row.completion_ratio) ??
+      BASELINE_COMPLETION_RATIO
+    outputUSDperM = inputUSDperM * completionRatio
+    const cacheRatio = finitePricingMultiplier(input.row.cache_ratio)
+    if (cacheRatio != null && cacheRatio > 0) {
+      cacheReadUSDperM = inputUSDperM * cacheRatio
+    }
+    // New API default when cache_ratio omitted: cacheRead falls back to
+    // input price (conservative — never underestimates billing).
+  }
+
+  // ── Apply unified three‑part formula ────────────────────────
+  // Fresh prompt tokens billed at input price; cached tokens billed at
+  // cacheRead price (falls back to input when cache price unknown).
+  const freshTokens = Math.max(0, promptTokens - cachedTokens)
+  const effectiveCachePrice = cacheReadUSDperM ?? inputUSDperM
+
+  // USD = tokens × ($/M) / 1_000_000, then × groupRatio for the user's tier.
+  const freshUsd = (freshTokens * (inputUSDperM as number)) / 1_000_000
+  const cacheUsd = (cachedTokens * effectiveCachePrice) / 1_000_000
+  const outUsd = (completionTokens * (outputUSDperM as number)) / 1_000_000
+
+  return round6((freshUsd + cacheUsd + outUsd) * groupRatio)
 }
 
 /** Verdict buckets the reconciliation maps measured spend into. */
@@ -231,21 +327,20 @@ function readStringRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * True when the row carries enough facts for a site-based expectation.
- * Rows using New API v5+ custom billing modes (tiered_expr, token_expr, …)
- * are excluded because their model_ratio / completion_ratio values are
- * only placeholders — actual billing uses a site-authored expression we
- * cannot statically evaluate.
+ * True when we can derive a USD/M price from a row. Three sources:
+ *   - Per‑call (quota_type === 1) → model_price × groupRatio
+ *   - tiered_expr / token_expr     → parseTieredExpr extracts $/M coefficients
+ *   - default                      → model_ratio × groupRatio / quotaPerUnit
+ * Any mode that isn't tiered_expr / token_expr / default and doesn't have a
+ * parsable model_ratio / model_price is unusable (rare).
  */
 function isUsablePricingRow(row: SitePricingRow): boolean {
-  // Reject custom billing modes — only the default formula is evaluable.
-  if (typeof row.billing_mode === "string" && row.billing_mode.length > 0) {
-    const mode = row.billing_mode.trim().toLowerCase()
-    if (mode !== "default") return false
-  }
   const quotaType = coerceFiniteNumber(row.quota_type)
   if (quotaType === 1) return finitePricingMultiplier(row.model_price) != null
-  return finitePositive(row.model_ratio) != null
+  // Custom billing modes are now usable — we parse the expression body.
+  if (isCustomBillingMode(row)) return parseTieredExpr(row.billing_expr) != null
+  // Default mode: need model_ratio (0 is legitimate for free tiers).
+  return finiteNonnegative(row.model_ratio) != null
 }
 
 /**
@@ -298,31 +393,52 @@ export async function fetchSiteBillingBasis(
     ) as SitePricingRow | undefined
     if (!row) return null
 
-    // Resolve group ratio even for custom-mode rows — evidence diagnostics
-    // still want to show it.
+    // Resolve the user's effective group multiplier.
+    // RelayLens-proven priority:
+    //   1. The user's named group (read from /api/user/self)
+    //   2. A group literally named "default" / "默认" / "普通用户" / "normal"
+    //   3. The median multiplier across all published groups (not the cheapest
+    //      — special "VIP" groups are shown as "特价组", not the main price)
+    //   4. Final fallback = 1
     const ratios = readStringRecord(payload.group_ratio) ?? {}
-    const groupKey =
-      userGroup && userGroup in ratios
-        ? userGroup
-        : "default" in ratios
-          ? "default"
-          : undefined
-    const groupRatio = groupKey ? ratios[groupKey] : 1
-
-    // Custom billing mode — row found but unusable for formula evaluation.
-    if (isCustomBillingMode(row)) {
-      return {
-        row: null as unknown as SitePricingRow,
-        groupRatio,
-        skippedRow: row,
-        isCustomBillingMode: true,
+    const ratioEntries = Object.entries(ratios)
+      .map(([k, v]) => ({ key: k, value: coerceFiniteNumber(v) }))
+      .filter(
+        (e): e is { key: string; value: number } =>
+          e.value != null && Number.isFinite(e.value) && e.value >= 0,
+      )
+    let groupRatio: number | null = null
+    if (ratioEntries.length > 0) {
+      const DEFAULT_RE = /^(default|默认|普通用户|normal)$/i
+      // 1. user's group
+      if (userGroup && ratioEntries.find((e) => e.key === userGroup)) {
+        groupRatio = ratioEntries.find((e) => e.key === userGroup)!.value
+      } else {
+        // 2. default group by name
+        const def = ratioEntries.find((e) => DEFAULT_RE.test(e.key))
+        if (def) groupRatio = def.value
+      }
+      // 3. median of all group ratios (no default group → pick the middle value)
+      if (groupRatio == null) {
+        const sorted = [...ratioEntries].sort((a, b) => a.value - b.value)
+        groupRatio = sorted[Math.floor(sorted.length / 2)].value
       }
     }
 
-    // Default mode but missing required fields (model_ratio / model_price).
-    if (!isUsablePricingRow(row)) return null
+    // If the row's billing_mode is custom AND we can't parse its expression
+    // (rare — e.g. token_expr with no p*c pattern), surface the skipped row
+    // for diagnostics but return no usable row. Otherwise tiered_expr rows
+    // are now fully usable via parseTieredExpr above.
+    if (!isUsablePricingRow(row)) {
+      return {
+        row: null as unknown as SitePricingRow,
+        groupRatio: groupRatio ?? 1,
+        skippedRow: row,
+        isCustomBillingMode: isCustomBillingMode(row),
+      }
+    }
 
-    return { row, groupRatio }
+    return { row, groupRatio: groupRatio ?? 1 }
   } catch {
     return null
   }

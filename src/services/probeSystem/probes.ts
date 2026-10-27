@@ -92,19 +92,35 @@ export async function probeChatRequest(
         content: "",
         promptTokens: null,
         completionTokens: null,
+        cachedTokens: null,
         latencyMs,
         error: `HTTP ${response.status} ${text.slice(0, 100)}`,
       }
     }
     const payload = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>
-      usage?: { prompt_tokens?: number; completion_tokens?: number }
+      usage?: {
+        prompt_tokens?: number
+        completion_tokens?: number
+        cached_tokens?: number
+        prompt_tokens_details?: { cached_tokens?: number }
+      }
     }
+    const usage = payload.usage ?? {}
+    const cachedTokens =
+      typeof usage.cached_tokens === "number" &&
+      Number.isFinite(usage.cached_tokens)
+        ? usage.cached_tokens
+        : typeof usage.prompt_tokens_details?.cached_tokens === "number" &&
+            Number.isFinite(usage.prompt_tokens_details.cached_tokens)
+          ? usage.prompt_tokens_details.cached_tokens
+          : null
     return {
       ok: true,
       content: payload.choices?.[0]?.message?.content ?? "",
-      promptTokens: payload.usage?.prompt_tokens ?? null,
-      completionTokens: payload.usage?.completion_tokens ?? null,
+      promptTokens: usage.prompt_tokens ?? null,
+      completionTokens: usage.completion_tokens ?? null,
+      cachedTokens,
       latencyMs,
     }
   } catch (error) {
@@ -113,6 +129,7 @@ export async function probeChatRequest(
       content: "",
       promptTokens: null,
       completionTokens: null,
+      cachedTokens: null,
       latencyMs: Math.round(performance.now() - started),
       error: error instanceof Error ? error.message : String(error),
     }
@@ -616,26 +633,34 @@ export const billingProbe = {
         ? siteBasis.groupRatio
         : status.fallbackGroupRatio ?? 1
 
-    // Custom billing_mode rows (tiered_expr, token_expr, …) have a row but
-    // `row` is null-ed out in the basis — the usable one is `skippedRow`.
+    // Custom billing_mode rows (tiered_expr, token_expr, …) are now USABLE —
+    // we parse the billing_expr coefficients into USD/M prices and compute
+    // expectedUsd with them. They produce basis="site" just like default
+    // rows. Only rows that fail to parse (rare edge cases) fall through to
+    // the baseline with an isCustomBillingMode=true flag.
     const hasCustomMode = !!siteBasis?.isCustomBillingMode
     const usableRow = siteBasis?.row
     const siteExpected = usableRow
       ? computeSiteExpectedUsd({
           promptTokens: outcome.promptTokens,
           completionTokens: outcome.completionTokens,
+          cachedTokens: outcome.cachedTokens,
           row: usableRow,
           groupRatio: resolvedGroupRatio,
           quotaPerUnit: status.quotaPerUnit,
         })
       : null
+    // Baseline fallback (only used when site row is truly unusable — e.g.
+    // token_expr we can't parse, or no /api/pricing at all).
+    // Baseline formula mirrors the default‑mode anchor (model_ratio=1 × $2 / 1M)
+    // so: tokens / 500_000 with completion_ratio=1.3 for completion.
     const expected =
       siteExpected ??
       Number(
         (
           (outcome.promptTokens +
             outcome.completionTokens * BASELINE_COMPLETION_RATIO) /
-          status.quotaPerUnit
+          500_000
         ).toFixed(6),
       )
     const basis = siteExpected != null ? "site" : "baseline"
