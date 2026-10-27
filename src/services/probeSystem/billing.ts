@@ -41,6 +41,13 @@ export interface SitePricingRow {
   billing_mode?: unknown
   /** Raw custom billing expression — only meaningful when billing_mode is non-default. */
   billing_expr?: unknown
+  /**
+   * Channel groups that can serve this model. On sites with
+   * `default_use_auto_group` the request is routed to one of these and billed
+   * at THAT group's ratio — the only way to price an account whose own group
+   * name isn't published in group_ratio.
+   */
+  enable_groups?: unknown
 }
 
 /**
@@ -118,12 +125,20 @@ export interface SiteBillingBasis {
    * tell a real per-account multiplier from an assumption.
    *   user     → the account's own group name matched a group_ratio key
    *   default  → a group literally named default/默认/普通用户/normal
+   *   auto_group → the model's enable_groups narrowed it to one published group
    *   status   → /api/status published a site-wide default multiplier
    *   unknown  → nothing matched; ratio assumed 1 and must NOT be trusted
    */
-  groupRatioSource?: "user" | "default" | "status" | "unknown"
+  groupRatioSource?: "user" | "default" | "auto_group" | "status" | "unknown"
   /** The group_ratio key the ratio came from, when one matched. */
   groupRatioKey?: string
+  /**
+   * Ratios of the groups that can actually serve this model (row.enable_groups
+   * ∩ group_ratio). More than one means the site bills per-request routing
+   * (default_use_auto_group), so the caller must pick the one that matches the
+   * observed deduction.
+   */
+  groupRatioCandidates?: Array<{ key: string; value: number }>
   /**
    * Every published group_ratio entry, in API order. Surfaced in evidence so
    * a mismatched account group can be diagnosed without re-fetching /api/pricing.
@@ -354,6 +369,48 @@ export function compareBillingAmounts(
   return "ok"
 }
 
+/** Narrowly reads an array of strings, dropping any non-string entries. */
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : []
+}
+
+/** Relative slack allowed when matching an observed multiplier to a candidate. */
+const GROUP_RATIO_MATCH_TOLERANCE = 0.1
+
+/**
+ * Picks the enable_groups candidate whose ratio reproduces the observed
+ * deduction. Auto‑group sites bill every request at the ratio of the channel
+ * that served it, so the measured multiplier is the only ground truth; a
+ * candidate that misses by more than 10% is rejected rather than forced.
+ */
+export function matchGroupRatioCandidate(
+  candidates: SiteBillingBasis["groupRatioCandidates"],
+  impliedGroupRatio: number | null | undefined,
+): { key: string; value: number } | null {
+  if (!candidates || candidates.length === 0) return null
+  if (
+    typeof impliedGroupRatio !== "number" ||
+    !Number.isFinite(impliedGroupRatio) ||
+    impliedGroupRatio <= 0
+  ) {
+    return null
+  }
+  let best: { key: string; value: number } | null = null
+  let bestDelta = Infinity
+  for (const candidate of candidates) {
+    if (!(candidate.value > 0)) continue
+    const delta =
+      Math.abs(candidate.value - impliedGroupRatio) / candidate.value
+    if (delta < bestDelta) {
+      best = candidate
+      bestDelta = delta
+    }
+  }
+  return best != null && bestDelta <= GROUP_RATIO_MATCH_TOLERANCE ? best : null
+}
+
 /** Narrowly reads an object of string keys, rejecting arrays and null. */
 function readStringRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -473,6 +530,23 @@ export async function fetchSiteBillingBasis(
       }
     }
 
+    // 3. Auto‑group sites (aicost: default_use_auto_group) bill the request at
+    //    the ratio of whichever channel served it, and the model row lists
+    //    exactly those channels in enable_groups. Intersect them with the
+    //    published map: one candidate = the real multiplier; several = the
+    //    caller has to match them against the observed deduction.
+    const candidates = readStringArray(row.enable_groups)
+      .map((group) => ratioEntries.find((entry) => entry.key === group))
+      .filter((entry): entry is { key: string; value: number } => entry != null)
+    if (groupRatioSource === "unknown" && candidates.length === 1) {
+      const only = candidates[0]
+      if (only) {
+        groupRatio = only.value
+        groupRatioSource = "auto_group"
+        groupRatioKey = only.key
+      }
+    }
+
     // If the row's billing_mode is custom AND we can't parse its expression
     // (rare — e.g. token_expr with no p*c pattern), surface the skipped row
     // for diagnostics but return no usable row. Otherwise tiered_expr rows
@@ -484,6 +558,7 @@ export async function fetchSiteBillingBasis(
         groupRatioSource,
         groupRatioKey,
         groupRatioOptions: ratioEntries,
+        ...(candidates.length > 0 ? { groupRatioCandidates: candidates } : {}),
         skippedRow: row,
         isCustomBillingMode: isCustomBillingMode(row),
       }
@@ -495,6 +570,7 @@ export async function fetchSiteBillingBasis(
       groupRatioSource,
       groupRatioKey,
       groupRatioOptions: ratioEntries,
+      ...(candidates.length > 0 ? { groupRatioCandidates: candidates } : {}),
     }
   } catch {
     return null

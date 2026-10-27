@@ -11,6 +11,7 @@ import {
   computeSiteExpectedUsd,
   fetchSiteBillingBasis,
   fetchSiteStatusConfig,
+  matchGroupRatioCandidate,
   type BillingComparison,
   type SiteBillingBasis,
 } from "~/services/probeSystem/billing"
@@ -627,30 +628,6 @@ export const billingProbe = {
       before.group,
       auth,
     )
-    // Group ratio: the account's own group, then a literal "default" entry
-    // from /api/pricing, then the site-wide default from /api/status. No
-    // median guess — aicost publishes channel names in group_ratio, so the
-    // median was silently 1.0 while the site actually multiplied by 0.1.
-    const pricingGroupRatio =
-      siteBasis != null &&
-      siteBasis.groupRatioSource !== "unknown" &&
-      typeof siteBasis.groupRatio === "number" &&
-      Number.isFinite(siteBasis.groupRatio)
-        ? siteBasis.groupRatio
-        : undefined
-    const statusGroupRatio =
-      typeof status.fallbackGroupRatio === "number" &&
-      Number.isFinite(status.fallbackGroupRatio)
-        ? status.fallbackGroupRatio
-        : undefined
-    const resolvedGroupRatio = pricingGroupRatio ?? statusGroupRatio ?? 1
-    const resolvedGroupRatioSource: SiteBillingBasis["groupRatioSource"] =
-      pricingGroupRatio != null
-        ? siteBasis?.groupRatioSource
-        : statusGroupRatio != null
-          ? "status"
-          : "unknown"
-
     // Custom billing_mode rows (tiered_expr, token_expr, …) are now USABLE —
     // we parse the billing_expr coefficients into USD/M prices and compute
     // expectedUsd with them. They produce basis="site" just like default
@@ -658,6 +635,67 @@ export const billingProbe = {
     // the baseline with an isCustomBillingMode=true flag.
     const hasCustomMode = !!siteBasis?.isCustomBillingMode
     const usableRow = siteBasis?.row
+
+    // List price before any group multiplier — the yardstick for everything
+    // below. Also the denominator of the back-solved multiplier: deducted ÷
+    // list price is what the site ACTUALLY applied, regardless of which group
+    // ratio we managed to resolve.
+    const expectedAtRatioOne = usableRow
+      ? computeSiteExpectedUsd({
+          promptTokens: outcome.promptTokens,
+          completionTokens: outcome.completionTokens,
+          cachedTokens: outcome.cachedTokens,
+          row: usableRow,
+          groupRatio: 1,
+          quotaPerUnit: status.quotaPerUnit,
+        })
+      : null
+    const impliedGroupRatio =
+      expectedAtRatioOne != null && expectedAtRatioOne > 0
+        ? Number((deducted / expectedAtRatioOne).toFixed(3))
+        : null
+
+    // ── Resolve the multiplier this request was billed at ────────
+    //   1. the account's own group, or a literal "default" entry, or the one
+    //      priced channel of enable_groups — all from /api/pricing
+    //   2. several enable_groups channels → whichever matches the deduction
+    //      (auto-group sites bill at the channel that served the request)
+    //   3. /api/status's site-wide default
+    //   4. unresolved ⇒ 1, labelled "unknown" rather than passed off as real
+    let resolvedGroupRatio = 1
+    let resolvedGroupRatioSource: SiteBillingBasis["groupRatioSource"] =
+      "unknown"
+    let resolvedGroupRatioKey = siteBasis?.groupRatioKey
+
+    const pricingGroupRatio =
+      siteBasis != null &&
+      siteBasis.groupRatioSource !== "unknown" &&
+      typeof siteBasis.groupRatio === "number" &&
+      Number.isFinite(siteBasis.groupRatio)
+        ? siteBasis.groupRatio
+        : undefined
+
+    if (pricingGroupRatio != null) {
+      resolvedGroupRatio = pricingGroupRatio
+      resolvedGroupRatioSource = siteBasis?.groupRatioSource
+    } else {
+      const matched = matchGroupRatioCandidate(
+        siteBasis?.groupRatioCandidates,
+        impliedGroupRatio,
+      )
+      if (matched) {
+        resolvedGroupRatio = matched.value
+        resolvedGroupRatioSource = "auto_group"
+        resolvedGroupRatioKey = matched.key
+      } else if (
+        typeof status.fallbackGroupRatio === "number" &&
+        Number.isFinite(status.fallbackGroupRatio)
+      ) {
+        resolvedGroupRatio = status.fallbackGroupRatio
+        resolvedGroupRatioSource = "status"
+      }
+    }
+
     const siteExpected = usableRow
       ? computeSiteExpectedUsd({
           promptTokens: outcome.promptTokens,
@@ -682,27 +720,6 @@ export const billingProbe = {
         ).toFixed(6),
       )
     const basis = siteExpected != null ? "site" : "baseline"
-
-    // Back-solve the multiplier the site actually applied: deducted ÷ the list
-    // price with the group ratio forced to 1. This is independent of whichever
-    // group ratio we managed to resolve, so a wrong resolution (or an
-    // unpublished discount group) shows up as a number instead of hiding
-    // behind a "pass" — e.g. 0.1 means the site applies a 10× discount.
-    const expectedAtRatioOne =
-      usableRow && siteExpected != null
-        ? computeSiteExpectedUsd({
-            promptTokens: outcome.promptTokens,
-            completionTokens: outcome.completionTokens,
-            cachedTokens: outcome.cachedTokens,
-            row: usableRow,
-            groupRatio: 1,
-            quotaPerUnit: status.quotaPerUnit,
-          })
-        : null
-    const impliedGroupRatio =
-      expectedAtRatioOne != null && expectedAtRatioOne > 0
-        ? Number((deducted / expectedAtRatioOne).toFixed(3))
-        : null
     const ratio = expected > 0 ? deducted / expected : 1
     const comparison = compareBillingAmounts(
       deducted,
@@ -749,8 +766,11 @@ export const billingProbe = {
       // explains an unexpected fallback.
       userGroup: before.group ?? null,
       groupRatioSource: resolvedGroupRatioSource,
-      groupRatioKey: siteBasis?.groupRatioKey,
+      groupRatioKey: resolvedGroupRatioKey,
       groupRatioOptions: siteBasis?.groupRatioOptions,
+      // Groups that can serve this model. More than one means the site bills
+      // per-request routing, so which one applied is inferred below.
+      groupRatioCandidates: siteBasis?.groupRatioCandidates,
       // Multiplier the site actually applied, measured from the deduction
       // itself (independent of group-ratio resolution).
       impliedGroupRatio: impliedGroupRatio ?? undefined,

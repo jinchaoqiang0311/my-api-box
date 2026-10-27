@@ -5,6 +5,7 @@ import {
   compareBillingAmounts,
   computeSiteExpectedUsd,
   fetchSiteBillingBasis,
+  matchGroupRatioCandidate,
 } from "~/services/probeSystem/billing"
 import { billingProbe } from "~/services/probeSystem/probes"
 
@@ -254,6 +255,72 @@ describe("fetchSiteBillingBasis", () => {
     expect(basis?.groupRatioOptions).toHaveLength(3)
   })
 
+  it("uses the only priced enable_group as an auto-group multiplier", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  model_name: "gpt-5.6-sol",
+                  quota_type: 0,
+                  model_ratio: 37.5,
+                  enable_groups: ["gpt-plus号池", "unpublished渠道"],
+                },
+              ],
+              group_ratio: { "gpt-plus号池": 0.1, 即梦渠道10: 1 },
+            }),
+            { status: 200 },
+          ),
+      ),
+    )
+
+    const basis = await fetchSiteBillingBasis(
+      "https://aicost.example.com",
+      "gpt-5.6-sol",
+      "default",
+    )
+    expect(basis?.groupRatioSource).toBe("auto_group")
+    expect(basis?.groupRatio).toBe(0.1)
+    expect(basis?.groupRatioKey).toBe("gpt-plus号池")
+    expect(basis?.groupRatioCandidates).toEqual([
+      { key: "gpt-plus号池", value: 0.1 },
+    ])
+  })
+
+  it("keeps several priced enable_groups as candidates for the caller", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  model_name: "gpt-5.6-sol",
+                  quota_type: 0,
+                  model_ratio: 37.5,
+                  enable_groups: ["gpt-pro号池", "gpt-plus号池"],
+                },
+              ],
+              group_ratio: { "gpt-pro号池": 0.25, "gpt-plus号池": 0.1 },
+            }),
+            { status: 200 },
+          ),
+      ),
+    )
+
+    const basis = await fetchSiteBillingBasis(
+      "https://aicost.example.com",
+      "gpt-5.6-sol",
+      "default",
+    )
+    expect(basis?.groupRatioSource).toBe("unknown")
+    expect(basis?.groupRatioCandidates).toHaveLength(2)
+  })
+
   it("returns null when the public pricing response lacks the model", async () => {
     vi.stubGlobal(
       "fetch",
@@ -275,6 +342,25 @@ describe("fetchSiteBillingBasis", () => {
         undefined,
       ),
     ).resolves.toBeNull()
+  })
+})
+
+describe("matchGroupRatioCandidate", () => {
+  const candidates = [
+    { key: "gpt-pro号池", value: 0.25 },
+    { key: "gpt-plus号池", value: 0.1 },
+  ]
+
+  it("picks the candidate that reproduces the observed multiplier", () => {
+    expect(matchGroupRatioCandidate(candidates, 0.1)?.key).toBe("gpt-plus号池")
+    expect(matchGroupRatioCandidate(candidates, 0.25)?.key).toBe("gpt-pro号池")
+  })
+
+  it("returns null rather than forcing a distant candidate", () => {
+    expect(matchGroupRatioCandidate(candidates, 1.5)).toBeNull()
+    expect(matchGroupRatioCandidate(candidates, 0)).toBeNull()
+    expect(matchGroupRatioCandidate([], 0.1)).toBeNull()
+    expect(matchGroupRatioCandidate(candidates, null)).toBeNull()
   })
 })
 
@@ -332,6 +418,89 @@ describe("billingProbe", () => {
       impliedGroupRatio: 0.8,
     })
     expect(fetchMock).toHaveBeenCalledTimes(5)
+  })
+
+  it("bills an auto-group request at the channel that served it", async () => {
+    // aicost: the account group "default" is absent from group_ratio; the row
+    // allows two channels and the deduction identifies gpt-plus号池 (0.1).
+    const quotaValues = [1_000_000, 999_836]
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.endsWith("/api/user/self")) {
+          return new Response(
+            JSON.stringify({
+              data: { quota: quotaValues.shift(), group: "default" },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.endsWith("/v1/chat/completions")) {
+          return new Response(
+            JSON.stringify({
+              choices: [{ message: { content: "4" } }],
+              usage: {
+                prompt_tokens: 4397,
+                completion_tokens: 10,
+                prompt_tokens_details: { cached_tokens: 4224 },
+              },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.endsWith("/api/pricing")) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  model_name: "gpt-5.6-sol",
+                  quota_type: 0,
+                  model_ratio: 37.5,
+                  completion_ratio: 8,
+                  billing_mode: "tiered_expr",
+                  billing_expr:
+                    '(len < 272000 ? tier("base", p * 5 + c * 30 + cr * 0.5 + cc * 6.25) : tier("long_context", p * 10 + c * 45 + cr * 1 + cc * 12.5)) * (param("service_tier") == "priority" ? 2.5 : 1)',
+                  enable_groups: ["gpt-pro号池", "gpt-plus号池"],
+                },
+              ],
+              group_ratio: {
+                "gpt-pro号池": 0.25,
+                "gpt-plus号池": 0.1,
+                即梦渠道10: 1,
+              },
+            }),
+            { status: 200 },
+          )
+        }
+        if (url.endsWith("/api/status")) {
+          return new Response(JSON.stringify({ quota_per_unit: 500000 }), {
+            status: 200,
+          })
+        }
+        return new Response("not found", { status: 404 })
+      }),
+    )
+
+    const result = await billingProbe.run({
+      ...credentials,
+      model: "gpt-5.6-sol",
+    })
+
+    expect(result.verdict).toBe("pass")
+    expect(result.summaryKey).toBe("summaries.billingOk")
+    expect(result.evidence).toMatchObject({
+      // (173×5 + 4224×0.5 + 10×30) / 1M × 0.1 = 0.000328
+      deductedUsd: 0.000328,
+      expectedUsd: 0.000328,
+      basis: "site",
+      comparison: "ok",
+      groupRatioSource: "auto_group",
+      groupRatioKey: "gpt-plus号池",
+      resolvedGroupRatio: 0.1,
+      impliedGroupRatio: 0.1,
+      userGroup: "default",
+    })
   })
 
   it("falls back to the baseline and labels that comparison when list price is unavailable", async () => {
