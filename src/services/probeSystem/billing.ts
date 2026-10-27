@@ -24,12 +24,21 @@ const BILLING_RELATIVE_TOLERANCE = 0.3
 /** Below this fraction of the site quote is reported as under-list billing. */
 const BILLING_UNDERCHARGE_RATIO = 0.7
 
-/** The site-published pricing row fields the reconciliation relies on. */
+/**
+ * The site-published pricing row fields the reconciliation relies on.
+ * New API v5+ adds billing_mode / billing_expr to rows; custom-expression
+ * modes (tiered_expr, token_expr) bypass the standard model_ratio × tokens
+ * formula, so we cannot compute a site-based expected cost for them.
+ */
 export interface SitePricingRow {
   quota_type?: unknown
   model_ratio?: unknown
   model_price?: unknown
   completion_ratio?: unknown
+  /** Optional custom billing mode — when non-default, standard ratio math is not used. */
+  billing_mode?: unknown
+  /** Raw custom billing expression — only meaningful when billing_mode is non-default. */
+  billing_expr?: unknown
 }
 
 /** Resolved site basis: one pricing row plus the user's group multiplier. */
@@ -136,6 +145,16 @@ export function computeSiteExpectedUsd(input: {
       ? input.completionTokens
       : 0
 
+  // Bail out early if the row uses a custom billing mode — the published
+  // model_ratio is just a placeholder and the real formula lives in a
+  // billing_expr we cannot evaluate statically.
+  if (
+    typeof input.row.billing_mode === "string" &&
+    input.row.billing_mode.trim().toLowerCase() !== "default"
+  ) {
+    return null
+  }
+
   // Per-call billing: the site charges a fixed price per request.
   // model_price is in USD, so expectedUsd = model_price × group_ratio.
   // quota_per_unit cancels out (points = model_price × group_ratio × qpu;
@@ -202,8 +221,19 @@ function readStringRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>
 }
 
-/** True when the row carries enough facts for a site-based expectation. */
+/**
+ * True when the row carries enough facts for a site-based expectation.
+ * Rows using New API v5+ custom billing modes (tiered_expr, token_expr, …)
+ * are excluded because their model_ratio / completion_ratio values are
+ * only placeholders — actual billing uses a site-authored expression we
+ * cannot statically evaluate.
+ */
 function isUsablePricingRow(row: SitePricingRow): boolean {
+  // Reject custom billing modes — only the default formula is evaluable.
+  if (typeof row.billing_mode === "string" && row.billing_mode.length > 0) {
+    const mode = row.billing_mode.trim().toLowerCase()
+    if (mode !== "default") return false
+  }
   const quotaType = coerceFiniteNumber(row.quota_type)
   if (quotaType === 1) return finitePricingMultiplier(row.model_price) != null
   return finitePositive(row.model_ratio) != null

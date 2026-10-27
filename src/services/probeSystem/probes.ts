@@ -667,13 +667,16 @@ export const billingProbe = {
       // Raw pricing row from /api/pricing for the matched model. Included
       // so users can see whether the site's published ratios match reality
       // (many New API forks set display prices that differ from channel
-      // billing rates).
+      // billing rates). billing_mode reveals whether custom expressions are
+      // in use — if so, model_ratio is just a placeholder.
       pricingRow: siteBasis
         ? {
             quota_type: siteBasis.row.quota_type,
             model_ratio: siteBasis.row.model_ratio,
             model_price: siteBasis.row.model_price,
             completion_ratio: siteBasis.row.completion_ratio,
+            billing_mode: siteBasis.row.billing_mode,
+            billing_expr: siteBasis.row.billing_expr,
           }
         : null,
     }
