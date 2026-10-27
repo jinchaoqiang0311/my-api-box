@@ -75,6 +75,36 @@ describe("computeSiteExpectedUsd", () => {
       }),
     ).toBeNull()
   })
+
+  it("prices a tiered_expr row from its USD/M coefficients, ignoring the placeholder ratio", () => {
+    // Real memecode row: model_ratio 37.5 is a placeholder; the expression
+    // prices fresh input at $2/M, cache reads at $0.1/M, output at $10/M.
+    const row = {
+      quota_type: 0,
+      model_ratio: 37.5,
+      completion_ratio: 2,
+      billing_mode: "tiered_expr",
+      billing_expr:
+        'len <= 272000 ? tier("0_272k", p * 2 + cr * 0.1 + cc * 2.5 + c * 10) : tier("272k_plus", p * 4 + cr * 0.2 + cc * 5 + c * 15)',
+    }
+    expect(
+      computeSiteExpectedUsd({
+        promptTokens: 4399,
+        completionTokens: 10,
+        cachedTokens: 4224,
+        row,
+      }),
+    ).toBe(0.000872)
+    expect(
+      computeSiteExpectedUsd({
+        promptTokens: 4399,
+        completionTokens: 10,
+        cachedTokens: 4224,
+        row,
+        groupRatio: 0.3,
+      }),
+    ).toBe(0.000262)
+  })
 })
 
 describe("compareBillingAmounts", () => {
@@ -91,9 +121,17 @@ describe("compareBillingAmounts", () => {
     expect(compareBillingAmounts(0.00131, 0.001)).toBe("over")
   })
 
+  it("only absorbs integer-quota rounding, never a fixed dollar floor", () => {
+    // $0.000004 = 2 quota points at the 500k exchange.
+    expect(compareBillingAmounts(0, 0)).toBe("ok")
+    expect(compareBillingAmounts(0.000004, 0)).toBe("ok")
+    expect(compareBillingAmounts(0.0001, 0.001)).toBe("under")
+    expect(compareBillingAmounts(0.0008, 0.001)).toBe("ok")
+  })
+
   it("treats zero expected cost as free until a real charge appears", () => {
     expect(compareBillingAmounts(0, 0)).toBe("ok")
-    expect(compareBillingAmounts(0.0005, 0)).toBe("ok")
+    expect(compareBillingAmounts(0.0005, 0)).toBe("over")
     expect(compareBillingAmounts(0.0011, 0)).toBe("over")
   })
 })
@@ -137,6 +175,12 @@ describe("fetchSiteBillingBasis", () => {
         model_ratio: 0,
       },
       groupRatio: 0,
+      groupRatioSource: "user",
+      groupRatioKey: "vip",
+      groupRatioOptions: [
+        { key: "vip", value: 0 },
+        { key: "default", value: 1 },
+      ],
     })
     expect(fetch).toHaveBeenCalledWith(
       "https://relay.example.com/api/pricing",
@@ -167,6 +211,8 @@ describe("fetchSiteBillingBasis", () => {
       "missing-group",
     )
     expect(basis?.groupRatio).toBe(0.8)
+    expect(basis?.groupRatioSource).toBe("default")
+    expect(basis?.groupRatioKey).toBe("default")
   })
 
   it("returns null when the public pricing response lacks the model", async () => {

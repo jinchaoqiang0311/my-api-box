@@ -15,9 +15,6 @@
  */
 export const BASELINE_COMPLETION_RATIO = 1.3
 
-/** USD tolerance used when rounding makes a tiny expected charge zero. */
-const BILLING_ABSOLUTE_TOLERANCE_USD = 0.001
-
 /** Relative tolerance allowed for normal billing drift. */
 const BILLING_RELATIVE_TOLERANCE = 0.3
 
@@ -82,7 +79,7 @@ export function parseTieredExpr(expr: unknown): TieredExprParsed | null {
   // — we just want the first tier body, whose coefficients are absolute USD/M.
   const first = /tier\(\s*["'][^"']*["']\s*,([^)]*)\)/s.exec(expr)
   let body: string | null = null
-  if (first) body = first[1]
+  if (first) body = first[1] ?? null
   else if (!/tier\(/.test(expr)) body = expr // no tier() wrapper — whole expr is body
   if (!body) return null
   const coef = (name: string): number | null => {
@@ -117,10 +114,24 @@ export interface SiteBillingBasis {
   row: SitePricingRow
   groupRatio: unknown
   /**
-   * When the model row exists but uses a non-default billing_mode (e.g.
-   * tiered_expr, token_expr), the row is preserved here so callers can
-   * surface it for diagnosis even though it's not usable for formula
-   * evaluation. `row` itself remains null in that case.
+   * Which rule produced `groupRatio` — surfaced in probe evidence so users can
+   * tell a real per-account multiplier from a median guess.
+   *   user     → the account's own group name matched a group_ratio key
+   *   default  → a group literally named default/默认/普通用户/normal
+   *   median   → the middle ratio across all published groups (a guess)
+   *   fallback → no usable group_ratio map at all, ratio assumed 1
+   */
+  groupRatioSource?: "user" | "default" | "median" | "fallback"
+  /** The group_ratio key the ratio came from, when one matched. */
+  groupRatioKey?: string
+  /**
+   * Every published group_ratio entry, in API order. Surfaced in evidence so
+   * a mismatched account group can be diagnosed without re-fetching /api/pricing.
+   */
+  groupRatioOptions?: Array<{ key: string; value: number }>
+  /**
+   * When the model row exists but we cannot derive a price from it, the row
+   * is preserved here for diagnostics. `row` itself is null in that case.
    */
   skippedRow?: SitePricingRow
   /** True when the matched model uses a custom (non-default) billing mode. */
@@ -293,13 +304,28 @@ export function computeSiteExpectedUsd(input: {
 export type BillingComparison = "ok" | "under" | "over"
 
 /**
- * Compare observed spend with the expected amount using both relative and
- * absolute tolerances. If the expected price is zero, any observed charge
- * above the absolute tolerance is an overcharge.
+ * Quota points of rounding slack allowed before a delta counts as a real charge.
+ * New API quota is an integer, so a 1-quota rounding error is unavoidable;
+ * 2 points (≈ $0.000004 at the 500k exchange) covers it without masking real
+ * under/over-charges on sub-cent requests.
+ */
+const BILLING_ROUNDING_QUOTA_POINTS = 2
+
+/**
+ * Compare observed spend with the expected amount.
+ *
+ * The absolute floor exists ONLY to absorb New API's integer-quota rounding
+ * (≈ 2 points). It must never be a fixed dollar amount: our probe requests
+ * cost fractions of a cent, so a $0.001 floor would swallow every comparison
+ * and report "ok" no matter how far off the site is.
+ *
+ * Zero-expected rows are the one case where only the floor applies — the
+ * site published "free", so anything above rounding slack is an overcharge.
  */
 export function compareBillingAmounts(
   deductedUsd: number,
   expectedUsd: number,
+  quotaPerUnit?: number,
 ): BillingComparison {
   if (
     !Number.isFinite(deductedUsd) ||
@@ -309,9 +335,19 @@ export function compareBillingAmounts(
   ) {
     return "ok"
   }
-  if (expectedUsd <= BILLING_ABSOLUTE_TOLERANCE_USD) {
-    return deductedUsd > BILLING_ABSOLUTE_TOLERANCE_USD ? "over" : "ok"
+  const qpu =
+    typeof quotaPerUnit === "number" &&
+    Number.isFinite(quotaPerUnit) &&
+    quotaPerUnit > 0
+      ? quotaPerUnit
+      : 500_000
+  const roundingFloorUsd = BILLING_ROUNDING_QUOTA_POINTS / qpu
+
+  if (expectedUsd <= roundingFloorUsd) {
+    return deductedUsd > roundingFloorUsd ? "over" : "ok"
   }
+  // Ignore differences inside the integer-rounding band.
+  if (Math.abs(deductedUsd - expectedUsd) <= roundingFloorUsd) return "ok"
   const ratio = deductedUsd / expectedUsd
   if (ratio > 1 + BILLING_RELATIVE_TOLERANCE) return "over"
   if (ratio < BILLING_UNDERCHARGE_RATIO) return "under"
@@ -408,20 +444,36 @@ export async function fetchSiteBillingBasis(
           e.value != null && Number.isFinite(e.value) && e.value >= 0,
       )
     let groupRatio: number | null = null
+    let groupRatioSource: SiteBillingBasis["groupRatioSource"] = "fallback"
+    let groupRatioKey: string | undefined
     if (ratioEntries.length > 0) {
       const DEFAULT_RE = /^(default|默认|普通用户|normal)$/i
-      // 1. user's group
-      if (userGroup && ratioEntries.find((e) => e.key === userGroup)) {
-        groupRatio = ratioEntries.find((e) => e.key === userGroup)!.value
+      const byUser = userGroup
+        ? ratioEntries.find((e) => e.key === userGroup)
+        : undefined
+      if (byUser) {
+        // 1. the account's own group
+        groupRatio = byUser.value
+        groupRatioSource = "user"
+        groupRatioKey = byUser.key
       } else {
-        // 2. default group by name
         const def = ratioEntries.find((e) => DEFAULT_RE.test(e.key))
-        if (def) groupRatio = def.value
-      }
-      // 3. median of all group ratios (no default group → pick the middle value)
-      if (groupRatio == null) {
-        const sorted = [...ratioEntries].sort((a, b) => a.value - b.value)
-        groupRatio = sorted[Math.floor(sorted.length / 2)].value
+        if (def) {
+          // 2. a group literally named default
+          groupRatio = def.value
+          groupRatioSource = "default"
+          groupRatioKey = def.key
+        } else {
+          // 3. median across published groups — a documented guess, labelled
+          //    as such so evidence never passes it off as the real multiplier.
+          const sorted = [...ratioEntries].sort((a, b) => a.value - b.value)
+          const mid = sorted[Math.floor(sorted.length / 2)]
+          if (mid) {
+            groupRatio = mid.value
+            groupRatioSource = "median"
+            groupRatioKey = mid.key
+          }
+        }
       }
     }
 
@@ -433,12 +485,21 @@ export async function fetchSiteBillingBasis(
       return {
         row: null as unknown as SitePricingRow,
         groupRatio: groupRatio ?? 1,
+        groupRatioSource,
+        groupRatioKey,
+        groupRatioOptions: ratioEntries,
         skippedRow: row,
         isCustomBillingMode: isCustomBillingMode(row),
       }
     }
 
-    return { row, groupRatio: groupRatio ?? 1 }
+    return {
+      row,
+      groupRatio: groupRatio ?? 1,
+      groupRatioSource,
+      groupRatioKey,
+      groupRatioOptions: ratioEntries,
+    }
   } catch {
     return null
   }

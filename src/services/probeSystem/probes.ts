@@ -11,6 +11,7 @@ import {
   computeSiteExpectedUsd,
   fetchSiteBillingBasis,
   fetchSiteStatusConfig,
+  type BillingComparison,
 } from "~/services/probeSystem/billing"
 
 import {
@@ -665,7 +666,11 @@ export const billingProbe = {
       )
     const basis = siteExpected != null ? "site" : "baseline"
     const ratio = expected > 0 ? deducted / expected : 1
-    const comparison = compareBillingAmounts(deducted, expected)
+    const comparison = compareBillingAmounts(
+      deducted,
+      expected,
+      status.quotaPerUnit,
+    )
 
     // Extreme ratios (< 5% or > 20×) are never legitimate pricing — they
     // almost always mean the formula is misinterpreting the site's data
@@ -700,10 +705,19 @@ export const billingProbe = {
       quotaPerUnit: status.quotaPerUnit,
       topUpRatio: status.topUpRatio,
       resolvedGroupRatio,
+      // Group‑ratio provenance — a bare ratio of 1 is indistinguishable from
+      // a real multiplier unless we say where it came from. userGroup is the
+      // account's own group name, so a mismatch against groupRatioOptions
+      // explains an unexpected fallback.
+      userGroup: before.group ?? null,
+      groupRatioSource: siteBasis?.groupRatioSource,
+      groupRatioKey: siteBasis?.groupRatioKey,
+      groupRatioOptions: siteBasis?.groupRatioOptions,
       // Diagnostic fields — help diagnose formula mismatches and site
       // pricing data problems.
       promptTokens: outcome.promptTokens,
       completionTokens: outcome.completionTokens,
+      cachedTokens: outcome.cachedTokens,
       // Raw pricing row from /api/pricing for the matched model. When the
       // site uses a custom billing_mode (tiered_expr etc.), we show the
       // skipped row here so the user can see what expression is in play —
