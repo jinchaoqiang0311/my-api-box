@@ -641,19 +641,30 @@ export const billingProbe = {
     // Extreme ratios (< 5% or > 20×) are never legitimate pricing — they
     // almost always mean the formula is misinterpreting the site's data
     // (e.g. quota_type "1" string not recognised, model_ratio applied where
-    // model_price was intended). Force a "suspect" verdict so users see
-    // something is wrong instead of being told they got an amazing deal.
+    // model_price was intended, or custom billing_mode like tiered_expr).
+    // Force a "suspect" verdict so users see something is wrong instead of
+    // being told they got an amazing deal — but preserve the direction
+    // (under / over) so the summary text doesn't mislead.
     const RATIO_EXTREME_LOW = 0.05
     const RATIO_EXTREME_HIGH = 20
     const isExtremeMismatch =
       expected > 0 && (ratio < RATIO_EXTREME_LOW || ratio > RATIO_EXTREME_HIGH)
+
+    // Preserve comparison direction even for extreme mismatches —
+    // deducted < expected ⇒ "under" (site charged much LESS than formula says),
+    // deducted > expected ⇒ "over" (site charged much MORE).
+    const direction: BillingComparison = isExtremeMismatch
+      ? ratio < 1
+        ? "under"
+        : "over"
+      : comparison
 
     const evidence = {
       deductedUsd: deducted,
       expectedUsd: expected,
       basis,
       ratio: Number(ratio.toFixed(3)),
-      comparison: isExtremeMismatch ? "over" : comparison,
+      comparison: direction,
       extremeMismatch: isExtremeMismatch || undefined,
       // Site‑level config facts — included so users can diagnose why the
       // numbers diverge (wrong quota_per_unit? top_up_ratio applied?).
@@ -681,7 +692,27 @@ export const billingProbe = {
         : null,
     }
     const summaryBasis = basis === "site" ? "site" : "baseline"
-    if (isExtremeMismatch || comparison === "over") {
+    // Extreme mismatches → always suspect, with direction preserved in summary.
+    if (isExtremeMismatch) {
+      // Pick summary key that matches the ACTUAL direction (under = site
+      // charged much less than formula says; over = site charged much more).
+      const summaryKey =
+        basis === "site"
+          ? direction === "under"
+            ? "summaries.billingUnderExtreme"
+            : "summaries.billingOver"
+          : direction === "under"
+            ? "summaries.billingUnderExtremeBaseline"
+            : "summaries.billingOverBaseline"
+      return result(
+        PROBE_IDS.Billing,
+        "suspect",
+        summaryKey,
+        { deducted, expected },
+        evidence,
+      )
+    }
+    if (comparison === "over") {
       return result(
         PROBE_IDS.Billing,
         "suspect",
