@@ -91,10 +91,13 @@
     "summary": "{{pass}}/{{total}} passed"
   },
   "summaries": {
-    "billingNoUsage": "Response lacks usage data (deducted {{deducted}})",
-    "billingOk": "Deducted {{deducted}} ≈ expected {{expected}}",
-    "billingOver": "Deducted {{deducted}} far above expected {{expected}}",
+    "billingNoUsage": "Response lacks usage data (actual deduction {{deducted}})",
+    "billingOk": "Within site-listed price: actual {{deducted}} ≈ expected {{expected}}",
+    "billingOkBaseline": "Below generic baseline: actual {{deducted}} ≈ baseline {{expected}}",
+    "billingOver": "Above site-listed price: actual {{deducted}} is far above expected {{expected}}",
+    "billingOverBaseline": "Above generic baseline: actual {{deducted}} is far above baseline {{expected}}",
     "billingSkip": "No access token provided; skipped",
+    "billingUnder": "Below site-listed price: actual {{deducted}} < expected {{expected}}; discount or cache may apply",
     "cacheFresh": "Both responses fresh",
     "cacheHit": "Second call replayed the first answer",
     "cacheOdd": "Echo anomaly",

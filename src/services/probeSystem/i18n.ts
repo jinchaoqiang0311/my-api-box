@@ -123,8 +123,14 @@ export function translateProbeSummary(
       return t("siteProbing:summaries.billingNoUsage", params)
     case "summaries.billingOk":
       return t("siteProbing:summaries.billingOk", params)
+    case "summaries.billingOkBaseline":
+      return t("siteProbing:summaries.billingOkBaseline", params)
+    case "summaries.billingUnder":
+      return t("siteProbing:summaries.billingUnder", params)
     case "summaries.billingOver":
       return t("siteProbing:summaries.billingOver", params)
+    case "summaries.billingOverBaseline":
+      return t("siteProbing:summaries.billingOverBaseline", params)
     case "summaries.consistencyFirst":
       return t("siteProbing:summaries.consistencyFirst")
     case "summaries.consistencyStable":

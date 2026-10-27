@@ -91,10 +91,13 @@
     "summary": "{{pass}}/{{total}} 通过"
   },
   "summaries": {
-    "billingNoUsage": "响应缺少用量数据(扣费 {{deducted}})",
-    "billingOk": "扣费 {{deducted}} ≈ 理论 {{expected}}",
-    "billingOver": "扣费 {{deducted}} 远超理论 {{expected}}",
+    "billingNoUsage": "响应缺少用量数据(实际扣费 {{deducted}})",
+    "billingOk": "按站点标价扣费正常:实际 {{deducted}} ≈ 理论 {{expected}}",
+    "billingOkBaseline": "扣费低于通用基线:实际 {{deducted}} ≈ 基线 {{expected}}",
+    "billingOver": "高于站点标价:实际 {{deducted}} 远超理论 {{expected}}",
+    "billingOverBaseline": "高于通用基线:实际 {{deducted}} 远超基线 {{expected}}",
     "billingSkip": "缺少访问令牌,已跳过",
+    "billingUnder": "低于站点标价:实际 {{deducted}} < 理论 {{expected}},可能是折扣或缓存",
     "cacheFresh": "两次均为新鲜生成",
     "cacheHit": "第二次回放了第一次的答案",
     "cacheOdd": "回显异常",

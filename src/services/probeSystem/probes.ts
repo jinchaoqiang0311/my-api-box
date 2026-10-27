@@ -6,6 +6,13 @@
  */
 
 import {
+  BASELINE_COMPLETION_RATIO,
+  compareBillingAmounts,
+  computeSiteExpectedUsd,
+  fetchSiteBillingBasis,
+} from "~/services/probeSystem/billing"
+
+import {
   PROBE_IDS,
   type ProbeChatMessage,
   type ProbeChatOutcome,
@@ -222,10 +229,10 @@ export async function probeListModels(
 }
 
 /** Reads New API quota in USD via /api/user/self; null when unavailable. */
-async function readQuotaUsd(
+async function readUserQuotaInfo(
   credentials: ProbeCredentials,
-): Promise<number | null> {
-  if (!credentials.accessToken) return null
+): Promise<{ quotaUsd: number | null; group?: string }> {
+  if (!credentials.accessToken) return { quotaUsd: null }
   const headers: Record<string, string> = {
     Authorization: credentials.accessToken,
   }
@@ -235,13 +242,18 @@ async function readQuotaUsd(
   const response = await fetch(`${origin(credentials.baseUrl)}/api/user/self`, {
     headers,
   })
-  if (!response.ok) return null
+  if (!response.ok) return { quotaUsd: null }
   const payload = (await response.json()) as {
-    data?: { quota?: number }
+    data?: { quota?: number; group?: unknown }
   }
   const quota = payload.data?.quota
   // New API's ecosystem-standard quota unit: 500000 per USD.
-  return typeof quota === "number" ? quota / 500000 : null
+  const quotaUsd = typeof quota === "number" ? quota / 500000 : null
+  const group =
+    typeof payload.data?.group === "string" && payload.data.group
+      ? payload.data.group
+      : undefined
+  return { quotaUsd, group }
 }
 
 /* ------------------------------ pure helpers -------------------------------- */
@@ -535,8 +547,8 @@ export const billingProbe = {
     if (!credentials.accessToken) {
       return result(PROBE_IDS.Billing, "skip", "summaries.billingSkip")
     }
-    const before = await readQuotaUsd(credentials)
-    if (before == null) {
+    const before = await readUserQuotaInfo(credentials)
+    if (before.quotaUsd == null) {
       return result(PROBE_IDS.Billing, "skip", "summaries.billingSkip")
     }
     const outcome = await probeChatRequest(
@@ -549,8 +561,8 @@ export const billingProbe = {
       ],
       { temperature: 0, maxTokens: 32 },
     )
-    const after = await readQuotaUsd(credentials)
-    if (!outcome.ok || after == null) {
+    const after = await readUserQuotaInfo(credentials)
+    if (!outcome.ok || after.quotaUsd == null) {
       return result(
         PROBE_IDS.Billing,
         "unknown",
@@ -559,7 +571,7 @@ export const billingProbe = {
         { error: outcome.error },
       )
     }
-    const deducted = Number((before - after).toFixed(6))
+    const deducted = Number((before.quotaUsd - after.quotaUsd).toFixed(6))
     if (outcome.promptTokens == null || outcome.completionTokens == null) {
       return result(
         PROBE_IDS.Billing,
@@ -569,19 +581,63 @@ export const billingProbe = {
         { deductedUsd: deducted },
       )
     }
-    // Expected cost at the ecosystem-standard $2/1M input tokens baseline.
-    const expected = Number(
-      (
-        ((outcome.promptTokens + outcome.completionTokens * 1.3) * 2) /
-        1_000_000
-      ).toFixed(6),
+
+    // Reconcile against the site's own list price when it is published;
+    // otherwise fall back to the ecosystem baseline (ratio 1, completion 1.3).
+    const siteBasis = await fetchSiteBillingBasis(
+      credentials.baseUrl,
+      credentials.model,
+      before.group,
+      {
+        accessToken: credentials.accessToken,
+        remoteUserId: credentials.remoteUserId,
+      },
     )
-    const evidence = { deductedUsd: deducted, expectedUsd: expected }
-    if (deducted > expected * 1.3 + 0.001) {
+    const siteExpected = siteBasis
+      ? computeSiteExpectedUsd({
+          promptTokens: outcome.promptTokens,
+          completionTokens: outcome.completionTokens,
+          row: siteBasis.row,
+          groupRatio: siteBasis.groupRatio,
+        })
+      : null
+    const expected =
+      siteExpected ??
+      Number(
+        (
+          ((outcome.promptTokens +
+            outcome.completionTokens * BASELINE_COMPLETION_RATIO) *
+            2) /
+          1_000_000
+        ).toFixed(6),
+      )
+    const basis = siteExpected != null ? "site" : "baseline"
+    const ratio = expected > 0 ? deducted / expected : 1
+    const comparison = compareBillingAmounts(deducted, expected)
+
+    const evidence = {
+      deductedUsd: deducted,
+      expectedUsd: expected,
+      basis,
+      ratio: Number(ratio.toFixed(3)),
+      comparison,
+    }
+    if (comparison === "over") {
       return result(
         PROBE_IDS.Billing,
         "suspect",
-        "summaries.billingOver",
+        basis === "site"
+          ? "summaries.billingOver"
+          : "summaries.billingOverBaseline",
+        { deducted, expected },
+        evidence,
+      )
+    }
+    if (comparison === "under" && basis === "site") {
+      return result(
+        PROBE_IDS.Billing,
+        "pass",
+        "summaries.billingUnder",
         { deducted, expected },
         evidence,
       )
@@ -589,7 +645,7 @@ export const billingProbe = {
     return result(
       PROBE_IDS.Billing,
       "pass",
-      "summaries.billingOk",
+      basis === "site" ? "summaries.billingOk" : "summaries.billingOkBaseline",
       { deducted, expected },
       evidence,
     )
