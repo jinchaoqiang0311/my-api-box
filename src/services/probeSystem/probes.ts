@@ -622,40 +622,66 @@ export const billingProbe = {
           completionTokens: outcome.completionTokens,
           row: siteBasis.row,
           groupRatio: resolvedGroupRatio,
-          topUpRatio: status.topUpRatio,
         })
       : null
     const expected =
       siteExpected ??
       Number(
         (
-          ((outcome.promptTokens +
-            outcome.completionTokens * BASELINE_COMPLETION_RATIO) *
-            2) /
-          (1_000_000 * status.topUpRatio)
+          (outcome.promptTokens +
+            outcome.completionTokens * BASELINE_COMPLETION_RATIO) /
+          1_000_000
         ).toFixed(6),
       )
     const basis = siteExpected != null ? "site" : "baseline"
     const ratio = expected > 0 ? deducted / expected : 1
     const comparison = compareBillingAmounts(deducted, expected)
 
+    // Extreme ratios (< 5% or > 20×) are never legitimate pricing — they
+    // almost always mean the formula is misinterpreting the site's data
+    // (e.g. quota_type "1" string not recognised, model_ratio applied where
+    // model_price was intended). Force a "suspect" verdict so users see
+    // something is wrong instead of being told they got an amazing deal.
+    const RATIO_EXTREME_LOW = 0.05
+    const RATIO_EXTREME_HIGH = 20
+    const isExtremeMismatch =
+      expected > 0 && (ratio < RATIO_EXTREME_LOW || ratio > RATIO_EXTREME_HIGH)
+
     const evidence = {
       deductedUsd: deducted,
       expectedUsd: expected,
       basis,
       ratio: Number(ratio.toFixed(3)),
-      comparison,
+      comparison: isExtremeMismatch ? "over" : comparison,
+      extremeMismatch: isExtremeMismatch || undefined,
       // Site‑level config facts — included so users can diagnose why the
       // numbers diverge (wrong quota_per_unit? top_up_ratio applied?).
       quotaPerUnit: status.quotaPerUnit,
       topUpRatio: status.topUpRatio,
       resolvedGroupRatio,
+      // Diagnostic fields — help diagnose formula mismatches and site
+      // pricing data problems.
+      promptTokens: outcome.promptTokens,
+      completionTokens: outcome.completionTokens,
+      // Raw pricing row from /api/pricing for the matched model. Included
+      // so users can see whether the site's published ratios match reality
+      // (many New API forks set display prices that differ from channel
+      // billing rates).
+      pricingRow: siteBasis
+        ? {
+            quota_type: siteBasis.row.quota_type,
+            model_ratio: siteBasis.row.model_ratio,
+            model_price: siteBasis.row.model_price,
+            completion_ratio: siteBasis.row.completion_ratio,
+          }
+        : null,
     }
-    if (comparison === "over") {
+    const summaryBasis = basis === "site" ? "site" : "baseline"
+    if (isExtremeMismatch || comparison === "over") {
       return result(
         PROBE_IDS.Billing,
         "suspect",
-        basis === "site"
+        summaryBasis === "site"
           ? "summaries.billingOver"
           : "summaries.billingOverBaseline",
         { deducted, expected },

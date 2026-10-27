@@ -9,8 +9,6 @@
  * back to the ecosystem baseline and labels the comparison accordingly.
  */
 
-const USD_PER_1M_AT_RATIO_1 = 2
-
 /**
  * Completion multiplier assumed when the site does not publish one. Matches
  * the historical baseline assumption so the fallback stays consistent.
@@ -61,17 +59,31 @@ export interface SiteStatusConfig {
   fallbackGroupRatio?: number
 }
 
+/**
+ * Tolerantly coerces unknown values to finite numbers. New API forks often
+ * serialize numeric pricing fields as strings ("0.5", "1"), so we accept both
+ * native numbers and numeric strings — anything else (NaN, Infinity, non‑
+ * numeric text, null) degrades to null.
+ */
+function coerceFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
 /** Accepts any finite non-negative number (free tiers price at 0). */
 function finiteNonnegative(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-    ? value
-    : null
+  const num = coerceFiniteNumber(value)
+  return num != null && num >= 0 ? num : null
 }
 
 /** Accepts only finite positive numbers (missing/degenerate values excluded). */
 function finitePositive(value: unknown): number | null {
-  const normalized = finiteNonnegative(value)
-  return normalized != null && normalized > 0 ? normalized : null
+  const num = coerceFiniteNumber(value)
+  return num != null && num > 0 ? num : null
 }
 
 /** Accepts pricing multipliers where 0 is a legitimate "free" multiplier. */
@@ -94,15 +106,8 @@ export function computeSiteExpectedUsd(input: {
   completionTokens: number
   row: SitePricingRow
   groupRatio?: unknown
-  /**
-   * Recharge/top-up multiplier (default 1). Higher than 1 means the site
-   *  issued bonus points against the same money — divide the theoretical
-   *  charge by this factor to reconcile with the user's points delta.
-   */
-  topUpRatio?: unknown
 }): number | null {
   const groupRatio = finitePricingMultiplier(input.groupRatio) ?? 1
-  const topUpRatio = finitePositive(input.topUpRatio) ?? 1
   const promptTokens =
     typeof input.promptTokens === "number" &&
     Number.isFinite(input.promptTokens) &&
@@ -117,14 +122,21 @@ export function computeSiteExpectedUsd(input: {
       : 0
 
   // Per-call billing: the site charges a fixed price per request.
+  // model_price is in USD — sites that publish per-call fees usually use
+  // the same USD scale as the token-ratio path, so no additional exchange
+  // is needed.
+  // quota_type may come as a string "1" from non-standard New API forks,
+  // so we use coerceFiniteNumber for a tolerant comparison.
+  const quotaType = coerceFiniteNumber(input.row.quota_type)
   const modelPrice =
-    input.row.quota_type === 1
-      ? finitePricingMultiplier(input.row.model_price)
-      : null
+    quotaType === 1 ? finitePricingMultiplier(input.row.model_price) : null
   if (modelPrice != null) {
-    return round6((modelPrice * groupRatio) / topUpRatio)
+    return round6(modelPrice * groupRatio)
   }
 
+  // Token billing: standard New API formula. quota_per_unit cancels out when
+  // we compare against deducted USD (which is also quota_delta / quota_per_unit),
+  // so we only need tokens × model_ratio × group_ratio / 1M.
   const modelRatio = finiteNonnegative(input.row.model_ratio)
   if (modelRatio == null) return null
   const completionRatio =
@@ -133,9 +145,8 @@ export function computeSiteExpectedUsd(input: {
   return round6(
     ((promptTokens + completionTokens * completionRatio) *
       modelRatio *
-      groupRatio *
-      USD_PER_1M_AT_RATIO_1) /
-      (1_000_000 * topUpRatio),
+      groupRatio) /
+      1_000_000,
   )
 }
 
@@ -178,8 +189,8 @@ function readStringRecord(value: unknown): Record<string, unknown> | null {
 
 /** True when the row carries enough facts for a site-based expectation. */
 function isUsablePricingRow(row: SitePricingRow): boolean {
-  if (row.quota_type === 1)
-    return finitePricingMultiplier(row.model_price) != null
+  const quotaType = coerceFiniteNumber(row.quota_type)
+  if (quotaType === 1) return finitePricingMultiplier(row.model_price) != null
   return finitePositive(row.model_ratio) != null
 }
 

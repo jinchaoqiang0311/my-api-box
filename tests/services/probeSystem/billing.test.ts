@@ -29,7 +29,7 @@ describe("computeSiteExpectedUsd", () => {
         row: { quota_type: 0, model_ratio: 0.5, completion_ratio: 1.2 },
         groupRatio: 0.8,
       }),
-    ).toBe(0.00176)
+    ).toBe(0.00088)
   })
 
   it("uses per-call pricing instead of token math", () => {
@@ -52,9 +52,7 @@ describe("computeSiteExpectedUsd", () => {
       }),
     ).toBe(
       Number(
-        (((1000 + 1000 * BASELINE_COMPLETION_RATIO) * 2) / 1_000_000).toFixed(
-          6,
-        ),
+        ((1000 + 1000 * BASELINE_COMPLETION_RATIO) / 1_000_000).toFixed(6),
       ),
     )
   })
@@ -199,7 +197,8 @@ describe("fetchSiteBillingBasis", () => {
 
 describe("billingProbe", () => {
   it("compares the actual deduction against the site's model and group price", async () => {
-    const quotaValues = [1_000_000, 999_120]
+    // correct delta = (1000 + 1000*1.2) * 0.5 * 0.8 / 1M * 500k = 440 points
+    const quotaValues = [1_000_000, 999_560]
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.endsWith("/api/user/self")) {
@@ -242,8 +241,8 @@ describe("billingProbe", () => {
     expect(result.verdict).toBe("pass")
     expect(result.summaryKey).toBe("summaries.billingOk")
     expect(result.evidence).toMatchObject({
-      deductedUsd: 0.00176,
-      expectedUsd: 0.00176,
+      deductedUsd: 0.00088,
+      expectedUsd: 0.00088,
       basis: "site",
       comparison: "ok",
     })
@@ -251,7 +250,8 @@ describe("billingProbe", () => {
   })
 
   it("falls back to the baseline and labels that comparison when list price is unavailable", async () => {
-    const quotaValues = [1_000_000, 999_080]
+    // correct delta = (1000 + 1000*1.3) / 1M * 500k = 1150 points
+    const quotaValues = [1_000_000, 998_850]
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -282,7 +282,7 @@ describe("billingProbe", () => {
     expect(result.summaryKey).toBe("summaries.billingOkBaseline")
     expect(result.evidence).toMatchObject({
       basis: "baseline",
-      expectedUsd: 0.0046,
+      expectedUsd: 0.0023,
     })
   })
 })
