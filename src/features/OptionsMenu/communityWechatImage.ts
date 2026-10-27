@@ -1,5 +1,5 @@
 import { runAbortableTask } from "~/services/apiTransport/abortableTask"
-import bundledWechatImage from "~~/resources/wechat_group.png"
+import bundledWechatImage from "~~/resources/wechat_group.webp"
 
 import {
   acceptCommunityResourceResponse,
