@@ -616,11 +616,15 @@ export const billingProbe = {
         ? siteBasis.groupRatio
         : status.fallbackGroupRatio ?? 1
 
-    const siteExpected = siteBasis
+    // Custom billing_mode rows (tiered_expr, token_expr, …) have a row but
+    // `row` is null-ed out in the basis — the usable one is `skippedRow`.
+    const hasCustomMode = !!siteBasis?.isCustomBillingMode
+    const usableRow = siteBasis?.row
+    const siteExpected = usableRow
       ? computeSiteExpectedUsd({
           promptTokens: outcome.promptTokens,
           completionTokens: outcome.completionTokens,
-          row: siteBasis.row,
+          row: usableRow,
           groupRatio: resolvedGroupRatio,
           quotaPerUnit: status.quotaPerUnit,
         })
@@ -675,23 +679,40 @@ export const billingProbe = {
       // pricing data problems.
       promptTokens: outcome.promptTokens,
       completionTokens: outcome.completionTokens,
-      // Raw pricing row from /api/pricing for the matched model. Included
-      // so users can see whether the site's published ratios match reality
-      // (many New API forks set display prices that differ from channel
-      // billing rates). billing_mode reveals whether custom expressions are
-      // in use — if so, model_ratio is just a placeholder.
-      pricingRow: siteBasis
-        ? {
-            quota_type: siteBasis.row.quota_type,
-            model_ratio: siteBasis.row.model_ratio,
-            model_price: siteBasis.row.model_price,
-            completion_ratio: siteBasis.row.completion_ratio,
-            billing_mode: siteBasis.row.billing_mode,
-            billing_expr: siteBasis.row.billing_expr,
-          }
-        : null,
+      // Raw pricing row from /api/pricing for the matched model. When the
+      // site uses a custom billing_mode (tiered_expr etc.), we show the
+      // skipped row here so the user can see what expression is in play —
+      // model_ratio / completion_ratio are placeholders in that case.
+      pricingRow: (() => {
+        const raw = siteBasis?.skippedRow ?? siteBasis?.row
+        if (!raw) return null
+        return {
+          quota_type: raw.quota_type,
+          model_ratio: raw.model_ratio,
+          model_price: raw.model_price,
+          completion_ratio: raw.completion_ratio,
+          billing_mode: raw.billing_mode,
+          billing_expr: raw.billing_expr,
+        }
+      })(),
+      customBillingMode: hasCustomMode || undefined,
     }
     const summaryBasis = basis === "site" ? "site" : "baseline"
+
+    // ── Custom billing mode ────────────────────────────────────────
+    // The site uses tiered_expr / token_expr etc. — the published
+    // model_ratio is a placeholder. We can't evaluate the expression.
+    // Show evidence for diagnosis but verdict = "skip".
+    if (hasCustomMode) {
+      return result(
+        PROBE_IDS.Billing,
+        "skip",
+        "summaries.billingCustomMode",
+        { deducted, expected },
+        evidence,
+      )
+    }
+
     // Extreme mismatches → always suspect, with direction preserved in summary.
     if (isExtremeMismatch) {
       // Pick summary key that matches the ACTUAL direction (under = site

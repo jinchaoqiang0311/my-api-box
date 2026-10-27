@@ -45,6 +45,15 @@ export interface SitePricingRow {
 export interface SiteBillingBasis {
   row: SitePricingRow
   groupRatio: unknown
+  /**
+   * When the model row exists but uses a non-default billing_mode (e.g.
+   * tiered_expr, token_expr), the row is preserved here so callers can
+   * surface it for diagnosis even though it's not usable for formula
+   * evaluation. `row` itself remains null in that case.
+   */
+  skippedRow?: SitePricingRow
+  /** True when the matched model uses a custom (non-default) billing mode. */
+  isCustomBillingMode?: boolean
 }
 
 /**
@@ -240,9 +249,26 @@ function isUsablePricingRow(row: SitePricingRow): boolean {
 }
 
 /**
+ * Returns whether a row's billing_mode is non-default (custom). Custom modes
+ * (tiered_expr, token_expr, …) publish placeholder model_ratio values — the
+ * actual billing uses an admin-authored expression we cannot evaluate.
+ */
+function isCustomBillingMode(row: SitePricingRow): boolean {
+  if (typeof row.billing_mode !== "string" || row.billing_mode.length === 0)
+    return false
+  return row.billing_mode.trim().toLowerCase() !== "default"
+}
+
+/**
  * Fetch the site's list-price basis for one model. Resolves the user's group
  * multiplier from group_ratio (falling back to the default entry, then 1).
- * Returns null on any network, shape, or lookup failure — never throws.
+ *
+ * Three outcomes:
+ *   - Model not found / network error        → return null
+ *   - Model found, default billing_mode      → return { row, groupRatio }
+ *   - Model found, custom billing_mode       → return { skippedRow, isCustomBillingMode: true }
+ *                                             (no usable `row` because we can't evaluate
+ *                                             the expression).
  */
 export async function fetchSiteBillingBasis(
   baseUrl: string,
@@ -270,8 +296,10 @@ export async function fetchSiteBillingBasis(
         entry !== null &&
         (entry as Record<string, unknown>).model_name === model,
     ) as SitePricingRow | undefined
-    if (!row || !isUsablePricingRow(row)) return null
+    if (!row) return null
 
+    // Resolve group ratio even for custom-mode rows — evidence diagnostics
+    // still want to show it.
     const ratios = readStringRecord(payload.group_ratio) ?? {}
     const groupKey =
       userGroup && userGroup in ratios
@@ -280,6 +308,19 @@ export async function fetchSiteBillingBasis(
           ? "default"
           : undefined
     const groupRatio = groupKey ? ratios[groupKey] : 1
+
+    // Custom billing mode — row found but unusable for formula evaluation.
+    if (isCustomBillingMode(row)) {
+      return {
+        row: null as unknown as SitePricingRow,
+        groupRatio,
+        skippedRow: row,
+        isCustomBillingMode: true,
+      }
+    }
+
+    // Default mode but missing required fields (model_ratio / model_price).
+    if (!isUsablePricingRow(row)) return null
 
     return { row, groupRatio }
   } catch {
