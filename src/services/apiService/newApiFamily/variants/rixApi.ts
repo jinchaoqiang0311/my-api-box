@@ -157,10 +157,10 @@ const RIX_API_ADMIN_KEY_SCOPES = [
 ] as const
 
 /**
- * Stable key name. Its plaintext is only returned once, so an account keeps the
- * secret it stored instead of minting another key under a different name.
+ * Display name for newly minted admin keys. Changing it only affects keys
+ * created from now on; secrets already stored on accounts stay valid.
  */
-const RIX_API_ADMIN_KEY_NAME = "My API Box"
+const RIX_API_ADMIN_KEY_NAME = "StationWarden"
 
 /** Reads the one-time plaintext out of a mint response. */
 function readMintedAdminKeySecret(value: unknown): string {
