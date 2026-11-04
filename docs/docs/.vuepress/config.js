@@ -3,32 +3,40 @@ import { sitemapPlugin } from "@vuepress/plugin-sitemap"
 import { defaultTheme } from "@vuepress/theme-default"
 import { defineUserConfig } from "vuepress"
 
-const sitemapHostname = process.env.DOCS_HOSTNAME ?? "https://jinchaoqiang0311.github.io/my-api-box"
+// GitHub Pages serves this repository under /my-api-box/, so the built asset
+// URLs must include that path. Set DOCS_BASE_PATH="/" when deploying to a
+// custom domain or a user site.
+const docsBasePath = (process.env.DOCS_BASE_PATH || "/my-api-box/").replace(
+  /\/?$/,
+  "/",
+)
+const sitemapHostname =
+  process.env.DOCS_HOSTNAME ?? "https://jinchaoqiang0311.github.io"
 
 export default defineUserConfig({
-  base: "/",
+  base: docsBasePath,
 
   head: [
-    ["link", { rel: "icon", type: "image/png", sizes: "16x16", href: "/16.png" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/32.png" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "48x48", href: "/48.png" }],
-    ["link", { rel: "apple-touch-icon", sizes: "128x128", href: "/128.png" }],
+    ["link", { rel: "icon", type: "image/png", sizes: "16x16", href: `${docsBasePath}16.png` }],
+    ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: `${docsBasePath}32.png` }],
+    ["link", { rel: "icon", type: "image/png", sizes: "48x48", href: `${docsBasePath}48.png` }],
+    ["link", { rel: "apple-touch-icon", sizes: "128x128", href: `${docsBasePath}128.png` }],
   ],
 
   locales: {
     '/': {
       lang: 'zh-CN',
-      title: 'My API Box - 你的中转站管家',
+      title: 'StationWarden - AI 中转站账号与计费守卫',
       description: '一个开源的浏览器插件，旨在优化管理New API等AI中转站账号的体验。用户可以轻松集中管理和查看账户余额、模型及密钥，并自动添加新站点',
     },
     '/en/': {
       lang: 'en-US',
-      title: 'My API Box',
+      title: 'StationWarden - AI Relay Account & Billing Guard',
       description: 'An open-source browser extension to aggregate and manage all your API hub accounts, including balance, models, and keys, without the hassle of logging in',
     },
     '/ja/': {
       lang: 'ja-JP',
-      title: 'My API Box',
+      title: 'StationWarden - AI Relay Account & Billing Guard',
       description: 'API Hubアカウント（残高、モデル、キーを含む）を、ログインの手間なしに集約・管理するためのオープンソースブラウザ拡張機能',
     },
   },

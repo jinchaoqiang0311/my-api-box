@@ -174,7 +174,7 @@
     }
   },
   "changelogOnUpdate": {
-    "description": "Control whether My API Box shows a What's New dialog the first time you open the settings page after updates.",
+    "description": "Control whether StationWarden shows a What's New dialog the first time you open the settings page after updates.",
     "title": "Changelog",
     "toggleDesc": "When enabled, the update log is shown inline when you first open the settings page after an update (once per version). You can still open the full docs changelog manually.",
     "toggleLabel": "Show What's New after updates"
@@ -452,7 +452,7 @@
       "showPassword": "Show login password",
       "showToken": "Show system access token",
       "showTotpSecret": "Show TOTP secret",
-      "totpSecretDesc": "Optional. When provided, My API Box can automatically generate TOTP codes for login 2FA and the secure verification required to view channel keys.",
+      "totpSecretDesc": "Optional. When provided, StationWarden can automatically generate TOTP codes for login 2FA and the secure verification required to view channel keys.",
       "totpSecretLabel": "TOTP secret",
       "totpSecretPlaceholder": "Paste Base32 TOTP secret",
       "userIdLabel": "Administrator user ID",
@@ -603,7 +603,7 @@
       "allowAll": "Allow all recommended permissions",
       "maybeLater": "Not now"
     },
-    "analyticsDisclosure": "Anonymous analytics only help us find issues and improve the experience. You can turn them off at any time; they never include your account information, credentials, or the content you send or enter.",
+    "analyticsDisclosure": "Anonymous analytics are off by default and only start if you enable them. They never include your account information, credentials, or the content you send or enter, and you can turn them off at any time.",
     "intro": "The source is open for anyone to review. You choose whether to enable permissions and anonymous analytics.",
     "openSourceBadge": "Open source, transparent, and community-built",
     "permissionListDescription": "Some features need additional permissions. Review what each permission is used for, grant only what you need, and revoke access at any time.",
@@ -612,21 +612,21 @@
       "cta": "Explore the source and latest progress on GitHub. You can also report problems or share ideas.",
       "getStartedCta": "Open getting started",
       "label": "Source code",
-      "starCta": "Finding My API Box useful? Star it on GitHub to support the project"
+      "starCta": "Finding StationWarden useful? Star it on GitHub to support the project"
     },
     "reason": {
       "newPermissions": "New features need additional optional permissions. Review what each one does and allow only what you need."
     },
     "subtitle": "Choose your language, then enable only the optional permissions you need. You can change these settings later.",
-    "title": "Welcome to My API Box",
+    "title": "Welcome to StationWarden",
     "toasts": {
       "error": "Not all recommended permissions were granted",
       "success": "All recommended permissions granted"
     }
   },
   "productAnalytics": {
-    "description": "Anonymous statistics that help us spot common issues sooner, improve everyday workflows, and strengthen compatibility. We do not collect API keys, cookies, account URLs, balances, request content, or user input.",
-    "enableDescription": "Allow limited feature usage, error category, and coarse site-type statistics so we can focus on the parts that affect your experience most.",
+    "description": "Anonymous, opt-in usage statistics that help us spot common issues sooner, improve everyday workflows, and strengthen compatibility. They are off by default and never include API keys, cookies, account URLs, balances, request content, or user input.",
+    "enableDescription": "When enabled, send limited feature usage, error categories, and coarse site-type statistics so we can focus on the parts that affect your experience most. Your saved choice is never overwritten by upgrades.",
     "enableLabel": "Enable anonymous product analytics",
     "title": "Anonymous product analytics"
   },
@@ -727,7 +727,7 @@
     "title": "Refresh Settings",
     "turnstileNotificationEnable": "Enable system notifications",
     "turnstileNotificationManage": "Manage notification permissions",
-    "turnstileNotificationPermissionTitle": "Allow browser notifications from My API Box",
+    "turnstileNotificationPermissionTitle": "Allow browser notifications from StationWarden",
     "turnstileNotificationStatus": {
       "available": "System notifications: permission granted. OS quiet mode or browser settings may still hide notifications.",
       "blocked": "Notifications are blocked by the browser. Check your browser notification settings, then return here and try again.",
@@ -812,7 +812,7 @@
       "description": "If your site requires additional verification for sensitive operations, the extension cannot view or export channel keys. Complete these actions in the Sub2API dashboard. Migration is also affected when it needs to read a source key.",
       "title": "Key viewing and export limits"
     },
-    "description": "Connect your site to import existing API keys into Sub2API and view, edit, and migrate channels in My API Box.",
+    "description": "Connect your site to import existing API keys into Sub2API and view, edit, and migrate channels in StationWarden.",
     "fields": {
       "adminApiKeyDesc": "Use an Admin API Key generated in the dashboard to manage channels. A regular API key used to call models will not work here.",
       "adminApiKeyLabel": "Admin API Key",
@@ -860,7 +860,7 @@
         "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         "title": "DingTalk Bot",
         "webhookKey": "Webhook URL or access_token",
-        "webhookKeyDescription": "Copy the webhook URL from the DingTalk custom bot settings page and paste it here. If you enter only the value after `access_token=`, My API Box will complete the URL automatically. If signed security is enabled, enter the secret as well.",
+        "webhookKeyDescription": "Copy the webhook URL from the DingTalk custom bot settings page and paste it here. If you enter only the value after `access_token=`, StationWarden will complete the URL automatically. If signed security is enabled, enter the secret as well.",
         "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       },
       "feishu": {
@@ -868,7 +868,7 @@
         "docsLink": "View setup docs",
         "title": "Feishu Bot",
         "webhookKey": "Webhook URL or key",
-        "webhookKeyDescription": "Copy the webhook URL from the Feishu custom bot settings page and paste it here. If you enter only the key after `/hook/`, My API Box will complete the URL automatically.",
+        "webhookKeyDescription": "Copy the webhook URL from the Feishu custom bot settings page and paste it here. If you enter only the key after `/hook/`, StationWarden will complete the URL automatically.",
         "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       },
       "ntfy": {
@@ -901,7 +901,7 @@
         "docsLink": "View setup docs",
         "title": "WeCom Bot",
         "webhookKey": "Webhook URL or key",
-        "webhookKeyDescription": "Copy the webhook URL from the WeCom group's message push settings and paste it here. If you enter only the key after `key=`, My API Box will complete the URL automatically.",
+        "webhookKeyDescription": "Copy the webhook URL from the WeCom group's message push settings and paste it here. If you enter only the key after `key=`, StationWarden will complete the URL automatically.",
         "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       }
     },
@@ -970,12 +970,12 @@
       "feishuMissingConfig": "Feishu Bot webhook URL or key is not configured.",
       "httpError": "{{label}} returned HTTP {{status}}.",
       "httpErrorWithDetail": "{{label}} returned HTTP {{status}}: {{detail}}",
-      "message": "This is an My API Box task notification test.",
+      "message": "This is an StationWarden task notification test.",
       "ntfyInvalidUrl": "The ntfy topic must be an http:// or https:// URL, or a valid ntfy.sh topic name.",
       "ntfyMissingConfig": "The ntfy topic URL or topic name is not configured.",
       "sent": "Test notification sent",
       "telegramMissingConfig": "Telegram Bot token or Chat ID is not configured.",
-      "title": "My API Box test notification",
+      "title": "StationWarden test notification",
       "webhookInvalidUrl": "Webhook URL must use http:// or https://.",
       "webhookMissingConfig": "Webhook URL is not configured.",
       "wecomMissingConfig": "WeCom Bot webhook URL or key is not configured."

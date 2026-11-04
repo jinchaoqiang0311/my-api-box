@@ -174,7 +174,7 @@
     }
   },
   "changelogOnUpdate": {
-    "description": "Controla si My API Box muestra un diálogo de Novedades la primera vez que abres la página de configuración después de actualizaciones.",
+    "description": "Controla si StationWarden muestra un diálogo de Novedades la primera vez que abres la página de configuración después de actualizaciones.",
     "title": "Changelog",
     "toggleDesc": "Cuando está habilitado, el registro de actualización se muestra integrado al abrir la página de configuración por primera vez después de una actualización (una vez por versión). Aún puedes abrir manualmente el changelog completo de la documentación.",
     "toggleLabel": "Mostrar Novedades después de actualizaciones"
@@ -452,7 +452,7 @@
       "showPassword": "Mostrar contraseña de inicio de sesión",
       "showToken": "Mostrar token de acceso del sistema",
       "showTotpSecret": "Mostrar secreto TOTP",
-      "totpSecretDesc": "Opcional. Cuando se proporciona, My API Box puede generar automáticamente códigos TOTP para 2FA de inicio de sesión y la verificación segura requerida para ver claves de canal.",
+      "totpSecretDesc": "Opcional. Cuando se proporciona, StationWarden puede generar automáticamente códigos TOTP para 2FA de inicio de sesión y la verificación segura requerida para ver claves de canal.",
       "totpSecretLabel": "Secreto TOTP",
       "totpSecretPlaceholder": "Pega el secreto TOTP Base32",
       "userIdLabel": "ID de usuario administrador",
@@ -612,13 +612,13 @@
       "cta": "Visita GitHub para explorar el código y las novedades. También puedes reportar problemas o compartir ideas.",
       "getStartedCta": "Abrir guía de inicio",
       "label": "Código fuente",
-      "starCta": "¿Te resulta útil My API Box? Dale una estrella en GitHub para apoyar el proyecto"
+      "starCta": "¿Te resulta útil StationWarden? Dale una estrella en GitHub para apoyar el proyecto"
     },
     "reason": {
       "newPermissions": "Las nuevas funciones necesitan permisos opcionales adicionales. Revisa para qué sirve cada uno y concede solo los que necesites."
     },
     "subtitle": "Elige tu idioma y habilita solo los permisos opcionales que necesites. Puedes cambiar estas opciones más adelante.",
-    "title": "Bienvenido a My API Box",
+    "title": "Bienvenido a StationWarden",
     "toasts": {
       "error": "No se concedieron todos los permisos recomendados",
       "success": "Todos los permisos recomendados fueron concedidos"
@@ -728,7 +728,7 @@
     "title": "Ajustes de actualización",
     "turnstileNotificationEnable": "Permitir notificaciones del sistema",
     "turnstileNotificationManage": "Administrar permisos de notificación",
-    "turnstileNotificationPermissionTitle": "Permitir notificaciones del navegador de My API Box",
+    "turnstileNotificationPermissionTitle": "Permitir notificaciones del navegador de StationWarden",
     "turnstileNotificationStatus": {
       "available": "Notificaciones del sistema: permitidas. El modo no molestar o la configuración del navegador pueden ocultarlas.",
       "blocked": "El navegador bloquea las notificaciones. Revisa su configuración de notificaciones y vuelve a intentarlo aquí.",
@@ -813,7 +813,7 @@
       "description": "Si tu sitio requiere verificación adicional para operaciones sensibles, la extensión no puede ver ni exportar claves de canales. Realiza esas acciones en el panel de Sub2API. La migración también se ve afectada cuando necesita leer una clave de origen.",
       "title": "Límites para ver y exportar claves"
     },
-    "description": "Conecta tu sitio para importar claves API existentes a Sub2API y ver, editar y migrar canales desde My API Box.",
+    "description": "Conecta tu sitio para importar claves API existentes a Sub2API y ver, editar y migrar canales desde StationWarden.",
     "fields": {
       "adminApiKeyDesc": "Usa una Admin API Key generada en el panel para administrar canales. Una clave API común para llamar modelos no funciona aquí.",
       "adminApiKeyLabel": "Admin API Key",
@@ -861,7 +861,7 @@
         "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         "title": "Bot de DingTalk",
         "webhookKey": "URL de webhook o access_token",
-        "webhookKeyDescription": "Copia la URL del webhook desde la página de ajustes del bot personalizado de DingTalk y pégala aquí. Si ingresas solo el valor después de `access_token=`, My API Box completará la URL automáticamente. Si la seguridad firmada está habilitada, ingresa también el secreto.",
+        "webhookKeyDescription": "Copia la URL del webhook desde la página de ajustes del bot personalizado de DingTalk y pégala aquí. Si ingresas solo el valor después de `access_token=`, StationWarden completará la URL automáticamente. Si la seguridad firmada está habilitada, ingresa también el secreto.",
         "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       },
       "feishu": {
@@ -869,7 +869,7 @@
         "docsLink": "Ver docs de configuración",
         "title": "Bot de Feishu",
         "webhookKey": "URL de webhook o clave",
-        "webhookKeyDescription": "Copia la URL del webhook desde la página de ajustes del bot personalizado de Feishu y pégala aquí. Si ingresas solo la clave después de `/hook/`, My API Box completará la URL automáticamente.",
+        "webhookKeyDescription": "Copia la URL del webhook desde la página de ajustes del bot personalizado de Feishu y pégala aquí. Si ingresas solo la clave después de `/hook/`, StationWarden completará la URL automáticamente.",
         "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       },
       "ntfy": {
@@ -902,7 +902,7 @@
         "docsLink": "Ver docs de configuración",
         "title": "Bot de WeCom",
         "webhookKey": "URL de webhook o clave",
-        "webhookKeyDescription": "Copia la URL del webhook desde los ajustes de push de mensajes del grupo WeCom y pégala aquí. Si ingresas solo la clave después de `key=`, My API Box completará la URL automáticamente.",
+        "webhookKeyDescription": "Copia la URL del webhook desde los ajustes de push de mensajes del grupo WeCom y pégala aquí. Si ingresas solo la clave después de `key=`, StationWarden completará la URL automáticamente.",
         "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       }
     },
@@ -971,12 +971,12 @@
       "feishuMissingConfig": "La URL de webhook o clave del bot de Feishu no está configurada.",
       "httpError": "{{label}} devolvió HTTP {{status}}.",
       "httpErrorWithDetail": "{{label}} devolvió HTTP {{status}}: {{detail}}",
-      "message": "Esta es una notificación de prueba de tareas de My API Box.",
+      "message": "Esta es una notificación de prueba de tareas de StationWarden.",
       "ntfyInvalidUrl": "El tópico ntfy debe ser una URL con http:// o https://, o un nombre de tópico ntfy.sh válido.",
       "ntfyMissingConfig": "La URL de tópico o el nombre de tópico ntfy no está configurado.",
       "sent": "Notificación de prueba enviada",
       "telegramMissingConfig": "El token del Telegram Bot o Chat ID no está configurado.",
-      "title": "Notificación de prueba de My API Box",
+      "title": "Notificación de prueba de StationWarden",
       "webhookInvalidUrl": "La URL de webhook debe usar http:// o https://.",
       "webhookMissingConfig": "La URL de webhook no está configurada.",
       "wecomMissingConfig": "La URL de webhook o clave del bot de WeCom no está configurada."

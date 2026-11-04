@@ -147,7 +147,7 @@
   },
   "axonHub": {
     "cors": {
-      "description": "新的 AxonHub 實例通常需要調整服務端 CORS 配置，否則 My API Box 擴充套件無法從瀏覽器存取 AxonHub。可將 AXONHUB_SERVER_CORS_ALLOWED_ORIGINS 設為 \"*\"，或限制為你信任的瀏覽器 / 擴充套件來源。",
+      "description": "新的 AxonHub 實例通常需要調整服務端 CORS 配置，否則 StationWarden 擴充套件無法從瀏覽器存取 AxonHub。可將 AXONHUB_SERVER_CORS_ALLOWED_ORIGINS 設為 \"*\"，或限制為你信任的瀏覽器 / 擴充套件來源。",
       "title": "必需的 CORS 設定"
     },
     "description": "配置用於連接 AxonHub 管理後台的整合設定。",
@@ -452,7 +452,7 @@
       "showPassword": "顯示登入密碼",
       "showToken": "顯示系統訪問令牌",
       "showTotpSecret": "顯示 TOTP 金鑰",
-      "totpSecretDesc": "可選。填寫後，My API Box 可自動生成 TOTP 驗證碼，用於完成登入 2FA，以及檢視渠道 key 所需的安全驗證。",
+      "totpSecretDesc": "可選。填寫後，StationWarden 可自動生成 TOTP 驗證碼，用於完成登入 2FA，以及檢視渠道 key 所需的安全驗證。",
       "totpSecretLabel": "TOTP 金鑰",
       "totpSecretPlaceholder": "貼上 Base32 TOTP 金鑰",
       "userIdLabel": "管理員使用者 ID",
@@ -612,13 +612,13 @@
       "cta": "來 GitHub 看看原始碼和最新進展，也歡迎回報問題或分享想法。",
       "getStartedCta": "查看新手指引",
       "label": "原始碼",
-      "starCta": "覺得 My API Box 有幫助？點亮 Star 支持專案"
+      "starCta": "覺得 StationWarden 有幫助？點亮 Star 支持專案"
     },
     "reason": {
       "newPermissions": "新增功能需要新的可選權限。請查看具體用途，並按需授權。"
     },
     "subtitle": "先選擇介面語言，再按需開啟可選權限；這些設定之後都可以更改。",
-    "title": "歡迎使用 My API Box",
+    "title": "歡迎使用 StationWarden",
     "toasts": {
       "error": "未能授予全部推薦權限",
       "success": "已授予全部推薦權限"
@@ -726,7 +726,7 @@
     "title": "重新整理設定",
     "turnstileNotificationEnable": "授權系統通知",
     "turnstileNotificationManage": "管理通知權限",
-    "turnstileNotificationPermissionTitle": "允許 My API Box 傳送瀏覽器通知",
+    "turnstileNotificationPermissionTitle": "允許 StationWarden 傳送瀏覽器通知",
     "turnstileNotificationStatus": {
       "available": "系統通知：權限可用。系統勿擾或瀏覽器設定仍可能隱藏通知。",
       "blocked": "瀏覽器已封鎖通知。請檢查瀏覽器通知設定，返回後重試。",
@@ -811,7 +811,7 @@
       "description": "若站點啟用了敏感操作二次驗證，擴充功能暫時無法查看或匯出渠道金鑰。請在 Sub2API 後台完成這些操作；遷移需要讀取來源金鑰時也會受限。",
       "title": "金鑰查看與匯出的限制"
     },
-    "description": "連線後，可將現有 API Key 匯入 Sub2API，並在 My API Box 中查看、編輯和遷移渠道。",
+    "description": "連線後，可將現有 API Key 匯入 Sub2API，並在 StationWarden 中查看、編輯和遷移渠道。",
     "fields": {
       "adminApiKeyDesc": "請填寫後台產生的管理員 API Key，用於管理渠道。呼叫模型使用的一般 API Key 不能用於此處。",
       "adminApiKeyLabel": "管理員 API Key",
@@ -969,12 +969,12 @@
       "feishuMissingConfig": "飛書機器人 Webhook URL 或 Key 未設定。",
       "httpError": "{{label}} 回傳了 HTTP {{status}}。",
       "httpErrorWithDetail": "{{label}} 回傳了 HTTP {{status}}：{{detail}}",
-      "message": "這是一條 My API Box 任務通知測試。",
+      "message": "這是一條 StationWarden 任務通知測試。",
       "ntfyInvalidUrl": "ntfy Topic URL 必須使用 http:// 或 https://，或填寫有效的 ntfy.sh 主題名稱。",
       "ntfyMissingConfig": "ntfy Topic URL 或主題名稱未設定。",
       "sent": "測試通知已傳送",
       "telegramMissingConfig": "Telegram Bot Token 或 Chat ID 未設定。",
-      "title": "My API Box 測試通知",
+      "title": "StationWarden 測試通知",
       "webhookInvalidUrl": "Webhook URL 必須使用 http:// 或 https://。",
       "webhookMissingConfig": "Webhook URL 未設定。",
       "wecomMissingConfig": "企業微信機器人 Webhook URL 或 Key 未設定。"
