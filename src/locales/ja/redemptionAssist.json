@@ -32,7 +32,7 @@
     "cancelled": "キャンセルしました",
     "extensionDays": "{{days}} 日延長",
     "fallbackBenefit": "代替特典を使用",
-    "noAccountForUrl": "このサイトに一致するアカウントが見つかりません。My API Box にこのサイトをアカウントとして追加してから、もう一度お試しください。",
+    "noAccountForUrl": "このサイトに一致するアカウントが見つかりません。StationWarden にこのサイトをアカウントとして追加してから、もう一度お試しください。",
     "promptConfirm": "このページで引き換えコード候補 {{code}} を検出しました。このサイトで自動引き換えを試しますか？",
     "promptConfirmBatch_other": "このページで {{count}} 件の引き換えコード候補を検出しました。このサイトで自動引き換えするコードを選択してください。",
     "promptSettingsLink": "Redemption Assist の設定を開く",

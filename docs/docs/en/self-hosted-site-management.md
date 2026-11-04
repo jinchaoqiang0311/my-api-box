@@ -4,7 +4,7 @@
 
 ## Supported System Types
 
-My API Box is deeply adapted to the following open-source/self-hosted AI distribution systems:
+StationWarden is deeply adapted to the following open-source/self-hosted AI distribution systems:
 
 | System Type                                     | Core Management Object | Features                                                                                                                                   |
 | ----------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |

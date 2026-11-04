@@ -9,7 +9,7 @@ import {
   readE2eBuildVariant,
 } from "./e2e/utils/e2eBuildVariants"
 import { reactDevToolsAuto } from "./plugins/react-devtools-auto"
-import { APP_SHORT_NAME } from "./src/constants/branding"
+import { APP_NAME } from "./src/constants/branding"
 import { APP_LOCALE_ASSET_GLOB } from "./src/constants/i18n"
 import { OPENROUTER_WEB_ORIGIN } from "./src/services/accountSiteDefinitions/identifiers"
 import {
@@ -129,17 +129,17 @@ export default defineConfig({
     const optionalPermissions = getManifestOptionalPermissions(env.browser)
 
     return {
-      // Local builds share a display name, so the dev name carries the project
-      // path to keep them apart in the extension list, menus and window titles.
+      // The release name comes from the single brand source so store listings
+      // and the installed extension cannot drift apart.
       name: isDevServe
         ? formatDevManifestName(
-            APP_SHORT_NAME,
+            APP_NAME,
             // web-ext Android derives its ZIP filename from this name.
             process.env.AAH_MOBILE_DEV === "1"
               ? path.basename(projectPath)
               : projectPath,
           )
-        : "__MSG_manifest_name__",
+        : APP_NAME,
       description,
       default_locale: "en",
       permissions: requiredPermissions,

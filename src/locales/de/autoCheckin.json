@@ -177,7 +177,7 @@
     "checkinDisabled": "Die Check-in-Funktion ist deaktiviert"
   },
   "riskNotice": {
-    "description": "Beachte die Regeln der jeweiligen Website und prüfe die Risiken des automatischen Check-ins. Für Kontosperrungen, Einschränkungen oder andere Schäden durch diese Funktion bist du selbst verantwortlich. My API Box übernimmt keine Haftung.",
+    "description": "Beachte die Regeln der jeweiligen Website und prüfe die Risiken des automatischen Check-ins. Für Kontosperrungen, Einschränkungen oder andere Schäden durch diese Funktion bist du selbst verantwortlich. StationWarden übernimmt keine Haftung.",
     "label": "Risikohinweis zum automatischen Check-in"
   },
   "settings": {

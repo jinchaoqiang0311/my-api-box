@@ -136,16 +136,16 @@
     "openVerification": "Open verification window",
     "reminderSettings": "Reminder settings",
     "turnstileAssistBody": "The site is waiting for human verification. Select “Open verification window” to finish the captcha. The extension will then check the task result.",
-    "turnstileAssistTitle": "My API Box · Verification reminder",
+    "turnstileAssistTitle": "StationWarden · Verification reminder",
     "turnstilePageBody": "The site is waiting for human verification. Select “Open verification window” to finish the captcha. The extension will then check the task result.",
     "verificationEnded": "This verification has ended. No further action is needed."
   },
-  "titlePrefix": "My API Box · Shield Bypass",
+  "titlePrefix": "StationWarden · Shield Bypass",
   "toast": {
     "actions": {
       "openSettings": "Open shield bypass settings"
     },
-    "body": "This page was opened automatically by My API Box to pass protection pages (e.g., Cloudflare challenges) and obtain the required cookies/session.\nIt’s necessary so My API Box can make successful requests and detect data on protected sites.\nIf a verification step appears, complete it in this window; once passed, My API Box continues and this window may close automatically.",
+    "body": "This page was opened automatically by StationWarden to pass protection pages (e.g., Cloudflare challenges) and obtain the required cookies/session.\nIt’s necessary so StationWarden can make successful requests and detect data on protected sites.\nIf a verification step appears, complete it in this window; once passed, StationWarden continues and this window may close automatically.",
     "title": "Shield bypass helper",
     "turnstile": {
       "body": "Complete the site’s human verification in this window, such as checking “I am human” or selecting the requested images. The extension is waiting and will check the task result afterwards. If the page still shows you as not checked in, complete check-in there.",

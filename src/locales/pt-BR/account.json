@@ -396,7 +396,7 @@
       "openApiCredentialProfiles": "Abrir biblioteca de credenciais",
       "openModelSync": "Abrir sincronização de modelos"
     },
-    "boundaryNote": "O My API Box gerencia chaves de contas. Ele não encaminha solicitações de modelos; clientes externos se conectam ao seu gateway de IA auto-hospedado.",
+    "boundaryNote": "O StationWarden gerencia chaves de contas. Ele não encaminha solicitações de modelos; clientes externos se conectam ao seu gateway de IA auto-hospedado.",
     "description": {
       "has_gateway_channels": "Canais do gateway foram criados ou importados. Abra o gerenciamento de canais para verificar o estado atual.",
       "needs_importable_source": "As contas atuais não podem fornecer chaves importáveis. Primeiro, salve uma chave de API ou adicione um tipo de conta que permita acessar a chave. Depois, importe-a para seu gateway de IA auto-hospedado.",

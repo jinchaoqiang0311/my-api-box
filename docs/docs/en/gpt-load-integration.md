@@ -1,6 +1,6 @@
 # gpt-load
 
-[gpt-load](https://github.com/tbphp/gpt-load) is supported by My API Box's managed-site feature. After configuring the connection once, you can view, create, edit, and delete the gateway's groups (channels) from the extension, import account keys or API credentials, and maintain each group's key pool and model list directly.
+[gpt-load](https://github.com/tbphp/gpt-load) is supported by StationWarden's managed-site feature. After configuring the connection once, you can view, create, edit, and delete the gateway's groups (channels) from the extension, import account keys or API credentials, and maintain each group's key pool and model list directly.
 
 gpt-load is a self-hosted AI gateway (written in Go) that owns no upstream account of its own (no balance, plan, or check-in). It can only be connected as a **managed site** and never appears in the account list.
 

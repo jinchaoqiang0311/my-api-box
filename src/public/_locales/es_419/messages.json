@@ -1,15 +1,15 @@
 {
   "manifest_name": {
-    "message": "My API Box - Tu gestor de estaciones de retransmisión"
+    "message": "StationWarden - AI Relay Account & Billing Guard"
   },
   "manifest_description": {
     "message": "saldo/uso, check-in automático, exportación de claves con un clic a clientes populares, comprobaciones de API en la página, sincronización de canales/modelos y redirección"
   },
   "manifest_commands_sidebar_action": {
-    "message": "Abrir My API Box en la barra lateral"
+    "message": "Abrir StationWarden en la barra lateral"
   },
   "manifest_commands_browser_action": {
-    "message": "Abrir My API Box en el popup"
+    "message": "Abrir StationWarden en el popup"
   },
   "context_menu_redeem_selection": {
     "message": "Canjear selección con Redemption Assist"

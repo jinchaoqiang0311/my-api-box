@@ -36,7 +36,7 @@ const createRequestShortCode = (requestId: string) => {
 }
 
 export const createOpenRouterBootstrapLabel = (requestId: string) =>
-  `My API Box - Account Connection (${createRequestShortCode(requestId)})`
+  `StationWarden - Account Connection (${createRequestShortCode(requestId)})`
 
 export const OPENROUTER_BOOTSTRAP_VALIDATION_TIMEOUT_MS = 15_000
 export const OPENROUTER_BOOTSTRAP_CANCEL_TIMEOUT_MS = 5_000

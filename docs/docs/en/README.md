@@ -1,8 +1,8 @@
-﻿---
+---
 home: true
 title: "Homepage"
 heroImage: "/512.png"
-heroText: "My API Box - Your Relay Station Manager"
+heroText: "StationWarden - AI Relay Account & Billing Guard"
 tagline: "An open-source browser extension for AI relay accounts and API credentials, with management for self-hosted gateways such as CLIProxyAPI, New API, and Sub2API. Check balances, compare model prices, verify APIs, and back up with encrypted WebDAV."
 actions:
   - text: "Get Started"
@@ -45,14 +45,14 @@ features:
   - title: "🔐 Local-First Storage & Auto-Sync"
     details: "Data stays in your browser by default; enable encrypted WebDAV auto-sync to keep it safely synchronized across devices and continue where you left off after switching computers."
 
-footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
+footer: "AGPL-3.0 Licensed | Copyright 2025-present StationWarden"
 ---
 
 ## Introduction
 
 In the AI era, many of us keep multiple relay-site accounts to save money or try different models. Managing them quickly becomes painful: balances are scattered, pricing is messy, and daily manual check-ins are easy to miss.
 
-**My API Box is built to solve those problems.** It is your AI asset center, making management simpler, clearer, and more automated.
+**StationWarden is built to solve those problems.** It is your AI asset center, making management simpler, clearer, and more automated.
 
 ## 🎯 Use Cases
 
@@ -99,14 +99,14 @@ Have questions or want to share useful sites Join the community:
 
 <img
   src="../../../resources/wechat_group.png"
-  alt="My API Box WeChat Group QR Code"
+  alt="StationWarden WeChat Group QR Code"
   style="width: min(280px, 100%);"
 />
 
 <a id="sponsors"></a>
 ## ❤️ Sponsors
 
-Thank you to all our sponsors for supporting the project's long-term feature development and maintenance. We are also grateful to every user, contributor, and community member for using, testing, sharing, and improving My API Box.
+Thank you to all our sponsors for supporting the project's long-term feature development and maintenance. We are also grateful to every user, contributor, and community member for using, testing, sharing, and improving StationWarden.
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
@@ -128,7 +128,7 @@ Thank you to all our sponsors for supporting the project's long-term feature dev
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    FennoAI is a stable and efficient API relay provider focused on Codex relay services. It supports the OpenAI and Anthropic protocols, integrates flexibly with popular coding tools such as Codex, Claude Code, and OpenCode, and reliably handles enterprise demand at the scale of 100 billion tokens per day. It also supports business-to-business settlement and invoicing for entities in China and overseas. FennoAI offers an exclusive benefit for My API Box users: subscribe through <a href="https://api.fenno.ai/s/DCGC">the dedicated link</a> for just $1.99 to receive $50 in Coding Plan credits. Its referral program offers up to 20% commission on friends' purchases, with higher rewards as you invite more people (<a href="./service-guides/fenno.md">setup guide</a>).
+    FennoAI is a stable and efficient API relay provider focused on Codex relay services. It supports the OpenAI and Anthropic protocols, integrates flexibly with popular coding tools such as Codex, Claude Code, and OpenCode, and reliably handles enterprise demand at the scale of 100 billion tokens per day. It also supports business-to-business settlement and invoicing for entities in China and overseas. FennoAI offers an exclusive benefit for StationWarden users: subscribe through <a href="https://api.fenno.ai/s/DCGC">the dedicated link</a> for just $1.99 to receive $50 in Coding Plan credits. Its referral program offers up to 20% commission on friends' purchases, with higher rewards as you invite more people (<a href="./service-guides/fenno.md">setup guide</a>).
   </p>
 </div>
 
@@ -169,7 +169,7 @@ Thank you to all our sponsors for supporting the project's long-term feature dev
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    AICodeMirror provides official high-stability relay services for Claude Code / Codex / Gemini CLI, with enterprise-grade concurrency, fast invoicing, and 24/7 dedicated technical support. Claude Code / Codex / Gemini official channels are available from 38% / 2% / 9% of the original price, with extra discounts on top-ups. AICodeMirror offers special benefits for My API Box users: register via <a href="https://www.aicodemirror.ai/register">this link</a> to enjoy 20% off your first top-up, and enterprise customers can get up to 25% off.
+    AICodeMirror provides official high-stability relay services for Claude Code / Codex / Gemini CLI, with enterprise-grade concurrency, fast invoicing, and 24/7 dedicated technical support. Claude Code / Codex / Gemini official channels are available from 38% / 2% / 9% of the original price, with extra discounts on top-ups. AICodeMirror offers special benefits for StationWarden users: register via <a href="https://www.aicodemirror.ai/register">this link</a> to enjoy 20% off your first top-up, and enterprise customers can get up to 25% off.
   </p>
 </div>
 

@@ -14,7 +14,7 @@ Site announcements handle **fetching, saving, and displaying announcements**. Ta
 
 These two switches are separate:
 
-- **`Enable site announcement polling`**: controls whether My API Box checks site announcements in the background.
+- **`Enable site announcement polling`**: controls whether StationWarden checks site announcements in the background.
 - **`Site announcement notifications`**: controls whether new announcements are sent through task notification channels.
 
 If you only want a central announcement inbox without pop-up reminders, enable polling and disable notifications. If you disable polling, notification channels will not fetch site announcements on their own.
@@ -23,7 +23,7 @@ If you only want a central announcement inbox without pop-up reminders, enable p
 
 ### View announcements
 
-1. Open the My API Box settings page.
+1. Open the StationWarden settings page.
 2. Select **`Site Announcements`** in the sidebar.
 3. Review fetched announcement records, or click **`Check now`** to refresh manually.
 
@@ -57,7 +57,7 @@ If you only disable **`Site announcement notifications`**, new announcements are
 | Local retention | Each site keeps its most recent announcement records, and older ones are evicted by time. |
 | Manual check | **`Check now`** on the **`Site Announcements`** page is not blocked by the background polling switch, and manual checks never send notifications. |
 
-For accounts that share the same site-wide announcement endpoint, My API Box checks the site once to avoid duplicate polling. Sub2API announcements are account-scoped unread announcements, so they are checked per account.
+For accounts that share the same site-wide announcement endpoint, StationWarden checks the site once to avoid duplicate polling. Sub2API announcements are account-scoped unread announcements, so they are checked per account.
 
 ## Supported sources
 
@@ -68,7 +68,7 @@ Site announcements currently support two main sources:
 | One API / New API compatible sites and common variants | Reads the site's `/api/notice` endpoint | Applies to many One API, New API, Veloera, OneHub, DoneHub, and similar compatible deployments. Actual availability depends on whether the target site keeps this endpoint and returns usable announcement content. |
 | Sub2API | Reads the account's unread announcement endpoint | Fetches the account's unread announcements. Marking one read on the page syncs upstream; to also sync right after a successful notification (which clears the unread state on the site), enable **`Mark announcements read on the site after notifying`** in settings. |
 
-If a site has no usable announcement endpoint, or the endpoint returns empty content, My API Box treats it as no displayable announcement for now. You can check the latest per-site status on the **`Site Announcements`** page.
+If a site has no usable announcement endpoint, or the endpoint returns empty content, StationWarden treats it as no displayable announcement for now. You can check the latest per-site status on the **`Site Announcements`** page.
 
 ## Page actions
 
@@ -94,7 +94,7 @@ Possible causes include:
 
 ### Why does it show “unsupported announcement endpoint”
 
-This means the latest check did not find a usable announcement endpoint, or the target site's API behavior does not match the format currently supported by My API Box. This is common on privately modified deployments, sites that disabled the announcement endpoint, or sites that changed the response shape.
+This means the latest check did not find a usable announcement endpoint, or the target site's API behavior does not match the format currently supported by StationWarden. This is common on privately modified deployments, sites that disabled the announcement endpoint, or sites that changed the response shape.
 
 ### Why can I still see new announcements after disabling notifications
 
@@ -106,7 +106,7 @@ The background polling switch only controls scheduled tasks. Manual checks are u
 
 ### Does Sub2API read state sync back to the site
 
-In two different cases. When you mark an announcement read on the page, or expand an unread Sub2API announcement, My API Box tries to sync the upstream read state. To also sync right after a successful notification, enable **`Mark announcements read on the site after notifying`** in settings; it will not do that on its own, because it clears your unread state on the site. If the site API fails, the local read state still follows your local action.
+In two different cases. When you mark an announcement read on the page, or expand an unread Sub2API announcement, StationWarden tries to sync the upstream read state. To also sync right after a successful notification, enable **`Mark announcements read on the site after notifying`** in settings; it will not do that on its own, because it clears your unread state on the site. If the site API fails, the local read state still follows your local action.
 
 ## Related docs
 

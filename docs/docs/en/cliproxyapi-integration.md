@@ -1,6 +1,6 @@
 # CLIProxyAPI Management
 
-CLIProxyAPI is a managed site in My API Box. Configure the connection once to view, create, edit, and delete upstream providers, or import account keys and API credentials.
+CLIProxyAPI is a managed site in StationWarden. Configure the connection once to view, create, edit, and delete upstream providers, or import account keys and API credentials.
 
 ## Connect your deployment
 

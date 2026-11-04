@@ -1,8 +1,8 @@
-﻿---
+---
 home: true
 title: "ホーム"
 heroImage: "/512.png"
-heroText: "My API Box - あなたの中継ステーション管理"
+heroText: "StationWarden - AI中継アカウントと課金ガード"
 tagline: "AI 中継サイトのアカウントと API 認証情報をまとめて管理するオープンソースのブラウザー拡張機能。CLIProxyAPI、New API、Sub2API などのセルフホスト型ゲートウェイの管理、残高確認、モデル価格比較、API 検証、暗号化 WebDAV バックアップに対応しています。"
 actions:
   - text: "利用開始"
@@ -45,14 +45,14 @@ features:
   - title: "🔐 ローカル優先と自動同期"
     details: "データはデフォルトでブラウザ内に保存されます。暗号化 WebDAV 自動同期を有効にすると、複数デバイス間で安全に同期し、パソコンを替えてもそのまま使い続けられます。"
 
-footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
+footer: "AGPL-3.0 Licensed | Copyright 2025-present StationWarden"
 ---
 
 ## 紹介
 
 AI の時代には、節約したり別のモデルを試したりするために、複数の中継サイトアカウントを持つことがよくあります。ただし、管理は面倒になりがちです。残高は分散し、価格は比較しづらく、毎日の手動チェックインも忘れやすくなります。
 
-**My API Box は、その問題を解決するためのツールです。** AI 資産を一元管理し、より簡単で見やすく、自動化された管理を実現します。
+**StationWarden は、その問題を解決するためのツールです。** AI 資産を一元管理し、より簡単で見やすく、自動化された管理を実現します。
 
 ## 🎯 使用シーン
 
@@ -99,14 +99,14 @@ AI の時代には、節約したり別のモデルを試したりするため�
 
 <img
   src="../../../resources/wechat_group.png"
-  alt="My API Box WeChat グループ QR コード"
+  alt="StationWarden WeChat グループ QR コード"
   style="width: min(280px, 100%);"
 />
 
 <a id="sponsors"></a>
 ## ❤️ 協賛スポンサー
 
-スポンサーの皆様による本プロジェクトへのご支援は、長期的な機能開発とメンテナンスを支えています。また、My API Box を利用し、フィードバック、テスト、共有、改善に協力してくださるすべてのユーザー、コントリビューター、コミュニティの皆様にも感謝します。
+スポンサーの皆様による本プロジェクトへのご支援は、長期的な機能開発とメンテナンスを支えています。また、StationWarden を利用し、フィードバック、テスト、共有、改善に協力してくださるすべてのユーザー、コントリビューター、コミュニティの皆様にも感謝します。
 
 <div class="readme-sponsor">
   <div class="readme-sponsor-logo">
@@ -128,7 +128,7 @@ AI の時代には、節約したり別のモデルを試したりするため�
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    FennoAI は、Codex 中継サービスを中心に提供する安定性と効率性に優れた API 中継サービスプロバイダーです。OpenAI と Anthropic のプロトコルに対応し、Codex、Claude Code、OpenCode などの主要なコーディングツールへ柔軟に接続できます。1 日あたり 1,000 億 Token 規模の企業利用を安定して支え、中国国内および海外法人との企業間決済と請求書発行にも対応しています。My API Box ユーザー向け特典として、<a href="https://api.fenno.ai/s/DCGC">専用リンク</a>からわずか 1.99 ドルで、50 ドル相当の Coding Plan クレジットを購入できます。友人の購入に対して最大 20% の紹介報酬を受け取ることができ、紹介人数に応じて報酬も増えます（<a href="./service-guides/fenno.md">設定ガイド</a>）。
+    FennoAI は、Codex 中継サービスを中心に提供する安定性と効率性に優れた API 中継サービスプロバイダーです。OpenAI と Anthropic のプロトコルに対応し、Codex、Claude Code、OpenCode などの主要なコーディングツールへ柔軟に接続できます。1 日あたり 1,000 億 Token 規模の企業利用を安定して支え、中国国内および海外法人との企業間決済と請求書発行にも対応しています。StationWarden ユーザー向け特典として、<a href="https://api.fenno.ai/s/DCGC">専用リンク</a>からわずか 1.99 ドルで、50 ドル相当の Coding Plan クレジットを購入できます。友人の購入に対して最大 20% の紹介報酬を受け取ることができ、紹介人数に応じて報酬も増えます（<a href="./service-guides/fenno.md">設定ガイド</a>）。
   </p>
 </div>
 
@@ -168,7 +168,7 @@ AI の時代には、節約したり別のモデルを試したりするため�
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    AICodeMirror は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。My API Box ユーザー向け特典として、<a href="https://www.aicodemirror.ai/register">こちらのリンク</a>から登録すると初回チャージが 20% オフになり、エンタープライズ顧客は最大 25% オフを受けられます。
+    AICodeMirror は Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスを提供し、エンタープライズ級の高同時実行、迅速な請求書発行、24 時間 365 日の専任技術サポートに対応しています。Claude Code / Codex / Gemini の公式チャネルを通常価格の 38% / 2% / 9% 程度から利用でき、チャージ時の追加割引もあります。StationWarden ユーザー向け特典として、<a href="https://www.aicodemirror.ai/register">こちらのリンク</a>から登録すると初回チャージが 20% オフになり、エンタープライズ顧客は最大 25% オフを受けられます。
   </p>
 </div>
 

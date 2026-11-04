@@ -372,7 +372,7 @@
       "openApiCredentialProfiles": "Open credential library",
       "openModelSync": "Open model sync"
     },
-    "boundaryNote": "My API Box manages account keys. It does not proxy model requests; external clients call your self-hosted AI gateway.",
+    "boundaryNote": "StationWarden manages account keys. It does not proxy model requests; external clients call your self-hosted AI gateway.",
     "description": {
       "has_gateway_channels": "Gateway channels have been created or imported. Open channel management to check their current status.",
       "needs_importable_source": "The current accounts cannot expose importable keys. Save an API key first, or add an account type that supports key access, then import it into your self-hosted AI gateway.",

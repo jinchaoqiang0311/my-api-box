@@ -135,16 +135,16 @@
     "openVerification": "検証ウィンドウを開く",
     "reminderSettings": "通知設定",
     "turnstileAssistBody": "サイトの認証が未完了です。「認証ウィンドウを開く」から認証を完了すると、拡張機能が処理結果を確認します。",
-    "turnstileAssistTitle": "My API Box · 認証の通知",
+    "turnstileAssistTitle": "StationWarden · 認証の通知",
     "turnstilePageBody": "サイトの認証が未完了です。「認証ウィンドウを開く」から認証を完了すると、拡張機能が処理結果を確認します。",
     "verificationEnded": "この検証は終了しました。操作は不要です。"
   },
-  "titlePrefix": "My API Box · 保護回避",
+  "titlePrefix": "StationWarden · 保護回避",
   "toast": {
     "actions": {
       "openSettings": "保護回避設定を開く"
     },
-    "body": "このページは、保護ページ（例: Cloudflare のチャレンジ）を通過し、必要な Cookie / セッションを取得するために、My API Box が自動的に開いたものです。\n保護されたサイトで My API Box が正常にリクエストを行い、データを検出できるようにするために必要です。\n確認手順が表示された場合は、このウィンドウ内で完了してください。通過後、My API Box は処理を続行し、このウィンドウは自動的に閉じることがあります。",
+    "body": "このページは、保護ページ（例: Cloudflare のチャレンジ）を通過し、必要な Cookie / セッションを取得するために、StationWarden が自動的に開いたものです。\n保護されたサイトで StationWarden が正常にリクエストを行い、データを検出できるようにするために必要です。\n確認手順が表示された場合は、このウィンドウ内で完了してください。通過後、StationWarden は処理を続行し、このウィンドウは自動的に閉じることがあります。",
     "title": "保護回避ヘルパー",
     "turnstile": {
       "body": "このウィンドウでサイトの認証を完了してください（「私は人間です」の選択や画像の選択など）。拡張機能は待機中で、完了後に処理結果を確認します。ページ上で未チェックインのままなら、そのページでチェックインしてください。",

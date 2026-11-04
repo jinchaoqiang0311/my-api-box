@@ -1,6 +1,6 @@
 # OmniRoute Management
 
-[OmniRoute](https://github.com/diegosouzapw/OmniRoute) is a managed site in My API Box. Configure the connection once to view, create, edit, and delete the gateway's channels (provider connections), or import account keys and API credentials.
+[OmniRoute](https://github.com/diegosouzapw/OmniRoute) is a managed site in StationWarden. Configure the connection once to view, create, edit, and delete the gateway's channels (provider connections), or import account keys and API credentials.
 
 OmniRoute is a self-hosted AI gateway, so it has no account semantics of its own: no balance, plan, or check-in. It can only be added as a **managed site**, and never appears in the account list.
 

@@ -32,7 +32,7 @@
     "cancelled": "已取消",
     "extensionDays": "延長 {{days}} 天",
     "fallbackBenefit": "已使用備用福利",
-    "noAccountForUrl": "當前站點未在 My API Box 中配置帳號，請先在擴充套件中新增該站點後再試。",
+    "noAccountForUrl": "當前站點未在 StationWarden 中配置帳號，請先在擴充套件中新增該站點後再試。",
     "promptConfirm": "檢測到疑似兌換碼 {{code}}，是否為當前站點嘗試自動兌換？",
     "promptConfirmBatch_other": "檢測到 {{count}} 個疑似兌換碼，請選擇要為當前站點嘗試自動兌換的兌換碼。",
     "promptSettingsLink": "開啟兌換助手設定",

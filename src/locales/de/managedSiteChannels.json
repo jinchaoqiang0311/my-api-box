@@ -519,7 +519,7 @@
     },
     "headerDescription": "Kanäle im selbst gehosteten KI-Gateway verwalten und API-Quellen über einen gemeinsamen Endpunkt nutzen.",
     "openChannelConsole": "Öffnen Sie die Gateway-Kanalverwaltung",
-    "unconfiguredValueDescription": "Nach der Konfiguration können Sie verstreute Kontoschlüssel und API-Schlüssel als Gateway-Kanäle importieren und diese dann direkt in My API Box anzeigen und verwalten."
+    "unconfiguredValueDescription": "Nach der Konfiguration können Sie verstreute Kontoschlüssel und API-Schlüssel als Gateway-Kanäle importieren und diese dann direkt in StationWarden anzeigen und verwalten."
   },
   "magpieKeys": {
     "anyProtocol": "Alle Protokolle",

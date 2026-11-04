@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "My API Box"
+    "name": "StationWarden"
   },
   "billing": {
     "notProvided": "Not provided",
@@ -487,7 +487,7 @@
       "loading": "Loading changelog…",
       "missingSection": "Couldn't load the changelog preview for v{{version}}. You can open the full changelog.",
       "openFullChangelog": "Open full changelog",
-      "starPrompt": "Finding My API Box useful? Star it on GitHub to follow along",
+      "starPrompt": "Finding StationWarden useful? Star it on GitHub to follow along",
       "title": "What's New",
       "updatedTo": "Updated to v{{version}}"
     }
@@ -608,7 +608,7 @@
     "placeholder": "Search settings..."
   },
   "pageTitle": {
-    "app": "My API Box",
+    "app": "StationWarden",
     "options": "Settings",
     "popup": "Popup",
     "sidepanel": "Sidebar",
@@ -681,7 +681,7 @@
       "star": "Star on GitHub"
     },
     "cardDescription": "Fully open source, still adapting to more sites and polishing the experience. A star sustains its upkeep and helps more people who need it find it.",
-    "cardTitle": "Finding My API Box useful?"
+    "cardTitle": "Finding StationWarden useful?"
   },
   "textEntries": {
     "add": "Add row",

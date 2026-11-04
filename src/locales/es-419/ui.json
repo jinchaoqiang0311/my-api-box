@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "My API Box"
+    "name": "StationWarden"
   },
   "billing": {
     "notProvided": "No proporcionado",
@@ -498,7 +498,7 @@
       "loading": "Cargando changelog…",
       "missingSection": "No se pudo cargar la vista previa del changelog de v{{version}}. Puedes abrir el changelog completo.",
       "openFullChangelog": "Abrir changelog completo",
-      "starPrompt": "¿Te resulta útil My API Box? Dale una estrella en GitHub para seguir las novedades",
+      "starPrompt": "¿Te resulta útil StationWarden? Dale una estrella en GitHub para seguir las novedades",
       "title": "Novedades",
       "updatedTo": "Actualizado a v{{version}}"
     }
@@ -621,7 +621,7 @@
     "placeholder": "Buscar ajustes..."
   },
   "pageTitle": {
-    "app": "My API Box",
+    "app": "StationWarden",
     "options": "Ajustes",
     "popup": "Popup",
     "sidepanel": "Barra lateral",
@@ -694,8 +694,8 @@
       "later": "Más tarde",
       "star": "Dar estrella"
     },
-    "cardDescription": "My API Box es totalmente de código abierto, y sigue adaptándose a más sitios mientras mejora la experiencia. Una estrella sostiene su mantenimiento y ayuda a que más gente que lo necesita lo encuentre.",
-    "cardTitle": "¿Te sirve My API Box?"
+    "cardDescription": "StationWarden es totalmente de código abierto, y sigue adaptándose a más sitios mientras mejora la experiencia. Una estrella sostiene su mantenimiento y ayuda a que más gente que lo necesita lo encuentre.",
+    "cardTitle": "¿Te sirve StationWarden?"
   },
   "textEntries": {
     "add": "Agregar fila",

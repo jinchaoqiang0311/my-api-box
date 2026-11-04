@@ -1,6 +1,6 @@
 # Overview (Main Dashboard of the Settings Page)
 
-> When you open the My API Box settings page, the first page you see is the **Overview**. It consolidates your account, credentials, usage, automated tasks, and configuration status on a single screen, allowing you to quickly assess "how things are going and what needs attention."
+> When you open the StationWarden settings page, the first page you see is the **Overview**. It consolidates your account, credentials, usage, automated tasks, and configuration status on a single screen, allowing you to quickly assess "how things are going and what needs attention."
 >
 > **Page subtitle**: View the current status of your accounts, keys, usage, and automated tasks.
 
@@ -88,7 +88,7 @@ Four key numeric cards provide an instant snapshot of the current overall status
 > If you don’t need a self-hosted gateway, you can ignore this section. Simply copy or export individual keys from the **API Credential Library** for use in your software.
 >
 > ⚠️ **Boundary Clarification**:
-> My API Box only helps you **locally manage and import configurations**. It does **not** proxy your model requests. When chatting, your client communicates **directly** with your self-hosted gateway.
+> StationWarden only helps you **locally manage and import configurations**. It does **not** proxy your model requests. When chatting, your client communicates **directly** with your self-hosted gateway.
 
 ---
 

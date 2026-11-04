@@ -1,6 +1,6 @@
-﻿# Install the Safari Extension
+# Install the Safari Extension
 
-This guide explains how to install and keep using the My API Box Safari extension on your Mac. Safari installs extensions through a companion macOS app. After setup, your accounts and settings are stored locally.
+This guide explains how to install and keep using the StationWarden Safari extension on your Mac. Safari installs extensions through a companion macOS app. After setup, your accounts and settings are stored locally.
 
 ## Verified environment
 
@@ -8,18 +8,18 @@ This installation flow was verified on macOS 26.6.2 and Safari 26.6.2. This desc
 
 ## Install
 
-1. Open the [latest My API Box release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest) and download `all-api-hub-<version>-safari-xcode-bundle.zip`. Do not download the attachment named only `-safari.zip`.
+1. Open the [latest StationWarden release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest) and download `all-api-hub-<version>-safari-xcode-bundle.zip`. Do not download the attachment named only `-safari.zip`.
 2. Extract the archive, find the Xcode project, and open it in Xcode.
 3. Select the macOS app and your Mac as the run destination in Xcode, then choose `Product > Run`. If Xcode asks about signing, choose the option for running locally as prompted.
 4. In Safari, open `Safari > Settings > Advanced` and enable “Show features for web developers,” then open `Safari > Settings > Developer` and enable “Allow Unsigned Extensions.” Safari may ask for your Mac login password.
-5. Open `Safari > Settings > Extensions`, enable `My API Box`, and allow access to websites as needed.
+5. Open `Safari > Settings > Extensions`, enable `StationWarden`, and allow access to websites as needed.
 6. Click the extension icon in Safari’s toolbar to use it.
 
 If the extension is missing from the list, run the companion macOS app from Xcode once more, then reopen Safari’s Extensions settings.
 
 ## When you reopen Safari
 
-Safari resets “Allow Unsigned Extensions” when it quits. Each time you reopen Safari, enable this option again. You normally do not need to relaunch the `My API Box` macOS app; launch it for initial installation, reinstallation, or if Safari cannot find the extension. This only affects whether the extension can run; it does not erase extension data.
+Safari resets “Allow Unsigned Extensions” when it quits. Each time you reopen Safari, enable this option again. You normally do not need to relaunch the `StationWarden` macOS app; launch it for initial installation, reinstallation, or if Safari cannot find the extension. This only affects whether the extension can run; it does not erase extension data.
 
 ## Where your data is stored
 
@@ -39,9 +39,9 @@ Individual sites may have their own limitations; installing the extension does n
 
 ## Update or uninstall
 
-**Update:** Download the latest Safari Xcode project archive from Releases, open and run the new app in Xcode, then confirm that `My API Box` is enabled in Safari’s Extensions settings. Updating the same extension installation keeps its local data; backing up important data first is still recommended.
+**Update:** Download the latest Safari Xcode project archive from Releases, open and run the new app in Xcode, then confirm that `StationWarden` is enabled in Safari’s Extensions settings. Updating the same extension installation keeps its local data; backing up important data first is still recommended.
 
-**Uninstall:** Uncheck `My API Box` in `Safari > Settings > Extensions`, then delete the installed `My API Box` macOS app. To also remove locally stored data, remove the corresponding data in Safari’s website and extension data settings.
+**Uninstall:** Uncheck `StationWarden` in `Safari > Settings > Extensions`, then delete the installed `StationWarden` macOS app. To also remove locally stored data, remove the corresponding data in Safari’s website and extension data settings.
 
 ## FAQ
 

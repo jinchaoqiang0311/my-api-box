@@ -338,7 +338,7 @@
       "openApiCredentialProfiles": "Abrir Biblioteca de credenciales de API",
       "openModelSync": "Abrir Sincronización de modelos"
     },
-    "boundaryNote": "My API Box administra e importa la configuración; no hace proxy de las solicitudes de modelos. Los clientes externos llaman a tu AI gateway autohospedado.",
+    "boundaryNote": "StationWarden administra e importa la configuración; no hace proxy de las solicitudes de modelos. Los clientes externos llaman a tu AI gateway autohospedado.",
     "description": {
       "has_gateway_channels": "La guía de configuración del gateway está completa. Abre la administración de canales para consultar el estado actual.",
       "needs_importable_source": "Ya tienes cuentas, pero sus tipos actuales no pueden exponer claves importables. Primero guarda una API key o agrega un tipo de cuenta que permita acceder a claves, y luego impórtala en tu AI gateway autohospedado.",

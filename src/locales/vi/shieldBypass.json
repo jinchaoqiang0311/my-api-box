@@ -135,16 +135,16 @@
     "openVerification": "Mở cửa sổ xác minh",
     "reminderSettings": "Cài đặt lời nhắc",
     "turnstileAssistBody": "Trang đang chờ xác minh con người. Mở cửa sổ xác minh để hoàn thành captcha. Tiện ích sẽ kiểm tra kết quả sau đó.",
-    "turnstileAssistTitle": "My API Box · Nhắc xác minh",
+    "turnstileAssistTitle": "StationWarden · Nhắc xác minh",
     "turnstilePageBody": "Trang đang chờ xác minh con người. Mở cửa sổ xác minh để hoàn thành captcha. Tiện ích sẽ kiểm tra kết quả sau đó.",
     "verificationEnded": "Lần xác minh này đã kết thúc. Không cần thao tác thêm."
   },
-  "titlePrefix": "My API Box · Trợ lý Vượt Rào",
+  "titlePrefix": "StationWarden · Trợ lý Vượt Rào",
   "toast": {
     "actions": {
       "openSettings": "Mở cài đặt vượt rào"
     },
-    "body": "Trang này được tự động mở bởi My API Box để vượt qua các trang bảo vệ (như Cloudflare 5 giây) nhằm thu thập thông tin Cookie/phiên cần thiết.\nĐây là bước bắt buộc để My API Box có thể gửi yêu cầu và nhận diện dữ liệu bình thường trên các trang web có lớp bảo vệ.\nNếu có xác minh CAPTCHA, vui lòng hoàn thành trong cửa sổ này; sau khi vượt qua, My API Box sẽ tiếp tục quá trình và tự động đóng cửa sổ này.",
+    "body": "Trang này được tự động mở bởi StationWarden để vượt qua các trang bảo vệ (như Cloudflare 5 giây) nhằm thu thập thông tin Cookie/phiên cần thiết.\nĐây là bước bắt buộc để StationWarden có thể gửi yêu cầu và nhận diện dữ liệu bình thường trên các trang web có lớp bảo vệ.\nNếu có xác minh CAPTCHA, vui lòng hoàn thành trong cửa sổ này; sau khi vượt qua, StationWarden sẽ tiếp tục quá trình và tự động đóng cửa sổ này.",
     "title": "Trợ lý Vượt Rào",
     "turnstile": {
       "body": "Hoàn thành xác minh của trang trong cửa sổ này, ví dụ chọn “Tôi là con người” hoặc các hình ảnh được yêu cầu. Tiện ích đang chờ và sẽ kiểm tra kết quả sau đó. Nếu trang vẫn hiển thị chưa điểm danh, hãy hoàn tất tại đó.",

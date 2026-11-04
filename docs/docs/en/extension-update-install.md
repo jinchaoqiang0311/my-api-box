@@ -1,6 +1,6 @@
 # Installation Channels and Updates
 
-My API Box has two common installation channels: the **browser store version** and the **GitHub manual installation version**. If you are not sure which one to choose, use the browser store version first.
+StationWarden has two common installation channels: the **browser store version** and the **GitHub manual installation version**. If you are not sure which one to choose, use the browser store version first.
 
 ::: tip Simple answer
 Chrome, Edge, and Firefox users should install the matching store version first. Store versions are updated automatically by the browser and are the easiest to maintain. Only consider manual installation from GitHub when the store has not received an update yet, your browser cannot install a store or Chrome Web Store compatible version, or you need to temporarily verify a fix.
@@ -35,7 +35,7 @@ If you use the store version, usually you only need to wait for the browser to u
 
 ## Check for Updates Inside the Extension
 
-Open the My API Box settings page and click **Check for updates** in the version area. Before the first check, it shows your current version. Click **Changelog** to read what changed without opening a download page.
+Open the StationWarden settings page and click **Check for updates** in the version area. Before the first check, it shows your current version. Click **Changelog** to read what changed without opening a download page.
 
 Checks follow the current artifact's channel: Firefox Add-ons builds check the version published on AMO, GitHub Release builds check the latest stable release, and Nightly builds compare source commits so an unchanged version number does not hide a new build. Chrome and Edge store builds also ask the browser whether an update is ready. Old or unmarked packages can still check manually; automatic-check support depends on the installation environment.
 
@@ -88,7 +88,7 @@ Before installing manually, note that:
 - Manually installed versions usually do not update automatically.
 - Future upgrades require downloading the new package again. You can Star / Watch the GitHub repository so it is easier to notice new releases.
 - Before switching from the store version to a manually installed version, it is recommended to export a backup of your data.
-- It is not recommended to keep multiple My API Box installations from different sources for long-term use, unless you are intentionally testing.
+- It is not recommended to keep multiple StationWarden installations from different sources for long-term use, unless you are intentionally testing.
 
 For manual installation and update steps, see the [Other Browser Installation Guide](./other-browser-install.md).
 

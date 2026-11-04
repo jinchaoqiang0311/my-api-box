@@ -1,8 +1,8 @@
-# How OpenRouter Users Can Manage Accounts, API Keys, and Models with My API Box
+# How OpenRouter Users Can Manage Accounts, API Keys, and Models with StationWarden
 
 > Keep your OpenRouter balance, API Keys, model pricing, and client configurations organized in one place.
 
-**My API Box** is an open-source browser extension for AI API users. With OpenRouter, it helps you spend less time switching between consoles, looking for API Keys, and entering the same configuration in different tools.
+**StationWarden** is an open-source browser extension for AI API users. With OpenRouter, it helps you spend less time switching between consoles, looking for API Keys, and entering the same configuration in different tools.
 
 After adding OpenRouter, you can check your balance and account status, manage API Keys by workspace, browse models and pricing, and save a newly created full API Key for use in your preferred AI tools.
 
@@ -16,7 +16,7 @@ When you use multiple OpenRouter workspaces, AI API services, or clients, balanc
 - **Keep the full API Key**: save a new key to the API Credential Library while its full value is still visible.
 - **Set up your usual tools faster**: export to Cherry Studio, CC Switch, Kilo Code, Claude Code Router, and other supported tools.
 
-A practical workflow is to add OpenRouter automatically, use My API Box for balances, API Keys, and model comparison, then copy or export a saved configuration when an AI tool needs it.
+A practical workflow is to add OpenRouter automatically, use StationWarden for balances, API Keys, and model comparison, then copy or export a saved configuration when an AI tool needs it.
 
 <a id="choose-access-path"></a>
 ## Recommended setup order
@@ -28,37 +28,37 @@ A practical workflow is to add OpenRouter automatically, use My API Box for bala
 | 3 | Save only an API Key | You do not need account management and only want to save, check, or export an existing API Key |
 
 ::: tip What is the difference between a Management Key and an API Key
-A Management Key adds the account and manages API Keys in OpenRouter. An API Key is the key you configure in AI clients. With automatic setup, My API Box creates the Management Key for you, so you usually do not need to prepare one first.
+A Management Key adds the account and manages API Keys in OpenRouter. An API Key is the key you configure in AI clients. With automatic setup, StationWarden creates the Management Key for you, so you usually do not need to prepare one first.
 :::
 
 ## Before you start
 
-1. Install My API Box. The [browser store version](../get-started.md) is recommended.
+1. Install StationWarden. The [browser store version](../get-started.md) is recommended.
 2. Register and sign in to [OpenRouter](https://openrouter.ai/).
 3. Never show a complete Management Key or API Key in public screenshots, issue reports, or chat messages.
 
 <a id="add-openrouter-account"></a>
 ## Add your OpenRouter account automatically
 
-This is the recommended method. You do not need to create a Management Key beforehand; My API Box handles that during setup.
+This is the recommended method. You do not need to create a Management Key beforehand; StationWarden handles that during setup.
 
 1. Sign in to [OpenRouter](https://openrouter.ai/) in the same browser.
-2. In My API Box, select `Add Account` and enter `https://openrouter.ai`.
+2. In StationWarden, select `Add Account` and enter `https://openrouter.ai`.
 3. Select `Create OpenRouter Management Key & Detect`.
-4. My API Box opens OpenRouter and creates the Management Key automatically. Keep the page open while the account details are returned.
+4. StationWarden opens OpenRouter and creates the Management Key automatically. Keep the page open while the account details are returned.
 5. Review the account details and save.
 
 ![Add an OpenRouter account automatically](../../static/image/en/openrouter/add-account-auto-detect.png)
 
 ::: warning Check before retrying
-If the new page closes, times out, or does not return a result, do not retry immediately. First check the [Management Keys](https://openrouter.ai/settings/management-keys) page for a Management Key created for My API Box, then retry or switch to manual setup.
+If the new page closes, times out, or does not return a result, do not retry immediately. First check the [Management Keys](https://openrouter.ai/settings/management-keys) page for a Management Key created for StationWarden, then retry or switch to manual setup.
 :::
 
 ## Add the account manually if automatic setup fails
 
 1. Open OpenRouter's [Management Keys](https://openrouter.ai/settings/management-keys) page.
-2. Create a Management Key for My API Box and copy it while the full value is visible. You cannot view the full key again after leaving the page.
-3. In My API Box's add-account dialog, enter `https://openrouter.ai` and select `Manual Add`.
+2. Create a Management Key for StationWarden and copy it while the full value is visible. You cannot view the full key again after leaving the page.
+3. In StationWarden's add-account dialog, enter `https://openrouter.ai` and select `Manual Add`.
 4. Select `OpenRouter` as the `Site Type`, paste the Management Key, and complete the remaining required fields shown in the dialog.
 5. Save the account. If the key cannot be used, the page asks you to check it and try again.
 
@@ -68,7 +68,7 @@ If the new page closes, times out, or does not return a result, do not retry imm
 If you do not need the balance, workspaces, or OpenRouter key management, skip account setup and save an existing API Key in the API Credential Library.
 
 1. Open OpenRouter's [API Keys](https://openrouter.ai/settings/keys) page, create an API Key, and copy it immediately. You can also use an existing key that you previously saved in full.
-2. In My API Box, open `Settings → API Credential Library` and add a credential.
+2. In StationWarden, open `Settings → API Credential Library` and add a credential.
 3. Enter:
    - **Name**: for example, `OpenRouter`.
    - **API type**: select `OpenAI-compatible`.
@@ -100,7 +100,7 @@ OpenRouter shows the full API Key only once, immediately after creation:
 2. Copy the key or select the action to save it to the API Credential Library.
 3. Once saved, use the credential for model discovery, API verification, or client export.
 
-After the dialog closes, My API Box cannot recover the full key. If you did not save it, delete the key and create a replacement.
+After the dialog closes, StationWarden cannot recover the full key. If you did not save it, delete the key and create a replacement.
 
 ![Save the full value of a newly created OpenRouter API Key](../../static/image/en/openrouter/save-one-time-key.png)
 
@@ -121,26 +121,26 @@ If you save a regular OpenRouter API Key in the API Credential Library, its cred
 
 To use OpenRouter in another tool, export a configuration saved in the API Credential Library to a supported client. This reduces repeated entry of the Base URL, API Key, and model information.
 
-### How My API Box works with AI clients
+### How StationWarden works with AI clients
 
-| | My API Box | AI clients such as Cherry Studio and NextChat |
+| | StationWarden | AI clients such as Cherry Studio and NextChat |
 | --- | --- | --- |
 | Main purpose | Manage accounts, balances, API Keys, and model pricing | Chat, coding assistance, file analysis, and other AI tasks |
 | How they work together | Organizes and exports OpenRouter configurations | Uses the imported configuration to connect to OpenRouter |
 
-OpenRouter provides the models and API service. My API Box organizes the account and configuration, while your chosen client handles chat, coding assistance, and other model requests.
+OpenRouter provides the models and API service. StationWarden organizes the account and configuration, while your chosen client handles chat, coding assistance, and other model requests.
 
 ## Keep in mind
 
 - Accounts and keys stay in the current browser by default. They sync to your WebDAV storage only after you enable WebDAV sync.
-- Create a separate Management Key for My API Box instead of sharing one with other tools.
+- Create a separate Management Key for StationWarden instead of sharing one with other tools.
 - Editing or deleting a key in Key Management also changes it in OpenRouter. Deleted keys cannot be recovered.
 - If a create, edit, or delete action does not show a clear result, refresh the list before trying again.
 - Some personal workspaces do not provide a member list. If the page lets you continue, leave the creator unselected.
 
 ## Troubleshooting
 
-### Why does My API Box say my Management Key cannot be used
+### Why does StationWarden say my Management Key cannot be used
 
 Open OpenRouter's Management Keys page and check that the key still exists. If you can no longer find or copy the full key, create a new one and update or re-add the account.
 

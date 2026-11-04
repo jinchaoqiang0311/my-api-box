@@ -519,7 +519,7 @@
     },
     "headerDescription": "Quản lý kênh trên cổng AI tự triển khai để kết nối nhiều nguồn API qua một điểm truy cập.",
     "openChannelConsole": "Mở trang quản lý kênh gateway",
-    "unconfiguredValueDescription": "Sau khi cấu hình, bạn có thể nhập các key tài khoản và API key rời rạc làm kênh gateway, rồi xem và quản lý trực tiếp trong My API Box."
+    "unconfiguredValueDescription": "Sau khi cấu hình, bạn có thể nhập các key tài khoản và API key rời rạc làm kênh gateway, rồi xem và quản lý trực tiếp trong StationWarden."
   },
   "magpieKeys": {
     "anyProtocol": "Mọi giao thức",

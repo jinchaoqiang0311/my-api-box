@@ -519,7 +519,7 @@
     },
     "headerDescription": "Manage channels in your self-hosted AI gateway to bring API sources into one endpoint.",
     "openChannelConsole": "Open gateway channel management",
-    "unconfiguredValueDescription": "After configuration, you can import scattered account keys and API keys as gateway channels, then view and manage them directly in My API Box."
+    "unconfiguredValueDescription": "After configuration, you can import scattered account keys and API keys as gateway channels, then view and manage them directly in StationWarden."
   },
   "magpieKeys": {
     "anyProtocol": "Any protocol",

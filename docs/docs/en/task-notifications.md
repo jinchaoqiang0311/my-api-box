@@ -42,18 +42,18 @@ The Feishu channel sends plain-text messages through a Feishu group custom bot. 
 https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-4. In My API Box, go to **`Settings → General → Notifications → Feishu Bot`**.
+4. In StationWarden, go to **`Settings → General → Notifications → Feishu Bot`**.
 5. Paste the full webhook URL into **`Webhook URL or key`**, enable the channel, and click **`Send test notification`**.
 
-If you copied only the key after `/hook/`, you can enter that too. My API Box will complete the Feishu webhook URL automatically.
+If you copied only the key after `/hook/`, you can enter that too. StationWarden will complete the Feishu webhook URL automatically.
 
 ### Security Settings
 
 Feishu custom bots support keywords, IP whitelist, signature verification, and other security settings. For bot creation and security setup, refer to the [Feishu custom bot guide](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot).
 
-When using My API Box:
+When using StationWarden:
 
-- If keyword verification is enabled, make sure the notification title or body contains your configured keyword, such as `My API Box`.
+- If keyword verification is enabled, make sure the notification title or body contains your configured keyword, such as `StationWarden`.
 - IP whitelist rules depend on your current network egress. Mobile networks, proxies, or home broadband changes may cause delivery failures.
 - The current Feishu channel only accepts a webhook URL or key and does not provide a separate signing secret field. If Feishu signature verification is enabled, test notifications may fail because no signature is sent.
 
@@ -81,16 +81,16 @@ The DingTalk channel sends plain-text messages through a DingTalk group custom b
 https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-5. In My API Box, go to **`Settings → General → Notifications → DingTalk Bot`**.
+5. In StationWarden, go to **`Settings → General → Notifications → DingTalk Bot`**.
 6. Paste the full webhook URL into **`Webhook URL or access_token`**. If the DingTalk bot uses signed security, paste the generated `SEC...` value into **`Signing secret`**.
 7. Enable the channel and click **`Send test notification`**.
 
 ### Security Settings
 
-When using My API Box with DingTalk security settings:
+When using StationWarden with DingTalk security settings:
 
-- If keyword verification is enabled, make sure the notification title or body contains your configured keyword, such as `My API Box`.
-- If signed security is enabled, enter the `SEC...` secret from DingTalk. My API Box generates a fresh `timestamp` and HMAC-SHA256 `sign` value for each request.
+- If keyword verification is enabled, make sure the notification title or body contains your configured keyword, such as `StationWarden`.
+- If signed security is enabled, enter the `SEC...` secret from DingTalk. StationWarden generates a fresh `timestamp` and HMAC-SHA256 `sign` value for each request.
 - IP address range rules depend on your current network egress. Mobile networks, proxies, or home broadband changes may cause delivery failures.
 - Keep the webhook URL and signing secret private. Do not publish them in public repositories, public docs, or screenshots.
 
@@ -98,7 +98,7 @@ For DingTalk's official setup flow, see [Create a custom bot](https://open.dingt
 
 ### API Behavior
 
-The DingTalk custom bot API sends messages through `POST /robot/send?access_token=...`. My API Box sends a text message:
+The DingTalk custom bot API sends messages through `POST /robot/send?access_token=...`. StationWarden sends a text message:
 
 ```json
 {
@@ -112,7 +112,7 @@ The DingTalk custom bot API sends messages through `POST /robot/send?access_toke
 }
 ```
 
-If a signing secret is configured, the request URL also includes `timestamp` and `sign` parameters. My API Box treats `errcode: 0` as success. If DingTalk returns another `errcode`, the test notification surfaces the returned `errmsg` to help you check the configuration.
+If a signing secret is configured, the request URL also includes `timestamp` and `sign` parameters. StationWarden treats `errcode: 0` as success. If DingTalk returns another `errcode`, the test notification surfaces the returned `errmsg` to help you check the configuration.
 
 ### Common Errors
 
@@ -120,7 +120,7 @@ If a signing secret is configured, the request URL also includes `timestamp` and
 |-------|----------------|------------|
 | `keywords not in content` or a similar keyword error | Keyword verification is enabled, but the notification content does not contain the keyword | Adjust the DingTalk keyword, or make sure the notification title/body contains it |
 | `sign not match` or a similar signing error | Signed security is enabled, but the secret is missing or wrong | Copy the `SEC...` secret again from the DingTalk bot settings page |
-| `msgtype is null` | DingTalk did not parse the request body as a valid bot message | Update My API Box to a version that sends the DingTalk text payload with `msgtype`, and send another test notification |
+| `msgtype is null` | DingTalk did not parse the request body as a valid bot message | Update StationWarden to a version that sends the DingTalk text payload with `msgtype`, and send another test notification |
 | `access_token` related errors | The webhook URL or access_token is wrong, or the bot was deleted / recreated | Copy the full webhook URL again from the DingTalk bot settings page |
 | Test notification does not arrive | The channel is disabled, the URL is empty, the network failed, or DingTalk security policies blocked it | Enable the channel, send another test notification, and check the DingTalk group bot configuration |
 
@@ -140,14 +140,14 @@ The WeCom channel sends plain-text messages through the message push configurati
 https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-5. In My API Box, go to **`Settings → General → Notifications → WeCom Bot`**.
+5. In StationWarden, go to **`Settings → General → Notifications → WeCom Bot`**.
 6. Paste the full webhook URL into **`Webhook URL or key`**, enable the channel, and click **`Send test notification`**.
 
-If you copied only the key after `key=`, you can enter that too. My API Box will complete the WeCom webhook URL automatically.
+If you copied only the key after `key=`, you can enter that too. StationWarden will complete the WeCom webhook URL automatically.
 
 ### API Behavior
 
-The WeCom message push API sends messages through `POST /cgi-bin/webhook/send?key=...`. My API Box sends a text message:
+The WeCom message push API sends messages through `POST /cgi-bin/webhook/send?key=...`. StationWarden sends a text message:
 
 ```json
 {
@@ -158,13 +158,13 @@ The WeCom message push API sends messages through `POST /cgi-bin/webhook/send?ke
 }
 ```
 
-My API Box treats `errcode: 0` as success. If WeCom returns another `errcode`, the test notification surfaces the returned `errmsg` to help you check the configuration.
+StationWarden treats `errcode: 0` as success. If WeCom returns another `errcode`, the test notification surfaces the returned `errmsg` to help you check the configuration.
 
 ### Limits
 
 Message formats and sending frequency limits follow the [WeCom message push configuration docs](https://developer.work.weixin.qq.com/document/path/99110).
 
-When using My API Box:
+When using StationWarden:
 
 - WeCom message push has sending frequency limits. If many tasks finish at the same time, platform rate limiting may apply.
 - If the test notification returns `invalid webhook url`, `key not found`, or a similar error, copy the full webhook URL again from the WeCom message push configuration.
@@ -177,7 +177,7 @@ The ntfy channel sends plain-text notifications through ntfy's topic publish API
 ### Configure The Topic
 
 1. Prepare a topic name in the ntfy app, web app, or your self-hosted server, such as `all-api-hub-alerts`.
-2. In My API Box, go to **`Settings → General → Notifications → ntfy`**.
+2. In StationWarden, go to **`Settings → General → Notifications → ntfy`**.
 3. Enter the full topic URL in **`Topic URL or topic name`**:
 
 ```text
@@ -190,7 +190,7 @@ You can also enter only the topic name:
 all-api-hub-alerts
 ```
 
-When only a topic name is entered, My API Box sends to `https://ntfy.sh/<topic>`. For a self-hosted ntfy server, enter the full URL, for example:
+When only a topic name is entered, StationWarden sends to `https://ntfy.sh/<topic>`. For a self-hosted ntfy server, enter the full URL, for example:
 
 ```text
 https://ntfy.example.com/all-api-hub-alerts
@@ -201,7 +201,7 @@ https://ntfy.example.com/all-api-hub-alerts
 
 ### API Behavior
 
-My API Box uses ntfy's publish API and sends a `POST` request to the topic URL. The notification body is sent as the plain-text request body, and the notification title is sent in the `Title` request header. Non-ASCII titles are RFC 2047 encoded before sending so they remain compatible with browser extension background request-header limits. If an access token is configured, the request includes `Authorization: Bearer <token>`.
+StationWarden uses ntfy's publish API and sends a `POST` request to the topic URL. The notification body is sent as the plain-text request body, and the notification title is sent in the `Title` request header. Non-ASCII titles are RFC 2047 encoded before sending so they remain compatible with browser extension background request-header limits. If an access token is configured, the request includes `Authorization: Bearer <token>`.
 
 For ntfy's publish API, request headers, and authentication options, see the official [Publishing messages](https://docs.ntfy.sh/publish/) documentation.
 

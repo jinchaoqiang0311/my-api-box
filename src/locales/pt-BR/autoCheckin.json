@@ -181,7 +181,7 @@
     "checkinDisabled": "O recurso de check-in está desativado"
   },
   "riskNotice": {
-    "description": "Respeite as regras de cada site e avalie os riscos do check-in automático. Você é responsável por bloqueios de conta, restrições ou outras perdas decorrentes desta função. O My API Box não assume responsabilidade.",
+    "description": "Respeite as regras de cada site e avalie os riscos do check-in automático. Você é responsável por bloqueios de conta, restrições ou outras perdas decorrentes desta função. O StationWarden não assume responsabilidade.",
     "label": "Aviso de riscos do check-in automático"
   },
   "settings": {

@@ -1,10 +1,10 @@
 # Supported Site List
 
-> My API Box primarily supports two types of objects: the intermediate stations/management panels you use daily, and backend systems you build yourself that you wish to continue managing within the plugin.
+> StationWarden primarily supports two types of objects: the intermediate stations/management panels you use daily, and backend systems you build yourself that you wish to continue managing within the plugin.
 
 ## Sites That Can Be Added and Managed Daily
 
-The following are the most common and suitable types of sites for unified management through My API Box, spanning open-source distribution architectures, commercial relay services, and independent platforms.
+The following are the most common and suitable types of sites for unified management through StationWarden, spanning open-source distribution architectures, commercial relay services, and independent platforms.
 
 ### Compatible Account Site Architectures
 
@@ -168,7 +168,7 @@ If these systems do not have a stable public homepage, no additional links will 
 
 ## Self-Built Backends You Can Connect and Continue Managing
 
-If you are also building your own backend system, My API Box supports importing the current site into your chosen backend for continued management.
+If you are also building your own backend system, StationWarden supports importing the current site into your chosen backend for continued management.
 
 | Backend System                                    | Site Overview                                                                                                                                                                                  | Official Link                                                                                         |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |

@@ -26,7 +26,7 @@ const SHARE_SNAPSHOT_IMAGE = {
   height: 1200,
 } as const
 
-const APP_WATERMARK_FALLBACK = "My API Box"
+const APP_WATERMARK_FALLBACK = "StationWarden"
 
 const logger = createLogger("ShareSnapshots")
 

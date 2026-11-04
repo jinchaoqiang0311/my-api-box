@@ -1,15 +1,15 @@
 {
   "manifest_name": {
-    "message": "My API Box - 你的中转站管家"
+    "message": "StationWarden - AI 中转站账号与计费守卫"
   },
   "manifest_description": {
-    "message": "一站式管理 New API 兼容中转站账号：余额/用量看板、自动签到、密钥一键导出到常用应用、网页内 API 可用性测试、渠道与模型同步/重定向"
+    "message": "StationWarden 是 AI 中转站账号与计费守卫：统一管理账号、余额、模型与密钥，并验真站点完整性与实际计费"
   },
   "manifest_commands_sidebar_action": {
-    "message": "在侧边栏中打开 My API Box"
+    "message": "在侧边栏中打开 StationWarden"
   },
   "manifest_commands_browser_action": {
-    "message": "在弹窗中打开 My API Box"
+    "message": "在弹窗中打开 StationWarden"
   },
   "context_menu_redeem_selection": {
     "message": "使用兑换助手兑换选中文本"

@@ -348,7 +348,7 @@
       "openApiCredentialProfiles": "Mở thư viện xác thực",
       "openModelSync": "Mở đồng bộ model"
     },
-    "boundaryNote": "My API Box quản lý nguồn tài khoản; AI gateway tự triển khai của bạn mới là dịch vụ AI API được client bên ngoài gọi.",
+    "boundaryNote": "StationWarden quản lý nguồn tài khoản; AI gateway tự triển khai của bạn mới là dịch vụ AI API được client bên ngoài gọi.",
     "description": {
       "has_gateway_channels": "Đã tạo hoặc nhập kênh vào cổng. Mở quản lý kênh để kiểm tra trạng thái hiện tại.",
       "needs_importable_source": "Các tài khoản hiện tại không thể cung cấp key có thể nhập. Hãy lưu API key trước, hoặc thêm loại tài khoản hỗ trợ lấy key, rồi nhập vào AI gateway tự triển khai.",

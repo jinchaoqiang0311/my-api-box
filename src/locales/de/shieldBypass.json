@@ -136,16 +136,16 @@
     "openVerification": "Verifizierungsfenster öffnen",
     "reminderSettings": "Benachrichtigungseinstellungen",
     "turnstileAssistBody": "Die Website wartet auf eine menschliche Verifizierung. Öffnen Sie das Verifizierungsfenster und lösen Sie das Captcha. Die Erweiterung prüft danach das Ergebnis.",
-    "turnstileAssistTitle": "My API Box · Verifizierung erforderlich",
+    "turnstileAssistTitle": "StationWarden · Verifizierung erforderlich",
     "turnstilePageBody": "Die Website wartet auf eine menschliche Verifizierung. Öffnen Sie das Verifizierungsfenster und lösen Sie das Captcha. Die Erweiterung prüft danach das Ergebnis.",
     "verificationEnded": "Diese Verifizierung ist beendet. Keine weitere Aktion erforderlich."
   },
-  "titlePrefix": "My API Box · Schutzumgehung",
+  "titlePrefix": "StationWarden · Schutzumgehung",
   "toast": {
     "actions": {
       "openSettings": "Einstellungen für die Schutzumgehung öffnen"
     },
-    "body": "Diese Seite wurde automatisch von My API Box geöffnet, um Schutzprüfungen (z. B. Cloudflare-Challenges) zu bestehen und die erforderlichen Cookies bzw. die Sitzung zu erhalten.\nDies ist notwendig, damit My API Box erfolgreiche Anfragen stellen und Daten auf geschützten Websites erkennen kann.\nWenn ein Verifizierungsschritt angezeigt wird, führen Sie ihn in diesem Fenster aus. Sobald er bestanden ist, setzt My API Box den Vorgang fort; das Fenster wird möglicherweise automatisch geschlossen.",
+    "body": "Diese Seite wurde automatisch von StationWarden geöffnet, um Schutzprüfungen (z. B. Cloudflare-Challenges) zu bestehen und die erforderlichen Cookies bzw. die Sitzung zu erhalten.\nDies ist notwendig, damit StationWarden erfolgreiche Anfragen stellen und Daten auf geschützten Websites erkennen kann.\nWenn ein Verifizierungsschritt angezeigt wird, führen Sie ihn in diesem Fenster aus. Sobald er bestanden ist, setzt StationWarden den Vorgang fort; das Fenster wird möglicherweise automatisch geschlossen.",
     "title": "Helfer für Schutzprüfungen",
     "turnstile": {
       "body": "Schließen Sie in diesem Fenster die Verifizierung der Website ab, etwa durch Bestätigen von „Ich bin ein Mensch“ oder Auswählen der angeforderten Bilder. Die Erweiterung wartet und prüft danach das Ergebnis. Falls die Seite weiterhin keinen Check-in anzeigt, checken Sie dort ein.",

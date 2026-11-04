@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "My API Box"
+    "name": "StationWarden"
   },
   "billing": {
     "notProvided": "未提供",
@@ -476,7 +476,7 @@
       "loading": "正在加载更新日志…",
       "missingSection": "更新日志预览加载失败（v{{version}}）。你可以打开完整更新日志查看。",
       "openFullChangelog": "打开完整更新日志",
-      "starPrompt": "觉得 My API Box 有帮助？点个 Star 跟随每日更新",
+      "starPrompt": "觉得 StationWarden 有帮助？点个 Star 跟随每日更新",
       "title": "更新内容",
       "updatedTo": "已更新至 v{{version}}"
     }
@@ -595,7 +595,7 @@
     "placeholder": "搜索设置..."
   },
   "pageTitle": {
-    "app": "My API Box",
+    "app": "StationWarden",
     "options": "设置",
     "popup": "弹窗",
     "sidepanel": "侧边栏",
@@ -666,7 +666,7 @@
       "later": "以后再说",
       "star": "去 Star"
     },
-    "cardDescription": "My API Box 完全开源，不断适配更多站点、优化使用体验。点个 Star，支持它持续维护，也让更多需要它的人发现这里。",
+    "cardDescription": "StationWarden 完全开源，不断适配更多站点、优化使用体验。点个 Star，支持它持续维护，也让更多需要它的人发现这里。",
     "cardTitle": "用得顺手吗？"
   },
   "textEntries": {

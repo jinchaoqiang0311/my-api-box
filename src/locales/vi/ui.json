@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "My API Box"
+    "name": "StationWarden"
   },
   "billing": {
     "notProvided": "Chưa cung cấp",
@@ -480,7 +480,7 @@
       "loading": "Đang tải nhật ký cập nhật...",
       "missingSection": "Tải bản xem trước nhật ký cập nhật thất bại (v{{version}}). Bạn có thể mở toàn bộ nhật ký cập nhật để xem.",
       "openFullChangelog": "Mở toàn bộ nhật ký cập nhật",
-      "starPrompt": "My API Box hữu ích với bạn? Hãy gắn sao trên GitHub để theo dõi các cập nhật",
+      "starPrompt": "StationWarden hữu ích với bạn? Hãy gắn sao trên GitHub để theo dõi các cập nhật",
       "title": "Nội dung cập nhật",
       "updatedTo": "Đã cập nhật lên v{{version}}"
     }
@@ -601,7 +601,7 @@
     "placeholder": "Tìm kiếm cài đặt..."
   },
   "pageTitle": {
-    "app": "My API Box",
+    "app": "StationWarden",
     "options": "Cài đặt",
     "popup": "Cửa sổ bật lên",
     "sidepanel": "Thanh bên",
@@ -672,8 +672,8 @@
       "later": "Để sau",
       "star": "Gắn sao"
     },
-    "cardDescription": "My API Box hoàn toàn mã nguồn mở, không ngừng hỗ trợ thêm nhiều trang và cải thiện trải nghiệm. Một sao giúp duy trì việc bảo trì và để nhiều người cần nó hơn tìm thấy nó.",
-    "cardTitle": "My API Box có hữu ích không?"
+    "cardDescription": "StationWarden hoàn toàn mã nguồn mở, không ngừng hỗ trợ thêm nhiều trang và cải thiện trải nghiệm. Một sao giúp duy trì việc bảo trì và để nhiều người cần nó hơn tìm thấy nó.",
+    "cardTitle": "StationWarden có hữu ích không?"
   },
   "textEntries": {
     "add": "Thêm dòng",

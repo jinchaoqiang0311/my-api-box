@@ -519,7 +519,7 @@
     },
     "headerDescription": "自前の AI ゲートウェイのチャネルを管理し、複数の API 接続先を一つの窓口にまとめます。",
     "openChannelConsole": "ゲートウェイのチャネル管理を開く",
-    "unconfiguredValueDescription": "設定後は、分散しているアカウントキーや API キーをゲートウェイチャネルとして取り込み、My API Box で直接確認・管理できます。"
+    "unconfiguredValueDescription": "設定後は、分散しているアカウントキーや API キーをゲートウェイチャネルとして取り込み、StationWarden で直接確認・管理できます。"
   },
   "magpieKeys": {
     "anyProtocol": "すべてのプロトコル",
