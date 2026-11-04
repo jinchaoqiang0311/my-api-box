@@ -30,7 +30,7 @@
     },
     "languageRequest": {
       "button": "Abrir solicitação de idioma",
-      "description": "Peça para adicionarmos suporte a um novo idioma de interface no My API Box."
+      "description": "Peça para adicionarmos suporte a um novo idioma de interface no StationWarden."
     },
     "title": "Feedback e Suporte"
   },
@@ -39,7 +39,7 @@
   "homepage": "Página inicial do projeto",
   "homepageDesc": "Veja documentação detalhada, guias do usuário e mais informações",
   "implementedFeatures": "Recursos implementados",
-  "intro": "O My API Box reúne contas de sites de retransmissão, saldos e credenciais de API, com atualização automática, check-ins e verificação de modelos. Gerencie canais ou provedores em sites auto-hospedados como CLIProxyAPI, New API e Sub2API, com sincronização de modelos nos sites compatíveis. Também oferece backup via WebDAV e importação e exportação de dados.",
+  "intro": "O StationWarden reúne contas de sites de retransmissão, saldos e credenciais de API, com atualização automática, check-ins e verificação de modelos. Gerencie canais ou provedores em sites auto-hospedados como CLIProxyAPI, New API e Sub2API, com sincronização de modelos nos sites compatíveis. Também oferece backup via WebDAV e importação e exportação de dados.",
   "privacyText": "Dados sensíveis como contas, chaves de API, cookies, saldos, conteúdo de solicitações e entradas do usuário permanecem locais por padrão. Análises de produto anônimas opcionais são usadas apenas para priorizar correções de problemas comuns, melhorar os fluxos de trabalho principais e a compatibilidade, e reduzir atritos desnecessários, sem coletar dados sensíveis.",
   "privacyTitle": "Proteção de Privacidade",
   "projectLinks": "Links do Projeto",
@@ -61,7 +61,7 @@
     },
     "review": {
       "button": "Avaliar na {{store}}",
-      "description": "Se o My API Box te ajuda, uma avaliação positiva na {{store}} ajuda bastante.",
+      "description": "Se o StationWarden te ajuda, uma avaliação positiva na {{store}} ajuda bastante.",
       "title": "Deixe uma avaliação positiva"
     },
     "title": "Avaliar e Baixar"
@@ -77,6 +77,13 @@
   "thanksDesc": "Agradecemos a todos os desenvolvedores que contribuíram para a comunidade de código aberto. O desenvolvimento desta extensão beneficia-se desses excelentes projetos e ferramentas de código aberto",
   "title": "Sobre",
   "upcomingFeatures": "Próximos recursos",
+  "upstream": {
+    "licenseLabel": "License: AGPL-3.0",
+    "notice": "StationWarden is an independent open-source fork of All API Hub. This fork's modifications date from {{date}}; the corresponding source is published at {{repo}} under AGPL-3.0.",
+    "sourceLink": "StationWarden source",
+    "title": "Upstream & License",
+    "upstreamLink": "All API Hub (upstream)"
+  },
   "version": "Versão:",
   "viewRepo": "Visitar repositório",
   "visitHomepage": "Visitar página inicial"

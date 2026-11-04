@@ -30,7 +30,7 @@
     },
     "languageRequest": {
       "button": "言語要望を開く",
-      "description": "My API Box で新しい表示言語の対応をリクエストできます。"
+      "description": "StationWarden で新しい表示言語の対応をリクエストできます。"
     },
     "title": "フィードバックとサポート"
   },
@@ -39,7 +39,7 @@
   "homepage": "プロジェクトホームページ",
   "homepageDesc": "詳細なドキュメント、ユーザーガイド、その他の情報を確認できます",
   "implementedFeatures": "実装済み機能",
-  "intro": "My API Box は中継サイトのアカウント、残高、API 認証情報をまとめて管理し、自動更新、チェックイン、モデル検証を提供します。CLIProxyAPI、New API、Sub2API などのセルフホスト型サイトでチャネルやプロバイダーを管理でき、対応サイトではモデル同期も利用できます。WebDAV バックアップとデータのインポート・エクスポートにも対応しています。",
+  "intro": "StationWarden は中継サイトのアカウント、残高、API 認証情報をまとめて管理し、自動更新、チェックイン、モデル検証を提供します。CLIProxyAPI、New API、Sub2API などのセルフホスト型サイトでチャネルやプロバイダーを管理でき、対応サイトではモデル同期も利用できます。WebDAV バックアップとデータのインポート・エクスポートにも対応しています。",
   "privacyText": "アカウント、API キー、Cookie、残高、リクエスト内容、ユーザー入力などの機密データは、既定でローカルにのみ保存されます。任意の匿名プロダクト分析は、よく起きる問題の修正、主要ワークフローと互換性の改善、不要な手間の削減を優先するためだけに使われ、上記の機密データは収集しません。",
   "privacyTitle": "プライバシー保護",
   "projectLinks": "プロジェクトリンク",
@@ -61,7 +61,7 @@
     },
     "review": {
       "button": "{{store}} で評価する",
-      "description": "My API Box が役に立っている場合は、{{store}} での高評価レビューが大きな助けになります。",
+      "description": "StationWarden が役に立っている場合は、{{store}} での高評価レビューが大きな助けになります。",
       "title": "高評価レビューをお願いします"
     },
     "title": "評価とダウンロード"
@@ -77,6 +77,13 @@
   "thanksDesc": "オープンソースコミュニティに貢献してくださったすべての開発者に感謝します。このプラグインの開発は、これらの優れたオープンソースプロジェクトとツールの恩恵を受けています。",
   "title": "この拡張機能について",
   "upcomingFeatures": "今後の機能",
+  "upstream": {
+    "licenseLabel": "ライセンス：AGPL-3.0",
+    "notice": "StationWarden は All API Hub の独立したオープンソース分岐です。本分岐の改変は {{date}} に始まり、対応するソースコードは AGPL-3.0 で {{repo}} に公開されています。",
+    "sourceLink": "StationWarden のソースコード",
+    "title": "上流プロジェクトとライセンス",
+    "upstreamLink": "All API Hub（上流）"
+  },
   "version": "バージョン:",
   "viewRepo": "リポジトリを見る",
   "visitHomepage": "ホームページを開く"

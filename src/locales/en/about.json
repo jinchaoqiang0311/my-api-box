@@ -30,7 +30,7 @@
     },
     "languageRequest": {
       "button": "Open language request",
-      "description": "Ask us to support a new interface language for My API Box."
+      "description": "Ask us to support a new interface language for StationWarden."
     },
     "title": "Feedback & Support"
   },
@@ -39,7 +39,7 @@
   "homepage": "Project Homepage",
   "homepageDesc": "View detailed documentation, user guides and more information",
   "implementedFeatures": "Implemented Features",
-  "intro": "My API Box brings relay accounts, balances, and API credentials together with automatic refresh, check-ins, and model verification. Manage channels or providers on self-hosted sites such as CLIProxyAPI, New API, and Sub2API, with model sync where supported. WebDAV backup and data import/export are also available.",
+  "intro": "StationWarden brings relay accounts, balances, and API credentials together with automatic refresh, check-ins, and model verification. Manage channels or providers on self-hosted sites such as CLIProxyAPI, New API, and Sub2API, with model sync where supported. WebDAV backup and data import/export are also available.",
   "privacyText": "Sensitive data such as accounts, API keys, cookies, balances, request content, and user input stays local by default. Optional anonymous product analytics are used only to prioritize fixes for common issues, improve core workflows and compatibility, and reduce unnecessary friction, and they do not collect that sensitive data.",
   "privacyTitle": "Privacy Protection",
   "projectLinks": "Project Links",
@@ -61,7 +61,7 @@
     },
     "review": {
       "button": "Rate on {{store}}",
-      "description": "If My API Box helps you, a positive review on {{store}} really helps.",
+      "description": "If StationWarden helps you, a positive review on {{store}} really helps.",
       "title": "Leave a positive review"
     },
     "title": "Rate & Download"
@@ -77,6 +77,13 @@
   "thanksDesc": "Thanks to all developers who have contributed to the open source community, the development of this plugin benefits from these excellent open source projects and tools",
   "title": "About",
   "upcomingFeatures": "Upcoming Features",
+  "upstream": {
+    "licenseLabel": "License: AGPL-3.0",
+    "notice": "StationWarden is an independent open-source fork of All API Hub. This fork's modifications date from {{date}}; the corresponding source is published at {{repo}} under AGPL-3.0.",
+    "sourceLink": "StationWarden source",
+    "title": "Upstream & License",
+    "upstreamLink": "All API Hub (upstream)"
+  },
   "version": "Version:",
   "viewRepo": "Visit repository",
   "visitHomepage": "Visit Homepage"
