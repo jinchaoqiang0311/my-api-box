@@ -94,7 +94,7 @@ footer: "AGPL-3.0 Licensed | Copyright 2025-present StationWarden"
 - **微信群**：扫描下方二维码加入中文群。
 
 <img
-  src="../../resources/wechat_group.png"
+  src="../../resources/wechat_group.webp"
   alt="StationWarden 微信群二维码"
   style="width: min(280px, 100%);"
 />

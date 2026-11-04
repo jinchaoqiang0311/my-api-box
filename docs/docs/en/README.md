@@ -98,7 +98,7 @@ Have questions or want to share useful sites Join the community:
 - **WeChat Group**: Scan the QR code below to join the Chinese group.
 
 <img
-  src="../../../resources/wechat_group.png"
+  src="../../../resources/wechat_group.webp"
   alt="StationWarden WeChat Group QR Code"
   style="width: min(280px, 100%);"
 />

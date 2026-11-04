@@ -98,7 +98,7 @@ AI の時代には、節約したり別のモデルを試したりするため�
 - **WeChat グループ**：下の QR コードをスキャンして中国語グループに参加してください。
 
 <img
-  src="../../../resources/wechat_group.png"
+  src="../../../resources/wechat_group.webp"
   alt="StationWarden WeChat グループ QR コード"
   style="width: min(280px, 100%);"
 />
