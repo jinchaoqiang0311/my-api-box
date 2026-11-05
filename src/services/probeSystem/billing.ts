@@ -80,7 +80,7 @@ export interface TieredExprParsed {
  * Returns null when the expression is missing, has no `p` coefficient, or is
  * otherwise unparseable.
  */
-export function parseTieredExpr(expr: unknown): TieredExprParsed | null {
+function parseTieredExpr(expr: unknown): TieredExprParsed | null {
   if (typeof expr !== "string") return null
   // Strip parameter wrappers like (expr) * (param("service_tier")=="priority" ? 2 : 1)
   // — we just want the first tier body, whose coefficients are absolute USD/M.

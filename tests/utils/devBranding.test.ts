@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { APP_SHORT_NAME } from "~/constants/branding"
+import { APP_NAME } from "~/constants/branding"
 import {
   formatDevActionTitle,
   formatDevInstanceLabel,
@@ -19,54 +19,50 @@ import {
  */
 describe("devBranding", () => {
   it("formats action title with versionName when present", () => {
-    expect(formatDevActionTitle(APP_SHORT_NAME, "dev main@abc")).toBe(
-      `${APP_SHORT_NAME} (dev main@abc)`,
+    expect(formatDevActionTitle(APP_NAME, "dev main@abc")).toBe(
+      `${APP_NAME} (dev main@abc)`,
     )
   })
 
   it("avoids duplicating versionName when base already contains it", () => {
     expect(
-      formatDevActionTitle(`${APP_SHORT_NAME} [dev main@abc]`, "dev main@abc"),
-    ).toBe(`${APP_SHORT_NAME} [dev main@abc]`)
+      formatDevActionTitle(`${APP_NAME} [dev main@abc]`, "dev main@abc"),
+    ).toBe(`${APP_NAME} [dev main@abc]`)
   })
 
   it("falls back to the app short name and generic dev suffix when the title inputs are blank", () => {
-    expect(formatDevActionTitle("   ", "   ")).toBe(`${APP_SHORT_NAME} (dev)`)
+    expect(formatDevActionTitle("   ", "   ")).toBe(`${APP_NAME} (dev)`)
   })
 
   it("appends the source path to the action title", () => {
     expect(
-      formatDevActionTitle(
-        APP_SHORT_NAME,
-        "dev main@abc",
-        DEV_IDENTITY_FIXTURE_PATH,
-      ),
-    ).toBe(`${APP_SHORT_NAME} (dev main@abc) · ${DEV_IDENTITY_FIXTURE_PATH}`)
+      formatDevActionTitle(APP_NAME, "dev main@abc", DEV_IDENTITY_FIXTURE_PATH),
+    ).toBe(`${APP_NAME} (dev main@abc) · ${DEV_IDENTITY_FIXTURE_PATH}`)
   })
 
   it("does not repeat a path the title already contains", () => {
     expect(
       formatDevActionTitle(
-        `${APP_SHORT_NAME} (dev) ${DEV_IDENTITY_FIXTURE_PATH}`,
+        `${APP_NAME} (dev) ${DEV_IDENTITY_FIXTURE_PATH}`,
         undefined,
         DEV_IDENTITY_FIXTURE_PATH,
       ),
-    ).toBe(`${APP_SHORT_NAME} (dev) ${DEV_IDENTITY_FIXTURE_PATH}`)
+    ).toBe(`${APP_NAME} (dev) ${DEV_IDENTITY_FIXTURE_PATH}`)
   })
 
   it("adds the dev marker once when a title carries no version", () => {
     expect(
       formatDevActionTitle(
-        `${APP_SHORT_NAME} (dev)`,
+        `${APP_NAME} (dev)`,
         undefined,
         DEV_IDENTITY_FIXTURE_PATH,
       ),
-    ).toBe(`${APP_SHORT_NAME} (dev) · ${DEV_IDENTITY_FIXTURE_PATH}`)
+    ).toBe(`${APP_NAME} (dev) · ${DEV_IDENTITY_FIXTURE_PATH}`)
   })
 
   it("ignores a blank path", () => {
-    expect(formatDevActionTitle(APP_SHORT_NAME, undefined, "   ")).toBe(
-      `${APP_SHORT_NAME} (dev)`,
+    expect(formatDevActionTitle(APP_NAME, undefined, "   ")).toBe(
+      `${APP_NAME} (dev)`,
     )
   })
 

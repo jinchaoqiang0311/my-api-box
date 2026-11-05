@@ -95,7 +95,7 @@
     "versionNotSupported": "Dieses Backup wurde mit einer neueren Version erstellt. Aktualisieren Sie die App, bevor Sie es importieren."
   },
   "localBackup": {
-    "description": "Verwenden Sie lokale JSON-Dateien, um My API Box-Daten zu sichern, zu übertragen oder wiederherzustellen.",
+    "description": "Verwenden Sie lokale JSON-Dateien, um StationWarden-Daten zu sichern, zu übertragen oder wiederherzustellen.",
     "title": "Lokale Sicherung und Migration"
   },
   "title": "Import/Export",
@@ -153,7 +153,7 @@
       "testFailed": "Verbindung zum Secret Gist fehlgeschlagen",
       "testSuccess": "Verbindung zum Secret Gist erfolgreich",
       "token": "GitHub-Token",
-      "tokenDesc": "Wird nur in diesem Browser gespeichert und niemals in Backups geschrieben oder an My API Box gesendet. Verwende ein Fine-grained-Token nur mit Lese-/Schreibzugriff für Gists oder ein klassisches Token mit dem gist-Bereich.",
+      "tokenDesc": "Wird nur in diesem Browser gespeichert und niemals in Backups geschrieben oder an StationWarden gesendet. Verwende ein Fine-grained-Token nur mit Lese-/Schreibzugriff für Gists oder ein klassisches Token mit dem gist-Bereich.",
       "tokenPlaceholder": "GitHub-Token einfügen",
       "upload": "Auf Secret Gist hochladen",
       "uploadFailed": "Upload zum GitHub Secret Gist fehlgeschlagen",

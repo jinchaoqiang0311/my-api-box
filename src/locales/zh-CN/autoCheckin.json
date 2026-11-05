@@ -173,7 +173,7 @@
     "checkinDisabled": "该站点未开启签到功能"
   },
   "riskNotice": {
-    "description": "请遵守各站点规则，自行评估自动签到风险。因使用本功能导致的账号封禁、限制或其他损失，由使用者自行承担，My API Box 不承担责任。",
+    "description": "请遵守各站点规则，自行评估自动签到风险。因使用本功能导致的账号封禁、限制或其他损失，由使用者自行承担，StationWarden 不承担责任。",
     "label": "自动签到风险提示"
   },
   "settings": {

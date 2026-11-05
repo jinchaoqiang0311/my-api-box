@@ -1,6 +1,6 @@
 # 支持的导出工具列表
 
-> 如果你已经在下面这些客户端、CLI 工具或自建后台里使用 API，My API Box 可以帮你更快把站点配置带过去，少掉重复填写 `Base URL`、`API Key` 和模型名的步骤。
+> 如果你已经在下面这些客户端、CLI 工具或自建后台里使用 API，StationWarden 可以帮你更快把站点配置带过去，少掉重复填写 `Base URL`、`API Key` 和模型名的步骤。
 
 ## 聊天客户端
 
@@ -31,7 +31,7 @@
 
 Kelivo PC 端目前没有提供商导入入口，无法使用二维码或导入码。需要在 PC 端使用时，请参照弹窗中显示的协议、提供商名称、API 密钥和 Base URL 手动新增提供商。
 
-导入码只包含提供商名称、API 密钥、提供商类型，以及适用时的 Base URL。它不包含模型列表、自定义请求头或其他 My API Box 配置。OpenAI Compatible 和 Anthropic 协议会按弹窗中显示的 Base URL 原样导出。Google 提供商只支持官方 API 地址，因此选择 Google 后会固定该地址；切回其他协议时，先前填写的 Base URL 仍会保留。
+导入码只包含提供商名称、API 密钥、提供商类型，以及适用时的 Base URL。它不包含模型列表、自定义请求头或其他 StationWarden 配置。OpenAI Compatible 和 Anthropic 协议会按弹窗中显示的 Base URL 原样导出。Google 提供商只支持官方 API 地址，因此选择 Google 后会固定该地址；切回其他协议时，先前填写的 Base URL 仍会保留。
 
 Kelivo 本身也支持 OpenAI Responses，但当前 `ai-provider:v1` 导入码没有保存 Responses 开关；`openai` 类型导入后固定为 OpenAI Compatible。若要使用 Responses，请先完成导入，再到 Kelivo 的提供商设置中开启。
 
@@ -41,7 +41,7 @@ Kelivo 本身也支持 OpenAI Responses，但当前 `ai-provider:v1` 导入码�
 
 ## Cursor++ 导出
 
-在账号密钥或 API 凭据的操作区选择“导出 Cursor++ 提供商配置”，My API Box 会读取 OpenAI 兼容模型列表，并生成 Cursor++ 0.0.13 使用的 `provider` 对象。其中包含稳定的提供商 ID、名称、`baseUrl`、API 密钥认证信息，以及带有 `defaultOn: true` 的模型列表。
+在账号密钥或 API 凭据的操作区选择“导出 Cursor++ 提供商配置”，StationWarden 会读取 OpenAI 兼容模型列表，并生成 Cursor++ 0.0.13 使用的 `provider` 对象。其中包含稳定的提供商 ID、名称、`baseUrl`、API 密钥认证信息，以及带有 `defaultOn: true` 的模型列表。
 
 导出前可以搜索、移除已发现的模型，也可以输入或粘贴多个模型 ID。Base URL 会按所选协议自动填成该协议需要的地址：OpenAI 两种协议使用带版本段的地址，Anthropic 与 Gemini 使用协议根地址，因为对应的 SDK 会自己补上版本段；需要时仍可以直接修改。
 
@@ -52,7 +52,7 @@ Cursor++ 当前支持以下协议类型：
 - **Anthropic Messages**：导出 `type: "anthropic"`。
 - **Gemini**：导出 `type: "gemini"`。
 
-协议选择只改变 Cursor++ 调用提供商的方式。My API Box 的模型发现仍使用账号现有的 OpenAI 兼容模型接口，不会因为切换协议而自动验证对应的原生协议端点。
+协议选择只改变 Cursor++ 调用提供商的方式。StationWarden 的模型发现仍使用账号现有的 OpenAI 兼容模型接口，不会因为切换协议而自动验证对应的原生协议端点。
 
 复制后，在 Cursor++ 中打开 **Edit Providers Config**，把这个对象加入 `~/.ccursor/providers.json` 的 `providers` 数组。复制内容只是单个 `provider`，不会覆盖或替代完整配置文件。模型发现失败或返回空列表时，可以手动添加一个或多个模型 ID 后继续复制。
 
@@ -64,7 +64,7 @@ Cursor++ 当前支持以下协议类型：
 
 ### Kilo Code 7.x
 
-选择 Kilo Code 7.x 后，每个账号密钥或 API 凭据会导出为一个名称易读的 `provider`。每个 `provider` 都包含从对应接口发现并规范化的全部模型 ID，以及为该 `provider` 手动输入并保留的模型 ID。无论模型 ID 来自接口还是手动输入，被包含在导出中都不代表 My API Box 验证了该模型适用于所有工作流。请先选择默认 `model`；导出多个 `provider` 时，还需选择默认 `provider`。
+选择 Kilo Code 7.x 后，每个账号密钥或 API 凭据会导出为一个名称易读的 `provider`。每个 `provider` 都包含从对应接口发现并规范化的全部模型 ID，以及为该 `provider` 手动输入并保留的模型 ID。无论模型 ID 来自接口还是手动输入，被包含在导出中都不代表 StationWarden 验证了该模型适用于所有工作流。请先选择默认 `model`；导出多个 `provider` 时，还需选择默认 `provider`。
 
 每个 `provider` 可选择以下 API 协议：
 
@@ -72,7 +72,7 @@ Cursor++ 当前支持以下协议类型：
 - **OpenAI Responses**：导出 `@ai-sdk/openai`。
 - **Anthropic Messages**：导出 `@ai-sdk/anthropic`。
 
-协议选择只改变 Kilo Code 的 AI SDK provider 包。My API Box 仍沿用现有模型发现流程并导出完整加载结果，不会因为选择 Anthropic Messages 而跳过模型发现，也不会额外改写模型 ID 或补充未经验证的模型元数据。
+协议选择只改变 Kilo Code 的 AI SDK provider 包。StationWarden 仍沿用现有模型发现流程并导出完整加载结果，不会因为选择 Anthropic Messages 而跳过模型发现，也不会额外改写模型 ID 或补充未经验证的模型元数据。
 
 你可以按需要选择两种使用方式：
 
@@ -91,7 +91,7 @@ Kilo Code 当前的设置导入大小上限为 1 MiB。文件超出限制时，�
 
 ## 自建后台 / 管理面板
 
-如果你自己也搭了 AI 中转或聚合后台，My API Box 还可以把当前站点直接导入到你选中的后台目标里。
+如果你自己也搭了 AI 中转或聚合后台，StationWarden 还可以把当前站点直接导入到你选中的后台目标里。
 
 | 产品            | 官方描述                                                                                                                        | 官方链接                                                                            |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |

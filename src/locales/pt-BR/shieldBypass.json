@@ -137,16 +137,16 @@
     "openVerification": "Abrir janela de verificação",
     "reminderSettings": "Configurações de avisos",
     "turnstileAssistBody": "O site está aguardando uma verificação humana. Abra a janela de verificação para resolver o captcha. A extensão verificará o resultado em seguida.",
-    "turnstileAssistTitle": "My API Box · Aviso de verificação",
+    "turnstileAssistTitle": "StationWarden · Aviso de verificação",
     "turnstilePageBody": "O site está aguardando uma verificação humana. Abra a janela de verificação para resolver o captcha. A extensão verificará o resultado em seguida.",
     "verificationEnded": "Esta verificação terminou. Nenhuma ação adicional é necessária."
   },
-  "titlePrefix": "My API Box · Bypass de proteção",
+  "titlePrefix": "StationWarden · Bypass de proteção",
   "toast": {
     "actions": {
       "openSettings": "Abrir configurações do bypass de proteção"
     },
-    "body": "Esta página foi aberta automaticamente pelo My API Box para passar por páginas de proteção (por exemplo, desafios do Cloudflare) e obter os cookies ou a sessão necessários.\nIsso é necessário para que o My API Box faça solicitações com sucesso e detecte dados em sites protegidos.\nSe uma etapa de verificação aparecer, conclua-a nesta janela. Após a aprovação, o My API Box continuará e esta janela poderá ser fechada automaticamente.",
+    "body": "Esta página foi aberta automaticamente pelo StationWarden para passar por páginas de proteção (por exemplo, desafios do Cloudflare) e obter os cookies ou a sessão necessários.\nIsso é necessário para que o StationWarden faça solicitações com sucesso e detecte dados em sites protegidos.\nSe uma etapa de verificação aparecer, conclua-a nesta janela. Após a aprovação, o StationWarden continuará e esta janela poderá ser fechada automaticamente.",
     "title": "Assistente de bypass de proteção",
     "turnstile": {
       "body": "Conclua a verificação do site nesta janela, por exemplo marcando “Sou humano” ou selecionando as imagens solicitadas. A extensão está aguardando e depois verificará o resultado. Se a página ainda mostrar o check-in pendente, conclua-o ali.",

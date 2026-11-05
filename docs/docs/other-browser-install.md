@@ -1,6 +1,6 @@
 ﻿# 其他浏览器安装指南
 
-本文档介绍如何在 QQ 浏览器、360 安全浏览器、360 极速浏览器、猎豹浏览器、Brave、Vivaldi、Opera 等浏览器中安装 My API Box 扩展。
+本文档介绍如何在 QQ 浏览器、360 安全浏览器、360 极速浏览器、猎豹浏览器、Brave、Vivaldi、Opera 等浏览器中安装 StationWarden 扩展。
 
 这些浏览器大多基于 Chromium 内核，但可用安装方式并不完全一样。能从浏览器商店或 Chrome Web Store 安装时，优先使用商店版本；只有商店入口不可用、组织策略限制，或需要临时验证 GitHub 版本时，再使用 GitHub Release 中的 Chrome 版本压缩包手动加载。
 
@@ -8,8 +8,8 @@
 
 - Chrome / Edge / Firefox 用户：优先使用对应商店版本，更新更省心。
 - Brave / Vivaldi 用户：优先尝试从 Chrome Web Store 安装；这些浏览器官方说明支持 Chrome Web Store 扩展。
-- Opera 用户：Opera 有自己的 Opera Add-ons 商店，但 My API Box 当前没有单独上架到 Opera Add-ons；可优先尝试 Chrome Web Store，如果你的 Opera 版本或策略不允许，再使用 GitHub 手动加载。
-- QQ 浏览器、360 系浏览器、猎豹浏览器等用户：如果浏览器自带扩展中心没有 My API Box，通常使用 GitHub Chrome 压缩包，通过“加载已解压的扩展程序”安装。
+- Opera 用户：Opera 有自己的 Opera Add-ons 商店，但 StationWarden 当前没有单独上架到 Opera Add-ons；可优先尝试 Chrome Web Store，如果你的 Opera 版本或策略不允许，再使用 GitHub 手动加载。
+- QQ 浏览器、360 系浏览器、猎豹浏览器等用户：如果浏览器自带扩展中心没有 StationWarden，通常使用 GitHub Chrome 压缩包，通过“加载已解压的扩展程序”安装。
 - Safari 用户：安装方式不同，需要通过 Xcode 或 Safari 专用包处理，请查看 [Safari 扩展安装指南](./safari-install.md)。
 - 移动端浏览器：不同浏览器对扩展能力支持差异较大，移动端说明请查看 [常见问题中的移动端使用](./faq.md#mobile-browser-support)。
 
@@ -33,7 +33,7 @@
 如果某个浏览器既不能使用商店安装，也没有“开发者模式”或“加载已解压的扩展程序”，说明当前版本可能不支持安装外部扩展。此时建议换用 Chrome、Edge、Firefox，或安装对应浏览器的完整版 / 桌面版后再试。
 
 ::: tip 商店入口和本项目上架状态不是一回事
-某个浏览器有自己的扩展商店，不代表 My API Box 已经在该商店上架。例如 Opera 有 Opera Add-ons，但当前请优先使用 Chrome Web Store 或 GitHub 手动包。
+某个浏览器有自己的扩展商店，不代表 StationWarden 已经在该商店上架。例如 Opera 有 Opera Add-ons，但当前请优先使用 Chrome Web Store 或 GitHub 手动包。
 :::
 
 ## 准备 GitHub 手动安装包
@@ -72,8 +72,8 @@ all-api-hub-3.32.0-chrome.zip
 2. 开启 `开发者模式`。
 3. 点击 `加载已解压的扩展程序`。
 4. 选择刚才解压出来、且包含 `manifest.json` 的目录。
-5. 安装完成后，在扩展列表中确认 `My API Box` 已启用。
-6. 如工具栏没有显示图标，在扩展按钮中将 My API Box 固定到工具栏。
+5. 安装完成后，在扩展列表中确认 `StationWarden` 已启用。
+6. 如工具栏没有显示图标，在扩展按钮中将 StationWarden 固定到工具栏。
 7. 如果安装前已经打开了中转站页面，请刷新这些页面后再使用自动识别。
 
 <a id="qq-browser"></a>
@@ -114,7 +114,7 @@ QQ 浏览器桌面版通常可以使用 Chrome 版本压缩包进行手动加载
 
 ### 1. 确认使用极速模式
 
-360 安全浏览器存在“极速模式 / 兼容模式”等不同内核模式。My API Box 属于 Chromium 扩展，建议在需要识别的站点页面使用极速模式。
+360 安全浏览器存在“极速模式 / 兼容模式”等不同内核模式。StationWarden 属于 Chromium 扩展，建议在需要识别的站点页面使用极速模式。
 
 如果地址栏附近显示 `闪电` / `e` 等内核切换图标，请切换到 `极速模式` 后再使用扩展。
 
@@ -131,7 +131,7 @@ QQ 浏览器桌面版通常可以使用 Chrome 版本压缩包进行手动加载
 1. 开启 `开发者模式`。
 2. 点击 `加载已解压的扩展程序`。
 3. 选择解压后的 `all-api-hub-<version>-chrome` 目录。
-4. 安装完成后启用 My API Box，并按需固定到工具栏。
+4. 安装完成后启用 StationWarden，并按需固定到工具栏。
 
 ### 4. 常见处理
 
@@ -173,11 +173,11 @@ liebao://extensions/
 
 ## Brave / Vivaldi / Opera 安装
 
-这些浏览器通常可以使用 Chrome Web Store。建议先在对应浏览器中打开 [My API Box 的 Chrome Web Store 页面](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) 并尝试安装。
+这些浏览器通常可以使用 Chrome Web Store。建议先在对应浏览器中打开 [StationWarden 的 Chrome Web Store 页面](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) 并尝试安装。
 
 - Brave 官方支持从 Chrome Web Store 安装扩展。
 - Vivaldi 官方支持安装 Chrome Web Store 扩展；如果按钮没有出现，请检查 Vivaldi 的 Google Extensions / Web Store 相关设置。
-- Opera 有自己的 Opera Add-ons，也支持安装 Chrome 扩展；My API Box 当前没有单独上架 Opera Add-ons，因此优先使用 Chrome Web Store。
+- Opera 有自己的 Opera Add-ons，也支持安装 Chrome 扩展；StationWarden 当前没有单独上架 Opera Add-ons，因此优先使用 Chrome Web Store。
 
 如果商店安装失败，再使用下面的扩展管理页手动加载 GitHub Chrome 压缩包：
 
@@ -200,7 +200,7 @@ liebao://extensions/
 2. 下载新的 `all-api-hub-<version>-chrome.zip`。
 3. 解压到原来的固定目录，或解压到一个新的版本目录。
 4. 打开扩展管理页。
-5. 如果仍使用原目录，点击 My API Box 卡片上的 `重新加载`。
+5. 如果仍使用原目录，点击 StationWarden 卡片上的 `重新加载`。
 6. 如果换了新目录，先移除旧版本，再加载新目录。
 
 ::: warning 注意
@@ -210,7 +210,7 @@ liebao://extensions/
 ## 卸载
 
 1. 打开浏览器扩展管理页。
-2. 找到 `My API Box`。
+2. 找到 `StationWarden`。
 3. 点击 `移除`、`卸载` 或关闭启用开关。
 4. 删除本地解压目录。
 

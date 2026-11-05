@@ -19,6 +19,13 @@ import { PageHeader } from "~/components/PageHeader"
 import { ReleaseUpdateStatusPanel } from "~/components/ReleaseUpdateStatusPanel"
 import { Heading4 } from "~/components/ui"
 import { FEATURES, FUTURE_FEATURES } from "~/constants/about"
+import {
+  APP_MODIFICATION_DATE,
+  APP_REPOSITORY_URL,
+  RELAYLENS_DOWNLOAD_URL,
+  RELAYLENS_SITE_URL,
+  UPSTREAM_PROJECT_URL,
+} from "~/constants/branding"
 import { EXTENSION_STORE_LISTING_URLS } from "~/constants/extensionStores"
 import { ProductTourReplayCard } from "~/features/ProductTour"
 import { useIsStarred } from "~/features/StarPromotion/useStarPromotionActive"
@@ -157,6 +164,50 @@ export default function About() {
 
         <section>
           <Heading4 className="mb-density-4">
+            {t("stationRating:relayLensSection.title")}
+          </Heading4>
+          {RELAYLENS_SITE_URL ? (
+            <div className="gap-y-density-4 grid grid-cols-1 gap-x-4 md:grid-cols-2">
+              <LinkCard
+                Icon={Globe2}
+                title={t("stationRating:relayLensSection.site.title")}
+                description={t(
+                  "stationRating:relayLensSection.site.description",
+                )}
+                href={RELAYLENS_SITE_URL}
+                buttonText={t("stationRating:relayLensSection.site.button")}
+                buttonVariant="default"
+                iconClass="text-link"
+              />
+              {RELAYLENS_DOWNLOAD_URL ? (
+                <LinkCard
+                  Icon={Download}
+                  title={t("stationRating:relayLensSection.download.title")}
+                  description={t(
+                    "stationRating:relayLensSection.download.description",
+                  )}
+                  href={RELAYLENS_DOWNLOAD_URL}
+                  buttonText={t(
+                    "stationRating:relayLensSection.download.button",
+                  )}
+                  buttonVariant="secondary"
+                  iconClass="text-link"
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  {t("stationRating:relayLensSection.download.linkPending")}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t("stationRating:relayLensSection.linkPending")}
+            </p>
+          )}
+        </section>
+
+        <section>
+          <Heading4 className="mb-density-4">
             {t("feedbackSection.title")}
           </Heading4>
           <div className="gap-y-density-4 grid grid-cols-1 gap-x-4 md:grid-cols-2 xl:grid-cols-3">
@@ -280,6 +331,40 @@ export default function About() {
         <section>
           <Heading4 className="mb-density-4">{t("copyrightAck")}</Heading4>
           <CreditsCard />
+        </section>
+
+        {/* 上游来源与 AGPL-3.0 合规声明 */}
+        <section>
+          <Heading4 className="mb-density-4">{t("upstream.title")}</Heading4>
+          <div className="space-y-density-2 text-sm">
+            <p className="text-muted-foreground">
+              {t("upstream.notice", {
+                date: APP_MODIFICATION_DATE,
+                repo: APP_REPOSITORY_URL,
+              })}
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <a
+                className="text-link underline underline-offset-2"
+                href={UPSTREAM_PROJECT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("upstream.upstreamLink")}
+              </a>
+              <a
+                className="text-link underline underline-offset-2"
+                href={APP_REPOSITORY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("upstream.sourceLink")}
+              </a>
+              <span className="text-muted-foreground">
+                {t("upstream.licenseLabel")}
+              </span>
+            </div>
+          </div>
         </section>
 
         {/* 隐私声明 */}

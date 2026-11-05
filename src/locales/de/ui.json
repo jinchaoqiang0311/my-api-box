@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "My API Box"
+    "name": "StationWarden"
   },
   "billing": {
     "notProvided": "Nicht bereitgestellt",
@@ -487,7 +487,7 @@
       "loading": "Änderungsprotokoll wird geladen…",
       "missingSection": "Die Änderungsprotokollvorschau für v{{version}} konnte nicht geladen werden. Sie können das vollständige Änderungsprotokoll öffnen.",
       "openFullChangelog": "Vollständiges Änderungsprotokoll öffnen",
-      "starPrompt": "Finden Sie My API Box nützlich? Vergeben Sie einen Stern, um die täglichen Updates zu verfolgen",
+      "starPrompt": "Finden Sie StationWarden nützlich? Vergeben Sie einen Stern, um die täglichen Updates zu verfolgen",
       "title": "Was ist neu",
       "updatedTo": "Aktualisiert auf v{{version}}"
     }
@@ -608,7 +608,7 @@
     "placeholder": "Einstellungen durchsuchen..."
   },
   "pageTitle": {
-    "app": "My API Box",
+    "app": "StationWarden",
     "options": "Einstellungen",
     "popup": "Popup",
     "sidepanel": "Seitenleiste",
@@ -680,8 +680,8 @@
       "later": "Später",
       "star": "Stern vergeben"
     },
-    "cardDescription": "My API Box ist vollständig Open Source und unterstützt laufend mehr Seiten, während die Bedienung weiter verfeinert wird. Ein Stern trägt die laufende Pflege mit und hilft mehr Menschen, es zu finden.",
-    "cardTitle": "Hilft Ihnen My API Box?"
+    "cardDescription": "StationWarden ist vollständig Open Source und unterstützt laufend mehr Seiten, während die Bedienung weiter verfeinert wird. Ein Stern trägt die laufende Pflege mit und hilft mehr Menschen, es zu finden.",
+    "cardTitle": "Hilft Ihnen StationWarden?"
   },
   "textEntries": {
     "add": "Zeile hinzufügen",

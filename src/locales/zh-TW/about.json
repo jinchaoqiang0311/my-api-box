@@ -30,7 +30,7 @@
     },
     "languageRequest": {
       "button": "開啟新語言請求",
-      "description": "請求 My API Box 支援新的介面語言。"
+      "description": "請求 StationWarden 支援新的介面語言。"
     },
     "title": "反饋與支援"
   },
@@ -39,7 +39,7 @@
   "homepage": "專案官網",
   "homepageDesc": "檢視詳細文件、使用指南和更多資訊",
   "implementedFeatures": "已實現功能",
-  "intro": "My API Box 集中管理中轉站帳號、餘額和 API 憑據，提供自動重新整理、簽到與模型驗證；支援 CLIProxyAPI、New API、Sub2API 等自建站點的渠道或提供商管理，並依站點能力提供模型同步。另可使用 WebDAV 備份與資料匯入匯出。",
+  "intro": "StationWarden 集中管理中轉站帳號、餘額和 API 憑據，提供自動重新整理、簽到與模型驗證；支援 CLIProxyAPI、New API、Sub2API 等自建站點的渠道或提供商管理，並依站點能力提供模型同步。另可使用 WebDAV 備份與資料匯入匯出。",
   "privacyText": "帳號、API Key、Cookie、餘額、請求內容和使用者輸入等敏感資料預設僅儲存在本機。可關閉的匿名產品統計只用於優先修復常見問題、改進常用流程與相容性，並減少不必要的干擾，不會收集上述敏感資料。",
   "privacyTitle": "隱私保護",
   "projectLinks": "專案連結",
@@ -61,7 +61,7 @@
     },
     "review": {
       "button": "前往 {{store}} 評分",
-      "description": "如果 My API Box 對你有幫助，歡迎在 {{store}} 留下正向評價，支援我們持續更新。",
+      "description": "如果 StationWarden 對你有幫助，歡迎在 {{store}} 留下正向評價，支援我們持續更新。",
       "title": "給我們一個好評"
     },
     "title": "評分與下載"
@@ -77,6 +77,13 @@
   "thanksDesc": "感謝所有為開源社羣做出貢獻的開發者們，本外掛的開發得益於這些優秀的開源專案和工具",
   "title": "關於",
   "upcomingFeatures": "即將支援",
+  "upstream": {
+    "licenseLabel": "授權：AGPL-3.0",
+    "notice": "StationWarden 是 All API Hub 的獨立開源分支，本分支的修改始於 {{date}}；對應原始碼以 AGPL-3.0 發布於 {{repo}}。",
+    "sourceLink": "StationWarden 原始碼",
+    "title": "上游專案與授權",
+    "upstreamLink": "All API Hub（上游）"
+  },
   "version": "版本號:",
   "viewRepo": "造訪倉庫",
   "visitHomepage": "訪問官網"

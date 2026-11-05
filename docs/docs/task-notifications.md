@@ -42,18 +42,18 @@
 https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-4. 回到 My API Box，进入 **`设置 → 通用 → 通知 → 飞书机器人`**。
+4. 回到 StationWarden，进入 **`设置 → 通用 → 通知 → 飞书机器人`**。
 5. 将完整 Webhook URL 填入 **`Webhook URL 或 Key`**，启用渠道后点击 **`发送测试通知`**。
 
-如果你只复制了 `/hook/` 后面的 key，也可以直接填入，My API Box 会自动补全飞书 Webhook 地址。
+如果你只复制了 `/hook/` 后面的 key，也可以直接填入，StationWarden 会自动补全飞书 Webhook 地址。
 
 ### 安全设置
 
 飞书自定义机器人支持关键词、IP 白名单、签名校验等安全设置。创建机器人和配置安全设置时，可参考 [飞书自定义机器人使用指南](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)。
 
-使用 My API Box 时需要注意：
+使用 StationWarden 时需要注意：
 
-- 如果启用了关键词校验，请确保通知标题或正文包含你配置的关键词，例如 `My API Box`。
+- 如果启用了关键词校验，请确保通知标题或正文包含你配置的关键词，例如 `StationWarden`。
 - IP 白名单会受当前设备网络环境影响，移动网络、代理或家庭宽带出口变化时可能导致发送失败。
 - 当前飞书渠道只配置 Webhook URL 或 Key，未提供单独的签名密钥输入；如果启用飞书签名校验，测试通知可能会因为缺少签名而失败。
 
@@ -81,16 +81,16 @@ https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
 https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-5. 回到 My API Box，进入 **`设置 → 通用 → 通知 → 钉钉机器人`**。
+5. 回到 StationWarden，进入 **`设置 → 通用 → 通知 → 钉钉机器人`**。
 6. 将完整 Webhook URL 填入 **`Webhook URL 或 access_token`**。如果钉钉机器人启用了 **加签** 安全设置，将钉钉生成的 `SEC...` 密钥填入 **`加签 Secret`**。
 7. 启用渠道后点击 **`发送测试通知`**。
 
 ### 安全设置
 
-钉钉自定义机器人支持多种安全设置，使用 My API Box 时需要注意：
+钉钉自定义机器人支持多种安全设置，使用 StationWarden 时需要注意：
 
-- 如果启用了关键词校验，请确保通知标题或正文包含你配置的关键词，例如 `My API Box`。
-- 如果启用了加签，请在 My API Box 中填写钉钉提供的 `SEC...` Secret。发送通知时，My API Box 会按钉钉要求为每次请求生成 `timestamp` 和 HMAC-SHA256 签名。
+- 如果启用了关键词校验，请确保通知标题或正文包含你配置的关键词，例如 `StationWarden`。
+- 如果启用了加签，请在 StationWarden 中填写钉钉提供的 `SEC...` Secret。发送通知时，StationWarden 会按钉钉要求为每次请求生成 `timestamp` 和 HMAC-SHA256 签名。
 - IP 地址（段）会受当前设备网络环境影响，移动网络、代理或家庭宽带出口变化时可能导致发送失败。
 - 请妥善保管 Webhook URL 和加签 Secret，不要发布到公开仓库、公开文档或截图中。
 
@@ -98,7 +98,7 @@ https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ### 接口行为
 
-钉钉机器人接口使用 `POST /robot/send?access_token=...` 发送消息。My API Box 会发送文本消息：
+钉钉机器人接口使用 `POST /robot/send?access_token=...` 发送消息。StationWarden 会发送文本消息：
 
 ```json
 {
@@ -139,14 +139,14 @@ https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-5. 回到 My API Box，进入 **`设置 → 通用 → 通知 → 企业微信机器人`**。
+5. 回到 StationWarden，进入 **`设置 → 通用 → 通知 → 企业微信机器人`**。
 6. 将完整 Webhook URL 填入 **`Webhook URL 或 Key`**，启用渠道后点击 **`发送测试通知`**。
 
-如果你只复制了 `key=` 后面的 key，也可以直接填入，My API Box 会自动补全企业微信 Webhook 地址。
+如果你只复制了 `key=` 后面的 key，也可以直接填入，StationWarden 会自动补全企业微信 Webhook 地址。
 
 ### 接口行为
 
-企业微信机器人接口使用 `POST /cgi-bin/webhook/send?key=...` 发送消息。My API Box 会发送文本消息：
+企业微信机器人接口使用 `POST /cgi-bin/webhook/send?key=...` 发送消息。StationWarden 会发送文本消息：
 
 ```json
 {
@@ -163,7 +163,7 @@ https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxx
 
 企业微信群消息推送的消息格式和发送频率限制以 [企业微信消息推送配置说明](https://developer.work.weixin.qq.com/document/path/99110) 为准。
 
-使用 My API Box 时需要注意：
+使用 StationWarden 时需要注意：
 
 - 企业微信机器人有发送频率限制；如果大量任务同时完成，可能触发平台限流。
 - 如果测试通知返回 `invalid webhook url`、`key not found` 或类似错误，请从企业微信机器人配置页重新复制完整 Webhook URL。
@@ -176,7 +176,7 @@ ntfy 渠道通过 ntfy 的主题发布接口发送纯文本通知。你可以使
 ### 配置主题
 
 1. 在 ntfy App、网页端或自建服务中准备一个主题名，例如 `all-api-hub-alerts`。
-2. 回到 My API Box，进入 **`设置 → 通用 → 通知 → ntfy`**。
+2. 回到 StationWarden，进入 **`设置 → 通用 → 通知 → ntfy`**。
 3. 在 **`Topic URL 或主题名`** 中填写完整主题 URL：
 
 ```text
@@ -189,7 +189,7 @@ https://ntfy.sh/all-api-hub-alerts
 all-api-hub-alerts
 ```
 
-只填写主题名时，My API Box 会自动发送到 `https://ntfy.sh/<主题名>`。如果你使用自建 ntfy 服务，请填写完整 URL，例如：
+只填写主题名时，StationWarden 会自动发送到 `https://ntfy.sh/<主题名>`。如果你使用自建 ntfy 服务，请填写完整 URL，例如：
 
 ```text
 https://ntfy.example.com/all-api-hub-alerts
@@ -200,7 +200,7 @@ https://ntfy.example.com/all-api-hub-alerts
 
 ### 接口行为
 
-My API Box 使用 ntfy 的发布接口，向主题 URL 发送 `POST` 请求。通知正文作为纯文本请求体发送，通知标题放在 `Title` 请求头中；非 ASCII 标题会按 RFC 2047 编码后发送，以兼容浏览器扩展后台的请求头限制。如果填写了访问令牌，请求会带上 `Authorization: Bearer <token>`。
+StationWarden 使用 ntfy 的发布接口，向主题 URL 发送 `POST` 请求。通知正文作为纯文本请求体发送，通知标题放在 `Title` 请求头中；非 ASCII 标题会按 RFC 2047 编码后发送，以兼容浏览器扩展后台的请求头限制。如果填写了访问令牌，请求会带上 `Authorization: Bearer <token>`。
 
 ntfy 的发布接口、请求头和认证方式可参考官方文档：[Publishing messages](https://docs.ntfy.sh/publish/)。
 

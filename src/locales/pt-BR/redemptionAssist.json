@@ -32,7 +32,7 @@
     "cancelled": "Cancelado",
     "extensionDays": "Estendida em {{days}} dias",
     "fallbackBenefit": "Benefício alternativo utilizado",
-    "noAccountForUrl": "Nenhuma conta correspondente encontrada para este site. Adicione o site como uma conta em My API Box e tente novamente.",
+    "noAccountForUrl": "Nenhuma conta correspondente encontrada para este site. Adicione o site como uma conta em StationWarden e tente novamente.",
     "promptConfirm": "Detectamos um possível código de resgate, {{code}}, nesta página. Deseja tentar resgatá-lo automaticamente neste site?",
     "promptConfirmBatch_one": "Detectamos {{count}} possível código de resgate nesta página. Selecione o código que deseja resgatar automaticamente neste site.",
     "promptConfirmBatch_many": "Detectamos {{count}} possíveis códigos de resgate nesta página. Selecione os códigos que deseja resgatar automaticamente neste site.",

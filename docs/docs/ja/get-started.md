@@ -1,6 +1,6 @@
-﻿# はじめに
+# はじめに
 
-わずか数分で、AIアセットのインテリジェント管理の旅を始めましょう。My API Box は、残高の自動同期、毎日のチェックイン、および一般的なAIツールへのワンクリック統合を支援します。
+わずか数分で、AIアセットのインテリジェント管理の旅を始めましょう。StationWarden は、残高の自動同期、毎日のチェックイン、および一般的なAIツールへのワンクリック統合を支援します。
 
 ::: tip 現状（v1.0.0）
 ストア版は審査待ちです。**当面は GitHub Releases から手動インストール**してください。ストア版は公開後自動更新されます。**Star / Watch** で公開・新バージョンをお知らせします。
@@ -34,7 +34,7 @@
 安定していて効率的かつ互換性の高い AI プロキシサービスをお探しなら、次のパートナーをお試しください。
 
 - [Qiniu Cloud AI](https://s.qiniu.com/qE3eai)：150 以上の主要グローバルモデルへ一括アクセスできる企業向け MaaS プラットフォームです。企業ユーザーは 1,200 万トークンの無料枠を受け取れます。
-- [FennoAI](https://api.fenno.ai/s/DCGC)：OpenAI と Anthropic プロトコルに対応した、安定性と効率性の高い Codex 中継サービスです。主要なコーディングツールに接続でき、1 日あたり 1,000 億 Token 規模の企業利用を支えます。My API Box ユーザーは 1.99 ドルで 50 ドル相当の Coding Plan クレジットを購入でき、友人の購入に対して最大 20% の紹介報酬を受け取れます。[設定ガイド](./service-guides/fenno.md)
+- [FennoAI](https://api.fenno.ai/s/DCGC)：OpenAI と Anthropic プロトコルに対応した、安定性と効率性の高い Codex 中継サービスです。主要なコーディングツールに接続でき、1 日あたり 1,000 億 Token 規模の企業利用を支えます。StationWarden ユーザーは 1.99 ドルで 50 ドル相当の Coding Plan クレジットを購入でき、友人の購入に対して最大 20% の紹介報酬を受け取れます。[設定ガイド](./service-guides/fenno.md)
 - [PackyCode](https://www.packyapi.ai/register)：チャージ時に `all-api-hub` クーポンコードを入力すると 10% オフになります。[設定ガイド](./sponsor-guides/packycode.md)
 - [Xingchen AI](https://ai.centos.hk)：1:1 のチャージ比率、請求書対応、Claude は通常価格の 40% 程度から利用できます。[設定ガイド](./sponsor-guides/xingchen.md)
 - [AICodeMirror](https://www.aicodemirror.ai/register)：Claude Code / Codex / Gemini CLI 向けの公式高安定中継サービスです。このリンクから登録すると初回チャージが 20% オフになり、エンタープライズ顧客は最大 25% オフを受けられます。

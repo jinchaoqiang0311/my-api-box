@@ -147,7 +147,7 @@
   },
   "axonHub": {
     "cors": {
-      "description": "新的 AxonHub 实例通常需要调整服务端 CORS 配置，否则 My API Box 扩展无法从浏览器访问 AxonHub。可将 AXONHUB_SERVER_CORS_ALLOWED_ORIGINS 设为 \"*\"，或限制为你信任的浏览器 / 扩展来源。",
+      "description": "新的 AxonHub 实例通常需要调整服务端 CORS 配置，否则 StationWarden 扩展无法从浏览器访问 AxonHub。可将 AXONHUB_SERVER_CORS_ALLOWED_ORIGINS 设为 \"*\"，或限制为你信任的浏览器 / 扩展来源。",
       "title": "必需的 CORS 设置"
     },
     "description": "配置用于连接 AxonHub 管理后台的集成设置。",
@@ -452,7 +452,7 @@
       "showPassword": "显示登录密码",
       "showToken": "显示系统访问令牌",
       "showTotpSecret": "显示 TOTP 密钥",
-      "totpSecretDesc": "可选。填写后，My API Box 可自动生成 TOTP 验证码，用于完成登录 2FA，以及查看渠道 key 所需的安全验证。",
+      "totpSecretDesc": "可选。填写后，StationWarden 可自动生成 TOTP 验证码，用于完成登录 2FA，以及查看渠道 key 所需的安全验证。",
       "totpSecretLabel": "TOTP 密钥",
       "totpSecretPlaceholder": "粘贴 Base32 TOTP 密钥",
       "userIdLabel": "管理员用户 ID",
@@ -603,7 +603,7 @@
       "allowAll": "授予全部推荐权限",
       "maybeLater": "暂不授权"
     },
-    "analyticsDisclosure": "匿名统计只用于帮助我们发现问题、改善体验，你可以随时关闭；不会包含你的账号信息、凭据或输入内容。",
+    "analyticsDisclosure": "匿名统计默认关闭，仅在你主动开启后才会发送。不会包含你的账号信息、凭据或输入内容，你可以随时关闭。",
     "intro": "源码公开，权限与匿名统计是否启用，都由你决定。",
     "openSourceBadge": "开源、透明、社区共建",
     "permissionListDescription": "部分功能需要额外权限。你可以查看具体用途后按需授权，并随时撤销。",
@@ -612,21 +612,21 @@
       "cta": "来 GitHub 看看源码和最新进展，也欢迎反馈问题或分享想法。",
       "getStartedCta": "查看新手指引",
       "label": "源代码",
-      "starCta": "觉得 My API Box 有帮助？点亮 Star 支持项目"
+      "starCta": "觉得 StationWarden 有帮助？点亮 Star 支持项目"
     },
     "reason": {
       "newPermissions": "新增功能需要新的可选权限。请查看具体用途，并按需授权。"
     },
     "subtitle": "先选择界面语言，再按需开启可选权限；这些设置之后都可以更改。",
-    "title": "欢迎使用 My API Box",
+    "title": "欢迎使用 StationWarden",
     "toasts": {
       "error": "未能授予全部推荐权限",
       "success": "已授予全部推荐权限"
     }
   },
   "productAnalytics": {
-    "description": "帮助我们更快发现常见问题、改进常用流程并提升兼容性的匿名统计。我们不会收集 API Key、Cookie、账号 URL、余额、请求内容或用户输入。",
-    "enableDescription": "允许发送有限的功能使用情况、错误类别和粗略站点类型统计，用于优先改进最影响你体验的部分。",
+    "description": "默认关闭的可选匿名统计，用于更快发现常见问题、改进常用流程并提升兼容性。不会收集 API Key、Cookie、账号 URL、余额、请求内容或用户输入。",
+    "enableDescription": "开启后会发送有限的功能使用情况、错误类别和粗略站点类型统计，用于优先改进最影响你体验的部分；已保存的选择不会被升级覆盖。",
     "enableLabel": "启用匿名产品统计",
     "title": "匿名产品统计"
   },
@@ -726,7 +726,7 @@
     "title": "刷新设置",
     "turnstileNotificationEnable": "授权系统通知",
     "turnstileNotificationManage": "管理通知权限",
-    "turnstileNotificationPermissionTitle": "允许 My API Box 发送浏览器通知",
+    "turnstileNotificationPermissionTitle": "允许 StationWarden 发送浏览器通知",
     "turnstileNotificationStatus": {
       "available": "系统通知：权限可用。系统勿扰或浏览器设置仍可能隐藏通知。",
       "blocked": "浏览器已阻止通知。请检查浏览器通知设置，返回后重试。",
@@ -811,7 +811,7 @@
       "description": "若站点启用了敏感操作二次验证，插件暂时无法查看或导出渠道密钥。请在 Sub2API 后台完成这些操作；迁移需要读取源密钥时也会受限。",
       "title": "密钥查看与导出的限制"
     },
-    "description": "连接后，可将已有 API Key 导入 Sub2API，并在 My API Box 中查看、编辑和迁移渠道。",
+    "description": "连接后，可将已有 API Key 导入 Sub2API，并在 StationWarden 中查看、编辑和迁移渠道。",
     "fields": {
       "adminApiKeyDesc": "请填写后台生成的管理员 API Key，用于管理渠道。调用模型用的普通 API Key 不能用于此处。",
       "adminApiKeyLabel": "管理员 API Key",
@@ -969,12 +969,12 @@
       "feishuMissingConfig": "飞书机器人 Webhook URL 或 Key 未配置。",
       "httpError": "{{label}} 返回了 HTTP {{status}}。",
       "httpErrorWithDetail": "{{label}} 返回了 HTTP {{status}}：{{detail}}",
-      "message": "这是一条 My API Box 任务通知测试。",
+      "message": "这是一条 StationWarden 任务通知测试。",
       "ntfyInvalidUrl": "ntfy Topic URL 必须使用 http:// 或 https://，或填写有效的 ntfy.sh 主题名。",
       "ntfyMissingConfig": "ntfy Topic URL 或主题名未配置。",
       "sent": "测试通知已发送",
       "telegramMissingConfig": "Telegram Bot Token 或 Chat ID 未配置。",
-      "title": "My API Box 测试通知",
+      "title": "StationWarden 测试通知",
       "webhookInvalidUrl": "Webhook URL 必须使用 http:// 或 https://。",
       "webhookMissingConfig": "Webhook URL 未配置。",
       "wecomMissingConfig": "企业微信机器人 Webhook URL 或 Key 未配置。"

@@ -30,7 +30,7 @@
     },
     "languageRequest": {
       "button": "Mở yêu cầu ngôn ngữ mới",
-      "description": "Yêu cầu My API Box hỗ trợ thêm ngôn ngữ giao diện mới."
+      "description": "Yêu cầu StationWarden hỗ trợ thêm ngôn ngữ giao diện mới."
     },
     "title": "Phản hồi và hỗ trợ"
   },
@@ -39,7 +39,7 @@
   "homepage": "Trang web chính thức của dự án",
   "homepageDesc": "Xem tài liệu chi tiết, hướng dẫn sử dụng và thông tin khác",
   "implementedFeatures": "Tính năng đã triển khai",
-  "intro": "My API Box tập trung quản lý tài khoản trạm trung chuyển, số dư và thông tin xác thực API, đồng thời cung cấp tính năng tự động làm mới, điểm danh và xác minh mô hình. Quản lý kênh hoặc nhà cung cấp trên các trang web tự lưu trữ như CLIProxyAPI, New API và Sub2API, với tính năng đồng bộ mô hình tại các trang được hỗ trợ. Ngoài ra còn có sao lưu WebDAV và nhập/xuất dữ liệu.",
+  "intro": "StationWarden tập trung quản lý tài khoản trạm trung chuyển, số dư và thông tin xác thực API, đồng thời cung cấp tính năng tự động làm mới, điểm danh và xác minh mô hình. Quản lý kênh hoặc nhà cung cấp trên các trang web tự lưu trữ như CLIProxyAPI, New API và Sub2API, với tính năng đồng bộ mô hình tại các trang được hỗ trợ. Ngoài ra còn có sao lưu WebDAV và nhập/xuất dữ liệu.",
   "privacyText": "Các dữ liệu nhạy cảm như tài khoản, API Key, Cookie, số dư, nội dung yêu cầu và thông tin người dùng nhập mặc định chỉ được lưu trữ cục bộ. Số liệu thống kê sản phẩm ẩn danh có thể tắt được chỉ được sử dụng để ưu tiên khắc phục các sự cố phổ biến, cải thiện các luồng công việc thường dùng và tính tương thích, đồng thời giảm bớt sự can thiệp không cần thiết, và sẽ không thu thập các dữ liệu nhạy cảm nêu trên.",
   "privacyTitle": "Bảo vệ quyền riêng tư",
   "projectLinks": "Liên kết dự án",
@@ -61,7 +61,7 @@
     },
     "review": {
       "button": "Truy cập {{store}} để đánh giá",
-      "description": "Nếu My API Box hữu ích với bạn, vui lòng để lại đánh giá tích cực trên {{store}} để hỗ trợ chúng tôi tiếp tục cập nhật.",
+      "description": "Nếu StationWarden hữu ích với bạn, vui lòng để lại đánh giá tích cực trên {{store}} để hỗ trợ chúng tôi tiếp tục cập nhật.",
       "title": "Cho chúng tôi một đánh giá tốt"
     },
     "title": "Đánh giá và tải xuống"
@@ -77,6 +77,13 @@
   "thanksDesc": "Cảm ơn tất cả các nhà phát triển đã đóng góp cho cộng đồng nguồn mở, việc phát triển tiện ích mở rộng này được hưởng lợi từ các dự án và công cụ nguồn mở tuyệt vời này",
   "title": "Giới thiệu",
   "upcomingFeatures": "Tính năng sắp ra mắt",
+  "upstream": {
+    "licenseLabel": "License: AGPL-3.0",
+    "notice": "StationWarden is an independent open-source fork of All API Hub. This fork's modifications date from {{date}}; the corresponding source is published at {{repo}} under AGPL-3.0.",
+    "sourceLink": "StationWarden source",
+    "title": "Upstream & License",
+    "upstreamLink": "All API Hub (upstream)"
+  },
   "version": "Phiên bản:",
   "viewRepo": "Truy cập kho mã",
   "visitHomepage": "Truy cập trang chủ"

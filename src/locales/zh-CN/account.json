@@ -348,7 +348,7 @@
       "openApiCredentialProfiles": "打开凭据库",
       "openModelSync": "打开模型同步"
     },
-    "boundaryNote": "My API Box 负责管理账号 Key，不代理模型请求；外部客户端实际调用的是你的自建 AI 网关。",
+    "boundaryNote": "StationWarden 负责管理账号 Key，不代理模型请求；外部客户端实际调用的是你的自建 AI 网关。",
     "description": {
       "has_gateway_channels": "已完成过网关渠道创建或导入。前往渠道管理确认当前状态。",
       "needs_importable_source": "当前账号无法读取可导入的 Key。请先保存 API Key，或添加支持 Key 获取的账号，再导入自建 AI 网关。",

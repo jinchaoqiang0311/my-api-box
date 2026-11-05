@@ -147,7 +147,7 @@
   },
   "axonHub": {
     "cors": {
-      "description": "Phiên bản AxonHub mới thường cần điều chỉnh cấu hình CORS phía máy chủ, nếu không tiện ích My API Box không thể truy cập AxonHub từ trình duyệt. Có thể đặt AXONHUB_SERVER_CORS_ALLOWED_ORIGINS thành \"*\", hoặc giới hạn trong nguồn trình duyệt / tiện ích mà bạn tin cậy.",
+      "description": "Phiên bản AxonHub mới thường cần điều chỉnh cấu hình CORS phía máy chủ, nếu không tiện ích StationWarden không thể truy cập AxonHub từ trình duyệt. Có thể đặt AXONHUB_SERVER_CORS_ALLOWED_ORIGINS thành \"*\", hoặc giới hạn trong nguồn trình duyệt / tiện ích mà bạn tin cậy.",
       "title": "Cài đặt CORS bắt buộc"
     },
     "description": "Cấu hình tích hợp để kết nối với bảng quản trị AxonHub.",
@@ -452,7 +452,7 @@
       "showPassword": "Hiển thị mật khẩu đăng nhập",
       "showToken": "Hiển thị token truy cập hệ thống",
       "showTotpSecret": "Hiển thị TOTP secret",
-      "totpSecretDesc": "Tùy chọn. Sau khi điền, My API Box có thể tự động tạo mã xác minh TOTP để hoàn tất đăng nhập 2FA và xác minh bảo mật cần thiết khi xem key kênh.",
+      "totpSecretDesc": "Tùy chọn. Sau khi điền, StationWarden có thể tự động tạo mã xác minh TOTP để hoàn tất đăng nhập 2FA và xác minh bảo mật cần thiết khi xem key kênh.",
       "totpSecretLabel": "TOTP secret",
       "totpSecretPlaceholder": "Dán Base32 TOTP secret",
       "userIdLabel": "ID người dùng quản trị viên",
@@ -612,13 +612,13 @@
       "cta": "Ghé GitHub để xem mã nguồn và những cập nhật mới nhất. Bạn cũng có thể báo lỗi hoặc chia sẻ ý tưởng.",
       "getStartedCta": "Mở hướng dẫn bắt đầu",
       "label": "Mã nguồn",
-      "starCta": "My API Box hữu ích với bạn? Hãy Star trên GitHub để ủng hộ dự án"
+      "starCta": "StationWarden hữu ích với bạn? Hãy Star trên GitHub để ủng hộ dự án"
     },
     "reason": {
       "newPermissions": "Chức năng mới cần thêm quyền tùy chọn. Hãy xem mục đích của từng quyền và chỉ cấp những quyền bạn cần."
     },
     "subtitle": "Chọn ngôn ngữ rồi bật những quyền tùy chọn bạn cần. Bạn có thể thay đổi các thiết lập này sau.",
-    "title": "Chào mừng đến với My API Box",
+    "title": "Chào mừng đến với StationWarden",
     "toasts": {
       "error": "Chưa cấp đủ tất cả quyền khuyến nghị",
       "success": "Đã cấp tất cả quyền khuyến nghị"
@@ -726,7 +726,7 @@
     "title": "Cài đặt làm mới",
     "turnstileNotificationEnable": "Cho phép thông báo hệ thống",
     "turnstileNotificationManage": "Quản lý quyền thông báo",
-    "turnstileNotificationPermissionTitle": "Cho phép thông báo trình duyệt từ My API Box",
+    "turnstileNotificationPermissionTitle": "Cho phép thông báo trình duyệt từ StationWarden",
     "turnstileNotificationStatus": {
       "available": "Thông báo hệ thống: đã được cấp quyền. Chế độ không làm phiền hoặc cài đặt trình duyệt vẫn có thể ẩn thông báo.",
       "blocked": "Trình duyệt đã chặn thông báo. Kiểm tra cài đặt thông báo rồi quay lại thử lại.",
@@ -811,7 +811,7 @@
       "description": "Nếu trang web yêu cầu xác minh bổ sung cho thao tác nhạy cảm, tiện ích không thể xem hoặc xuất khóa kênh. Hãy thực hiện các thao tác này trong trang quản trị Sub2API. Việc di chuyển cũng bị ảnh hưởng khi cần đọc khóa nguồn.",
       "title": "Giới hạn khi xem và xuất khóa"
     },
-    "description": "Kết nối trang web để nhập các khóa API hiện có vào Sub2API, đồng thời xem, chỉnh sửa và di chuyển kênh trong My API Box.",
+    "description": "Kết nối trang web để nhập các khóa API hiện có vào Sub2API, đồng thời xem, chỉnh sửa và di chuyển kênh trong StationWarden.",
     "fields": {
       "adminApiKeyDesc": "Dùng Admin API Key được tạo trong trang quản trị để quản lý kênh. Khóa API thông thường dùng để gọi mô hình không dùng được ở đây.",
       "adminApiKeyLabel": "Admin API Key",
@@ -969,12 +969,12 @@
       "feishuMissingConfig": "Chưa cấu hình Webhook URL hoặc Key của robot Feishu.",
       "httpError": "{{label}} trả về HTTP {{status}}.",
       "httpErrorWithDetail": "{{label}} trả về HTTP {{status}}: {{detail}}",
-      "message": "Đây là một thông báo thử tác vụ của My API Box.",
+      "message": "Đây là một thông báo thử tác vụ của StationWarden.",
       "ntfyInvalidUrl": "ntfy Topic URL phải dùng http:// hoặc https://, hoặc điền tên topic ntfy.sh hợp lệ.",
       "ntfyMissingConfig": "Chưa cấu hình ntfy Topic URL hoặc tên topic.",
       "sent": "Đã gửi thông báo thử",
       "telegramMissingConfig": "Chưa cấu hình Telegram Bot Token hoặc Chat ID.",
-      "title": "Thông báo thử My API Box",
+      "title": "Thông báo thử StationWarden",
       "webhookInvalidUrl": "Webhook URL phải dùng http:// hoặc https://.",
       "webhookMissingConfig": "Chưa cấu hình Webhook URL.",
       "wecomMissingConfig": "Chưa cấu hình Webhook URL hoặc Key của robot WeCom."

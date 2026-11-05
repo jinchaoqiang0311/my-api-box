@@ -1,6 +1,6 @@
-﻿# Other Browser Installation Guide
+# Other Browser Installation Guide
 
-This document explains how to install the My API Box extension in browsers such as QQ Browser, 360 Secure Browser, 360 Speed Browser, Cheetah Browser, Brave, Vivaldi, and Opera.
+This document explains how to install the StationWarden extension in browsers such as QQ Browser, 360 Secure Browser, 360 Speed Browser, Cheetah Browser, Brave, Vivaldi, and Opera.
 
 Most of these browsers are based on Chromium, but their available installation paths are not identical. When a browser store or Chrome Web Store installation works, use the store build first. Use the Chrome package from GitHub Releases only when the store path is unavailable, blocked by policy, or needed for temporary verification.
 
@@ -8,8 +8,8 @@ Most of these browsers are based on Chromium, but their available installation p
 
 - **Chrome / Edge / Firefox users:** Prioritize using the official store versions for easier updates.
 - **Brave / Vivaldi users:** Try Chrome Web Store first. These browsers officially support Chrome Web Store extensions.
-- **Opera users:** Opera has its own Opera Add-ons store, but My API Box is not currently listed there. Try Chrome Web Store first; if your Opera version or policy does not allow it, use the GitHub manual package.
-- **QQ Browser, 360 Series Browsers, Cheetah Browser, and similar users:** If the browser's built-in extension center does not offer My API Box, use the GitHub Chrome package and install it with "Load unpacked extension."
+- **Opera users:** Opera has its own Opera Add-ons store, but StationWarden is not currently listed there. Try Chrome Web Store first; if your Opera version or policy does not allow it, use the GitHub manual package.
+- **QQ Browser, 360 Series Browsers, Cheetah Browser, and similar users:** If the browser's built-in extension center does not offer StationWarden, use the GitHub Chrome package and install it with "Load unpacked extension."
 - **Safari users:** Installation is different and requires Xcode or a Safari-specific package. Please refer to the [Safari Extension Installation Guide](./safari-install.md).
 - **Mobile Browsers:** Support for extensions varies significantly across mobile browsers. For mobile usage instructions, please see [Mobile Browser Support in FAQ](./faq.md#mobile-browser-support).
 
@@ -23,17 +23,17 @@ Extensions loaded manually are typically not updated automatically. For future u
 |---|---|---|---|
 | Brave | [Chrome Web Store](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | GitHub Chrome package, loaded manually from `brave://extensions/` | Store builds update automatically; manual builds require re-download |
 | Vivaldi | [Chrome Web Store](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) | GitHub Chrome package, loaded manually from `vivaldi://extensions/` | Store builds update automatically; manual builds require re-download |
-| Opera | [Chrome Web Store](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID); My API Box is not currently listed in Opera Add-ons | GitHub Chrome package, loaded manually from `opera://extensions/` | Chrome Web Store builds are usually updated through browser / store mechanisms; manual builds require re-download |
-| QQ Browser | Use the built-in extension center first if it offers My API Box | `qqbrowser://extensions`, or `chrome://extensions/` if unavailable, then enable Developer mode and load the unpacked directory | Depends on the installation source; manual builds require re-download |
-| 360 Secure Browser / 360 Speed Browser | Use the built-in extension / app center first if it offers My API Box | `chrome://extensions/`, or Extensions / Plugin Management in the menu, then enable Developer mode and load the unpacked directory | Depends on the installation source; manual builds require re-download |
-| Cheetah Browser | Use the built-in extension center first if it offers My API Box | `liebao://extensions/`, then enable Developer mode and load the unpacked directory | Depends on the installation source; manual builds require re-download |
+| Opera | [Chrome Web Store](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID); StationWarden is not currently listed in Opera Add-ons | GitHub Chrome package, loaded manually from `opera://extensions/` | Chrome Web Store builds are usually updated through browser / store mechanisms; manual builds require re-download |
+| QQ Browser | Use the built-in extension center first if it offers StationWarden | `qqbrowser://extensions`, or `chrome://extensions/` if unavailable, then enable Developer mode and load the unpacked directory | Depends on the installation source; manual builds require re-download |
+| 360 Secure Browser / 360 Speed Browser | Use the built-in extension / app center first if it offers StationWarden | `chrome://extensions/`, or Extensions / Plugin Management in the menu, then enable Developer mode and load the unpacked directory | Depends on the installation source; manual builds require re-download |
+| Cheetah Browser | Use the built-in extension center first if it offers StationWarden | `liebao://extensions/`, then enable Developer mode and load the unpacked directory | Depends on the installation source; manual builds require re-download |
 | Starry Wish / Percent / Cent Browser, etc. | If the browser supports Chrome Web Store, try the store first | Try `chrome://extensions/` and load the unpacked directory manually | Depends on the installation source; manual builds require re-download |
 | Mobile Kiwi / Edge, etc. | Depends on the browser's actual extension entry point | See [Mobile Browser Support in FAQ](./faq.md#mobile-browser-support) | Depends on browser support |
 
 If a browser cannot use a store install and also lacks "Developer mode" or "Load unpacked extension," the current version may not support installing external extensions. In that case, switch to Chrome, Edge, Firefox, or try the full/desktop version of that browser.
 
-::: tip Store availability is separate from My API Box listing status
-A browser can have its own extension store without My API Box being listed there. For example, Opera has Opera Add-ons, but currently you should use Chrome Web Store or the GitHub manual package.
+::: tip Store availability is separate from StationWarden listing status
+A browser can have its own extension store without StationWarden being listed there. For example, Opera has Opera Add-ons, but currently you should use Chrome Web Store or the GitHub manual package.
 :::
 
 ## Preparing the GitHub Manual Package
@@ -72,8 +72,8 @@ This applies to desktop browsers that cannot use a store build but can still loa
 2. Enable `Developer mode`.
 3. Click `Load unpacked extension`.
 4. Select the directory you extracted earlier that contains `manifest.json`.
-5. After installation, confirm that `My API Box` is enabled in the extension list.
-6. If the icon is not visible in the toolbar, pin My API Box to the toolbar using the extension icon.
+5. After installation, confirm that `StationWarden` is enabled in the extension list.
+6. If the icon is not visible in the toolbar, pin StationWarden to the toolbar using the extension icon.
 7. If you had the transfer station page open before installation, refresh these pages before using the automatic recognition feature.
 
 <a id="qq-browser"></a>
@@ -114,7 +114,7 @@ Both 360 Secure Browser and 360 Speed Browser may support Chromium extensions, b
 
 ### 1. Ensure Speed Mode is Used
 
-360 Secure Browser has different rendering engine modes, such as "Speed Mode / Compatibility Mode." My API Box is a Chromium extension, so it's recommended to use Speed Mode when visiting sites where you need extension recognition.
+360 Secure Browser has different rendering engine modes, such as "Speed Mode / Compatibility Mode." StationWarden is a Chromium extension, so it's recommended to use Speed Mode when visiting sites where you need extension recognition.
 
 If you see an engine switching icon (like a `lightning bolt` or `e`) near the address bar, switch to `Speed Mode` before using the extension.
 
@@ -131,7 +131,7 @@ Choose one of the following methods:
 1. Enable `Developer mode`.
 2. Click `Load unpacked extension`.
 3. Select the extracted `all-api-hub-<version>-chrome` directory.
-4. After installation, enable My API Box and pin it to the toolbar as needed.
+4. After installation, enable StationWarden and pin it to the toolbar as needed.
 
 ### 4. Common Troubleshooting
 
@@ -173,11 +173,11 @@ Enable `Developer mode` on the extension management page.
 
 ## Brave / Vivaldi / Opera Installation
 
-These browsers can usually use Chrome Web Store. First open the [My API Box Chrome Web Store page](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) in the target browser and try installing from there.
+These browsers can usually use Chrome Web Store. First open the [StationWarden Chrome Web Store page](https://chromewebstore.google.com/detail/YOUR-CHROME-EXTENSION-ID) in the target browser and try installing from there.
 
 - Brave officially supports installing extensions from Chrome Web Store.
 - Vivaldi officially supports Chrome Web Store extensions. If the install button does not appear, check Vivaldi's Google Extensions / Web Store setting.
-- Opera has Opera Add-ons and also supports Chrome extensions. My API Box is not currently listed in Opera Add-ons, so use Chrome Web Store first.
+- Opera has Opera Add-ons and also supports Chrome extensions. StationWarden is not currently listed in Opera Add-ons, so use Chrome Web Store first.
 
 If store installation fails, manually load the GitHub Chrome package from the extension management page:
 
@@ -200,7 +200,7 @@ Manually loaded versions do not update automatically. For the differences betwee
 2. Download the new `all-api-hub-<version>-chrome.zip`.
 3. Extract it to the original fixed directory or to a new version-specific directory.
 4. Open the extension management page.
-5. If you are using the original directory, click `Reload` on the My API Box card.
+5. If you are using the original directory, click `Reload` on the StationWarden card.
 6. If you are using a new directory, first remove the old version, then load the new directory.
 
 ::: warning Note
@@ -210,7 +210,7 @@ Do not place the extension directory in system temporary folders, download cache
 ## Uninstalling
 
 1. Open the browser's extension management page.
-2. Find `My API Box`.
+2. Find `StationWarden`.
 3. Click `Remove`, `Uninstall`, or disable the toggle switch.
 4. Delete the local extracted directory.
 

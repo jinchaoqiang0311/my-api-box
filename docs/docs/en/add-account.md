@@ -1,6 +1,6 @@
 # Add Accounts
 
-> This guide explains how to add AI site accounts to My API Box through auto-detection, manual entry, or bookmark import. After adding an account, see [Account Management](./account-management.md) for organization, sorting, and bulk operations.
+> This guide explains how to add AI site accounts to StationWarden through auto-detection, manual entry, or bookmark import. After adding an account, see [Account Management](./account-management.md) for organization, sorting, and bulk operations.
 
 ## 1. Auto Detection (Recommended)
 
@@ -39,7 +39,7 @@ In the extension popup, click **"Continue in side panel"** to carry your current
 :::
 
 1. Sign in to your New API site.
-2. Click the **My API Box** extension icon in the browser toolbar. Opening it in the side panel is recommended so you can compare both interfaces while filling in the form.
+2. Click the **StationWarden** extension icon in the browser toolbar. Opening it in the side panel is recommended so you can compare both interfaces while filling in the form.
 3. Click **"Add Account"**, then use the current site address or enter the address manually.
 4. Click **"Manual Add"**.
 
@@ -110,7 +110,7 @@ Access Tokens and Cookies are sensitive information. Do not share their full con
 > Sub2API stores its Access Token in browser local storage, and the sign-in token expires. Prefer **Auto Detection** (Section 1). If you need to add it manually, follow these steps.
 
 1. Sign in to your Sub2API site.
-2. Click the **My API Box** extension icon in the browser toolbar. Opening it in the side panel is recommended so you can compare both interfaces while filling in the form.
+2. Click the **StationWarden** extension icon in the browser toolbar. Opening it in the side panel is recommended so you can compare both interfaces while filling in the form.
 3. Click **"Add Account"**, then use the current site address or enter the address manually.
 4. Click **"Manual Add"**.
 
@@ -188,7 +188,7 @@ Access Tokens are sensitive information. Do not share their full contents or exp
 ### 2.3 OpenRouter
 
 1. Sign in to OpenRouter.
-2. Click the **My API Box** extension icon in the browser toolbar. Opening it in the side panel is recommended so you can compare both interfaces while filling in the form.
+2. Click the **StationWarden** extension icon in the browser toolbar. Opening it in the side panel is recommended so you can compare both interfaces while filling in the form.
 3. Click **"Add Account"**, then use the current site address or enter the address manually.
 4. Click **"Manual Add"**.
 
@@ -214,7 +214,7 @@ Access Tokens are sensitive information. Do not share their full contents or exp
 
    **5.1 Finding the Access Token**
 
-   In the OpenRouter console, open **"Management Keys"**, click **"+ New Key"** in the upper-right corner, complete the form, and click **"Create"**. Copy the new API key and enter it in My API Box's **"OpenRouter Management Key"** field.
+   In the OpenRouter console, open **"Management Keys"**, click **"+ New Key"** in the upper-right corner, complete the form, and click **"Create"**. Copy the new API key and enter it in StationWarden's **"OpenRouter Management Key"** field.
 
    > The full key is displayed only once. If you lose it, create a new one and enter it again.
 

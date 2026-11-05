@@ -519,7 +519,7 @@
     },
     "headerDescription": "Administra canales de tu puerta de enlace de IA para reunir distintas fuentes API en un punto de acceso.",
     "openChannelConsole": "Abrir la administración de canales del gateway",
-    "unconfiguredValueDescription": "Después de configurarlo, podrás importar claves de cuenta y API keys dispersas como canales del gateway, y verlas y administrarlas directamente en My API Box."
+    "unconfiguredValueDescription": "Después de configurarlo, podrás importar claves de cuenta y API keys dispersas como canales del gateway, y verlas y administrarlas directamente en StationWarden."
   },
   "magpieKeys": {
     "anyProtocol": "Cualquier protocolo",

@@ -32,7 +32,7 @@
     "cancelled": "Đã hủy",
     "extensionDays": "Gia hạn {{days}} ngày",
     "fallbackBenefit": "Đã dùng quyền lợi thay thế",
-    "noAccountForUrl": "Trang web hiện tại chưa được cấu hình tài khoản trong My API Box, vui lòng thêm trang web này vào tiện ích mở rộng trước rồi thử lại.",
+    "noAccountForUrl": "Trang web hiện tại chưa được cấu hình tài khoản trong StationWarden, vui lòng thêm trang web này vào tiện ích mở rộng trước rồi thử lại.",
     "promptConfirm": "Phát hiện mã có thể là mã đổi thưởng {{code}}, bạn có muốn thử tự động đổi mã cho trang web hiện tại không?",
     "promptConfirmBatch_other": "Phát hiện {{count}} mã có thể là mã đổi thưởng. Vui lòng chọn mã bạn muốn thử tự động đổi cho trang hiện tại.",
     "promptSettingsLink": "Mở cài đặt Trợ lý đổi mã",

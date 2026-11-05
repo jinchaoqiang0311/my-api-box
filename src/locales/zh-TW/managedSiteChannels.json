@@ -519,7 +519,7 @@
     },
     "headerDescription": "管理自建 AI 閘道的渠道，將多個 API 來源接入統一入口。",
     "openChannelConsole": "開啟閘道渠道管理",
-    "unconfiguredValueDescription": "設定後，可以把分散的帳號 Key 和 API Key 匯入為閘道渠道，並直接在 My API Box 中統一查看和管理。"
+    "unconfiguredValueDescription": "設定後，可以把分散的帳號 Key 和 API Key 匯入為閘道渠道，並直接在 StationWarden 中統一查看和管理。"
   },
   "magpieKeys": {
     "anyProtocol": "不限協定",

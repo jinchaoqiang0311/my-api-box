@@ -95,7 +95,7 @@
     "versionNotSupported": "Bản sao lưu này được tạo bằng phiên bản mới hơn. Hãy cập nhật ứng dụng trước khi nhập."
   },
   "localBackup": {
-    "description": "Dùng tệp JSON cục bộ để sao lưu, di chuyển hoặc khôi phục dữ liệu My API Box.",
+    "description": "Dùng tệp JSON cục bộ để sao lưu, di chuyển hoặc khôi phục dữ liệu StationWarden.",
     "title": "Sao lưu và di chuyển cục bộ"
   },
   "title": "Nhập/Xuất",
@@ -153,7 +153,7 @@
       "testFailed": "Kết nối Secret Gist thất bại",
       "testSuccess": "Kết nối Secret Gist thành công",
       "token": "Token GitHub",
-      "tokenDesc": "Chỉ lưu trong trình duyệt này; không bao giờ ghi vào bản sao lưu hoặc gửi đến My API Box. Hãy dùng fine-grained token chỉ có quyền đọc/ghi Gists hoặc classic token với phạm vi gist.",
+      "tokenDesc": "Chỉ lưu trong trình duyệt này; không bao giờ ghi vào bản sao lưu hoặc gửi đến StationWarden. Hãy dùng fine-grained token chỉ có quyền đọc/ghi Gists hoặc classic token với phạm vi gist.",
       "tokenPlaceholder": "Dán token GitHub",
       "upload": "Tải lên Secret Gist",
       "uploadFailed": "Tải lên GitHub Secret Gist thất bại",

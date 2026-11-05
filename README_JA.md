@@ -4,9 +4,9 @@
 
 <div align="center">
 
-# My API Box - あなたの中継ステーション管理
+# StationWarden - AI中継アカウントと課金ガード
 
-> [all-api-hub](https://github.com/qixing-jk/all-api-hub)(AGPL-3.0)をベースに改変した **My API Box** です。ソースコードは同一ライセンスで公開しています(LICENSE / THIRD_PARTY_NOTICES.md 参照)。
+> [All API Hub](https://github.com/qixing-jk/all-api-hub)(AGPL-3.0)をベースに改変した **StationWarden** です。本分岐の改変は 2026-11-04 に始まり、対応するソースコードは <https://github.com/jinchaoqiang0311/my-api-box> で同一ライセンスのもと公開しています(LICENSE / THIRD_PARTY_NOTICES.md 参照)。
 
 **New API 互換の中継サイトアカウントを一元管理：残高、使用量、モデル価格、自動チェックイン、API 認証情報、ページ内テスト、チャネル/モデル同期とリダイレクトに対応**
 
@@ -17,7 +17,7 @@
 
 <a id="introduction"></a>
 
-## ❓ My API Box が必要な理由
+## ❓ StationWarden が必要な理由
 
 **簡単に言うと**、AI 中継サイトは AI クレジットのマーケットのようなもので、ChatGPT、Claude、GPT Image などのモデルを低コスト、場合によっては無料で使えるようにします。
 
@@ -28,11 +28,11 @@
 - ✅ **毎日の特典を逃しやすい**：手動チェックインは忘れがちです。
 - 🔌 **設定が手間**：API 情報を cc-switch や Cherry Studio などのツールへ何度もコピーする必要があります。
 
-**My API Box は、あなたの AI 資産マネージャーです**。サイト URL を追加すれば、残りの管理は拡張機能が引き受けます。
+**StationWarden は、あなたの AI 資産マネージャーです**。サイト URL を追加すれば、残りの管理は拡張機能が引き受けます。
 
 <a id="features"></a>
 
-## ✨ My API Box でできること
+## ✨ StationWarden でできること
 
 ### 📊 AI 資産をまとめて把握
 
@@ -177,12 +177,12 @@ GitHub Stable と Nightly は手動インストール用チャネルで、自動
 
 ## 📜 ライセンスと商用ライセンス
 
-My API Box は GNU Affero General Public License v3.0 (AGPL-3.0) のもとで公開されています。
+StationWarden は GNU Affero General Public License v3.0 (AGPL-3.0) のもとで公開されています。
 
 
-商用ライセンスの問い合わせ先：the upstream author (see the all-api-hub repository)
+商用ライセンスの問い合わせ先：All API Hub の上流作者（upstream author, see the All API Hub repository）
 
-商用ライセンスは、My API Box のメンテナーが商用条件を付与する権利を持つコードとアセットにのみ適用されます。第三者依存関係、および過去に [One API Hub](https://github.com/fxaxg/one-api-hub) から派生した MIT ライセンス部分は、それぞれの著作権表示とライセンス条件に従います。詳しくは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+商用ライセンスは、StationWarden のメンテナーが商用条件を付与する権利を持つコードとアセットにのみ適用されます。第三者依存関係、および過去に [One API Hub](https://github.com/fxaxg/one-api-hub) から派生した MIT ライセンス部分は、それぞれの著作権表示とライセンス条件に従います。詳しくは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
 
 <a id="tech-stack"></a>
 
@@ -198,15 +198,15 @@ My API Box は GNU Affero General Public License v3.0 (AGPL-3.0) のもとで公
 
 ## 🔗 エコシステムプロジェクト
 
-My API Box を取り巻くコミュニティ拡張・連携プロジェクト：
+StationWarden を取り巻くコミュニティ拡張・連携プロジェクト：
 
 | プロジェクト                                                | 概要                                               | 機能                                                                                                           |
 | ----------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [Metapi](https://github.com/cita-777/metapi)                | セルフホスト型メタ集約ゲートウェイ                 | 複数の中継サイトアカウントを 1 つの API エントリにまとめます。My API Box が最初の着想元です。                 |
-| [Fl API Hub](https://github.com/RebornQ/fl_api_hub)         | クロスプラットフォームのネイティブ管理クライアント | アカウント、残高、キーを管理し、クイックチェックインに対応します。My API Box から着想を得たプロジェクトです。 |
-| [APIManager](https://github.com/zhalice2011/api-manager)    | ローカル AI API 集約プロキシ                       | My API Box からアカウントを同期し、統合プロキシ、ルーティング、使用状況ダッシュボードを提供します。           |
+| [Metapi](https://github.com/cita-777/metapi)                | セルフホスト型メタ集約ゲートウェイ                 | 複数の中継サイトアカウントを 1 つの API エントリにまとめます。StationWarden が最初の着想元です。                 |
+| [Fl API Hub](https://github.com/RebornQ/fl_api_hub)         | クロスプラットフォームのネイティブ管理クライアント | アカウント、残高、キーを管理し、クイックチェックインに対応します。StationWarden から着想を得たプロジェクトです。 |
+| [APIManager](https://github.com/zhalice2011/api-manager)    | ローカル AI API 集約プロキシ                       | StationWarden からアカウントを同期し、統合プロキシ、ルーティング、使用状況ダッシュボードを提供します。           |
 
-> My API Box をベースにしたプロジェクト、My API Box と連携するプロジェクト、または My API Box から着想を得たプロジェクトを開発した場合は、PR を作成してこの一覧に追加してください。
+> StationWarden をベースにしたプロジェクト、StationWarden と連携するプロジェクト、または StationWarden から着想を得たプロジェクトを開発した場合は、PR を作成してこの一覧に追加してください。
 
 <a id="acknowledgements"></a>
 

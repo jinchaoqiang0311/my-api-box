@@ -1,8 +1,8 @@
-# OpenRouter のアカウント、API Key、モデルを My API Box で管理する
+# OpenRouter のアカウント、API Key、モデルを StationWarden で管理する
 
 > OpenRouter の残高、API Key、モデル価格、クライアント設定を 1 か所で管理します。
 
-**My API Box** は、AI API ユーザー向けのオープンソースのブラウザー拡張機能です。OpenRouter と組み合わせることで、コンソールを何度も開き、API Key を探して同じ設定を複数のツールに入力する手間を減らせます。
+**StationWarden** は、AI API ユーザー向けのオープンソースのブラウザー拡張機能です。OpenRouter と組み合わせることで、コンソールを何度も開き、API Key を探して同じ設定を複数のツールに入力する手間を減らせます。
 
 OpenRouter を追加すると、残高とアカウント状態の確認、ワークスペースごとの API Key 管理、モデルと価格の確認、新しく作成した完全な API Key の保存と AI ツールでの利用ができます。
 
@@ -16,7 +16,7 @@ OpenRouter を追加すると、残高とアカウント状態の確認、ワー
 - **完全な API Key を保存**：新しい Key の全体が表示されている間に API 認証情報ライブラリへ保存できます。
 - **いつものツールをすばやく設定**：Cherry Studio、CC Switch、Kilo Code、Claude Code Router などへエクスポートできます。
 
-おすすめの流れは、OpenRouter アカウントを自動で追加し、My API Box で残高、API Key、モデルを管理して、AI ツールで使うときに保存済みの設定をコピーまたはエクスポートする方法です。
+おすすめの流れは、OpenRouter アカウントを自動で追加し、StationWarden で残高、API Key、モデルを管理して、AI ツールで使うときに保存済みの設定をコピーまたはエクスポートする方法です。
 
 <a id="choose-access-path"></a>
 ## 推奨する追加順序
@@ -28,37 +28,37 @@ OpenRouter を追加すると、残高とアカウント状態の確認、ワー
 | 3 | API Key だけを保存 | アカウント管理は不要で、既存の API Key を保存、確認、エクスポートしたい場合 |
 
 ::: tip Management Key と API Key の違い
-Management Key はアカウント追加と OpenRouter 上の API Key 管理に使用します。API Key は AI クライアントに設定するキーです。自動追加では My API Box が Management Key を作成するため、通常は事前準備は不要です。
+Management Key はアカウント追加と OpenRouter 上の API Key 管理に使用します。API Key は AI クライアントに設定するキーです。自動追加では StationWarden が Management Key を作成するため、通常は事前準備は不要です。
 :::
 
 ## 準備
 
-1. My API Box をインストールします。[ブラウザストア版](../get-started.md)を推奨します。
+1. StationWarden をインストールします。[ブラウザストア版](../get-started.md)を推奨します。
 2. [OpenRouter](https://openrouter.ai/) に登録してログインします。
 3. 完全な Management Key や API Key を公開スクリーンショット、Issue、チャットに含めないでください。
 
 <a id="add-openrouter-account"></a>
 ## OpenRouter アカウントを自動で追加する
 
-これが推奨する方法です。Management Key を事前に作成する必要はなく、My API Box が追加中に作成します。
+これが推奨する方法です。Management Key を事前に作成する必要はなく、StationWarden が追加中に作成します。
 
 1. 同じブラウザで [OpenRouter](https://openrouter.ai/) にログインします。
-2. My API Box で `アカウントを追加` を選び、`https://openrouter.ai` を入力します。
+2. StationWarden で `アカウントを追加` を選び、`https://openrouter.ai` を入力します。
 3. `OpenRouter 管理キーを作成して検出` を選択します。
-4. My API Box が OpenRouter を開き、Management Key を自動で作成します。アカウント情報が戻るまでページを開いたままにしてください。
+4. StationWarden が OpenRouter を開き、Management Key を自動で作成します。アカウント情報が戻るまでページを開いたままにしてください。
 5. アカウント情報を確認して保存します。
 
 ![OpenRouter アカウントを自動で追加する](../../static/image/en/openrouter/add-account-auto-detect.png)
 
 ::: warning 再試行する前に確認してください
-新しく開いたページが閉じた、タイムアウトした、または結果が戻らなかった場合は、すぐに再試行しないでください。先に [Management Keys](https://openrouter.ai/settings/management-keys) ページで My API Box 用の Management Key が作成されていないか確認し、その後で再試行するか手動追加に切り替えてください。
+新しく開いたページが閉じた、タイムアウトした、または結果が戻らなかった場合は、すぐに再試行しないでください。先に [Management Keys](https://openrouter.ai/settings/management-keys) ページで StationWarden 用の Management Key が作成されていないか確認し、その後で再試行するか手動追加に切り替えてください。
 :::
 
 ## 自動追加に失敗した場合は手動で追加する
 
 1. OpenRouter の [Management Keys](https://openrouter.ai/settings/management-keys) ページを開きます。
-2. My API Box 用の Management Key を作成し、完全な値が表示されている間にコピーします。ページを離れると完全なキーは再表示できません。
-3. My API Box のアカウント追加ダイアログで `https://openrouter.ai` を入力し、手動追加に切り替えます。
+2. StationWarden 用の Management Key を作成し、完全な値が表示されている間にコピーします。ページを離れると完全なキーは再表示できません。
+3. StationWarden のアカウント追加ダイアログで `https://openrouter.ai` を入力し、手動追加に切り替えます。
 4. サイトタイプに `OpenRouter` を選び、Management Key と画面に表示される残りの必須項目を入力します。
 5. アカウントを保存します。キーを使用できない場合は、確認して再試行するよう画面に表示されます。
 
@@ -68,7 +68,7 @@ Management Key はアカウント追加と OpenRouter 上の API Key 管理に�
 残高、ワークスペース、OpenRouter 上のキー管理が不要な場合は、アカウントを追加せず既存の API Key を API 認証情報ライブラリに保存できます。
 
 1. OpenRouter の [API Keys](https://openrouter.ai/settings/keys) ページで API Key を作成し、すぐにコピーします。以前に完全な値を安全に保存した既存のキーも使用できます。
-2. My API Box で `設定 → API 認証情報ライブラリ` を開き、認証情報を追加します。
+2. StationWarden で `設定 → API 認証情報ライブラリ` を開き、認証情報を追加します。
 3. 次の内容を入力します。
    - **名前**：例 `OpenRouter`。
    - **API タイプ**：`OpenAI 互換` を選択。
@@ -100,7 +100,7 @@ OpenRouter が完全な API Key を表示するのは作成直後の一度だけ
 2. キーをコピーするか、API 認証情報ライブラリに保存します。
 3. 保存後、モデル一覧の取得、API 検証、クライアントへのエクスポートに使用できます。
 
-ダイアログを閉じた後、My API Box は完全なキーを復元できません。保存しなかった場合は、そのキーを削除して作り直してください。
+ダイアログを閉じた後、StationWarden は完全なキーを復元できません。保存しなかった場合は、そのキーを削除して作り直してください。
 
 ![新しく作成した OpenRouter API Key の完全な値を保存する](../../static/image/en/openrouter/save-one-time-key.png)
 
@@ -121,19 +121,19 @@ OpenRouter が完全な API Key を表示するのは作成直後の一度だけ
 
 他のツールで OpenRouter を使う場合は、API 認証情報ライブラリに保存した設定を対応クライアントへエクスポートできます。Base URL、API Key、モデル情報を何度も入力する手間を減らせます。
 
-### My API Box と AI クライアントの役割
+### StationWarden と AI クライアントの役割
 
-| | My API Box | Cherry Studio、NextChat などの AI クライアント |
+| | StationWarden | Cherry Studio、NextChat などの AI クライアント |
 | --- | --- | --- |
 | 主な用途 | アカウント、残高、API Key、モデル価格の管理 | チャット、コーディング支援、ファイル分析など |
 | 連携方法 | OpenRouter の設定を整理してエクスポート | インポートした設定で OpenRouter に接続 |
 
-OpenRouter はモデルと API サービスを提供します。My API Box はアカウントと設定を整理し、チャット、コーディング支援、その他のモデル呼び出しは選択したクライアントが行います。
+OpenRouter はモデルと API サービスを提供します。StationWarden はアカウントと設定を整理し、チャット、コーディング支援、その他のモデル呼び出しは選択したクライアントが行います。
 
 ## 利用時の注意
 
 - アカウントとキーは、既定では現在のブラウザに保存されます。WebDAV 同期を有効にした場合のみ、設定した WebDAV ストレージに同期されます。
-- Management Key は My API Box 専用に作成し、他のツールと共用しないことを推奨します。
+- Management Key は StationWarden 専用に作成し、他のツールと共用しないことを推奨します。
 - キー管理で編集または削除すると、OpenRouter 上のキーも変更されます。削除したキーは復元できません。
 - 作成、編集、削除の結果がはっきりしない場合は、再試行する前に一覧を更新してください。
 - 一部の個人ワークスペースではメンバーを選択できません。画面上で続行できる場合は、作成者を選択しなくても問題ありません。

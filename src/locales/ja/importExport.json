@@ -95,7 +95,7 @@
     "versionNotSupported": "このバックアップは新しいバージョンで作成されています。アプリを更新してからインポートしてください。"
   },
   "localBackup": {
-    "description": "ローカル JSON ファイルで My API Box のデータをバックアップ、移行、復元します。",
+    "description": "ローカル JSON ファイルで StationWarden のデータをバックアップ、移行、復元します。",
     "title": "ローカルバックアップと移行"
   },
   "title": "インポート / エクスポート",
@@ -153,7 +153,7 @@
       "testFailed": "Secret Gist の接続に失敗しました",
       "testSuccess": "Secret Gist の接続に成功しました",
       "token": "GitHub トークン",
-      "tokenDesc": "このブラウザーだけに保存され、バックアップや My API Box には送信されません。Gists の読み書きだけを許可した fine-grained トークン、または gist スコープだけの classic トークンを使用してください。",
+      "tokenDesc": "このブラウザーだけに保存され、バックアップや StationWarden には送信されません。Gists の読み書きだけを許可した fine-grained トークン、または gist スコープだけの classic トークンを使用してください。",
       "tokenPlaceholder": "GitHub トークンを貼り付け",
       "upload": "Secret Gist にアップロード",
       "uploadFailed": "GitHub Secret Gist へのアップロードに失敗しました",

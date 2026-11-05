@@ -39,7 +39,7 @@ API Key 会以完整值保存在扩展的本地 Storage。列表里的遮罩只�
 如果你需要稳定且支持 CLI 的 API 接口来填充你的凭据库，可以尝试我们的合作伙伴：
 
 - [七牛云AI](https://s.qiniu.com/qE3eai)：企业级大模型 MaaS 平台，一站式调用全球 150+ 主流模型，企业用户可免费领 1200 万 Token。
-- [FennoAI](https://api.fenno.ai/s/DCGC)：稳定、高效的 Codex 中转服务商，兼容 OpenAI 及 Anthropic 协议，可接入主流编程工具并支撑千亿 Token/日的企业级调用；My API Box 用户仅需 1.99 美元即可获得价值 50 美元的 Coding Plan 额度，邀请好友购买最高可获得 20% 返佣。[使用教程](./service-guides/fenno.md)
+- [FennoAI](https://api.fenno.ai/s/DCGC)：稳定、高效的 Codex 中转服务商，兼容 OpenAI 及 Anthropic 协议，可接入主流编程工具并支撑千亿 Token/日的企业级调用；StationWarden 用户仅需 1.99 美元即可获得价值 50 美元的 Coding Plan 额度，邀请好友购买最高可获得 20% 返佣。[使用教程](./service-guides/fenno.md)
 - [PackyCode](https://www.packyapi.ai/register)：注册并充值时填写 `all-api-hub` 优惠码可享 9 折。[使用教程](./sponsor-guides/packycode.md)
 - [星辰AI](https://ai.centos.hk)：充值比例 1:1，可开发票；Claude 低至 4 折。[使用教程](./sponsor-guides/xingchen.md)
 - [AICodeMirror](https://www.aicodemirror.ai/register)：提供 Claude Code / Codex / Gemini CLI 官方高稳定中转服务，通过此链接注册可享首充 8 折，企业客户最高可享 7.5 折。
@@ -139,7 +139,7 @@ API Key 会以完整值保存在扩展的本地 Storage。列表里的遮罩只�
 
 ## 稳定性与频率限制
 
-为了保护你的账号不被上游站点判定为异常调用，My API Box 内置了**智能频率限制器**：
+为了保护你的账号不被上游站点判定为异常调用，StationWarden 内置了**智能频率限制器**：
 
 - **并发控制**：默认限制对单个站点的并发请求数为 2。
 - **速率控制**：限制对单个站点的请求速率约为每分钟 18 次（支持小规模突发）。

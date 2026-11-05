@@ -95,7 +95,7 @@
     "versionNotSupported": "此備份由較新版本建立。請先更新應用程式後再匯入。"
   },
   "localBackup": {
-    "description": "使用本機 JSON 檔案備份、遷移或恢復 My API Box 資料。",
+    "description": "使用本機 JSON 檔案備份、遷移或恢復 StationWarden 資料。",
     "title": "本機備份與遷移"
   },
   "title": "匯入/匯出",
@@ -153,7 +153,7 @@
       "testFailed": "Secret Gist 連線失敗",
       "testSuccess": "Secret Gist 連線成功",
       "token": "GitHub Token",
-      "tokenDesc": "只儲存在此瀏覽器，不會寫入備份或傳送至 My API Box。建議使用只授予 Gists 讀寫權限的 fine-grained Token，或只帶 gist scope 的 classic Token。",
+      "tokenDesc": "只儲存在此瀏覽器，不會寫入備份或傳送至 StationWarden。建議使用只授予 Gists 讀寫權限的 fine-grained Token，或只帶 gist scope 的 classic Token。",
       "tokenPlaceholder": "貼上 GitHub Token",
       "upload": "上傳到 Secret Gist",
       "uploadFailed": "上傳至 GitHub Secret Gist 失敗",

@@ -4,7 +4,7 @@
 
 <div align="center">
 
-# My API Box – Your Relay Station Manager
+# StationWarden – AI Relay Account & Billing Guard
 
 > AGPL-3.0 · Browser extension that aggregates AI relay accounts, API keys, and model pricing — and probes whether stations deliver what they promise.
 
@@ -16,7 +16,7 @@
 
 ## 🎯 The Site Probing Suite
 
-Every relay says it gives you GPT-4o for half price — but does it really? **My API Box ships with seven standardised probes** that run against any station you add. A run takes a few tokens; the report exports as JSON for your records.
+Every relay says it gives you GPT-4o for half price — but does it really? **StationWarden ships with seven standardised probes** that run against any station you add. A run takes a few tokens; the report exports as JSON for your records.
 
 | Probe          | What it checks                                                                    | Catches                                    |
 | -------------- | --------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -123,9 +123,9 @@ Both channels require manual loading; **Star / Watch the repo** for release noti
 2. Open `chrome://extensions` (or `edge://extensions`, `about:debugging#/runtime/this-firefox`).
 3. Enable **Developer mode**.
 4. Click **Load unpacked** and select the extracted folder.
-5. Pin My API Box to your toolbar.
+5. Pin StationWarden to your toolbar.
 
-For QQ Browser, 360 Browser, Safari, or mobile browsers, see [the docs](https://all‑api‑hub.qixing1217.top/en/get‑started.html) for platform‑specific steps.
+For QQ Browser, 360 Browser, Safari, or mobile browsers, see the [upstream project](https://github.com/qixing-jk/all-api-hub) for platform-specific steps.
 </details>
 
 **30‑second quick start**
@@ -147,9 +147,11 @@ For QQ Browser, 360 Browser, Safari, or mobile browsers, see [the docs](https://
 
 ## 📜 License
 
-My API Box is AGPL‑3.0, derived from [all‑api‑hub](https://github.com/qixing‑jk/all‑api‑hub) (also AGPL‑3.0). See [LICENSE](./LICENSE) and [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+StationWarden is AGPL-3.0, derived from [All API Hub](https://github.com/qixing-jk/all-api-hub) (also AGPL-3.0). See [LICENSE](./LICENSE) and [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
-For commercial licensing beyond AGPL‑3.0, contact the upstream all‑api‑hub author. Third‑party dependencies and historical MIT‑licensed portions retain their own notices.
+Modification notice: this independent fork has modified the upstream codebase since 2026-11-04. The corresponding source is published at <https://github.com/jinchaoqiang0311/my-api-box> under AGPL-3.0.
+
+For commercial licensing beyond AGPL-3.0, contact the All API Hub upstream author. Third-party dependencies and historical MIT-licensed portions retain their own notices.
 
 ---
 
@@ -157,10 +159,10 @@ For commercial licensing beyond AGPL‑3.0, contact the upstream all‑api‑hub
 
 **Built on**
 
-- [all‑api‑hub](https://github.com/qixing‑jk/all‑api‑hub) — the upstream project My API Box is forked from
+- [All API Hub](https://github.com/qixing-jk/all-api-hub) — the upstream project StationWarden is forked from
 - [WXT](https://wxt.dev) — modern browser extension framework
 
-**Community projects inspired by or integrating with My API Box**
+**Community projects inspired by or integrating with StationWarden**
 
 | Project                                                     | Description                             |
 | ----------------------------------------------------------- | --------------------------------------- |

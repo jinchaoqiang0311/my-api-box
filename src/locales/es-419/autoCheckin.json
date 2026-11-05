@@ -181,7 +181,7 @@
     "checkinDisabled": "La función de check-in está deshabilitada"
   },
   "riskNotice": {
-    "description": "Respeta las reglas de cada sitio y evalúa los riesgos del registro diario automático. Eres responsable de cualquier bloqueo de cuenta, restricción u otra pérdida derivada de esta función. My API Box no asume responsabilidad.",
+    "description": "Respeta las reglas de cada sitio y evalúa los riesgos del registro diario automático. Eres responsable de cualquier bloqueo de cuenta, restricción u otra pérdida derivada de esta función. StationWarden no asume responsabilidad.",
     "label": "Aviso de riesgos del registro diario automático"
   },
   "settings": {

@@ -31,7 +31,7 @@ If you encounter unexplained issues during use, you can use the browser's built-
 ### 1. View Background Page `Service Worker` Logs
 - Go to the browser's extension management page (`chrome://extensions`).
 - Enable **"Developer mode"**.
-- Click **"View: Service Worker"** in the My API Box card.
+- Click **"View: Service Worker"** in the StationWarden card.
 - Here you can see low-level logs for background requests, auto-refresh, and WebDAV sync.
 
 ### 2. View Options Page/Popup Logs

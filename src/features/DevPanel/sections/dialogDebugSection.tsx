@@ -92,7 +92,7 @@ export function useDialogDebugDevSection(): DevPanelSection {
 
   const handlePreviewTurnstileReminder = useCallback(() => {
     toast.info("后台任务需要你完成人机验证，完成后将自动继续。", {
-      title: "My API Box · 验证提醒",
+      title: "StationWarden · 验证提醒",
       duration: 10_000,
       action: {
         label: "打开验证窗口",

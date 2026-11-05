@@ -1,6 +1,6 @@
 # OmniRoute の管理
 
-[OmniRoute](https://github.com/diegosouzapw/OmniRoute) を My API Box の管理サイトとして利用できます。接続を一度設定すれば、ゲートウェイのチャネル（プロバイダー接続）の一覧表示、作成、編集、削除や、アカウントのキーと API 認証情報のインポートを行えます。
+[OmniRoute](https://github.com/diegosouzapw/OmniRoute) を StationWarden の管理サイトとして利用できます。接続を一度設定すれば、ゲートウェイのチャネル（プロバイダー接続）の一覧表示、作成、編集、削除や、アカウントのキーと API 認証情報のインポートを行えます。
 
 OmniRoute はセルフホストの AI ゲートウェイであり、それ自体にアカウントの概念（残高、プラン、チェックイン）はありません。**管理サイト**としてのみ追加でき、アカウント一覧には表示されません。
 

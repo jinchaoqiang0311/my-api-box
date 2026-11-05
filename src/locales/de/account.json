@@ -372,7 +372,7 @@
       "openApiCredentialProfiles": "Anmeldeinformationsbibliothek öffnen",
       "openModelSync": "Modellsynchronisierung öffnen"
     },
-    "boundaryNote": "My API Box verwaltet Kontoschlüssel. Modellanfragen werden nicht weitergeleitet. Externe Clients rufen Ihr selbst gehostetes KI-Gateway an.",
+    "boundaryNote": "StationWarden verwaltet Kontoschlüssel. Modellanfragen werden nicht weitergeleitet. Externe Clients rufen Ihr selbst gehostetes KI-Gateway an.",
     "description": {
       "has_gateway_channels": "Gateway-Kanäle wurden erstellt oder importiert. Prüfe ihren aktuellen Status in der Kanalverwaltung.",
       "needs_importable_source": "Die Konten können keine importierbaren Schlüssel offenlegen. Speichern Sie zuerst einen API-Schlüssel oder fügen Sie einen Kontotyp hinzu, der den Schlüsselzugriff unterstützt, und importieren Sie ihn dann in Ihr selbst gehostetes KI-Gateway.",

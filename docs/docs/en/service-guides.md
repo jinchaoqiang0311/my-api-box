@@ -4,7 +4,7 @@ These guides help you add an account, save API Keys, view model pricing, and exp
 
 This is not a list of every supported site. We publish a full guide when a service is especially useful, has a distinctive setup flow, or works with the project. See [Supported Sites](./supported-sites.md) for the complete compatibility list.
 
-If you have not installed My API Box yet, start with [Getting Started](./get-started.md).
+If you have not installed StationWarden yet, start with [Getting Started](./get-started.md).
 
 ## Choose a Service
 

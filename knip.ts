@@ -69,6 +69,8 @@ const config: KnipConfig = {
   // module. Keep checking types that have no internal or external consumers.
   ignoreExportsUsedInFile: { interface: true, type: true },
   ignoreIssues: {
+    // WIP，完成后移除：RelayLens 站点评分功能尚未完成（client/组件未接线）。
+    "src/services/relayLens/**": ["exports"],
     // Reusable UI primitives intentionally expose a composable API beyond
     // current application usage. Business components are checked normally.
     "src/components/ui/**": ["exports", "types"],

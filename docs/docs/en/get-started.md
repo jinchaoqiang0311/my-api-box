@@ -1,6 +1,6 @@
-﻿# Getting Started
+# Getting Started
 
-In just a few minutes, you can start your journey of intelligent AI asset management. My API Box can help you automatically sync quotas, perform daily check-ins, and integrate with your favorite AI tools with one click.
+In just a few minutes, you can start your journey of intelligent AI asset management. StationWarden can help you automatically sync quotas, perform daily check-ins, and integrate with your favorite AI tools with one click.
 
 ::: tip Current status (v1.0.0)
 Store listings are pending browser review. **For now, install from GitHub Releases**. Store versions will auto‑update once published. **Star / Watch the repo** to be notified when stores go live.
@@ -34,7 +34,7 @@ Open and log in to your AI proxy station website in your browser first.
 If you are looking for stable, efficient, and highly compatible AI relay services, try our partners:
 
 - [Qiniu Cloud AI](https://s.qiniu.com/qE3eai): An enterprise MaaS platform with one-stop access to 150+ mainstream global models. Enterprise users can claim 12 million free tokens.
-- [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. My API Box users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
+- [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. StationWarden users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
 - [PackyCode](https://www.packyapi.ai/register): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
 - [Xingchen AI](https://ai.centos.hk): 1:1 top-up ratio, invoicing support, and Claude pricing as low as 40% of the standard price. [Setup guide](./sponsor-guides/xingchen.md)
 - [AICodeMirror](https://www.aicodemirror.ai/register): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.

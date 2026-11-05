@@ -39,7 +39,7 @@ The **`API Key`** entry in the extension popup also provides quick access to cre
 If you need stable and CLI-friendly API interfaces to fill your credential library, try our partners:
 
 - [Qiniu Cloud AI](https://s.qiniu.com/qE3eai): An enterprise MaaS platform with one-stop access to 150+ mainstream global models. Enterprise users can claim 12 million free tokens.
-- [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. My API Box users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
+- [FennoAI](https://api.fenno.ai/s/DCGC): A stable and efficient Codex relay provider compatible with OpenAI and Anthropic protocols. It supports popular coding tools and enterprise workloads of up to 100 billion tokens per day. StationWarden users can get $50 in Coding Plan credits for $1.99, and referral purchases earn up to 20% commission. [Setup guide](./service-guides/fenno.md)
 - [PackyCode](https://www.packyapi.ai/register): Enter the `all-api-hub` promo code during recharge to get 10% off. [Setup guide](./sponsor-guides/packycode.md)
 - [Xingchen AI](https://ai.centos.hk): 1:1 top-up ratio, invoicing support, and Claude pricing as low as 40% of the standard price. [Setup guide](./sponsor-guides/xingchen.md)
 - [AICodeMirror](https://www.aicodemirror.ai/register): Official high-stability relay services for Claude Code / Codex / Gemini CLI. Register through this link to get 20% off your first top-up, and enterprise customers can get up to 25% off.
@@ -139,7 +139,7 @@ If none of the built-in methods return data and you know the site's own query en
 
 ## Stability and Rate Limiting
 
-To protect your account from being judged as abnormal by upstream sites, My API Box has a built-in **Smart Request Limiter**:
+To protect your account from being judged as abnormal by upstream sites, StationWarden has a built-in **Smart Request Limiter**:
 
 - **Concurrency Control**: Defaults to limiting the number of concurrent requests to a single site to 2.
 - **Rate Control**: Limits the request rate to a single site to approximately 18 times per minute (supports small bursts).

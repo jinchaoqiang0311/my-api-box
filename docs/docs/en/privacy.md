@@ -1,4 +1,4 @@
-# My API Box Privacy Policy
+# StationWarden Privacy Policy
 
 **Last updated:** October 17, 2026
 
@@ -6,9 +6,9 @@
 
 ## Scope and developer
 
-This policy covers the My API Box browser extension and its uninstall feedback page. My API Box is maintained by the [my-api-box open-source project](https://github.com/jinchaoqiang0311/my-api-box). “We” means the project developers. API platforms, sync services and other third-party services you configure are operated by their respective providers.
+This policy covers the StationWarden browser extension and its uninstall feedback page. StationWarden is maintained by the [my-api-box open-source project](https://github.com/jinchaoqiang0311/my-api-box). “We” means the project developers. API platforms, sync services and other third-party services you configure are operated by their respective providers.
 
-**The extension accesses, uses and stores user data needed for its features, including sensitive authentication information. Local storage does not mean that no data is processed.** Account credentials are not uploaded to us as product analytics. However, account operations require the extension to send authentication information to the corresponding service. Product analytics, enabled by default, and feedback you submit are sent to PostHog for developer analysis, as described below.
+**The extension accesses, uses and stores user data needed for its features, including sensitive authentication information. Local storage does not mean that no data is processed.** Account credentials are not uploaded to us as product analytics. However, account operations require the extension to send authentication information to the corresponding service. Product analytics is disabled by default and only starts after you explicitly enable it; it sends feature events, an installation analytics identifier and technical context to PostHog. Feedback you submit is also sent to PostHog, as described below.
 
 ## Data collection and use
 
@@ -26,7 +26,7 @@ Processing depends on the features you use, permissions you grant and settings f
 
 ### Product analytics
 
-Product analytics is **enabled by default** in distributed builds configured with the analytics service. **PostHog** receives and stores events, which developers can view and analyze in the project. You can turn off the option called “anonymous product analytics” in Settings to stop subsequent product analytics events.
+Product analytics is **disabled by default** in distributed builds configured with the analytics service and requires you to opt in in Settings. Once enabled, **PostHog** receives and stores feature events, an installation analytics identifier and technical context (language, version, etc.) that developers can view and analyze in the project. Automatic page-view events, automatic interaction capture and session recording are disabled. You can turn off the “anonymous product analytics” option in Settings at any time to stop subsequent events; your saved choice is never overwritten by installs or upgrades.
 
 - The extension generates and locally stores a random installation analytics ID and sends it with events to link activity from the same installation. It is not your API platform user ID and does not require your name or email. However, it is a persistent, linkable identifier: **“anonymous” does not mean that events cannot be associated with the same installation**. Disabling analytics does not automatically delete this local ID or previously sent data.
 - Business event fields are allowlisted. They include extension version, distribution channel, browser family, interface language, extension entry point, feature/action identifiers, outcomes, error categories, site types, and duration/count/scale ranges. They are used only to maintain, secure and measure the performance and reliability of the extension's disclosed features.
@@ -78,7 +78,7 @@ To request access, correction or deletion of analytics or feedback data accessib
 
 ## Chrome Web Store User Data Policy
 
-My API Box's use and transfer of user data obtained through browser APIs complies with the Chrome Web Store User Data Policy, including its Limited Use requirements. Such data is used only to provide or improve the disclosed single purpose and user-facing features. It is not used for personalized advertising, sold to data brokers or used for creditworthiness or lending decisions. Human access to such data is not permitted except in policy-allowed circumstances, such as explicit user consent, necessary security investigations, legal requirements, or internal operations using aggregated and de-identified data.
+StationWarden's use and transfer of user data obtained through browser APIs complies with the Chrome Web Store User Data Policy, including its Limited Use requirements. Such data is used only to provide or improve the disclosed single purpose and user-facing features. It is not used for personalized advertising, sold to data brokers or used for creditworthiness or lending decisions. Human access to such data is not permitted except in policy-allowed circumstances, such as explicit user consent, necessary security investigations, legal requirements, or internal operations using aggregated and de-identified data.
 
 ## Policy updates and contact
 

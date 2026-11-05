@@ -95,7 +95,7 @@
     "versionNotSupported": "此备份由较新版本创建。请先更新应用后再导入。"
   },
   "localBackup": {
-    "description": "使用本地 JSON 文件备份、迁移或恢复 My API Box 数据。",
+    "description": "使用本地 JSON 文件备份、迁移或恢复 StationWarden 数据。",
     "title": "本地备份与迁移"
   },
   "title": "导入/导出",
@@ -153,7 +153,7 @@
       "testFailed": "Secret Gist 连接失败",
       "testSuccess": "Secret Gist 连接成功",
       "token": "GitHub Token",
-      "tokenDesc": "仅保存在当前浏览器中，不会写入备份或发送到 My API Box。建议使用只授予 Gists 读写权限的 fine-grained Token，或只带 gist scope 的 classic Token。",
+      "tokenDesc": "仅保存在当前浏览器中，不会写入备份或发送到 StationWarden。建议使用只授予 Gists 读写权限的 fine-grained Token，或只带 gist scope 的 classic Token。",
       "tokenPlaceholder": "粘贴 GitHub Token",
       "upload": "上传到 Secret Gist",
       "uploadFailed": "上传到 GitHub Secret Gist 失败",

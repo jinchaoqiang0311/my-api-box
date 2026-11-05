@@ -1,6 +1,6 @@
 # CLIProxyAPI 管理
 
-CLIProxyAPI 已接入 My API Box 的管理站点功能。配置一次连接后，即可在插件中查看、创建、编辑和删除上游提供商，也可以从账号密钥或 API 凭据库导入。
+CLIProxyAPI 已接入 StationWarden 的管理站点功能。配置一次连接后，即可在插件中查看、创建、编辑和删除上游提供商，也可以从账号密钥或 API 凭据库导入。
 
 ## 配置连接
 

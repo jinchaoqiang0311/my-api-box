@@ -42,18 +42,18 @@ Feishu チャネルは、Feishu グループのカスタムボットを使って
 https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-4. My API Box で **`設定 → 一般 → 通知 → Feishu Bot`** を開きます。
+4. StationWarden で **`設定 → 一般 → 通知 → Feishu Bot`** を開きます。
 5. 完全な Webhook URL を **`Webhook URL または key`** に貼り付け、チャネルを有効にして **`テスト通知を送信`** をクリックします。
 
-`/hook/` の後ろにある key だけをコピーした場合も、そのまま入力できます。My API Box が Feishu Webhook URL を自動補完します。
+`/hook/` の後ろにある key だけをコピーした場合も、そのまま入力できます。StationWarden が Feishu Webhook URL を自動補完します。
 
 ### セキュリティ設定
 
 Feishu カスタムボットは、キーワード、IP ホワイトリスト、署名検証などのセキュリティ設定に対応しています。ボットの作成とセキュリティ設定については、[Feishu カスタムボットガイド](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) を参照してください。
 
-My API Box で利用する際の注意点:
+StationWarden で利用する際の注意点:
 
-- キーワード検証を有効にしている場合は、通知タイトルまたは本文に設定済みキーワードが含まれるようにしてください。例: `My API Box`。
+- キーワード検証を有効にしている場合は、通知タイトルまたは本文に設定済みキーワードが含まれるようにしてください。例: `StationWarden`。
 - IP ホワイトリストは現在のネットワーク出口に依存します。モバイル回線、プロキシ、自宅回線の出口変更により送信に失敗することがあります。
 - 現在の Feishu チャネルは Webhook URL または key のみを設定でき、署名シークレットの入力欄はありません。Feishu 側で署名検証を有効にしている場合、署名が送信されないためテスト通知が失敗する可能性があります。
 
@@ -81,16 +81,16 @@ DingTalk チャネルは、DingTalk グループのカスタムボットを使�
 https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-5. My API Box で **`設定 → 一般 → 通知 → DingTalk Bot`** を開きます。
+5. StationWarden で **`設定 → 一般 → 通知 → DingTalk Bot`** を開きます。
 6. 完全な Webhook URL を **`Webhook URL または access_token`** に貼り付けます。DingTalk 側で署名セキュリティを有効にしている場合は、生成された `SEC...` の値を **`署名 Secret`** に貼り付けます。
 7. チャネルを有効にして **`テスト通知を送信`** をクリックします。
 
 ### セキュリティ設定
 
-My API Box で DingTalk のセキュリティ設定を使う際の注意点:
+StationWarden で DingTalk のセキュリティ設定を使う際の注意点:
 
-- キーワード検証を有効にしている場合は、通知タイトルまたは本文に設定済みキーワードが含まれるようにしてください。例: `My API Box`。
-- 署名セキュリティを有効にしている場合は、DingTalk の `SEC...` Secret を入力してください。My API Box は送信ごとに `timestamp` と HMAC-SHA256 の `sign` を生成します。
+- キーワード検証を有効にしている場合は、通知タイトルまたは本文に設定済みキーワードが含まれるようにしてください。例: `StationWarden`。
+- 署名セキュリティを有効にしている場合は、DingTalk の `SEC...` Secret を入力してください。StationWarden は送信ごとに `timestamp` と HMAC-SHA256 の `sign` を生成します。
 - IP アドレス範囲は現在のネットワーク出口に依存します。モバイル回線、プロキシ、自宅回線の出口変更により送信に失敗することがあります。
 - Webhook URL と署名 Secret は公開しないでください。公開リポジトリ、公開ドキュメント、スクリーンショットに含めないようにしてください。
 
@@ -98,7 +98,7 @@ DingTalk の公式手順は、[カスタムボットの作成](https://open.ding
 
 ### API の動作
 
-DingTalk カスタムボット API は `POST /robot/send?access_token=...` でメッセージを送信します。My API Box はテキストメッセージを送信します。
+DingTalk カスタムボット API は `POST /robot/send?access_token=...` でメッセージを送信します。StationWarden はテキストメッセージを送信します。
 
 ```json
 {
@@ -112,7 +112,7 @@ DingTalk カスタムボット API は `POST /robot/send?access_token=...` で�
 }
 ```
 
-署名 Secret を設定している場合、リクエスト URL には `timestamp` と `sign` も含まれます。My API Box は `errcode: 0` を成功として扱います。DingTalk が別の `errcode` を返した場合、テスト通知では返された `errmsg` を表示し、設定確認に使えるようにします。
+署名 Secret を設定している場合、リクエスト URL には `timestamp` と `sign` も含まれます。StationWarden は `errcode: 0` を成功として扱います。DingTalk が別の `errcode` を返した場合、テスト通知では返された `errmsg` を表示し、設定確認に使えるようにします。
 
 ### よくあるエラー
 
@@ -120,7 +120,7 @@ DingTalk カスタムボット API は `POST /robot/send?access_token=...` で�
 |--------|----------------|----------|
 | `keywords not in content` または類似のキーワードエラー | キーワード検証が有効だが、通知内容にキーワードが含まれていない | DingTalk のキーワードを調整するか、通知タイトル/本文にそのキーワードを含める |
 | `sign not match` または類似の署名エラー | 署名セキュリティが有効だが、Secret が未入力または間違っている | DingTalk ボット設定ページから `SEC...` Secret を再コピーする |
-| `msgtype is null` | DingTalk がリクエスト本文を有効なボットメッセージとして解析できなかった | `msgtype` を含む DingTalk テキスト payload を送信するバージョンに My API Box を更新し、再度テスト通知を送る |
+| `msgtype is null` | DingTalk がリクエスト本文を有効なボットメッセージとして解析できなかった | `msgtype` を含む DingTalk テキスト payload を送信するバージョンに StationWarden を更新し、再度テスト通知を送る |
 | `access_token` 関連のエラー | Webhook URL または access_token が間違っている、またはボットが削除 / 再作成された | DingTalk ボット設定ページから完全な Webhook URL を再コピーする |
 | テスト通知が届かない | チャネルが無効、URL が空、ネットワーク失敗、または DingTalk のセキュリティポリシーにブロックされた | チャネルを有効化して再度テスト通知を送り、DingTalk グループのボット設定を確認する |
 
@@ -140,14 +140,14 @@ WeCom チャネルは、WeCom グループのメッセージプッシュ設定�
 https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-5. My API Box で **`設定 → 一般 → 通知 → WeCom Bot`** を開きます。
+5. StationWarden で **`設定 → 一般 → 通知 → WeCom Bot`** を開きます。
 6. 完全な Webhook URL を **`Webhook URL または key`** に貼り付け、チャネルを有効にして **`テスト通知を送信`** をクリックします。
 
-`key=` の後ろにある key だけをコピーした場合も、そのまま入力できます。My API Box が WeCom Webhook URL を自動補完します。
+`key=` の後ろにある key だけをコピーした場合も、そのまま入力できます。StationWarden が WeCom Webhook URL を自動補完します。
 
 ### API の動作
 
-WeCom のメッセージプッシュ API は `POST /cgi-bin/webhook/send?key=...` でメッセージを送信します。My API Box はテキストメッセージを送信します。
+WeCom のメッセージプッシュ API は `POST /cgi-bin/webhook/send?key=...` でメッセージを送信します。StationWarden はテキストメッセージを送信します。
 
 ```json
 {
@@ -158,13 +158,13 @@ WeCom のメッセージプッシュ API は `POST /cgi-bin/webhook/send?key=...
 }
 ```
 
-My API Box は `errcode: 0` を成功として扱います。WeCom が別の `errcode` を返した場合、テスト通知では返された `errmsg` を表示し、設定確認に使えるようにします。
+StationWarden は `errcode: 0` を成功として扱います。WeCom が別の `errcode` を返した場合、テスト通知では返された `errmsg` を表示し、設定確認に使えるようにします。
 
 ### 制限
 
 メッセージ形式と送信頻度制限は [WeCom メッセージプッシュ設定ドキュメント](https://developer.work.weixin.qq.com/document/path/99110) に従います。
 
-My API Box で利用する際の注意点:
+StationWarden で利用する際の注意点:
 
 - WeCom メッセージプッシュには送信頻度制限があります。多数のタスクが同時に完了すると、プラットフォーム側のレート制限にかかる可能性があります。
 - テスト通知で `invalid webhook url`、`key not found`、または類似のエラーが返る場合は、WeCom のメッセージプッシュ設定から完全な Webhook URL を再コピーしてください。
@@ -177,7 +177,7 @@ ntfy チャネルは、ntfy のトピック公開 API を使ってプレーン�
 ### トピックを設定する
 
 1. ntfy アプリ、Web アプリ、または自ホストサーバーで、`all-api-hub-alerts` のようなトピック名を用意します。
-2. My API Box で **`設定 → 一般 → 通知 → ntfy`** を開きます。
+2. StationWarden で **`設定 → 一般 → 通知 → ntfy`** を開きます。
 3. **`Topic URL またはトピック名`** に完全なトピック URL を入力します。
 
 ```text
@@ -190,7 +190,7 @@ https://ntfy.sh/all-api-hub-alerts
 all-api-hub-alerts
 ```
 
-トピック名だけを入力した場合、My API Box は `https://ntfy.sh/<トピック名>` に送信します。自ホスト ntfy サーバーを使う場合は、次のように完全な URL を入力してください。
+トピック名だけを入力した場合、StationWarden は `https://ntfy.sh/<トピック名>` に送信します。自ホスト ntfy サーバーを使う場合は、次のように完全な URL を入力してください。
 
 ```text
 https://ntfy.example.com/all-api-hub-alerts
@@ -201,7 +201,7 @@ https://ntfy.example.com/all-api-hub-alerts
 
 ### API の動作
 
-My API Box は ntfy の公開 API を使い、トピック URL に `POST` リクエストを送信します。通知本文はプレーンテキストのリクエスト本文として送信し、通知タイトルは `Title` リクエストヘッダーに入れます。非 ASCII のタイトルは、ブラウザ拡張バックグラウンドのリクエストヘッダー制限に対応するため、送信前に RFC 2047 形式へエンコードします。アクセストークンを設定している場合は、`Authorization: Bearer <token>` も送信します。
+StationWarden は ntfy の公開 API を使い、トピック URL に `POST` リクエストを送信します。通知本文はプレーンテキストのリクエスト本文として送信し、通知タイトルは `Title` リクエストヘッダーに入れます。非 ASCII のタイトルは、ブラウザ拡張バックグラウンドのリクエストヘッダー制限に対応するため、送信前に RFC 2047 形式へエンコードします。アクセストークンを設定している場合は、`Authorization: Bearer <token>` も送信します。
 
 ntfy の公開 API、リクエストヘッダー、認証方式については、公式ドキュメント [Publishing messages](https://docs.ntfy.sh/publish/) を参照してください。
 

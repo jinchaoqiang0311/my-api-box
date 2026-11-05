@@ -95,7 +95,7 @@
     "versionNotSupported": "This backup was created by a newer version. Update the app before importing it."
   },
   "localBackup": {
-    "description": "Use local JSON files to back up, move, or restore My API Box data.",
+    "description": "Use local JSON files to back up, move, or restore StationWarden data.",
     "title": "Local backup and migration"
   },
   "title": "Import/Export",
@@ -153,7 +153,7 @@
       "testFailed": "Secret Gist connection failed",
       "testSuccess": "Secret Gist connection succeeded",
       "token": "GitHub Token",
-      "tokenDesc": "Stored only in this browser; it is never written to backups or sent to My API Box. Use a fine-grained token with only Gists read/write access, or a classic token with the gist scope.",
+      "tokenDesc": "Stored only in this browser; it is never written to backups or sent to StationWarden. Use a fine-grained token with only Gists read/write access, or a classic token with the gist scope.",
       "tokenPlaceholder": "Paste a GitHub token",
       "upload": "Upload to Secret Gist",
       "uploadFailed": "GitHub Secret Gist upload failed",

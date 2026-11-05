@@ -28,7 +28,7 @@ type ViewMode = "palettes" | "layouts"
 
 const PREVIEW_SIZE = 220
 const DEV_OVERLAY_LOCALE = "en-US"
-const DEV_OVERLAY_WATERMARK = "My API Box"
+const DEV_OVERLAY_WATERMARK = "StationWarden"
 
 const DEV_OVERLAY_LABELS: ShareSnapshotOverlayLabels = {
   overview: "Overview",

@@ -174,7 +174,7 @@
     }
   },
   "changelogOnUpdate": {
-    "description": "Steuern Sie, ob My API Box beim ersten Öffnen der Einstellungsseite nach Aktualisierungen ein Dialogfeld „Neuigkeiten“ anzeigt.",
+    "description": "Steuern Sie, ob StationWarden beim ersten Öffnen der Einstellungsseite nach Aktualisierungen ein Dialogfeld „Neuigkeiten“ anzeigt.",
     "title": "Änderungsprotokoll",
     "toggleDesc": "Wenn aktiviert, wird das Update-Protokoll beim ersten Öffnen der Einstellungsseite nach einem Update inline angezeigt (einmal pro Version). Sie können das vollständige Änderungsprotokoll der Dokumentation weiterhin manuell öffnen.",
     "toggleLabel": "Zeigt, was nach Updates neu ist"
@@ -452,7 +452,7 @@
       "showPassword": "Login-Passwort anzeigen",
       "showToken": "Systemzugriffstoken anzeigen",
       "showTotpSecret": "TOTP-Geheimnis anzeigen",
-      "totpSecretDesc": "Optional. Sofern bereitgestellt, kann My API Box automatisch TOTP-Codes für die 2FA-Anmeldung und die sichere Verifizierung generieren, die zum Anzeigen von Kanalschlüsseln erforderlich ist.",
+      "totpSecretDesc": "Optional. Sofern bereitgestellt, kann StationWarden automatisch TOTP-Codes für die 2FA-Anmeldung und die sichere Verifizierung generieren, die zum Anzeigen von Kanalschlüsseln erforderlich ist.",
       "totpSecretLabel": "TOTP-Geheimnis",
       "totpSecretPlaceholder": "Base32 TOTP-Geheimnis einfügen",
       "userIdLabel": "Administrator-Benutzer-ID",
@@ -612,13 +612,13 @@
       "cta": "Entdecken Sie die Quelle und den neuesten Fortschritt auf GitHub. Sie können auch Probleme melden oder Ideen austauschen.",
       "getStartedCta": "Erste Schritte öffnen",
       "label": "Quellcode",
-      "starCta": "Finden Sie My API Box nützlich? Markieren Sie es auf GitHub, um das Projekt zu unterstützen"
+      "starCta": "Finden Sie StationWarden nützlich? Markieren Sie es auf GitHub, um das Projekt zu unterstützen"
     },
     "reason": {
       "newPermissions": "Neue Funktionen erfordern zusätzliche optionale Berechtigungen. Überprüfen Sie, was jede einzelne bewirkt, und lassen Sie nur das zu, was Sie benötigen."
     },
     "subtitle": "Wählen Sie Ihre Sprache und aktivieren Sie dann nur die optionalen Berechtigungen, die Sie benötigen. Sie können diese Einstellungen später ändern.",
-    "title": "Willkommen bei My API Box",
+    "title": "Willkommen bei StationWarden",
     "toasts": {
       "error": "Nicht alle empfohlenen Berechtigungen wurden erteilt",
       "success": "Alle empfohlenen Berechtigungen erteilt"
@@ -727,7 +727,7 @@
     "title": "Aktualisierungseinstellungen",
     "turnstileNotificationEnable": "Systembenachrichtigungen erlauben",
     "turnstileNotificationManage": "Benachrichtigungsrechte verwalten",
-    "turnstileNotificationPermissionTitle": "Browser-Benachrichtigungen von My API Box erlauben",
+    "turnstileNotificationPermissionTitle": "Browser-Benachrichtigungen von StationWarden erlauben",
     "turnstileNotificationStatus": {
       "available": "Systembenachrichtigungen: erlaubt. Ruhemodus oder Browsereinstellungen können sie weiterhin ausblenden.",
       "blocked": "Der Browser blockiert Benachrichtigungen. Prüfen Sie die Benachrichtigungseinstellungen und versuchen Sie es hier erneut.",
@@ -812,7 +812,7 @@
       "description": "Wenn deine Website für sensible Vorgänge eine zusätzliche Verifizierung verlangt, kann die Erweiterung Kanalschlüssel weder anzeigen noch exportieren. Führe diese Aktionen im Sub2API-Dashboard aus. Migrationen sind ebenfalls betroffen, wenn dafür ein Quellschlüssel gelesen werden muss.",
       "title": "Einschränkungen bei Schlüsselanzeige und Export"
     },
-    "description": "Verbinde deine Website, um vorhandene API-Schlüssel in Sub2API zu importieren und Kanäle in My API Box anzuzeigen, zu bearbeiten und zu migrieren.",
+    "description": "Verbinde deine Website, um vorhandene API-Schlüssel in Sub2API zu importieren und Kanäle in StationWarden anzuzeigen, zu bearbeiten und zu migrieren.",
     "fields": {
       "adminApiKeyDesc": "Verwende zur Kanalverwaltung einen im Dashboard erstellten Admin API Key. Ein gewöhnlicher API-Schlüssel für Modellaufrufe funktioniert hier nicht.",
       "adminApiKeyLabel": "Admin API Key",
@@ -860,7 +860,7 @@
         "secretPlaceholder": "SECxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         "title": "DingTalk Bot",
         "webhookKey": "Webhook-URL oder access_token",
-        "webhookKeyDescription": "Kopieren Sie die Webhook-URL von der Seite mit den benutzerdefinierten Bot-Einstellungen DingTalk und fügen Sie sie hier ein. Wenn Sie nur den Wert nach `access_token=` eingeben, vervollständigt My API Box die URL automatisch. Wenn die signierte Sicherheit aktiviert ist, geben Sie auch das Geheimnis ein.",
+        "webhookKeyDescription": "Kopieren Sie die Webhook-URL von der Seite mit den benutzerdefinierten Bot-Einstellungen DingTalk und fügen Sie sie hier ein. Wenn Sie nur den Wert nach `access_token=` eingeben, vervollständigt StationWarden die URL automatisch. Wenn die signierte Sicherheit aktiviert ist, geben Sie auch das Geheimnis ein.",
         "webhookKeyPlaceholder": "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       },
       "feishu": {
@@ -868,7 +868,7 @@
         "docsLink": "Setup-Dokumente anzeigen",
         "title": "Feishu Bot",
         "webhookKey": "Webhook-URL oder Schlüssel",
-        "webhookKeyDescription": "Kopieren Sie die Webhook-URL von der Seite mit den benutzerdefinierten Bot-Einstellungen Feishu und fügen Sie sie hier ein. Wenn Sie nach `/hook/` nur den Schlüssel eingeben, vervollständigt My API Box die URL automatisch.",
+        "webhookKeyDescription": "Kopieren Sie die Webhook-URL von der Seite mit den benutzerdefinierten Bot-Einstellungen Feishu und fügen Sie sie hier ein. Wenn Sie nach `/hook/` nur den Schlüssel eingeben, vervollständigt StationWarden die URL automatisch.",
         "webhookKeyPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       },
       "ntfy": {
@@ -901,7 +901,7 @@
         "docsLink": "Setup-Dokumente anzeigen",
         "title": "WeCom Bot",
         "webhookKey": "Webhook-URL oder Schlüssel",
-        "webhookKeyDescription": "Kopieren Sie die Webhook-URL aus den Nachrichten-Push-Einstellungen der Gruppe WeCom und fügen Sie sie hier ein. Wenn Sie nach `key=` nur den Schlüssel eingeben, vervollständigt My API Box die URL automatisch.",
+        "webhookKeyDescription": "Kopieren Sie die Webhook-URL aus den Nachrichten-Push-Einstellungen der Gruppe WeCom und fügen Sie sie hier ein. Wenn Sie nach `key=` nur den Schlüssel eingeben, vervollständigt StationWarden die URL automatisch.",
         "webhookKeyPlaceholder": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       }
     },
@@ -970,12 +970,12 @@
       "feishuMissingConfig": "Feishu Bot-Webhook-URL oder -Schlüssel ist nicht konfiguriert.",
       "httpError": "{{label}} hat HTTP {{status}} zurückgegeben.",
       "httpErrorWithDetail": "{{label}} hat HTTP {{status}} zurückgegeben: {{detail}}",
-      "message": "Dies ist ein My API Box-Aufgabenbenachrichtigungstest.",
+      "message": "Dies ist ein StationWarden-Aufgabenbenachrichtigungstest.",
       "ntfyInvalidUrl": "Das ntfy-Thema muss eine http://- oder https://-URL oder ein gültiger ntfy.sh-Themenname sein.",
       "ntfyMissingConfig": "Die NTFY-Themen-URL oder der Themenname ist nicht konfiguriert.",
       "sent": "Testbenachrichtigung gesendet",
       "telegramMissingConfig": "Telegram Bot-Token oder Chat-ID ist nicht konfiguriert.",
-      "title": "My API Box-Testbenachrichtigung",
+      "title": "StationWarden-Testbenachrichtigung",
       "webhookInvalidUrl": "Die Webhook-URL muss http:// oder https:// verwenden.",
       "webhookMissingConfig": "Webhook-URL ist nicht konfiguriert.",
       "wecomMissingConfig": "WeCom Bot-Webhook-URL oder -Schlüssel ist nicht konfiguriert."

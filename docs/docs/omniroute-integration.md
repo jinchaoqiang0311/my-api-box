@@ -1,6 +1,6 @@
 # OmniRoute 管理
 
-[OmniRoute](https://github.com/diegosouzapw/OmniRoute) 已接入 My API Box 的管理站点功能。配置一次连接后，即可在插件中查看、创建、编辑和删除网关的渠道（provider 连接），也可以从账号密钥或 API 凭据库导入。
+[OmniRoute](https://github.com/diegosouzapw/OmniRoute) 已接入 StationWarden 的管理站点功能。配置一次连接后，即可在插件中查看、创建、编辑和删除网关的渠道（provider 连接），也可以从账号密钥或 API 凭据库导入。
 
 OmniRoute 是自建 AI 网关，本身没有账号语义（余额、套餐、签到）。它只能作为**管理站点**接入，不会出现在账号列表里。
 

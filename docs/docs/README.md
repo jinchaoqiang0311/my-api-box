@@ -1,8 +1,8 @@
-﻿---
+---
 home: true
 title: "首页"
 heroImage: "/512.png"
-heroText: "My API Box - 你的中转站管家"
+heroText: "StationWarden - AI 中转站账号与计费守卫"
 tagline: "开源浏览器插件，集中管理 AI 中转站账号与 API 凭据，接入 CLIProxyAPI、New API、Sub2API 等自建网关，提供余额查询、模型比价、API 验证与加密 WebDAV 备份。"
 actions:
   - text: "🚀 开始使用"
@@ -45,14 +45,14 @@ features:
   - title: "🔐 本地优先与自动同步"
     details: "数据默认保存在浏览器本地；开启加密 WebDAV 自动同步后，可在多台设备间安全同步，换电脑也能接着使用。"
 
-footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
+footer: "AGPL-3.0 Licensed | Copyright 2025-present StationWarden"
 ---
 
 ## 介绍
 
 在 AI 时代，为了省钱或体验不同模型，我们往往拥有多个中转站账号。但管理起来却很头疼：余额分散、价格混乱、每天手动签到太累...
 
-**My API Box 为解决这些问题而生。** 它是你的 AI 资产中心，让管理变得简单、直观且自动化。
+**StationWarden 为解决这些问题而生。** 它是你的 AI 资产中心，让管理变得简单、直观且自动化。
 
 ## 🎯 你的使用场景
 
@@ -94,8 +94,8 @@ footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
 - **微信群**：扫描下方二维码加入中文群。
 
 <img
-  src="../../resources/wechat_group.png"
-  alt="My API Box 微信群二维码"
+  src="../../resources/wechat_group.webp"
+  alt="StationWarden 微信群二维码"
   style="width: min(280px, 100%);"
 />
 
@@ -124,7 +124,7 @@ footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
     </a>
   </div>
   <p class="readme-sponsor-copy">
-    FennoAI 是一家稳定、高效的 API 中转服务商，目前主要提供 Codex 中转服务，兼容 OpenAI 及 Anthropic 协议，可灵活接入 Codex、Claude Code、OpenCode 等主流编程工具，可稳定支撑千亿 Token/日的企业级调用需求，支持国内及海外主体公对公结算、开票。FennoAI 为 My API Box 用户提供专属福利：通过<a href="https://api.fenno.ai/s/DCGC">专属链接</a>购买订阅，仅需 1.99 美元即可获得价值 50 美元的 Coding Plan 额度。同时支持邀请奖励，邀请好友购买最高可获得 20% 返佣，邀请越多，奖励越高（<a href="./service-guides/fenno.md">使用教程</a>）。
+    FennoAI 是一家稳定、高效的 API 中转服务商，目前主要提供 Codex 中转服务，兼容 OpenAI 及 Anthropic 协议，可灵活接入 Codex、Claude Code、OpenCode 等主流编程工具，可稳定支撑千亿 Token/日的企业级调用需求，支持国内及海外主体公对公结算、开票。FennoAI 为 StationWarden 用户提供专属福利：通过<a href="https://api.fenno.ai/s/DCGC">专属链接</a>购买订阅，仅需 1.99 美元即可获得价值 50 美元的 Coding Plan 额度。同时支持邀请奖励，邀请好友购买最高可获得 20% 返佣，邀请越多，奖励越高（<a href="./service-guides/fenno.md">使用教程</a>）。
   </p>
 </div>
 
@@ -165,7 +165,7 @@ footer: "AGPL-3.0 Licensed | Copyright 2025-present My API Box"
   </div>
   <p class="readme-sponsor-copy">
     AICodeMirror 提供 Claude Code / Codex / Gemini CLI 官方高稳定中转服务，支持企业级高并发、极速开票、7×24 专属技术支持。Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更有折上折！AICodeMirror
-    为 My API Box 的用户提供了特别福利：通过<a href="https://www.aicodemirror.ai/register">此链接</a>注册，可享受首充 8 折，企业客户最高可享 7.5 折！
+    为 StationWarden 的用户提供了特别福利：通过<a href="https://www.aicodemirror.ai/register">此链接</a>注册，可享受首充 8 折，企业客户最高可享 7.5 折！
   </p>
 </div>
 

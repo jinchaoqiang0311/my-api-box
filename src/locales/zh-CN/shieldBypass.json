@@ -135,16 +135,16 @@
     "openVerification": "打开验证窗口",
     "reminderSettings": "提醒设置",
     "turnstileAssistBody": "站点的人机验证尚未完成。点击“打开验证窗口”完成验证码，扩展会继续检查任务结果。",
-    "turnstileAssistTitle": "My API Box · 验证提醒",
+    "turnstileAssistTitle": "StationWarden · 验证提醒",
     "turnstilePageBody": "站点的人机验证尚未完成。点击“打开验证窗口”完成验证码，扩展会继续检查任务结果。",
     "verificationEnded": "此次验证已结束，无需继续处理。"
   },
-  "titlePrefix": "My API Box · 过盾助手",
+  "titlePrefix": "StationWarden · 过盾助手",
   "toast": {
     "actions": {
       "openSettings": "打开过盾设置"
     },
-    "body": "此页面由 My API Box 自动打开，用于通过站点防护页（如 Cloudflare 五秒盾）以获取必要的 Cookie/会话信息。\n这是让 My API Box 在防护站点上正常请求和识别数据所必需的步骤。\n如出现人机验证，请在此窗口内完成验证；通过后 My API Box 会继续流程并自动关闭该窗口。",
+    "body": "此页面由 StationWarden 自动打开，用于通过站点防护页（如 Cloudflare 五秒盾）以获取必要的 Cookie/会话信息。\n这是让 StationWarden 在防护站点上正常请求和识别数据所必需的步骤。\n如出现人机验证，请在此窗口内完成验证；通过后 StationWarden 会继续流程并自动关闭该窗口。",
     "title": "过盾助手",
     "turnstile": {
       "body": "请在这个窗口内完成站点的人机验证（例如勾选“确认您是真人”或按提示选择图片）。扩展正在等待，完成后会继续检查任务结果；若页面仍显示未签到，请在页面上完成签到。",

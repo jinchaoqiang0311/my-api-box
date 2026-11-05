@@ -149,7 +149,7 @@ export async function readGithubGistRemote(
   const file = data.files?.[GITHUB_GIST_BACKUP_FILE_NAME]
   if (!file) {
     throw new GitHubGistError(
-      "This Gist has not been initialized by My API Box",
+      "This Gist has not been initialized by StationWarden",
       CLOUD_SYNC_ERROR_CODES.UNINITIALIZED,
     )
   }
@@ -217,7 +217,7 @@ async function createGithubGistBackup(
       method: "POST",
       token,
       body: {
-        description: "My API Box encrypted cloud backup",
+        description: "StationWarden encrypted cloud backup",
         public: false,
         files: {
           [GITHUB_GIST_BACKUP_FILE_NAME]: { content },

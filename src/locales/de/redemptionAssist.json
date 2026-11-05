@@ -32,7 +32,7 @@
     "cancelled": "Abgebrochen",
     "extensionDays": "Um {{days}} Tage verlängert",
     "fallbackBenefit": "Ersatzvorteil verwendet",
-    "noAccountForUrl": "Für diese Website wurde kein passendes Konto gefunden. Bitte fügen Sie die Website als Konto in My API Box hinzu und versuchen Sie es dann erneut.",
+    "noAccountForUrl": "Für diese Website wurde kein passendes Konto gefunden. Bitte fügen Sie die Website als Konto in StationWarden hinzu und versuchen Sie es dann erneut.",
     "promptConfirm": "Auf dieser Seite wurde ein möglicher Einlösungscode {{code}} entdeckt. Versuchen Sie die automatische Einlösung für diese Website?",
     "promptConfirmBatch_one": "{{count}} möglicher Einlösungscode wurde auf dieser Seite erkannt. Wählen Sie die Codes aus, die für diese Website automatisch eingelöst werden sollen.",
     "promptConfirmBatch_other": "{{count}} mögliche Einlösungscodes wurden auf dieser Seite erkannt. Wählen Sie die Codes aus, die für diese Website automatisch eingelöst werden sollen.",

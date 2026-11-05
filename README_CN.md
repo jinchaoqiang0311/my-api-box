@@ -4,7 +4,7 @@
 
 <div align="center">
 
-# My API Box – 你的中转站管家
+# StationWarden – AI 中转站账号与计费守卫
 
 > AGPL‑3.0 开源浏览器插件，集中管理 AI 中转站账号、API 密钥与模型价格——更有七探针完整性检测，验明中转站是否如实交付你付费的模型。
 
@@ -16,7 +16,7 @@
 
 ## 🎯 站点检测（Site Probing）
 
-每个中转站都宣称自己卖的是半价 GPT‑4o——但它真的是吗？**My API Box 内置七种标准化探针**，对你添加的任何站点直接运行。每次检测消耗少量 token，报告可本地导出 JSON。
+每个中转站都宣称自己卖的是半价 GPT‑4o——但它真的是吗？**StationWarden 内置七种标准化探针**，对你添加的任何站点直接运行。每次检测消耗少量 token，报告可本地导出 JSON。
 
 | 探针     | 检查什么                                                              | 能抓到什么                        |
 | -------- | --------------------------------------------------------------------- | --------------------------------- |
@@ -123,9 +123,9 @@
 2. 打开 `chrome://extensions`（Edge: `edge://extensions`；Firefox: `about:debugging#/runtime/this-firefox`）。
 3. 打开 **开发者模式**。
 4. 点击 **加载已解压的扩展程序**，选择解压出来的文件夹。
-5. 把 My API Box 固定到工具栏。
+5. 把 StationWarden 固定到工具栏。
 
-QQ 浏览器、360 浏览器、Safari、移动端浏览器的安装步骤见 [文档](https://all‑api‑hub.qixing1217.top/en/get‑started.html)。
+QQ 浏览器、360 浏览器、Safari、移动端浏览器的安装步骤见[上游项目](https://github.com/qixing-jk/all-api-hub)。
 </details>
 
 **30 秒上手**
@@ -147,9 +147,11 @@ QQ 浏览器、360 浏览器、Safari、移动端浏览器的安装步骤见 [�
 
 ## 📜 许可证
 
-My API Box 采用 AGPL‑3.0 许可证，派生自 [all‑api‑hub](https://github.com/qixing‑jk/all‑api‑hub)（同为 AGPL‑3.0）。详见 [LICENSE](./LICENSE) 与 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
+StationWarden 采用 AGPL-3.0 许可证，派生自 [All API Hub](https://github.com/qixing-jk/all-api-hub)（同为 AGPL-3.0）。详见 [LICENSE](./LICENSE) 与 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
 
-若需要 AGPL‑3.0 之外的商业授权（闭源 / 白标使用上游代码），请联系 all‑api‑hub 上游作者。第三方依赖及历史 MIT 许可片段保留各自的版权与许可声明。
+修改声明：本独立分支自 2026-11-04 起对上游代码进行了修改，对应源码以 AGPL-3.0 发布于 <https://github.com/jinchaoqiang0311/my-api-box>。
+
+若需要 AGPL-3.0 之外的商业授权（闭源 / 白标使用上游代码），请联系 All API Hub 上游作者。第三方依赖及历史 MIT 许可片段保留各自的版权与许可声明。
 
 ---
 
@@ -157,10 +159,10 @@ My API Box 采用 AGPL‑3.0 许可证，派生自 [all‑api‑hub](https://git
 
 **基于**
 
-- [all‑api‑hub](https://github.com/qixing‑jk/all‑api‑hub) — My API Box 的上游 fork 源
+- [All API Hub](https://github.com/qixing-jk/all-api-hub) — StationWarden 的上游 fork 源
 - [WXT](https://wxt.dev) — 现代浏览器扩展开发框架
 
-**社区项目（受 My API Box 启发或与其集成）**
+**社区项目（受 StationWarden 启发或与其集成）**
 
 | 项目                                                        | 描述                                     |
 | ----------------------------------------------------------- | ---------------------------------------- |

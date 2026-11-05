@@ -30,7 +30,7 @@
     },
     "languageRequest": {
       "button": "Sprachanfrage öffnen",
-      "description": "Bitten Sie uns, eine neue Schnittstellensprache für My API Box zu unterstützen."
+      "description": "Bitten Sie uns, eine neue Schnittstellensprache für StationWarden zu unterstützen."
     },
     "title": "Feedback und Support"
   },
@@ -39,7 +39,7 @@
   "homepage": "Projekt-Homepage",
   "homepageDesc": "Detaillierte Dokumentation, Benutzerhandbücher und weitere Informationen anzeigen",
   "implementedFeatures": "Implementierte Funktionen",
-  "intro": "My API Box bündelt Relay-Konten, Guthaben und API-Zugangsdaten und bietet automatische Aktualisierung, Check-ins und Modellprüfung. Verwalten Sie Kanäle oder Anbieter auf selbst gehosteten Websites wie CLIProxyAPI, New API und Sub2API, mit Modellsynchronisierung auf unterstützten Websites. WebDAV-Sicherungen sowie Datenimport und -export sind ebenfalls verfügbar.",
+  "intro": "StationWarden bündelt Relay-Konten, Guthaben und API-Zugangsdaten und bietet automatische Aktualisierung, Check-ins und Modellprüfung. Verwalten Sie Kanäle oder Anbieter auf selbst gehosteten Websites wie CLIProxyAPI, New API und Sub2API, mit Modellsynchronisierung auf unterstützten Websites. WebDAV-Sicherungen sowie Datenimport und -export sind ebenfalls verfügbar.",
   "privacyText": "Sensible Daten wie Konten, API-Schlüssel, Cookies, Kontostände, Anfrageinhalte und Benutzereingaben bleiben standardmäßig lokal. Optionale anonyme Produktanalysen dienen ausschließlich dazu, Fehler bei häufigen Problemen zu priorisieren, zentrale Abläufe und die Kompatibilität zu verbessern und unnötige Reibung zu verringern; diese sensiblen Daten werden dabei nicht erfasst.",
   "privacyTitle": "Datenschutz",
   "projectLinks": "Projektlinks",
@@ -61,7 +61,7 @@
     },
     "review": {
       "button": "Auf {{store}} bewerten",
-      "description": "Wenn My API Box Ihnen hilft, ist eine positive Bewertung auf {{store}} eine große Unterstützung.",
+      "description": "Wenn StationWarden Ihnen hilft, ist eine positive Bewertung auf {{store}} eine große Unterstützung.",
       "title": "Hinterlassen Sie eine positive Bewertung"
     },
     "title": "Bewerten und herunterladen"
@@ -77,6 +77,13 @@
   "thanksDesc": "Vielen Dank an alle Entwickler, die zur Open-Source-Community beigetragen haben. Die Entwicklung dieses Plugins profitiert von diesen hervorragenden Open-Source-Projekten und -Tools",
   "title": "Über",
   "upcomingFeatures": "Kommende Funktionen",
+  "upstream": {
+    "licenseLabel": "License: AGPL-3.0",
+    "notice": "StationWarden is an independent open-source fork of All API Hub. This fork's modifications date from {{date}}; the corresponding source is published at {{repo}} under AGPL-3.0.",
+    "sourceLink": "StationWarden source",
+    "title": "Upstream & License",
+    "upstreamLink": "All API Hub (upstream)"
+  },
   "version": "Version:",
   "viewRepo": "Repository besuchen",
   "visitHomepage": "Homepage besuchen"

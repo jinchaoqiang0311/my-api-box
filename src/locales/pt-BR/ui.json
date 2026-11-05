@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "My API Box"
+    "name": "StationWarden"
   },
   "billing": {
     "notProvided": "Não fornecido",
@@ -498,7 +498,7 @@
       "loading": "Carregando registro de alterações…",
       "missingSection": "Não foi possível carregar a visualização do changelog para v{{version}}. Você pode abrir o changelog completo.",
       "openFullChangelog": "Abrir changelog completo",
-      "starPrompt": "O My API Box está sendo útil? Dê uma estrela no GitHub para acompanhar as novidades",
+      "starPrompt": "O StationWarden está sendo útil? Dê uma estrela no GitHub para acompanhar as novidades",
       "title": "Novidades",
       "updatedTo": "Atualizado para v{{version}}"
     }
@@ -621,7 +621,7 @@
     "placeholder": "Pesquisar configurações..."
   },
   "pageTitle": {
-    "app": "My API Box",
+    "app": "StationWarden",
     "options": "Configurações",
     "popup": "Pop-up",
     "sidepanel": "Barra lateral",
@@ -694,8 +694,8 @@
       "later": "Mais tarde",
       "star": "Dar estrela"
     },
-    "cardDescription": "O My API Box é totalmente de código aberto e continua se adaptando a mais sites enquanto melhora a experiência. Uma estrela sustenta a manutenção e ajuda mais gente que precisa dele a encontrá-lo.",
-    "cardTitle": "O My API Box está ajudando?"
+    "cardDescription": "O StationWarden é totalmente de código aberto e continua se adaptando a mais sites enquanto melhora a experiência. Uma estrela sustenta a manutenção e ajuda mais gente que precisa dele a encontrá-lo.",
+    "cardTitle": "O StationWarden está ajudando?"
   },
   "textEntries": {
     "add": "Adicionar linha",

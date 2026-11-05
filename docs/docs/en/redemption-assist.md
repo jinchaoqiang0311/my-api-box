@@ -6,13 +6,13 @@
 
 - **Automatic Redemption Code Recognition**: When you click, select, or copy text on a webpage, the plugin will attempt to identify redemption codes from it, eliminating the need for manual character-by-character verification.
 - **Thoughtful Pop-up Notifications**: Upon detecting a suspected redemption code, a small notification card will pop up in the bottom right corner, prompting you whether to redeem it immediately.
-- **Intelligent Account Matching**: Based on the current page URL, it automatically finds the most matching site account from My API Box, eliminating the need to manually search through lists.
+- **Intelligent Account Matching**: Based on the current page URL, it automatically finds the most matching site account from StationWarden, eliminating the need to manually search through lists.
 - **One-Click Redemption Completion**: Click "Auto Redeem", and the plugin will initiate a request in the background, displaying the redemption result as a notification bubble.
 - **Independent Switch**: You can enable/disable Redemption Assist independently in the settings, without affecting other functional modules.
 
 ## Prerequisites
 
-1. **Corresponding Site Account Exists in My API Box**:
+1. **Corresponding Site Account Exists in StationWarden**:
    - At least one account is functional, with no issues regarding balance or permissions.
 2. **Redemption Code Actually Exists on the Page**:
    - Common forms include "Today's Redemption Code", "Gift Pack Code", "Check-in Code", etc., usually a 32-character combination.
@@ -99,7 +99,7 @@ Possible reasons:
 
 Suggested troubleshooting steps:
 
-1. Confirm that "Redemption Assist" is enabled in My API Box settings;
+1. Confirm that "Redemption Assist" is enabled in StationWarden settings;
 2. Confirm that the current site account has been added in account management and can be accessed normally;
 3. Retry in a common desktop browser (Chrome / Edge / Firefox);
 4. If still ineffective, you can provide feedback in the repository Issues with a site screenshot and debugging information.

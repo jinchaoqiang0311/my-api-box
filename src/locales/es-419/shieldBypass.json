@@ -137,16 +137,16 @@
     "openVerification": "Abrir ventana de verificación",
     "reminderSettings": "Configuración de avisos",
     "turnstileAssistBody": "El sitio espera una verificación humana. Abre la ventana de verificación para resolver el captcha. La extensión comprobará el resultado después.",
-    "turnstileAssistTitle": "My API Box · Aviso de verificación",
+    "turnstileAssistTitle": "StationWarden · Aviso de verificación",
     "turnstilePageBody": "El sitio espera una verificación humana. Abre la ventana de verificación para resolver el captcha. La extensión comprobará el resultado después.",
     "verificationEnded": "Esta verificación terminó. No se requiere ninguna acción."
   },
-  "titlePrefix": "My API Box · Omisión de protección",
+  "titlePrefix": "StationWarden · Omisión de protección",
   "toast": {
     "actions": {
       "openSettings": "Abrir ajustes de omisión de protección"
     },
-    "body": "My API Box abrió esta página automáticamente para pasar páginas de protección (por ejemplo, desafíos de Cloudflare) y obtener las cookies/sesión necesarias.\nEsto es necesario para que My API Box pueda realizar solicitudes correctamente y detectar datos en sitios protegidos.\nSi aparece un paso de verificación, complétalo en esta ventana; una vez aprobado, My API Box continuará y esta ventana podría cerrarse automáticamente.",
+    "body": "StationWarden abrió esta página automáticamente para pasar páginas de protección (por ejemplo, desafíos de Cloudflare) y obtener las cookies/sesión necesarias.\nEsto es necesario para que StationWarden pueda realizar solicitudes correctamente y detectar datos en sitios protegidos.\nSi aparece un paso de verificación, complétalo en esta ventana; una vez aprobado, StationWarden continuará y esta ventana podría cerrarse automáticamente.",
     "title": "Ayudante de omisión protegida",
     "turnstile": {
       "body": "Completa la verificación del sitio en esta ventana, por ejemplo marcando “Soy humano” o seleccionando las imágenes indicadas. La extensión está esperando y después comprobará el resultado. Si la página sigue mostrando el check-in pendiente, complétalo allí.",

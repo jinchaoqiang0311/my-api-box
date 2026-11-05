@@ -32,7 +32,7 @@
     "cancelled": "Cancelado",
     "extensionDays": "Extendida {{days}} días",
     "fallbackBenefit": "Beneficio alternativo utilizado",
-    "noAccountForUrl": "No se encontró ninguna cuenta coincidente para este sitio. Agrega el sitio como cuenta en My API Box y vuelve a intentarlo.",
+    "noAccountForUrl": "No se encontró ninguna cuenta coincidente para este sitio. Agrega el sitio como cuenta en StationWarden y vuelve a intentarlo.",
     "promptConfirm": "Se detectó un posible código de canje {{code}} en esta página. ¿Intentar canje automático para este sitio?",
     "promptConfirmBatch_one": "Se detectó {{count}} posible código de canje en esta página. Selecciona códigos para canjear automáticamente en este sitio.",
     "promptConfirmBatch_many": "Se detectaron {{count}} posibles códigos de canje en esta página. Selecciona códigos para canjear automáticamente en este sitio.",
