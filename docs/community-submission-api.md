@@ -1,6 +1,6 @@
 # Community Verification Submission API
 
-This document defines the server contract consumed by My API Box's optional,
+This document defines the server contract consumed by StationWarden's optional,
 user-configured community submission service.
 
 The extension sends no request unless all of these conditions are true:

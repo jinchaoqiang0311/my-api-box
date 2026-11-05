@@ -31,7 +31,7 @@
 ### 1. 查看背景页 `Service Worker` 日志
 - 进入浏览器扩展管理页面 (`chrome://extensions`)。
 - 开启 **“开发者模式”**。
-- 在 My API Box 卡片中点击 **“查看视图：Service Worker”**。
+- 在 StationWarden 卡片中点击 **“查看视图：Service Worker”**。
 - 这里可以看到所有后台请求、自动刷新和 WebDAV 同步的底层日志。
 
 ### 2. 查看选项页/弹窗日志

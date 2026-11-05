@@ -1,6 +1,6 @@
 ﻿# Safari 扩展安装指南
 
-本文说明如何在自己的 Mac 上安装并持续使用 My API Box Safari 扩展。Safari 扩展需要通过配套的 macOS 应用安装；按下面步骤完成后，账号和设置会保存在本机。
+本文说明如何在自己的 Mac 上安装并持续使用 StationWarden Safari 扩展。Safari 扩展需要通过配套的 macOS 应用安装；按下面步骤完成后，账号和设置会保存在本机。
 
 ## 已验证环境
 
@@ -8,18 +8,18 @@
 
 ## 安装
 
-1. 打开 [My API Box 最新 Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)，下载 `all-api-hub-<版本号>-safari-xcode-bundle.zip`。不要下载名称中只有 `-safari.zip` 的附件。
+1. 打开 [StationWarden 最新 Release](https://github.com/jinchaoqiang0311/my-api-box/releases/latest)，下载 `all-api-hub-<版本号>-safari-xcode-bundle.zip`。不要下载名称中只有 `-safari.zip` 的附件。
 2. 解压文件，找到其中的 Xcode 工程并用 Xcode 打开。
 3. 在 Xcode 顶部选择 macOS 应用和这台 Mac 作为运行目标，点击 `Product > Run`。如果 Xcode 提示签名，按提示选择本机运行的签名选项。
 4. 打开 Safari，先在 `Safari > 设置 > 高级` 中启用“显示网页开发者功能”，再到 `Safari > 设置 > 开发者` 中启用“允许未签名的扩展”。Safari 可能会要求输入 Mac 登录密码。
-5. 在 `Safari > 设置 > 扩展` 中勾选 `My API Box`，并按需允许访问目标网站。
+5. 在 `Safari > 设置 > 扩展` 中勾选 `StationWarden`，并按需允许访问目标网站。
 6. 点击 Safari 工具栏中的扩展图标即可使用。
 
 如果扩展没有出现在列表中，先回到 Xcode 再运行一次配套的 macOS 应用，然后重新打开 Safari 的扩展设置。
 
 ## 下次打开 Safari
 
-Safari 退出后会重置“允许未签名的扩展”。每次重新打开 Safari 时，需要再次启用该选项。通常不需要重新启动 `My API Box` macOS 应用；首次安装、重新安装或 Safari 找不到扩展时，再启动该应用。这个步骤只影响扩展是否能运行，不会清除扩展数据。
+Safari 退出后会重置“允许未签名的扩展”。每次重新打开 Safari 时，需要再次启用该选项。通常不需要重新启动 `StationWarden` macOS 应用；首次安装、重新安装或 Safari 找不到扩展时，再启动该应用。这个步骤只影响扩展是否能运行，不会清除扩展数据。
 
 ## 数据保存在哪里
 
@@ -39,9 +39,9 @@ Safari 不提供部分其他浏览器扩展接口：
 
 ## 更新与卸载
 
-**更新：** 下载最新 Release 中的 Safari Xcode 工程压缩包，用 Xcode 打开并运行新版应用，然后在 Safari 扩展设置中确认 `My API Box` 已启用。使用同一扩展安装更新时，本机扩展数据会保留；更新前仍建议备份重要数据。
+**更新：** 下载最新 Release 中的 Safari Xcode 工程压缩包，用 Xcode 打开并运行新版应用，然后在 Safari 扩展设置中确认 `StationWarden` 已启用。使用同一扩展安装更新时，本机扩展数据会保留；更新前仍建议备份重要数据。
 
-**卸载：** 在 `Safari > 设置 > 扩展` 中取消勾选 `My API Box`，然后删除安装的 `My API Box` macOS 应用。若还要清除本机保存的数据，请在 Safari 的网站与扩展数据设置中移除对应数据。
+**卸载：** 在 `Safari > 设置 > 扩展` 中取消勾选 `StationWarden`，然后删除安装的 `StationWarden` macOS 应用。若还要清除本机保存的数据，请在 Safari 的网站与扩展数据设置中移除对应数据。
 
 ## 常见问题
 
