@@ -10,7 +10,14 @@ import { createLogger } from "~/utils/core/logger"
 
 const logger = createLogger("ProductAnalyticsPreferences")
 
-export const PRODUCT_ANALYTICS_DEFAULT_ENABLED = true
+/**
+ * Product analytics is opt-in: privacy baseline.
+ *
+ * This default must stay independent from the site/community telemetry switch
+ * (`communitySubmission`). Both require an explicit user action, and enabling
+ * one never enables the other.
+ */
+export const PRODUCT_ANALYTICS_DEFAULT_ENABLED = false
 
 interface ProductAnalyticsPreferenceState {
   enabled?: boolean
