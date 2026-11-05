@@ -9,10 +9,10 @@
 | 平台 | 字段 | 上限 | 依据 / 备注 |
 |---|---|---|---|
 | Chrome Web Store | 简短描述（Summary） | **132 字符** | Chrome 官方文档明确：summary「132 characters or less」，manifest `description` 同样 ≤132 |
-| Chrome Web Store | 详细描述（Description） | **16,000 字符** | 开发者中心字段上限；本文中文稿约 1,370 字符，英文稿约 3,550 字符，均远低于上限 |
+| Chrome Web Store | 详细描述（Description） | **16,000 字符** | 开发者中心字段上限（官方文档未写明数字，以提交页计数器为准）；本文中文稿约 1,370 字符，英文稿约 3,550 字符，均远低于上限 |
 | Chrome Web Store | 截图 | 1–5 张，1280×800 或 640×400 | 官方要求至少 1 张、最多 5 张 |
 | Microsoft Edge Add-ons | 简短描述 | **132 字符** | Edge 的 Short description 由包内 manifest `description` 填充，遵循 Chromium manifest 规范（≤132） |
-| Microsoft Edge Add-ons | 详细描述 | **10,000 字符** | Partner Center 字段上限；提交页有实时计数器，提交前以页面显示为准 |
+| Microsoft Edge Add-ons | 详细描述 | **10,000 字符** | Partner Center 字段上限（官方文档未写明数字）；提交页有实时计数器，提交前以页面显示为准 |
 | Microsoft Edge Add-ons | Search terms（可选） | ≤7 个词/短语，每个 ≤30 字符，合计 ≤21 词 | 不展示给用户，仅用于搜索 |
 
 说明：Chrome 与 Edge 的简短描述都走 manifest，两个平台的简短描述已控制在 132 字符内；若 Edge 提交页允许更长，可选用下方「Edge 备选简短描述（≤200）」而无需改动包体。
