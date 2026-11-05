@@ -181,4 +181,4 @@ Chrome 最多 5 张、Edge 上限以提交页计数器为准。建议顺序 **01
 - [ ] 单一用途表述与各平台字段完全一致
 - [ ] 权限说明覆盖 `<all_urls>`、可选 cookies、远程代码（否）
 - [ ] 隐私政策 URL：<https://jinchaoqiang0311.github.io/my-api-box/privacy.html>
-- [ ] 统计默认关闭的代码状态与文案一致（若包体仍默认开启，先改代码再提交，否则本条不成立）
+- [x] 统计默认关闭：代码（`PRODUCT_ANALYTICS_DEFAULT_ENABLED = false`）、设置页文案与隐私政策三处已一致
