@@ -1,4 +1,4 @@
-import { APP_SHORT_NAME } from "~/constants/branding"
+import { APP_NAME } from "~/constants/branding"
 import { browserApiLogger as logger } from "~/utils/browser/browserEnvironment"
 import { getErrorMessage } from "~/utils/core/error"
 
@@ -138,7 +138,7 @@ export function getManifest(): browser._manifest.WebExtensionManifest {
 
     return {
       manifest_version: 3,
-      name: APP_SHORT_NAME,
+      name: APP_NAME,
       version: "0.0.0",
       optional_permissions: [],
     }

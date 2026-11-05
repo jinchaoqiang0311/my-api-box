@@ -14,23 +14,14 @@
  * brand identifier layer lives here; feature copy belongs to the i18n locales.
  */
 export const APP_NAME = "StationWarden"
-export const APP_SHORT_NAME = APP_NAME
-export const APP_TAGLINE_ZH = "AI 中转站账号与计费守卫"
-export const APP_TAGLINE_EN = "AI Relay Account & Billing Guard"
-export const APP_BRAND_TITLE_ZH = `${APP_NAME} - ${APP_TAGLINE_ZH}`
-export const APP_BRAND_TITLE_EN = `${APP_NAME} - ${APP_TAGLINE_EN}`
 
 /** Repository and documentation entry points for this fork. */
 export const APP_REPOSITORY_URL =
   "https://github.com/jinchaoqiang0311/my-api-box"
 export const APP_REPOSITORY_NAME = "my-api-box"
 export const APP_DOCS_URL = "https://jinchaoqiang0311.github.io/my-api-box/"
-export const APP_PRIVACY_URL_ZH = `${APP_DOCS_URL}privacy.html`
-export const APP_PRIVACY_URL_EN = `${APP_DOCS_URL}en/privacy.html`
 
-/** Licence and upstream attribution required by AGPL-3.0. */
-export const APP_LICENSE = "AGPL-3.0-only"
-export const UPSTREAM_PROJECT_NAME = "All API Hub"
+/** Upstream attribution required by AGPL-3.0. */
 export const UPSTREAM_PROJECT_URL = "https://github.com/qixing-jk/all-api-hub"
 export const APP_MODIFICATION_DATE = "2026-11-04"
 

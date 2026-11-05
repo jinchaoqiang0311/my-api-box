@@ -1,4 +1,4 @@
-import { APP_SHORT_NAME } from "~/constants/branding"
+import { APP_NAME } from "~/constants/branding"
 
 import {
   DEV_BUILD_MARKER,
@@ -23,7 +23,7 @@ export function formatDevActionTitle(
   versionName?: string,
   path?: string | null,
 ) {
-  const safeBase = baseTitle?.trim() || APP_SHORT_NAME
+  const safeBase = baseTitle?.trim() || APP_NAME
   const safeVersion = versionName?.trim() || ""
   const safePath = path?.trim() || ""
 
