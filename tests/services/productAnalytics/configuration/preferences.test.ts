@@ -29,10 +29,9 @@ describe("productAnalyticsPreferences", () => {
     await storage.remove(PRODUCT_ANALYTICS_STORAGE_KEYS.PRODUCT_ANALYTICS_STATE)
   })
 
-  it("resolves analytics as enabled when no explicit preference exists", async () => {
-    await expect(productAnalyticsPreferences.isEnabled()).resolves.toBe(
-      PRODUCT_ANALYTICS_DEFAULT_ENABLED,
-    )
+  it("resolves analytics as disabled when no explicit preference exists", async () => {
+    expect(PRODUCT_ANALYTICS_DEFAULT_ENABLED).toBe(false)
+    await expect(productAnalyticsPreferences.isEnabled()).resolves.toBe(false)
   })
 
   it("persists explicit disabled preference without retaining legacy state fields", async () => {

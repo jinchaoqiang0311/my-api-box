@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <!-- StationWarden icon master: checkpoint gate + verification check -->
+  <rect width="64" height="64" rx="14" fill="#0B1B2B"/>
+  <g fill="#2FDCA0">
+    <rect x="6" y="14" width="52" height="9" rx="4.5"/>
+    <rect x="6" y="14" width="9" height="36" rx="4.5"/>
+    <rect x="49" y="14" width="9" height="36" rx="4.5"/>
+  </g>
+  <path d="M20 37 L28 45 L42 28" fill="none" stroke="#F7FBFF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
